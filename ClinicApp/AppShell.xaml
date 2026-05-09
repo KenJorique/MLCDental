@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="ClinicApp.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:ClinicApp"
+    xmlns:patients="clr-namespace:ClinicApp.Views.PatientsRelated"
+    xmlns:services="clr-namespace:ClinicApp.Views.ServicesRelated"
+    xmlns:users="clr-namespace:ClinicApp.Views.UsersRelated"
+    xmlns:views="clr-namespace:ClinicApp.Views"
+    Shell.FlyoutBehavior="Disabled">
+
+    <!-- The TabBar creates the bottom navigation seen in image_ba92c5.png -->
+    <TabBar>
+
+ 
+
+        <Tab Title="Patients">
+            <ShellContent
+           ContentTemplate="{DataTemplate patients:PatientListPage}"
+           Route="PatientListPage" />
+        </Tab>
+        
+        
+        <Tab Title="Services" >
+            <ShellContent
+                ContentTemplate="{DataTemplate services:ServiceListPage}"
+                Route="ServicePage" />
+        </Tab>
+
+        <Tab Title="Users">
+            <ShellContent
+                ContentTemplate="{DataTemplate users:UserListPage}"
+                Route="UserListPage" />
+        </Tab>
+
+       
+
+
+    </TabBar>
+
+</Shell>

@@ -1,0 +1,84 @@
+is_global = true
+build_property.EnableAotAnalyzer = 
+build_property.EnableSingleFileAnalyzer = 
+build_property.EnableTrimAnalyzer = false
+build_property.IncludeAllContentForSelfExtract = 
+build_property.MvvmToolkitEnableINotifyPropertyChangingSupport = true
+build_property._MvvmToolkitIsUsingWindowsRuntimePack = false
+build_property.CsWinRTComponent = 
+build_property.CsWinRTAotOptimizerEnabled = 
+build_property.CsWinRTAotWarningLevel = 
+build_property.TargetFramework = net8.0-ios
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = false
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = ClinicApp
+build_property.ProjectDir = C:\Users\Aspire\OneDrive\Desktop\patient\ClinicApp\ClinicApp\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Users/Aspire/OneDrive/Desktop/patient/ClinicApp/ClinicApp/App.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClinicApp.App.xaml
+build_metadata.AdditionalFiles.TargetPath = App.xaml
+build_metadata.AdditionalFiles.RelativePath = App.xaml
+
+[C:/Users/Aspire/OneDrive/Desktop/patient/ClinicApp/ClinicApp/AppShell.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClinicApp.AppShell.xaml
+build_metadata.AdditionalFiles.TargetPath = AppShell.xaml
+build_metadata.AdditionalFiles.RelativePath = AppShell.xaml
+
+[C:/Users/Aspire/OneDrive/Desktop/patient/ClinicApp/ClinicApp/MainPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClinicApp.MainPage.xaml
+build_metadata.AdditionalFiles.TargetPath = MainPage.xaml
+build_metadata.AdditionalFiles.RelativePath = MainPage.xaml
+
+[C:/Users/Aspire/OneDrive/Desktop/patient/ClinicApp/ClinicApp/Resources/Styles/Colors.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClinicApp.Resources.Styles.Colors.xaml
+build_metadata.AdditionalFiles.TargetPath = Resources\Styles\Colors.xaml
+build_metadata.AdditionalFiles.RelativePath = Resources\Styles\Colors.xaml
+
+[C:/Users/Aspire/OneDrive/Desktop/patient/ClinicApp/ClinicApp/Resources/Styles/Styles.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClinicApp.Resources.Styles.Styles.xaml
+build_metadata.AdditionalFiles.TargetPath = Resources\Styles\Styles.xaml
+build_metadata.AdditionalFiles.RelativePath = Resources\Styles\Styles.xaml
+
+[C:/Users/Aspire/OneDrive/Desktop/patient/ClinicApp/ClinicApp/Views/PatientPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClinicApp.Views.PatientPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\PatientPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\PatientPage.xaml
+
+[C:/Users/Aspire/OneDrive/Desktop/patient/ClinicApp/ClinicApp/Views/PatientsRelated/AddPatientPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClinicApp.Views.PatientsRelated.AddPatientPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\PatientsRelated\AddPatientPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\PatientsRelated\AddPatientPage.xaml
+
+[C:/Users/Aspire/OneDrive/Desktop/patient/ClinicApp/ClinicApp/Views/PatientsRelated/PatientDetailsPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClinicApp.Views.PatientsRelated.PatientDetailsPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\PatientsRelated\PatientDetailsPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\PatientsRelated\PatientDetailsPage.xaml
+
+[C:/Users/Aspire/OneDrive/Desktop/patient/ClinicApp/ClinicApp/Views/PatientsRelated/PatientListPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClinicApp.Views.PatientsRelated.PatientListPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\PatientsRelated\PatientListPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\PatientsRelated\PatientListPage.xaml
+
+[C:/Users/Aspire/OneDrive/Desktop/patient/ClinicApp/ClinicApp/Views/ServicePage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClinicApp.Views.ServicePage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\ServicePage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\ServicePage.xaml

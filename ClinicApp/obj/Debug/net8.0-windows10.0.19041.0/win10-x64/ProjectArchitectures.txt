@@ -1,0 +1,1 @@
+C:\Users\Aspire\OneDrive\Desktop\patient\ClinicApp\ClinicApp\ClinicApp.csproj;x64

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ClinicApp.Views.PatientsRelated.AddPatientPage"
+             Title="Add New Patient">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+            
+            <Label Text="Patient Information" FontAttributes="Bold" Margin="0,10,0,0"/>
+            
+            <Entry Placeholder="First Name"
+                   Text="{Binding FirstName}" />
+
+            <Entry Placeholder="Last Name"
+                   Text="{Binding LastName}" />
+
+            <!-- Using Telephone keyboard for easier 11-digit entry -->
+            <Entry Placeholder="Contact Number (09xxxxxxxxx)"
+                   Text="{Binding ContactNumber}"
+                   Keyboard="Telephone"
+                   MaxLength="11" />
+
+            <Entry Placeholder="Address"
+                   Text="{Binding Address}" />
+
+            <Label Text="Medical History" FontAttributes="Bold" Margin="0,10,0,0"/>
+
+            <!-- Checkbox for "None" -->
+            <HorizontalStackLayout Spacing="10">
+                <CheckBox IsChecked="{Binding HasNoMedicalHistory}" />
+                <Label Text="No prior medical history (None)" VerticalOptions="Center" />
+            </HorizontalStackLayout>
+
+            <!-- Editor is disabled if "None" is checked -->
+            <Editor Placeholder="Type medical history here..."
+                    Text="{Binding MedicalHistory}"
+                    HeightRequest="100" />
+
+            <Button Text="Save Patient"
+                    Margin="0,20,0,0"
+                    Command="{Binding SavePatientCommand}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

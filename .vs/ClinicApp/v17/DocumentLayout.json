@@ -1,0 +1,613 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\mauiprogram.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\mauiprogram.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\appshell.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\appshell.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\viewmodels\\usersrelated\\userviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\viewmodels\\usersrelated\\userviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\viewmodels\\usersrelated\\adduservm.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\viewmodels\\usersrelated\\adduservm.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\usersrelated\\adduserpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\usersrelated\\adduserpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\usersrelated\\adduserpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\usersrelated\\adduserpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\usersrelated\\userlistpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\usersrelated\\userlistpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\usersrelated\\userlistpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\usersrelated\\userlistpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\services\\databaseservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\services\\databaseservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\servicesrelated\\servicelistpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\servicesrelated\\servicelistpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\appshell.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\appshell.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\servicesrelated\\servicelistpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\servicesrelated\\servicelistpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\viewmodels\\serviceviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\viewmodels\\serviceviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\patientsrelated\\patientlistpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\patientsrelated\\patientlistpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\viewmodels\\patientsrelatedvm\\addpatientviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\viewmodels\\patientsrelatedvm\\addpatientviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\viewmodels\\patientsrelatedvm\\patientviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\viewmodels\\patientsrelatedvm\\patientviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\viewmodels\\patientsrelatedvm\\patientlistviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\viewmodels\\patientsrelatedvm\\patientlistviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\servicesrelated\\servicepage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\servicesrelated\\servicepage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\patientsrelated\\patientpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\patientsrelated\\patientpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\servicesrelated\\servicepage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\servicesrelated\\servicepage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\patientsrelated\\patientpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\patientsrelated\\patientpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\patientsrelated\\addpatientpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\patientsrelated\\addpatientpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\patientsrelated\\patientlistpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\patientsrelated\\patientlistpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\servicesrelated\\addservicepage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\servicesrelated\\addservicepage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\servicesrelated\\addservicepage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\servicesrelated\\addservicepage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\models\\patient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\models\\patient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\patientsrelated\\patientdetailspage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\patientsrelated\\patientdetailspage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\patientsrelated\\patientdetailspage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\patientsrelated\\patientdetailspage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\models\\servicemodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\models\\servicemodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\views\\patientsrelated\\addpatientpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\views\\patientsrelated\\addpatientpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Program Files\\dotnet\\packs\\Microsoft.Android.Sdk.Windows\\34.0.154\\tools\\Xamarin.Android.Resource.Designer.targets||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\app.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\app.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|c:\\users\\aspire\\onedrive\\desktop\\patient\\clinicapp\\clinicapp\\mainpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{DA7FE7EB-0B78-456C-A9AE-AC61C614498F}|ClinicApp\\ClinicApp.csproj|solutionrelative:clinicapp\\mainpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Program Files\\dotnet\\packs\\Microsoft.Android.Sdk.Windows\\34.0.154\\tools\\Xamarin.Android.D8.targets||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "AdduserPage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\UsersRelated\\AdduserPage.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\UsersRelated\\AdduserPage.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\UsersRelated\\AdduserPage.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\Views\\UsersRelated\\AdduserPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T11:12:01.361Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "AddUserPage.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\UsersRelated\\AddUserPage.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\UsersRelated\\AddUserPage.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\UsersRelated\\AddUserPage.xaml",
+              "RelativeToolTip": "ClinicApp\\Views\\UsersRelated\\AddUserPage.xaml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAA3AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-09T11:08:02.921Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "UserListPage.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\UsersRelated\\UserListPage.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\UsersRelated\\UserListPage.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\UsersRelated\\UserListPage.xaml",
+              "RelativeToolTip": "ClinicApp\\Views\\UsersRelated\\UserListPage.xaml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAA6AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-09T10:02:44.97Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "UserViewModel.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\UsersRelated\\UserViewModel.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\ViewModels\\UsersRelated\\UserViewModel.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\UsersRelated\\UserViewModel.cs",
+              "RelativeToolTip": "ClinicApp\\ViewModels\\UsersRelated\\UserViewModel.cs",
+              "ViewState": "AgIAAB8AAAAAAAAAAAAkwCwAAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T10:00:51.685Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "AddUserVM.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\UsersRelated\\AddUserVM.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\ViewModels\\UsersRelated\\AddUserVM.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\UsersRelated\\AddUserVM.cs",
+              "RelativeToolTip": "ClinicApp\\ViewModels\\UsersRelated\\AddUserVM.cs",
+              "ViewState": "AgIAACkAAAAAAAAAAAAgwA8AAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T11:10:19.074Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "AppShell.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\AppShell.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\AppShell.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\AppShell.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\AppShell.xaml.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAA8AAABvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T13:21:23.706Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MauiProgram.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\MauiProgram.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\MauiProgram.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\MauiProgram.cs",
+              "RelativeToolTip": "ClinicApp\\MauiProgram.cs",
+              "ViewState": "AgIAAA0AAAAAAAAAAAAUwBoAAAA8AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T11:30:51.126Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "UserListPage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\UsersRelated\\UserListPage.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\UsersRelated\\UserListPage.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\UsersRelated\\UserListPage.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\Views\\UsersRelated\\UserListPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T10:06:29.964Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "DatabaseService.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Services\\DatabaseService.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Services\\DatabaseService.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Services\\DatabaseService.cs",
+              "RelativeToolTip": "ClinicApp\\Services\\DatabaseService.cs",
+              "ViewState": "AgIAAHsAAAAAAAAAAAA/wJsAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T11:28:40.314Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "User.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Models\\User.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Models\\User.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Models\\User.cs",
+              "RelativeToolTip": "ClinicApp\\Models\\User.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T11:26:33.592Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "ServiceListPage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\ServiceListPage.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\ServicesRelated\\ServiceListPage.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\ServiceListPage.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\Views\\ServicesRelated\\ServiceListPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T07:19:45.86Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "AppShell.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\AppShell.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\AppShell.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\AppShell.xaml",
+              "RelativeToolTip": "ClinicApp\\AppShell.xaml",
+              "ViewState": "AgIAAA0AAAAAAAAAAAAuwCAAAAA0AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T13:22:06.747Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "ServiceListPage.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\ServiceListPage.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\ServicesRelated\\ServiceListPage.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\ServiceListPage.xaml",
+              "RelativeToolTip": "ClinicApp\\Views\\ServicesRelated\\ServiceListPage.xaml",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAAAkAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-09T07:08:24.315Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "ServiceViewModel.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\ServiceViewModel.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\ViewModels\\ServiceViewModel.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\ServiceViewModel.cs",
+              "RelativeToolTip": "ClinicApp\\ViewModels\\ServiceViewModel.cs",
+              "ViewState": "AgIAAE0AAAAAAAAAAAAgwGUAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T13:19:12.836Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "PatientListPage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientListPage.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\PatientsRelated\\PatientListPage.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientListPage.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\Views\\PatientsRelated\\PatientListPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T15:02:33.083Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "AddPatientViewModel.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\PatientsRelatedVM\\AddPatientViewModel.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\ViewModels\\PatientsRelatedVM\\AddPatientViewModel.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\PatientsRelatedVM\\AddPatientViewModel.cs",
+              "RelativeToolTip": "ClinicApp\\ViewModels\\PatientsRelatedVM\\AddPatientViewModel.cs",
+              "ViewState": "AgIAACAAAAAAAAAAAAAQwCkAAAA2AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T14:18:27.19Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "PatientListViewModel.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\PatientsRelatedVM\\PatientListViewModel.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\ViewModels\\PatientsRelatedVM\\PatientListViewModel.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\PatientsRelatedVM\\PatientListViewModel.cs",
+              "RelativeToolTip": "ClinicApp\\ViewModels\\PatientsRelatedVM\\PatientListViewModel.cs",
+              "ViewState": "AgIAAAQAAAAAAAAAAADwv0IAAAApAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T14:16:53.95Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "ServicePage.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\ServicePage.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\ServicesRelated\\ServicePage.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\ServicePage.xaml",
+              "RelativeToolTip": "ClinicApp\\Views\\ServicesRelated\\ServicePage.xaml",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAAACIAAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T13:20:35.989Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "PatientViewModel.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\PatientsRelatedVM\\PatientViewModel.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\ViewModels\\PatientsRelatedVM\\PatientViewModel.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\ViewModels\\PatientsRelatedVM\\PatientViewModel.cs",
+              "RelativeToolTip": "ClinicApp\\ViewModels\\PatientsRelatedVM\\PatientViewModel.cs",
+              "ViewState": "AgIAABgAAAAAAAAAAAA1wFUAAAA0AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T11:34:34.248Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "PatientPage.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientPage.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\PatientsRelated\\PatientPage.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientPage.xaml",
+              "RelativeToolTip": "ClinicApp\\Views\\PatientsRelated\\PatientPage.xaml",
+              "ViewState": "AgIAAB4AAAAAAAAAAAAAADkAAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T11:38:05.804Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "ServicePage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\ServicePage.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\ServicesRelated\\ServicePage.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\ServicePage.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\Views\\ServicesRelated\\ServicePage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T06:23:33.113Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "PatientPage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientPage.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\PatientsRelated\\PatientPage.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientPage.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\Views\\PatientsRelated\\PatientPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T11:38:42.792Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "AddPatientPage.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\AddPatientPage.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\PatientsRelated\\AddPatientPage.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\AddPatientPage.xaml",
+              "RelativeToolTip": "ClinicApp\\Views\\PatientsRelated\\AddPatientPage.xaml",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAAAoAAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T14:14:10.699Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "PatientListPage.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientListPage.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\PatientsRelated\\PatientListPage.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientListPage.xaml",
+              "RelativeToolTip": "ClinicApp\\Views\\PatientsRelated\\PatientListPage.xaml",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAAcAAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T14:13:56.145Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "AddServicePage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\AddServicePage.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\ServicesRelated\\AddServicePage.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\AddServicePage.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\Views\\ServicesRelated\\AddServicePage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T07:13:42.217Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "AddServicePage.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\AddServicePage.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\ServicesRelated\\AddServicePage.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\ServicesRelated\\AddServicePage.xaml",
+              "RelativeToolTip": "ClinicApp\\Views\\ServicesRelated\\AddServicePage.xaml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-09T07:12:09.109Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "Patient.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Models\\Patient.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Models\\Patient.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Models\\Patient.cs",
+              "RelativeToolTip": "ClinicApp\\Models\\Patient.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAuwBkAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T11:25:17.785Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "PatientDetailsPage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientDetailsPage.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\PatientsRelated\\PatientDetailsPage.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientDetailsPage.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\Views\\PatientsRelated\\PatientDetailsPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T07:48:50.481Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "PatientDetailsPage.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientDetailsPage.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\PatientsRelated\\PatientDetailsPage.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\PatientDetailsPage.xaml",
+              "RelativeToolTip": "ClinicApp\\Views\\PatientsRelated\\PatientDetailsPage.xaml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T14:14:37.474Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "ServiceModel.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Models\\ServiceModel.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Models\\ServiceModel.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Models\\ServiceModel.cs",
+              "RelativeToolTip": "ClinicApp\\Models\\ServiceModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T11:26:12.865Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "AddPatientPage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\AddPatientPage.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\Views\\PatientsRelated\\AddPatientPage.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\Views\\PatientsRelated\\AddPatientPage.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\Views\\PatientsRelated\\AddPatientPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T15:39:14.849Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "Xamarin.Android.Resource.Designer.targets",
+              "DocumentMoniker": "C:\\Program Files\\dotnet\\packs\\Microsoft.Android.Sdk.Windows\\34.0.154\\tools\\Xamarin.Android.Resource.Designer.targets",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\..\\Program Files\\dotnet\\packs\\Microsoft.Android.Sdk.Windows\\34.0.154\\tools\\Xamarin.Android.Resource.Designer.targets",
+              "ToolTip": "C:\\Program Files\\dotnet\\packs\\Microsoft.Android.Sdk.Windows\\34.0.154\\tools\\Xamarin.Android.Resource.Designer.targets",
+              "RelativeToolTip": "..\\..\\..\\..\\..\\..\\Program Files\\dotnet\\packs\\Microsoft.Android.Sdk.Windows\\34.0.154\\tools\\Xamarin.Android.Resource.Designer.targets",
+              "ViewState": "AgIAAC0AAAAAAAAAAAAswEAAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003801|",
+              "WhenOpened": "2026-05-08T14:23:25.868Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "App.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\App.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\App.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\App.xaml",
+              "RelativeToolTip": "ClinicApp\\App.xaml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T14:20:41.164Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 33,
+              "Title": "App.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\App.xaml.cs",
+              "RelativeDocumentMoniker": "ClinicApp\\App.xaml.cs",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\App.xaml.cs",
+              "RelativeToolTip": "ClinicApp\\App.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T13:58:45.845Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 34,
+              "Title": "MainPage.xaml",
+              "DocumentMoniker": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\MainPage.xaml",
+              "RelativeDocumentMoniker": "ClinicApp\\MainPage.xaml",
+              "ToolTip": "C:\\Users\\Aspire\\OneDrive\\Desktop\\patient\\ClinicApp\\ClinicApp\\MainPage.xaml",
+              "RelativeToolTip": "ClinicApp\\MainPage.xaml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T13:59:00.885Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 35,
+              "Title": "Xamarin.Android.D8.targets",
+              "DocumentMoniker": "C:\\Program Files\\dotnet\\packs\\Microsoft.Android.Sdk.Windows\\34.0.154\\tools\\Xamarin.Android.D8.targets",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\..\\Program Files\\dotnet\\packs\\Microsoft.Android.Sdk.Windows\\34.0.154\\tools\\Xamarin.Android.D8.targets",
+              "ToolTip": "C:\\Program Files\\dotnet\\packs\\Microsoft.Android.Sdk.Windows\\34.0.154\\tools\\Xamarin.Android.D8.targets",
+              "RelativeToolTip": "..\\..\\..\\..\\..\\..\\Program Files\\dotnet\\packs\\Microsoft.Android.Sdk.Windows\\34.0.154\\tools\\Xamarin.Android.D8.targets",
+              "ViewState": "AgIAAD0AAAAAAAAAAAAswEkAAAByAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003801|",
+              "WhenOpened": "2026-05-08T13:10:59.578Z"
+            }
+          ]
+        },
+        {
+          "DockedWidth": 1162,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
