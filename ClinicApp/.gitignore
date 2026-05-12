@@ -1,0 +1,19 @@
+# Visual Studio cache
+.vs/
+.VS/
+
+# Build outputs
+bin/
+obj/
+
+# NuGet packages
+*.nupkg
+packages/
+
+# User-specific files
+*.user
+*.suo
+
+# OS files
+.DS_Store
+Thumbs.db

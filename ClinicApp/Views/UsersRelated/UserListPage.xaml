@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:ClinicApp.Models"
+             x:Class="ClinicApp.Views.UsersRelated.UserListPage"
+             Title="Clinic Staff"
+             Shell.TabBarIsVisible="False">
+
+    <Grid>
+
+        <CollectionView ItemsSource="{Binding Users}" Margin="10">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:User">
+                    <Frame Margin="5" Padding="15" HasShadow="True">
+                        <HorizontalStackLayout Spacing="15" VerticalOptions="Center">
+
+                            <VerticalStackLayout WidthRequest="180">
+                                <Label Text="{Binding FullName}" FontAttributes="Bold" FontSize="16"/>
+                                <Label Text="{Binding Role}" TextColor="Gray" FontSize="12"/>
+                            </VerticalStackLayout>
+
+                            <!-- Actions -->
+                            <HorizontalStackLayout Spacing="5">
+                                <Button Text="Edit" Scale="0.8"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditUserCommand}"
+                                    CommandParameter="{Binding .}"/>
+                                <Button Text="Delete" Scale="0.8" BackgroundColor="Crimson"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteUserCommand}"
+                                    CommandParameter="{Binding .}"/>
+                            </HorizontalStackLayout>
+
+                        </HorizontalStackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Floating Add Button (bottom right) -->
+        <Button Text="+ Add Staff"
+                Command="{Binding GoToAddUserCommand}"
+                VerticalOptions="End"
+                HorizontalOptions="End"
+                Margin="0,0,20,20"
+                CornerRadius="30"
+                Padding="20,12" />
+
+    </Grid>
+</ContentPage>

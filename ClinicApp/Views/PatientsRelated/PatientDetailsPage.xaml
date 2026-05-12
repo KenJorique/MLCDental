@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ClinicApp.Views.PatientsRelated.PatientDetailsPage"
+             Title="Patient Records"
+             Shell.TabBarIsVisible="False">
+
+    <!-- Meatball menu (⋮) in the top right corner -->
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="⋮" Order="Primary" Command="{Binding ShowMenuCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="12">
+
+            <Label Text="Patient Information" FontAttributes="Bold" FontSize="18" Margin="0,0,0,10"/>
+
+            <Label Text="Full Name" FontAttributes="Bold" TextColor="Gray" FontSize="12"/>
+            <Label Text="{Binding FullName}" FontSize="16"/>
+
+            <Label Text="Contact Number" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
+            <Label Text="{Binding ContactNumber}" FontSize="16"/>
+
+            <Label Text="Address" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
+            <Label Text="{Binding Address}" FontSize="16"/>
+
+            <Label Text="Medical History" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
+            <Label Text="{Binding MedicalHistory}" FontSize="16"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

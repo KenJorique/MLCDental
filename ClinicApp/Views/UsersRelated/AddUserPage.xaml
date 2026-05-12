@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:ClinicApp.ViewModels"
+             x:Class="ClinicApp.Views.UsersRelated.AddUserPage"
+             Title="Staff Details"
+             Shell.TabBarIsVisible="False">
+
+    <VerticalStackLayout Padding="20" Spacing="15">
+
+        <Label Text="Full Name" FontAttributes="Bold"/>
+        <Entry Text="{Binding FullName}" Placeholder="Enter full name"/>
+
+        <Label Text="Username" FontAttributes="Bold"/>
+        <Entry Text="{Binding Username}" Placeholder="Enter username"/>
+
+        <Label Text="Password" FontAttributes="Bold"/>
+        <Entry Text="{Binding Password}" Placeholder="Enter password" IsPassword="True"/>
+
+        <Label Text="Role" FontAttributes="Bold"/>
+        <Picker SelectedItem="{Binding Role}" Title="Select Role">
+            <Picker.ItemsSource>
+                <x:Array Type="{x:Type x:String}">
+                    <x:String>Dentist</x:String>
+                    <x:String>Assistant</x:String>
+                    <x:String>Admin</x:String>
+                </x:Array>
+            </Picker.ItemsSource>
+        </Picker>
+
+        <Button Text="Save Staff Member"
+                Command="{Binding SaveUserCommand}"
+                Margin="0,20,0,0"
+                BackgroundColor="MediumPurple"/>
+
+    </VerticalStackLayout>
+</ContentPage>
