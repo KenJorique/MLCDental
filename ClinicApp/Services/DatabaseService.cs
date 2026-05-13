@@ -1,16 +1,12 @@
 ﻿using ClinicApp.Models;
 using SQLite;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ClinicApp.Services;
 
 public class DatabaseService
 {
-    SQLiteAsyncConnection _database;
+    // SQLite async connection, initialized once via Init()
+    SQLiteAsyncConnection? _database;
 
     public async Task Init()
     {
@@ -20,27 +16,23 @@ public class DatabaseService
                 return;
 
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
-            
-
-            // Create the User table
-           
-
-
             _database = new SQLiteAsyncConnection(dbPath);
 
+            // Create all tables if they don't exist yet
             await _database.CreateTableAsync<Patient>();
             await _database.CreateTableAsync<ServiceModel>();
+            await _database.CreateTableAsync<ServicePackage>();
             await _database.CreateTableAsync<User>();
 
+            // Seed default users on first run
             var userCount = await _database.Table<User>().CountAsync();
             if (userCount == 0)
             {
                 var defaultUsers = new List<User>
-        {
-            new User { FullName = "Dr. Full Name", Username = "dentist1", Password = "123", Role = "Dentist" },
-            new User { FullName = "Assistant Name", Username = "staff1", Password = "123", Role = "Assistant" }
-        };
-
+                {
+                    new User { FullName = "Dr. Full Name", Username = "dentist1", Password = "123", Role = "Dentist" },
+                    new User { FullName = "Assistant Name", Username = "staff1", Password = "123", Role = "Assistant" }
+                };
                 await _database.InsertAllAsync(defaultUsers);
             }
         }
@@ -57,7 +49,7 @@ public class DatabaseService
     public async Task<List<Patient>> GetPatients()
     {
         await Init();
-        return await _database.Table<Patient>().ToListAsync();
+        return await _database!.Table<Patient>().ToListAsync();
     }
 
     public async Task AddPatient(Patient patient)
@@ -65,9 +57,7 @@ public class DatabaseService
         try
         {
             await Init();
-
-            int result = await _database.InsertAsync(patient);
-
+            int result = await _database!.InsertAsync(patient);
             System.Diagnostics.Debug.WriteLine($"Inserted: {result}");
         }
         catch (Exception ex)
@@ -79,25 +69,22 @@ public class DatabaseService
     public async Task UpdatePatient(Patient patient)
     {
         await Init();
-        await _database.UpdateAsync(patient);
+        await _database!.UpdateAsync(patient);
     }
 
     public async Task DeletePatient(Patient patient)
     {
         await Init();
-        await _database.DeleteAsync(patient);
+        await _database!.DeleteAsync(patient);
     }
 
     public async Task<Patient> GetPatientById(int id)
     {
-        await Init(); // Always ensure the connection is initialized
-        return await _database.Table<Patient>()
-                              .Where(p => p.PatientID == id)
-                              .FirstOrDefaultAsync();
+        await Init();
+        return await _database!.Table<Patient>()
+                               .Where(p => p.PatientID == id)
+                               .FirstOrDefaultAsync();
     }
-
-
-
 
     // =========================
     // SERVICE CRUD
@@ -106,25 +93,53 @@ public class DatabaseService
     public async Task<List<ServiceModel>> GetServices()
     {
         await Init();
-        return await _database.Table<ServiceModel>().ToListAsync();
+        return await _database!.Table<ServiceModel>().ToListAsync();
     }
 
     public async Task AddService(ServiceModel service)
     {
         await Init();
-        await _database.InsertAsync(service);
+        await _database!.InsertAsync(service);
     }
 
     public async Task DeleteService(ServiceModel service)
     {
         await Init();
-        await _database.DeleteAsync(service);
+        await _database!.DeleteAsync(service);
     }
 
     public async Task UpdateService(ServiceModel service)
     {
         await Init();
-        await _database.UpdateAsync(service);
+        await _database!.UpdateAsync(service);
+    }
+
+    // =========================
+    // SERVICE PACKAGE CRUD
+    // =========================
+
+    public async Task<List<ServicePackage>> GetServicePackages()
+    {
+        await Init();
+        return await _database!.Table<ServicePackage>().ToListAsync();
+    }
+
+    public async Task AddServicePackage(ServicePackage package)
+    {
+        await Init();
+        await _database!.InsertAsync(package);
+    }
+
+    public async Task UpdateServicePackage(ServicePackage package)
+    {
+        await Init();
+        await _database!.UpdateAsync(package);
+    }
+
+    public async Task DeleteServicePackage(ServicePackage package)
+    {
+        await Init();
+        await _database!.DeleteAsync(package);
     }
 
     // =========================
@@ -134,24 +149,24 @@ public class DatabaseService
     public async Task<List<User>> GetUsers()
     {
         await Init();
-        return await _database.Table<User>().ToListAsync();
+        return await _database!.Table<User>().ToListAsync();
     }
 
     public async Task AddUser(User user)
     {
         await Init();
-        await _database.InsertAsync(user);
+        await _database!.InsertAsync(user);
     }
 
     public async Task<int> DeleteUser(User user)
     {
         await Init();
-        return await _database.DeleteAsync(user);
+        return await _database!.DeleteAsync(user);
     }
 
     public async Task UpdateUser(User user)
     {
         await Init();
-        await _database.UpdateAsync(user);
+        await _database!.UpdateAsync(user);
     }
 }
