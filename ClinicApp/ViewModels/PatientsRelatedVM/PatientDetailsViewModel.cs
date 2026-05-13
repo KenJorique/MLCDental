@@ -21,6 +21,10 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         [ObservableProperty] string contactNumber;
         [ObservableProperty] string address;
         [ObservableProperty] string medicalHistory;
+        [ObservableProperty] string email;
+        [ObservableProperty] bool gender;
+        [ObservableProperty] DateTime dateOfBirth;
+        [ObservableProperty] DateTime dateRegistered;
 
         partial void OnPatientIdChanged(int value)
         {
@@ -35,11 +39,17 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             if (patient != null)
             {
                 FullName = $"{patient.FirstName} {patient.LastName}";
+                Gender = patient.Gender;
+                DateOfBirth = patient.DateOfBirth;
                 ContactNumber = patient.ContactNumber;
                 Address = patient.Address;
+                Email = patient.Email;
                 MedicalHistory = patient.HasNoMedicalHistory
                     ? "No prior medical history"
                     : patient.MedicalHistory;
+               
+               
+                DateRegistered = patient.DateRegistered;
             }
         }
 

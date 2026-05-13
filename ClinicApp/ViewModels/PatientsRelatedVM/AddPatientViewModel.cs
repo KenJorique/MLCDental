@@ -19,6 +19,10 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         [ObservableProperty] string pageTitle = "Add New Patient";
         [ObservableProperty] string firstName;
         [ObservableProperty] string lastName;
+        [ObservableProperty] string email;
+        [ObservableProperty] bool gender;
+        [ObservableProperty] DateTime dateOfBirth;
+        [ObservableProperty] DateTime dateRegistered;
         [ObservableProperty] string address;
         [ObservableProperty] string contactNumber;  // fixed: string to match Patient model
         [ObservableProperty] string medicalHistory;
@@ -36,7 +40,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         private async void LoadPatientData(int id)
         {
             var patient = await _db.GetPatientById(id);
-            if (patient != null)
+            if (patient != null)    
             {
                 FirstName = patient.FirstName;
                 LastName = patient.LastName;
@@ -44,6 +48,10 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 ContactNumber = patient.ContactNumber;
                 MedicalHistory = patient.MedicalHistory;
                 HasNoMedicalHistory = patient.HasNoMedicalHistory;
+                Email = patient.Email;
+                Gender = patient.Gender;
+                DateOfBirth = patient.DateOfBirth;
+                DateRegistered = patient.DateRegistered;
             }
         }
 
@@ -60,6 +68,10 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 p.ContactNumber = ContactNumber;
                 p.MedicalHistory = MedicalHistory;
                 p.HasNoMedicalHistory = HasNoMedicalHistory;
+                p.Email = Email;
+                p.Gender = Gender;
+                p.DateOfBirth = DateOfBirth;
+                p.DateRegistered = DateRegistered;
                 await _db.UpdatePatient(p);
             }
             else
@@ -72,7 +84,11 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                     Address = Address,
                     ContactNumber = ContactNumber,
                     MedicalHistory = MedicalHistory,
-                    HasNoMedicalHistory = HasNoMedicalHistory
+                    HasNoMedicalHistory = HasNoMedicalHistory,
+                    Email = Email,
+                    Gender = Gender,
+                    DateOfBirth = DateOfBirth,
+                    DateRegistered = DateRegistered
                 });
             }
             await Shell.Current.GoToAsync("..");

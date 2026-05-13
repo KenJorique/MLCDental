@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels.DentalChart"
+    x:Class="ClinicApp.Views.DentalChart.DentalChartPage"
+    x:DataType="vm:DentalChartViewModel"
+    Title="Dental Chart"
+    Shell.TabBarIsVisible="False"
+    BackgroundColor="#F0F4F8">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12,10,12,30" Spacing="0">
+
+            <!-- ── Patient header ── -->
+            <Frame BackgroundColor="White" CornerRadius="12"
+                   HasShadow="True" Padding="16,12" Margin="0,0,0,12">
+                <Grid ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout Grid.Column="0">
+                        <Label Text="{Binding PatientName}"
+                               FontSize="20" FontAttributes="Bold" TextColor="#1A2B4A"/>
+                        <Label Text="{Binding PatientId, StringFormat='Patient ID: {0}'}"
+                               FontSize="12" TextColor="#6B7A9A"/>
+                    </VerticalStackLayout>
+                    <ActivityIndicator Grid.Column="1"
+                                       IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       Color="#2563EB"
+                                       WidthRequest="26" HeightRequest="26"
+                                       VerticalOptions="Center"/>
+                </Grid>
+            </Frame>
+
+            <!-- ── Chart card ── -->
+            <Frame BackgroundColor="White" CornerRadius="14"
+                   HasShadow="True" Padding="10,12" Margin="0,0,0,12">
+                <VerticalStackLayout Spacing="4">
+
+                    <!-- Header row -->
+                    <Grid ColumnDefinitions="*,Auto,*" Margin="4,0,4,6">
+                        <Label Grid.Column="0" Text="RIGHT" FontSize="11"
+                               TextColor="#9CA3AF" HorizontalTextAlignment="Start"
+                               VerticalTextAlignment="Center"/>
+                        <Label Grid.Column="1" Text="DENTAL CHART"
+                               FontSize="14" FontAttributes="Bold"
+                               TextColor="#1A2B4A" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="2" Text="LEFT" FontSize="11"
+                               TextColor="#9CA3AF" HorizontalTextAlignment="End"
+                               VerticalTextAlignment="Center"/>
+                    </Grid>
+
+                    <!-- UPPER arch label -->
+                    <Label Text="UPPER ARCH" FontSize="10" FontAttributes="Bold"
+                           TextColor="#6B7A9A" HorizontalTextAlignment="Center"
+                           Margin="0,2,0,4"/>
+
+                    <!-- Upper teeth 1–16 -->
+                    <FlexLayout Direction="Row" JustifyContent="Center"
+                                AlignItems="Center" Wrap="NoWrap"
+                                BindableLayout.ItemsSource="{Binding UpperTeeth}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ToothViewModel">
+                                <!-- Each tooth: number + colored box -->
+                                <Grid WidthRequest="38" HeightRequest="50" Margin="1,0">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.ToothTappedCommand}"
+                                            CommandParameter="{Binding ToothNumber}"/>
+                                    </Grid.GestureRecognizers>
+
+                                    <!-- Selection ring -->
+                                    <Border IsVisible="{Binding IsSelected}"
+                                            StrokeThickness="2.5"
+                                            Stroke="#FFA500"
+                                            BackgroundColor="Transparent"
+                                            ZIndex="2">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="6"/>
+                                        </Border.StrokeShape>
+                                    </Border>
+
+                                    <!-- Tooth body -->
+                                    <Border BackgroundColor="{Binding ToothColor}"
+                                            StrokeThickness="1" Stroke="#CCCCCC">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="5"/>
+                                        </Border.StrokeShape>
+                                        <VerticalStackLayout Padding="2" Spacing="1">
+                                            <!-- Tooth number -->
+                                            <Label Text="{Binding ToothLabel}"
+                                                   FontSize="9" FontAttributes="Bold"
+                                                   HorizontalTextAlignment="Center"
+                                                   TextColor="#333333"/>
+                                            <!-- Tooth shape (emoji tooth as icon) -->
+                                            <Label Text="🦷" FontSize="16"
+                                                   HorizontalTextAlignment="Center"
+                                                   VerticalTextAlignment="Center"
+                                                   IsVisible="{Binding Condition,
+                                                       Converter={StaticResource StringEqualConverter},
+                                                       ConverterParameter=Normal}"/>
+                                            <!-- Colored indicator block for non-normal teeth -->
+                                            <BoxView
+                                                WidthRequest="24" HeightRequest="20"
+                                                CornerRadius="3"
+                                                Color="{Binding ToothColor}"
+                                                HorizontalOptions="Center"
+                                                IsVisible="{Binding Condition,
+                                                    Converter={StaticResource StringNotEqualConverter},
+                                                    ConverterParameter=Normal}"/>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+
+                    <!-- Gum divider -->
+                    <Grid HeightRequest="22" Margin="0,6">
+                        <BoxView HeightRequest="1" BackgroundColor="#E2E8F0"
+                                 VerticalOptions="Center"/>
+                        <Frame BackgroundColor="White" Padding="10,2"
+                               CornerRadius="8" HasShadow="False"
+                               HorizontalOptions="Center" VerticalOptions="Center"
+                               BorderColor="#E2E8F0">
+                            <Label Text="— gum line —" FontSize="9"
+                                   TextColor="#CBD5E1" HorizontalTextAlignment="Center"/>
+                        </Frame>
+                    </Grid>
+
+                    <!-- Lower teeth 17–32 -->
+                    <FlexLayout Direction="Row" JustifyContent="Center"
+                                AlignItems="Center" Wrap="NoWrap"
+                                BindableLayout.ItemsSource="{Binding LowerTeeth}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ToothViewModel">
+                                <Grid WidthRequest="38" HeightRequest="50" Margin="1,0">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.ToothTappedCommand}"
+                                            CommandParameter="{Binding ToothNumber}"/>
+                                    </Grid.GestureRecognizers>
+
+                                    <!-- Selection ring -->
+                                    <Border IsVisible="{Binding IsSelected}"
+                                            StrokeThickness="2.5"
+                                            Stroke="#FFA500"
+                                            BackgroundColor="Transparent"
+                                            ZIndex="2">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="6"/>
+                                        </Border.StrokeShape>
+                                    </Border>
+
+                                    <!-- Tooth body -->
+                                    <Border BackgroundColor="{Binding ToothColor}"
+                                            StrokeThickness="1" Stroke="#CCCCCC">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="5"/>
+                                        </Border.StrokeShape>
+                                        <VerticalStackLayout Padding="2" Spacing="1">
+                                            <Label Text="{Binding ToothLabel}"
+                                                   FontSize="9" FontAttributes="Bold"
+                                                   HorizontalTextAlignment="Center"
+                                                   TextColor="#333333"/>
+                                            <Label Text="🦷" FontSize="16"
+                                                   HorizontalTextAlignment="Center"
+                                                   VerticalTextAlignment="Center"
+                                                   IsVisible="{Binding Condition,
+                                                       Converter={StaticResource StringEqualConverter},
+                                                       ConverterParameter=Normal}"/>
+                                            <BoxView
+                                                WidthRequest="24" HeightRequest="20"
+                                                CornerRadius="3"
+                                                Color="{Binding ToothColor}"
+                                                HorizontalOptions="Center"
+                                                IsVisible="{Binding Condition,
+                                                    Converter={StaticResource StringNotEqualConverter},
+                                                    ConverterParameter=Normal}"/>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+
+                    <!-- LOWER arch label -->
+                    <Label Text="LOWER ARCH" FontSize="10" FontAttributes="Bold"
+                           TextColor="#6B7A9A" HorizontalTextAlignment="Center"
+                           Margin="0,4,0,2"/>
+
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- ── Legend card ── -->
+            <Frame BackgroundColor="White" CornerRadius="12"
+                   HasShadow="True" Padding="16,12" Margin="0,0,0,12">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="LEGEND" FontSize="12" FontAttributes="Bold"
+                           TextColor="#6B7A9A" Margin="0,0,0,4"/>
+
+                    <HorizontalStackLayout Spacing="10">
+                        <Ellipse WidthRequest="16" HeightRequest="16" Fill="#FFFFFF"
+                                 Stroke="#AAAAAA" StrokeThickness="1"/>
+                        <Label Text="Normal / Untreated" FontSize="13" TextColor="#374151" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
+
+                    <HorizontalStackLayout Spacing="10">
+                        <Ellipse WidthRequest="16" HeightRequest="16" Fill="#0000FF"/>
+                        <Label Text="Existing Restoration (Filling)" FontSize="13" TextColor="#374151" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
+
+                    <HorizontalStackLayout Spacing="10">
+                        <Ellipse WidthRequest="16" HeightRequest="16" Fill="#FF0000"/>
+                        <Label Text="Active Decay (Caries)" FontSize="13" TextColor="#374151" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
+
+                    <HorizontalStackLayout Spacing="10">
+                        <Ellipse WidthRequest="16" HeightRequest="16" Fill="#00FF00"/>
+                        <Label Text="Completed Treatment" FontSize="13" TextColor="#374151" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
+
+                    <HorizontalStackLayout Spacing="10">
+                        <Ellipse WidthRequest="16" HeightRequest="16" Fill="#000000"/>
+                        <Label Text="Missing / Extracted" FontSize="13" TextColor="#374151" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- ── Status message ── -->
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="12" TextColor="#64748B"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,4"
+                   IsVisible="{Binding StatusMessage,
+                       Converter={StaticResource StringNotEmptyConverter}}"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

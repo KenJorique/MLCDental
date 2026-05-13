@@ -18,9 +18,18 @@ public class Patient
 
     public string ContactNumber { get; set; }
 
+    public string Email { get; set; }
+
+    public bool Gender { get; set; }  
+
+    public DateTime DateOfBirth { get; set; }
+
+
     public string Address { get; set; }
 
     public string MedicalHistory { get; set; }
 
     public bool HasNoMedicalHistory { get; set; }
+
+    public DateTime DateRegistered { get; set; } = DateTime.Now;        
 }

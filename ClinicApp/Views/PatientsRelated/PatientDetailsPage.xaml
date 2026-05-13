@@ -18,14 +18,27 @@
             <Label Text="Full Name" FontAttributes="Bold" TextColor="Gray" FontSize="12"/>
             <Label Text="{Binding FullName}" FontSize="16"/>
 
+            <Label Text="Gender" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
+            <Label Text="{Binding Gender, Converter={StaticResource BoolToGenderConverter}}" FontSize="16"/>
+
+            <Label Text="Date of Birth" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
+            <Label Text="{Binding DateOfBirth, StringFormat='{0:MMMM dd, yyyy}'}" FontSize="16"/>
+            
+            
             <Label Text="Contact Number" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
             <Label Text="{Binding ContactNumber}" FontSize="16"/>
+
+            <Label Text="Email" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
+            <Label Text="{Binding Email}" FontSize="16"/>
 
             <Label Text="Address" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
             <Label Text="{Binding Address}" FontSize="16"/>
 
             <Label Text="Medical History" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
             <Label Text="{Binding MedicalHistory}" FontSize="16"/>
+
+           <Label Text="Date Registered" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
+            <Label Text="{Binding DateRegistered, StringFormat='{0:MMMM dd, yyyy}'}" FontSize="16"/> 
 
         </VerticalStackLayout>
     </ScrollView>
