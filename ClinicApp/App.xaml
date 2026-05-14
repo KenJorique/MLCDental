@@ -13,11 +13,10 @@
 
             <!-- Converter: highlights the active tab button -->
             <converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
-            <converters:BoolToGenderConverter x:Key="BoolToGenderConverter" />
 
-            <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
-            <converters:StringEqualConverter    x:Key="StringEqualConverter" />
-            <converters:StringNotEqualConverter x:Key="StringNotEqualConverter" />
+            <!-- Converters: Active/Inactive status color and text -->
+            <converters:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter" />
+            <converters:BoolToStatusTextConverter x:Key="BoolToStatusTextConverter" />
 
         </ResourceDictionary>
     </Application.Resources>

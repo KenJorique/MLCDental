@@ -1,6 +1,6 @@
 using ClinicApp.ViewModels.UsersRelated;
 
-namespace ClinicApp.Views.UsersRelated; // Namespace must match XAML x:Class path
+namespace ClinicApp.Views.UsersRelated;
 
 public partial class AddUserPage : ContentPage
 {
