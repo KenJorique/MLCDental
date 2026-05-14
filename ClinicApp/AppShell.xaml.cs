@@ -11,15 +11,12 @@ namespace ClinicApp
         {
             InitializeComponent();
 
-            Routing.RegisterRoute(nameof(PatientPage), typeof(PatientListPage));
-            Routing.RegisterRoute(nameof(Views.UsersRelated.UserListPage), typeof(Views.UsersRelated.UserListPage));
-            Routing.RegisterRoute(nameof(Views.UsersRelated.AddUserPage), typeof(Views.UsersRelated.AddUserPage));
-            Routing.RegisterRoute(nameof(ServicePage), typeof(ServiceListPage));
             Routing.RegisterRoute(nameof(AddPatientPage), typeof(AddPatientPage));
             Routing.RegisterRoute(nameof(PatientDetailsPage), typeof(PatientDetailsPage));
-            Routing.RegisterRoute(nameof(Views.ServicesRelated.AddServicePage), typeof(Views.ServicesRelated.AddServicePage));
-            Routing.RegisterRoute(nameof(Views.PatientsRelated.AddPatientPage), typeof(Views.PatientsRelated.AddPatientPage));
-            Routing.RegisterRoute("PatientDetailsPage", typeof(Views.PatientsRelated.PatientDetailsPage));
+            Routing.RegisterRoute(nameof(ServiceListPage), typeof(ServiceListPage));
+            Routing.RegisterRoute(nameof(AddServicePage), typeof(AddServicePage));
+            Routing.RegisterRoute(nameof(UserListPage), typeof(UserListPage));
+            Routing.RegisterRoute(nameof(AddUserPage), typeof(AddUserPage));
         }
     }
 }

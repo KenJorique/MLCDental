@@ -1,31 +1,102 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClinicApp.ViewModels"
              x:Class="ClinicApp.Views.ServicesRelated.AddServicePage"
-             Title="AddServicePage">
-    <VerticalStackLayout Padding="20" Spacing="10">
+             Title="{Binding PageTitle}"
+             Shell.TabBarIsVisible="False">
 
-        <Entry Placeholder="Service Name"
-          Text="{Binding ServiceName}" />
+    <VerticalStackLayout Spacing="0">
 
-        <!-- Restrict keyboard to numbers -->
-        <Entry Placeholder="Price"
-          Text="{Binding Price}" 
-          Keyboard="Numeric"/>
+        <!-- Tab selector row -->
+        <Grid ColumnDefinitions="*,*" Margin="20,15,20,0">
 
-        <Editor Placeholder="Description"
-           Text="{Binding Description}" 
-           HeightRequest="100"/>
+            <!-- SERVICE tab button -->
+            <Button Grid.Column="0"
+                    Text="SERVICE"
+                    Command="{Binding SelectServiceTabCommand}"
+                    BackgroundColor="{Binding IsServiceTabSelected, Converter={StaticResource BoolToTabColorConverter}}" />
 
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-            <Button Text="Add Service"
-               Command="{Binding AddServiceCommand}" />
-          
+            <!-- PACKAGE tab button -->
+            <Button Grid.Column="1"
+                    Text="PACKAGE"
+                    Command="{Binding SelectPackageTabCommand}"
+                    BackgroundColor="{Binding IsPackageTabSelected, Converter={StaticResource BoolToTabColorConverter}}" />
+
         </Grid>
 
+        <!-- ── SERVICE TAB CONTENT ── -->
+        <ScrollView IsVisible="{Binding IsServiceTabSelected}">
+            <VerticalStackLayout Padding="20" Spacing="12">
 
+                <Label Text="Service Name" FontAttributes="Bold"/>
+                <Entry Placeholder="Enter service name"
+                       Text="{Binding ServiceName}" />
 
+                <Label Text="Service Price" FontAttributes="Bold"/>
+                <Grid ColumnDefinitions="Auto,*">
+                    <Label Grid.Column="0" Text="₱" VerticalOptions="Center" Margin="0,0,8,0" FontSize="16"/>
+                    <Entry Grid.Column="1"
+                           Placeholder="0.00"
+                           Text="{Binding ServicePrice}"
+                           Keyboard="Numeric" />
+                </Grid>
 
+                <Label Text="Description" FontAttributes="Bold"/>
+                <Editor Placeholder="Enter description"
+                        Text="{Binding ServiceDescription}"
+                        HeightRequest="100" />
+
+                <Button Text="Save"
+                        Command="{Binding SaveCommand}"
+                        Margin="0,10,0,0" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ── PACKAGE TAB CONTENT ── -->
+        <ScrollView IsVisible="{Binding IsPackageTabSelected}">
+            <VerticalStackLayout Padding="20" Spacing="12">
+
+                <Label Text="Package Name" FontAttributes="Bold"/>
+                <Entry Placeholder="Enter package name"
+                       Text="{Binding PackageName}" />
+
+                <Label Text="Included Services:" FontAttributes="Bold"/>
+
+                <!-- Checkbox list of existing services -->
+                <CollectionView ItemsSource="{Binding AvailableServices}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ServiceCheckboxItem">
+                            <HorizontalStackLayout Spacing="10" Padding="0,4">
+                                <CheckBox IsChecked="{Binding IsSelected}" />
+                                <Label Text="{Binding Service.ServiceName}"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label Text="Service Price" FontAttributes="Bold"/>
+                <Grid ColumnDefinitions="Auto,*">
+                    <Label Grid.Column="0" Text="₱" VerticalOptions="Center" Margin="0,0,8,0" FontSize="16"/>
+                    <Entry Grid.Column="1"
+                           Placeholder="0.00"
+                           Text="{Binding PackagePrice}"
+                           Keyboard="Numeric" />
+                </Grid>
+
+                <Label Text="Description" FontAttributes="Bold"/>
+                <Editor Placeholder="Enter description"
+                        Text="{Binding PackageDescription}"
+                        HeightRequest="100" />
+
+                <Button Text="Save"
+                        Command="{Binding SaveCommand}"
+                        Margin="0,10,0,0" />
+
+            </VerticalStackLayout>
+        </ScrollView>
 
     </VerticalStackLayout>
 </ContentPage>

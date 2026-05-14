@@ -1,50 +1,88 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClinicApp.ViewModels.PatientsRelatedVM"
              x:Class="ClinicApp.Views.PatientsRelated.PatientListPage"
-             Title="PatientListPage">
-    <VerticalStackLayout Padding="20">
+             Title="Patients"
+             Shell.TabBarIsVisible="True">
 
-        <Button Text="Add Patient"
-            Command="{Binding GoToAddPatientCommand}" />
+    <Grid>
 
-        <CollectionView ItemsSource="{Binding Patients}">
-
+        <!-- Patient list with expandable cards -->
+        <CollectionView ItemsSource="{Binding Patients}" Margin="10">
             <CollectionView.ItemTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="vm:PatientCardViewModel">
 
-                    <Frame Margin="5">
-                        <VerticalStackLayout>
+                    <Frame Margin="5" Padding="12">
+                        <Frame.GestureRecognizers>
+                            <!-- Tapping anywhere on the card toggles expand/collapse -->
+                            <TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                          Path=BindingContext.ToggleExpandCommand}"
+                                CommandParameter="{Binding .}" />
+                        </Frame.GestureRecognizers>
 
-                            <Label Text="{Binding FirstName}" FontSize="18"/>
-                            <Label Text="{Binding LastName}" />
+                        <VerticalStackLayout Spacing="10">
 
-                            <HorizontalStackLayout>
+                            <!-- Collapsed view: patient name always visible -->
+                            <Label FontSize="16" FontAttributes="Bold">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding Patient.FirstName}" />
+                                        <Span Text=" " />
+                                        <Span Text="{Binding Patient.LastName}" />
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
 
-                                <Button Text="View"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                    Path=BindingContext.ViewPatientCommand}"
-                                    CommandParameter="{Binding .}" />
+                            <!-- Expanded section: visible only when IsExpanded = true -->
+                            <Grid ColumnDefinitions="*,*,*,*"
+                                  ColumnSpacing="8"
+                                  IsVisible="{Binding IsExpanded}">
 
-                                <Button Text="Edit"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                    Path=BindingContext.EditPatientCommand}"
-                                    CommandParameter="{Binding .}" />
+                                <!-- Patient Records: navigates to PatientDetailsPage -->
+                                <Button Grid.Column="0"
+                                        Text="Patient Records"
+                                        HeightRequest="80"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                  Path=BindingContext.ViewPatientCommand}"
+                                        CommandParameter="{Binding .}" />
 
-                                <Button Text="Delete"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                    Path=BindingContext.DeletePatientCommand}"
-                                    CommandParameter="{Binding .}" />
+                                <!-- Dental Chart: disabled placeholder -->
+                                <Button Grid.Column="1"
+                                        Text="Dental Chart"
+                                        HeightRequest="80"
+                                        IsEnabled="False" />
 
-                            </HorizontalStackLayout>
+                                <!-- Treatment History: disabled placeholder -->
+                                <Button Grid.Column="2"
+                                        Text="Treatment History"
+                                        HeightRequest="80"
+                                        IsEnabled="False" />
+
+                                <!-- Cephalometric: disabled placeholder -->
+                                <Button Grid.Column="3"
+                                        Text="Cephalometric"
+                                        HeightRequest="80"
+                                        IsEnabled="False" />
+
+                            </Grid>
 
                         </VerticalStackLayout>
                     </Frame>
 
                 </DataTemplate>
             </CollectionView.ItemTemplate>
-
         </CollectionView>
 
-    </VerticalStackLayout>
+        <!-- Floating Add Patient button (bottom right) -->
+        <Button Text="+ Add Patient"
+                Command="{Binding GoToAddPatientCommand}"
+                VerticalOptions="End"
+                HorizontalOptions="End"
+                Margin="0,0,20,20"
+                CornerRadius="30"
+                Padding="20,12" />
+
+    </Grid>
 </ContentPage>

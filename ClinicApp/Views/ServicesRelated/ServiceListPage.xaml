@@ -2,49 +2,107 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ClinicApp.Views.ServicesRelated.ServiceListPage"
-             Title="ServiceListPage">
-    <VerticalStackLayout>
+             Title="Service &amp; Pricing"
+             Shell.TabBarIsVisible="False">
 
-        <Button Text="Add Service"
-     Command="{Binding GoToAddServiceCommand}" />
-        
-        <CollectionView Grid.Row="1" ItemsSource="{Binding Services}">
-        
-        <CollectionView.ItemTemplate>
+    <Grid>
 
-            <DataTemplate>
-                <Frame Margin="5" Padding="10">
-                   
-                    
-                    <HorizontalStackLayout Spacing="15" VerticalOptions="Center">
-                       
-                        
-                        <!-- Service Info -->
-                        <VerticalStackLayout WidthRequest="150">
-                            <Label Text="{Binding ServiceName}" FontAttributes="Bold" FontSize="16"/>
-                            <Label Text="{Binding Price, StringFormat='₱{0:N2}'}" TextColor="Gray"/>
-                        </VerticalStackLayout>
+        <ScrollView>
+            <VerticalStackLayout Padding="10" Spacing="5">
 
-                        <!-- Action Buttons -->
-                        <HorizontalStackLayout Spacing="10">
-                            <!-- Update Button -->
-                            <Button Text="Edit" 
-                                BackgroundColor="RoyalBlue"
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.UpdateServiceCommand}"
-                                CommandParameter="{Binding .}" />
+                <!-- ── SERVICES SECTION ── -->
+                <Label Text="Services"
+                       FontAttributes="Bold"
+                       FontSize="16"
+                       Margin="5,10,5,5" />
 
-                            <!-- Delete Button -->
-                            <Button Text="Delete" 
-                                BackgroundColor="Crimson"
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteServiceCommand}"
-                                CommandParameter="{Binding .}" />
-                        </HorizontalStackLayout>
+                <CollectionView ItemsSource="{Binding Services}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Frame Margin="5" Padding="10">
+                                <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
 
-                    </HorizontalStackLayout>
-                    
-                </Frame>
-            </DataTemplate>
-        </CollectionView.ItemTemplate>
-    </CollectionView>
-    </VerticalStackLayout>
+                                    <!-- Service name and price -->
+                                    <VerticalStackLayout HorizontalOptions="FillAndExpand">
+                                        <Label Text="{Binding ServiceName}"
+                                               FontAttributes="Bold" FontSize="15"/>
+                                        <Label Text="{Binding Price, StringFormat='₱{0:N2}'}"
+                                               TextColor="Gray" FontSize="13"/>
+                                    </VerticalStackLayout>
+
+                                    <!-- Edit and Delete buttons -->
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Button Text="Edit"
+                                                BackgroundColor="RoyalBlue"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                          Path=BindingContext.UpdateServiceCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        <Button Text="Delete"
+                                                BackgroundColor="Crimson"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                          Path=BindingContext.DeleteServiceCommand}"
+                                                CommandParameter="{Binding .}" />
+                                    </HorizontalStackLayout>
+
+                                </HorizontalStackLayout>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- ── SERVICE PACKAGES SECTION ── -->
+                <Label Text="Service Packages"
+                       FontAttributes="Bold"
+                       FontSize="16"
+                       Margin="5,15,5,5" />
+
+                <CollectionView ItemsSource="{Binding Packages}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Frame Margin="5" Padding="10">
+                                <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+
+                                    <!-- Package name, included services, and price -->
+                                    <VerticalStackLayout HorizontalOptions="FillAndExpand">
+                                        <Label Text="{Binding PackageName}"
+                                               FontAttributes="Bold" FontSize="15"/>
+                                        <Label Text="{Binding IncludedServices}"
+                                               TextColor="Gray" FontSize="12"/>
+                                        <Label Text="{Binding Price, StringFormat='₱{0:N2}'}"
+                                               TextColor="Gray" FontSize="13"/>
+                                    </VerticalStackLayout>
+
+                                    <!-- Edit and Delete buttons -->
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Button Text="Edit"
+                                                BackgroundColor="RoyalBlue"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                          Path=BindingContext.UpdatePackageCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        <Button Text="Delete"
+                                                BackgroundColor="Crimson"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                          Path=BindingContext.DeletePackageCommand}"
+                                                CommandParameter="{Binding .}" />
+                                    </HorizontalStackLayout>
+
+                                </HorizontalStackLayout>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Floating Add button (bottom right) -->
+        <Button Text="+ Add Service"
+                Command="{Binding GoToAddServiceCommand}"
+                VerticalOptions="End"
+                HorizontalOptions="End"
+                Margin="0,0,20,20"
+                CornerRadius="30"
+                Padding="20,12" />
+
+    </Grid>
 </ContentPage>

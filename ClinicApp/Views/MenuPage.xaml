@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ClinicApp.Views.MenuPage"
+             Title="Menu">
+
+    <VerticalStackLayout Padding="20" Spacing="10">
+
+        <Frame Padding="15" HasShadow="True">
+            <Frame.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding GoToServicesCommand}" />
+            </Frame.GestureRecognizers>
+            <Label Text="Service &amp; Pricing" FontSize="16" />
+        </Frame>
+
+        <Frame Padding="15" HasShadow="True">
+            <Frame.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding GoToUsersCommand}" />
+            </Frame.GestureRecognizers>
+            <Label Text="User Management" FontSize="16" />
+        </Frame>
+
+    </VerticalStackLayout>
+
+</ContentPage>

@@ -15,19 +15,28 @@ namespace ClinicApp
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
+
             builder.Services.AddSingleton<DatabaseService>();
-            builder.Services.AddSingleton<PatientListViewModel>();
+
+            builder.Services.AddSingleton<HomePage>();
+            builder.Services.AddSingleton<AppointmentPage>();
+            builder.Services.AddSingleton<MenuPage>();
+            builder.Services.AddSingleton<MenuViewModel>();
             builder.Services.AddSingleton<PatientListPage>();
-            builder.Services.AddSingleton<ServicePage>();
+            builder.Services.AddSingleton<PatientListViewModel>();
+            builder.Services.AddTransient<AddPatientPage>();
+            builder.Services.AddTransient<AddPatientViewModel>();
+            builder.Services.AddTransient<PatientDetailsPage>();
+            builder.Services.AddTransient<PatientDetailsViewModel>();
+            builder.Services.AddTransient<ServiceListPage>();
+            builder.Services.AddSingleton<ServiceViewModel>();
+            builder.Services.AddTransient<AddServicePage>();
+            builder.Services.AddTransient<AddServiceViewModel>();
+            builder.Services.AddTransient<UserListPage>();
+            builder.Services.AddSingleton<UserViewModel>();
             builder.Services.AddTransient<AddUserPage>();
             builder.Services.AddTransient<AddUserViewModel>();
-            builder.Services.AddSingleton<UserListPage>();
-            builder.Services.AddSingleton<UserViewModel>();
-            builder.Services.AddSingleton<ServiceListPage>();
-            builder.Services.AddTransient<AddServicePage>();
-            builder.Services.AddSingleton<ServiceViewModel>();
-            builder.Services.AddTransient<AddPatientViewModel>();
-            builder.Services.AddTransient<AddPatientPage>();
+
             builder
                 .UseMauiApp<App>()
                 .ConfigureFonts(fonts =>
@@ -37,7 +46,7 @@ namespace ClinicApp
                 });
 
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
             return builder.Build();

@@ -10,32 +10,31 @@
     xmlns:views="clr-namespace:ClinicApp.Views"
     Shell.FlyoutBehavior="Disabled">
 
-    <!-- The TabBar creates the bottom navigation seen in image_ba92c5.png -->
     <TabBar>
 
- 
-
-        <Tab Title="Patients">
+        <Tab Title="Home">
             <ShellContent
-           ContentTemplate="{DataTemplate patients:PatientListPage}"
-           Route="PatientListPage" />
-        </Tab>
-        
-        
-        <Tab Title="Services" >
-            <ShellContent
-                ContentTemplate="{DataTemplate services:ServiceListPage}"
-                Route="ServicePage" />
+                ContentTemplate="{DataTemplate views:HomePage}"
+                Route="HomePage" />
         </Tab>
 
-        <Tab Title="Users">
+        <Tab Title="Appointment">
             <ShellContent
-                ContentTemplate="{DataTemplate users:UserListPage}"
-                Route="UserListPage" />
+                ContentTemplate="{DataTemplate views:AppointmentPage}"
+                Route="AppointmentPage" />
         </Tab>
 
-       
+        <Tab Title="Patient">
+            <ShellContent
+                ContentTemplate="{DataTemplate patients:PatientListPage}"
+                Route="PatientListPage" />
+        </Tab>
 
+        <Tab Title="Menu">
+            <ShellContent
+                ContentTemplate="{DataTemplate views:MenuPage}"
+                Route="MenuPage" />
+        </Tab>
 
     </TabBar>
 
