@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClinicApp.ViewModels.ServicesRelatedVM"
              x:Class="ClinicApp.Views.ServicesRelated.ServiceListPage"
              Title="Service &amp; Pricing"
              Shell.TabBarIsVisible="False">
@@ -13,84 +14,169 @@
                 <!-- ── SERVICES SECTION ── -->
                 <Label Text="Services"
                        FontAttributes="Bold"
-                       FontSize="16"
+                       FontSize="18"
                        Margin="5,10,5,5" />
 
-                <CollectionView ItemsSource="{Binding Services}">
+                <CollectionView ItemsSource="{Binding ServiceCards}">
                     <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Frame Margin="5" Padding="10">
-                                <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                        <DataTemplate x:DataType="vm:ServiceCardViewModel">
 
-                                    <!-- Service name and price -->
-                                    <VerticalStackLayout HorizontalOptions="FillAndExpand">
-                                        <Label Text="{Binding ServiceName}"
-                                               FontAttributes="Bold" FontSize="15"/>
-                                        <Label Text="{Binding Price, StringFormat='₱{0:N2}'}"
-                                               TextColor="Gray" FontSize="13"/>
+                            <!-- SwipeView: swipe left to reveal Edit then Delete -->
+                            <SwipeView SwipeStarted="OnSwipeStarted">
+                                <SwipeView.RightItems>
+                                    <SwipeItems>
+
+                                        <!-- Edit is first (left side of swipe reveal) -->
+                                        <SwipeItem Text="Edit"
+                                                   BackgroundColor="RoyalBlue"
+                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                             Path=BindingContext.EditServiceCommand}"
+                                                   CommandParameter="{Binding .}" />
+
+                                        <!-- Delete is second (right side of swipe reveal) -->
+                                        <SwipeItem Text="Delete"
+                                                   BackgroundColor="Crimson"
+                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                             Path=BindingContext.DeleteServiceCommand}"
+                                                   CommandParameter="{Binding .}" />
+
+                                    </SwipeItems>
+                                </SwipeView.RightItems>
+
+                                <!-- Card content -->
+                                <Frame Margin="5" Padding="15">
+                                    <Frame.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.ToggleServiceCardCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Frame.GestureRecognizers>
+
+                                    <VerticalStackLayout Spacing="8">
+
+                                        <!-- Always visible: name (bold, large) and price (same size, accent color) -->
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Service.ServiceName}"
+                                                   FontAttributes="Bold"
+                                                   FontSize="16"
+                                                   VerticalOptions="Center"/>
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding Service.Price, StringFormat='₱{0:N2}'}"
+                                                   FontAttributes="Bold"
+                                                   FontSize="16"
+                                                   TextColor="MediumPurple"
+                                                   VerticalOptions="Center"/>
+                                        </Grid>
+
+                                        <!-- Expanded: description -->
+                                        <VerticalStackLayout IsVisible="{Binding IsExpanded}" Spacing="6">
+                                            <BoxView HeightRequest="1" Color="LightGray" Margin="0,2"/>
+                                            <Label Text="Description:"
+                                                   FontAttributes="Bold"
+                                                   FontSize="14"
+                                                   TextColor="Gray"/>
+                                            <Label Text="{Binding Service.Description}"
+                                                   FontSize="15"/>
+                                        </VerticalStackLayout>
+
                                     </VerticalStackLayout>
+                                </Frame>
 
-                                    <!-- Edit and Delete buttons -->
-                                    <HorizontalStackLayout Spacing="8">
-                                        <Button Text="Edit"
-                                                BackgroundColor="RoyalBlue"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                          Path=BindingContext.UpdateServiceCommand}"
-                                                CommandParameter="{Binding .}" />
-                                        <Button Text="Delete"
-                                                BackgroundColor="Crimson"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                          Path=BindingContext.DeleteServiceCommand}"
-                                                CommandParameter="{Binding .}" />
-                                    </HorizontalStackLayout>
+                            </SwipeView>
 
-                                </HorizontalStackLayout>
-                            </Frame>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
 
-                <!-- ── SERVICE PACKAGES SECTION ── -->
-                <Label Text="Service Packages"
-                       FontAttributes="Bold"
-                       FontSize="16"
-                       Margin="5,15,5,5" />
+                <!-- ── SERVICE PACKAGES SECTION (hidden if no packages exist) ── -->
+                <VerticalStackLayout IsVisible="{Binding HasPackages}" Spacing="5">
 
-                <CollectionView ItemsSource="{Binding Packages}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Frame Margin="5" Padding="10">
-                                <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                    <Label Text="Service Packages"
+                           FontAttributes="Bold"
+                           FontSize="18"
+                           Margin="5,15,5,5" />
 
-                                    <!-- Package name, included services, and price -->
-                                    <VerticalStackLayout HorizontalOptions="FillAndExpand">
-                                        <Label Text="{Binding PackageName}"
-                                               FontAttributes="Bold" FontSize="15"/>
-                                        <Label Text="{Binding IncludedServices}"
-                                               TextColor="Gray" FontSize="12"/>
-                                        <Label Text="{Binding Price, StringFormat='₱{0:N2}'}"
-                                               TextColor="Gray" FontSize="13"/>
-                                    </VerticalStackLayout>
+                    <CollectionView ItemsSource="{Binding PackageCards}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PackageCardViewModel">
 
-                                    <!-- Edit and Delete buttons -->
-                                    <HorizontalStackLayout Spacing="8">
-                                        <Button Text="Edit"
-                                                BackgroundColor="RoyalBlue"
+                                <!-- SwipeView: swipe left to reveal Edit then Delete -->
+                                <SwipeView SwipeStarted="OnSwipeStarted">
+                                    <SwipeView.RightItems>
+                                        <SwipeItems>
+
+                                            <!-- Edit is first -->
+                                            <SwipeItem Text="Edit"
+                                                       BackgroundColor="RoyalBlue"
+                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                                 Path=BindingContext.EditPackageCommand}"
+                                                       CommandParameter="{Binding .}" />
+
+                                            <!-- Delete is second -->
+                                            <SwipeItem Text="Delete"
+                                                       BackgroundColor="Crimson"
+                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                                 Path=BindingContext.DeletePackageCommand}"
+                                                       CommandParameter="{Binding .}" />
+
+                                        </SwipeItems>
+                                    </SwipeView.RightItems>
+
+                                    <!-- Card content -->
+                                    <Frame Margin="5" Padding="15">
+                                        <Frame.GestureRecognizers>
+                                            <TapGestureRecognizer
                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                          Path=BindingContext.UpdatePackageCommand}"
+                                                          Path=BindingContext.TogglePackageCardCommand}"
                                                 CommandParameter="{Binding .}" />
-                                        <Button Text="Delete"
-                                                BackgroundColor="Crimson"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                          Path=BindingContext.DeletePackageCommand}"
-                                                CommandParameter="{Binding .}" />
-                                    </HorizontalStackLayout>
+                                        </Frame.GestureRecognizers>
 
-                                </HorizontalStackLayout>
-                            </Frame>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                                        <VerticalStackLayout Spacing="8">
+
+                                            <!-- Always visible: package name and price -->
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <Label Grid.Column="0"
+                                                       Text="{Binding Package.PackageName}"
+                                                       FontAttributes="Bold"
+                                                       FontSize="16"
+                                                       VerticalOptions="Center"/>
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding Package.Price, StringFormat='₱{0:N2}'}"
+                                                       FontAttributes="Bold"
+                                                       FontSize="16"
+                                                       TextColor="MediumPurple"
+                                                       VerticalOptions="Center"/>
+                                            </Grid>
+
+                                            <!-- Expanded: included services and description -->
+                                            <VerticalStackLayout IsVisible="{Binding IsExpanded}" Spacing="6">
+                                                <BoxView HeightRequest="1" Color="LightGray" Margin="0,2"/>
+                                                <Label Text="Included Services:"
+                                                       FontAttributes="Bold"
+                                                       FontSize="14"
+                                                       TextColor="Gray"/>
+                                                <Label Text="{Binding Package.IncludedServices}"
+                                                       FontSize="15"/>
+                                                <Label Text="Description:"
+                                                       FontAttributes="Bold"
+                                                       FontSize="14"
+                                                       TextColor="Gray"
+                                                       Margin="0,4,0,0"/>
+                                                <Label Text="{Binding Package.Description}"
+                                                       FontSize="15"/>
+                                            </VerticalStackLayout>
+
+                                        </VerticalStackLayout>
+                                    </Frame>
+
+                                </SwipeView>
+
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                </VerticalStackLayout>
 
             </VerticalStackLayout>
         </ScrollView>

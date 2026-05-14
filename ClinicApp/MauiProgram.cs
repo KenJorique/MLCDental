@@ -1,10 +1,9 @@
 ﻿using ClinicApp.Services;
 using ClinicApp.ViewModels;
-using ClinicApp.ViewModels.DentalChart;
 using ClinicApp.ViewModels.PatientsRelatedVM;
+using ClinicApp.ViewModels.ServicesRelatedVM;
 using ClinicApp.ViewModels.UsersRelated;
 using ClinicApp.Views;
-using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.UsersRelated;
@@ -38,8 +37,6 @@ namespace ClinicApp
             builder.Services.AddSingleton<UserViewModel>();
             builder.Services.AddTransient<AddUserPage>();
             builder.Services.AddTransient<AddUserViewModel>();
-            builder.Services.AddTransient<DentalChartPage>();
-            builder.Services.AddTransient<DentalChartViewModel>();
 
             builder
                 .UseMauiApp<App>()

@@ -1,10 +1,13 @@
-using ClinicApp.ViewModels;
+using ClinicApp.ViewModels.ServicesRelatedVM;
 
 namespace ClinicApp.Views.ServicesRelated;
 
 public partial class ServiceListPage : ContentPage
 {
     ServiceViewModel _viewModel;
+
+    // Tracks the currently open SwipeView so we can close it when another opens
+    SwipeView? _currentOpenSwipe;
 
     public ServiceListPage(ServiceViewModel vm)
     {
@@ -15,7 +18,19 @@ public partial class ServiceListPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        // This ensures the list updates every time you view the page
+        // Reload the list every time the page is shown
         _viewModel.LoadServicesCommand.Execute(null);
+    }
+
+    // Called when any SwipeView starts being swiped
+    // Closes the previously open SwipeView before opening the new one
+    private void OnSwipeStarted(object sender, SwipeStartedEventArgs e)
+    {
+        if (sender is SwipeView swipeView && swipeView != _currentOpenSwipe)
+        {
+            // Close the previously open swipe
+            _currentOpenSwipe?.Close();
+            _currentOpenSwipe = swipeView;
+        }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using ClinicApp.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace ClinicApp.ViewModels;
+namespace ClinicApp.ViewModels.ServicesRelatedVM;
 
 // Wraps a ServiceModel with a checkbox state for the Package "Included Services" list
 public partial class ServiceCheckboxItem : ObservableObject
