@@ -23,8 +23,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         [ObservableProperty] string medicalHistory;
         [ObservableProperty] string email;
         [ObservableProperty] bool gender;
-        [ObservableProperty] DateTime dateOfBirth;
-        [ObservableProperty] DateTime dateRegistered;
+        [ObservableProperty] string dateOfBirth;
+        [ObservableProperty] string dateRegistered;
 
         partial void OnPatientIdChanged(int value)
         {

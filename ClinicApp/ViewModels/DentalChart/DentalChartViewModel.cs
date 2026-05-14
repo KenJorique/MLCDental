@@ -10,29 +10,52 @@ namespace ClinicApp.ViewModels.DentalChart;
 [QueryProperty(nameof(PatientName), "patientName")]
 public partial class DentalChartViewModel : ObservableObject
 {
-    // ── Legend ────────────────────────────────────────────────────
+    // ── Legend / condition palette ─────────────────────────────────
     public static readonly Dictionary<string, string> ConditionColors = new()
     {
         { "Normal",    "#FFFFFF" },
-        { "Filling",   "#0000FF" },  // Blue  – Existing Restoration
-        { "Caries",    "#FF0000" },  // Red   – Active Decay
-        { "Completed", "#00FF00" },  // Green – Completed Treatment
-        { "Missing",   "#000000" },  // Black – Missing / Extracted
+        { "Filling",   "#0000FF" },
+        { "Caries",    "#FF0000" },
+        { "Completed", "#00FF00" },
+        { "Missing",   "#000000" },
     };
+
+    /// <summary>Exposed to the Picker in the modal's edit view.</summary>
+    public List<string> ConditionOptions { get; } = new(ConditionColors.Keys);
 
     private readonly DatabaseService _db;
 
+    // ── Page-level state ──────────────────────────────────────────
     [ObservableProperty] private int patientId;
     [ObservableProperty] private string patientName = string.Empty;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private string statusMessage = string.Empty;
 
-    // All 32 teeth
+    // ── Tooth collections ─────────────────────────────────────────
     public ObservableCollection<ToothViewModel> UpperTeeth { get; } = new();
     public ObservableCollection<ToothViewModel> LowerTeeth { get; } = new();
-
-    // Private flat list for fast lookups
     private readonly List<ToothViewModel> _allTeeth = new();
+
+    // ── Modal state ───────────────────────────────────────────────
+    [ObservableProperty] private bool isModalVisible;
+    [ObservableProperty] private bool isEditMode;
+
+    // Read-only display fields
+    [ObservableProperty] private string modalToothTitle = string.Empty;
+    [ObservableProperty] private string modalToothName = string.Empty;
+    [ObservableProperty] private string modalCondition = string.Empty;
+    [ObservableProperty] private Color modalConditionColor = Colors.White;
+    [ObservableProperty] private string modalLastUpdated = string.Empty;
+    [ObservableProperty] private string modalNotes = string.Empty;
+
+    // Editable fields (bound to Picker / Editor in edit mode)
+    [ObservableProperty] private string editCondition = string.Empty;
+    [ObservableProperty] private string editNotes = string.Empty;
+
+    // The tooth whose modal is currently open
+    private ToothViewModel? _modalTooth;
+
+    // ─────────────────────────────────────────────────────────────
 
     public DentalChartViewModel(DatabaseService db)
     {
@@ -51,11 +74,9 @@ public partial class DentalChartViewModel : ObservableObject
         }
     }
 
-    // QueryProperty hook – fires when navigation injects PatientId
     partial void OnPatientIdChanged(int value)
     {
-        if (value > 0)
-            LoadChartCommand.ExecuteAsync(null);
+        if (value > 0) LoadChartCommand.ExecuteAsync(null);
     }
 
     // ── Load / repaint ────────────────────────────────────────────
@@ -81,64 +102,116 @@ public partial class DentalChartViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
-    // ── Tooth tap ─────────────────────────────────────────────────
+    // ── Tooth tap → open modal ────────────────────────────────────
 
     [RelayCommand]
-    private async Task ToothTapped(int toothNumber)
+    private void ToothTapped(int toothNumber)
     {
         if (IsBusy) return;
 
         var tooth = _allTeeth.FirstOrDefault(t => t.ToothNumber == toothNumber);
         if (tooth is null) return;
 
-        // Highlight selection
+        // Highlight
         foreach (var t in _allTeeth) t.IsSelected = false;
         tooth.IsSelected = true;
 
-        // Build action sheet excluding the current condition
-        var options = ConditionColors.Keys
-            .Where(k => k != tooth.Condition)
-            .ToArray();
+        // Populate modal read fields
+        _modalTooth = tooth;
+        ModalToothTitle = $"Tooth #{toothNumber}";
+        ModalToothName = tooth.ToothName;
+        ModalCondition = tooth.Condition;
+        ModalConditionColor = Color.FromArgb(ConditionColors[tooth.Condition]);
+        ModalLastUpdated = string.IsNullOrWhiteSpace(tooth.LastUpdated)
+                                ? "Not recorded"
+                                : tooth.LastUpdated;
+        ModalNotes = tooth.Notes;
 
-        string action = await Shell.Current.DisplayActionSheet(
-            $"Tooth #{toothNumber}  ·  {tooth.ToothName}",
-            "Cancel", null, options);
+        // Pre-fill edit fields
+        EditCondition = tooth.Condition;
+        EditNotes = tooth.Notes;
 
-        tooth.IsSelected = false;
-
-        if (string.IsNullOrWhiteSpace(action) || action == "Cancel") return;
-
-        await ApplyConditionAsync(tooth, action);
+        IsEditMode = false;
+        IsModalVisible = true;
     }
 
-    private async Task ApplyConditionAsync(ToothViewModel tooth, string condition)
+    // ── Modal commands ────────────────────────────────────────────
+
+    [RelayCommand]
+    private void CloseModal()
     {
+        IsModalVisible = false;
+        IsEditMode = false;
+        if (_modalTooth is not null) _modalTooth.IsSelected = false;
+        _modalTooth = null;
+    }
+
+    [RelayCommand]
+    private void EnterEditMode() => IsEditMode = true;
+
+    [RelayCommand]
+    private void CancelEdit()
+    {
+        // Restore edit fields to current saved values
+        if (_modalTooth is not null)
+        {
+            EditCondition = _modalTooth.Condition;
+            EditNotes = _modalTooth.Notes;
+        }
+        IsEditMode = false;
+    }
+
+    [RelayCommand]
+    private async Task SaveEditAsync()
+    {
+        if (_modalTooth is null || IsBusy) return;
         IsBusy = true;
         try
         {
-            var hex = ConditionColors[condition];
-            tooth.ApplyRecord(new ToothRecord
+            var hex = ConditionColors[EditCondition];
+
+            var record = new ToothRecord
             {
                 PatientId = PatientId,
-                ToothNumber = tooth.ToothNumber,
-                Condition = condition,
+                ToothNumber = _modalTooth.ToothNumber,
+                Condition = EditCondition,
                 Color = hex,
-            });
+                Notes = EditNotes ?? string.Empty,
+            };
 
-            await _db.SaveToothRecord(new ToothRecord
-            {
-                PatientId = PatientId,
-                ToothNumber = tooth.ToothNumber,
-                Condition = condition,
-                Color = hex,
-            });
+            _modalTooth.ApplyRecord(record);
+            await _db.SaveToothRecord(record);
 
-            StatusMessage = $"✔  Tooth #{tooth.ToothNumber}: {condition} saved.";
+            // Refresh modal display fields
+            ModalCondition = EditCondition;
+            ModalConditionColor = Color.FromArgb(hex);
+            ModalLastUpdated = DateTime.UtcNow.ToString("yyyy-MM-dd");
+            ModalNotes = EditNotes ?? string.Empty;
+
+            StatusMessage = $"✔  Tooth #{_modalTooth.ToothNumber}: {EditCondition} saved.";
+            IsEditMode = false;
         }
         finally { IsBusy = false; }
     }
 
-    // ── Reset single tooth ────────────────────────────────────────
+    [RelayCommand]
+    private async Task ClearToothFromModalAsync()
+    {
+        if (_modalTooth is null || IsBusy) return;
+        IsBusy = true;
+        try
+        {
+            int num = _modalTooth.ToothNumber;
+            _modalTooth.Reset();
+            await _db.DeleteToothRecord(PatientId, num);
+
+            StatusMessage = $"Tooth #{num} cleared.";
+            CloseModal();
+        }
+        finally { IsBusy = false; }
+    }
+
+    // ── Legacy reset (still usable elsewhere) ────────────────────
 
     [RelayCommand]
     private async Task ResetTooth(int toothNumber)

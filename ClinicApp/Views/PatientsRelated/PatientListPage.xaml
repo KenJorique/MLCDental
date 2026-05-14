@@ -48,7 +48,7 @@
                                                   Path=BindingContext.ViewPatientCommand}"
                                         CommandParameter="{Binding .}" />
 
-                                <!-- Dental Chart: disabled placeholder -->
+                                <!-- Dental Chart:  placeholder -->
                                 <Button Grid.Column="1"
                                         Text="Dental Chart"
                                         HeightRequest="80"

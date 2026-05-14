@@ -21,8 +21,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         [ObservableProperty] string lastName;
         [ObservableProperty] string email;
         [ObservableProperty] bool gender;
-        [ObservableProperty] DateTime dateOfBirth;
-        [ObservableProperty] DateTime dateRegistered;
+        [ObservableProperty] string dateOfBirth;
+        [ObservableProperty] string dateRegistered;
         [ObservableProperty] string address;
         [ObservableProperty] string contactNumber;  // fixed: string to match Patient model
         [ObservableProperty] string medicalHistory;

@@ -23,6 +23,7 @@
 
             <Label Text="Date of Birth" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>
             <Label Text="{Binding DateOfBirth, StringFormat='{0:MMMM dd, yyyy}'}" FontSize="16"/>
+
             
             
             <Label Text="Contact Number" FontAttributes="Bold" TextColor="Gray" FontSize="12" Margin="0,8,0,0"/>

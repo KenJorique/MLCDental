@@ -11,13 +11,16 @@
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Converter: highlights the active tab button -->
-            <converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
-            <converters:BoolToGenderConverter x:Key="BoolToGenderConverter" />
+                <!-- Converter: highlights the active tab button -->
+                <converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
+                <converters:BoolToGenderConverter x:Key="BoolToGenderConverter" />
 
-            <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
+                <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
+            <converters:StringEmptyConverter    x:Key="StringEmptyConverter" />
             <converters:StringEqualConverter    x:Key="StringEqualConverter" />
-            <converters:StringNotEqualConverter x:Key="StringNotEqualConverter" />
+                <converters:StringNotEqualConverter x:Key="StringNotEqualConverter" />
+
+                <converters:InvertedBoolConverter   x:Key="InvertedBoolConverter" />
 
         </ResourceDictionary>
     </Application.Resources>

@@ -10,6 +10,8 @@ public partial class ToothViewModel : ObservableObject
     [ObservableProperty] private Color toothColor = Colors.White;
     [ObservableProperty] private Color toothIconColor = Color.FromArgb("#555555");
     [ObservableProperty] private bool isSelected;
+    [ObservableProperty] private string notes = string.Empty;
+    [ObservableProperty] private string lastUpdated = string.Empty;
 
     public string ToothLabel => ToothNumber.ToString();
 
@@ -53,12 +55,16 @@ public partial class ToothViewModel : ObservableObject
     public void ApplyRecord(ToothRecord record)
     {
         Condition = record.Condition;
+        Notes = record.Notes ?? string.Empty;
+        LastUpdated = record.LastUpdated ?? string.Empty;
         SetColor(Color.FromArgb(record.Color));
     }
 
     public void Reset()
     {
         Condition = "Normal";
+        Notes = string.Empty;
+        LastUpdated = string.Empty;
         SetColor(Colors.White);
     }
 

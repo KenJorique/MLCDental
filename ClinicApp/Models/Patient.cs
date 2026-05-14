@@ -22,7 +22,9 @@ public class Patient
 
     public bool Gender { get; set; }  
 
-    public DateTime DateOfBirth { get; set; }
+    
+    [Column("DateOfBirth")]
+    public string DateOfBirth { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
 
 
     public string Address { get; set; }
@@ -31,5 +33,6 @@ public class Patient
 
     public bool HasNoMedicalHistory { get; set; }
 
-    public DateTime DateRegistered { get; set; } = DateTime.Now;        
+    [Column("DateRegistered")]
+    public string DateRegistered { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
 }
