@@ -26,14 +26,18 @@ public class DatabaseService
             await _database.CreateTableAsync<User>();
             await _database.CreateTableAsync<ToothRecord>();
 
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN ContactNo TEXT"); } catch { }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN Email TEXT"); } catch { }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsActive INTEGER DEFAULT 1"); } catch { }
+
             // Seed default users on first run
             var userCount = await _database.Table<User>().CountAsync();
             if (userCount == 0)
             {
                 var defaultUsers = new List<User>
                 {
-                    new User { FullName = "Dr. Full Name", Username = "dentist1", Password = "123", Role = "Dentist" },
-                    new User { FullName = "Assistant Name", Username = "staff1", Password = "123", Role = "Assistant" }
+                    new User { FullName = "Dr. Full Name", Username = "dentist1", Password = "123", Role = "Dentist", IsActive = true },
+                    new User { FullName = "Assistant Name", Username = "staff1", Password = "123", Role = "Assistant", IsActive = true }
                 };
                 await _database.InsertAllAsync(defaultUsers);
             }
