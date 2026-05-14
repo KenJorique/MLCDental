@@ -48,13 +48,12 @@
                                                   Path=BindingContext.ViewPatientCommand}"
                                         CommandParameter="{Binding .}" />
 
-                                <!-- Dental Chart: disabled placeholder -->
                                 <Button Grid.Column="1"
                                         Text="Dental Chart"
                                         HeightRequest="80"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                  Path=BindingContext.ViewDentalChartCommand}"
-                                        CommandParameter="{Binding .}" />
+                                                    Path=BindingContext.ViewDentalChartCommand}"
+                                        CommandParameter="{Binding .}"/>
 
                                 <!-- Treatment History: disabled placeholder -->
                                 <Button Grid.Column="2"
@@ -62,11 +61,12 @@
                                         HeightRequest="80"
                                         IsEnabled="False" />
 
-                                <!-- Cephalometric: disabled placeholder -->
                                 <Button Grid.Column="3"
                                         Text="Cephalometric"
                                         HeightRequest="80"
-                                        IsEnabled="False" />
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                  Path=BindingContext.GoToCephalometricCommand}"
+                                        CommandParameter="{Binding .}" />
 
                             </Grid>
 

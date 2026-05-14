@@ -24,12 +24,15 @@ public class DatabaseService
             await _database.CreateTableAsync<ServicePackage>();
             await _database.CreateTableAsync<User>();
             await _database.CreateTableAsync<ToothRecord>();
+            await _database.CreateTableAsync<CephalometricImage>();
 
+            // Migrate: add new columns to User table if they don't exist yet
+            // Safe to run on existing installs — SQLite ignores duplicate columns
             try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN ContactNo TEXT"); } catch { }
             try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN Email TEXT"); } catch { }
             try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsActive INTEGER DEFAULT 1"); } catch { }
 
-            // Seed default users on first run
+            // Seed default users on first run — both Active by default
             var userCount = await _database.Table<User>().CountAsync();
             if (userCount == 0)
             {
@@ -175,8 +178,7 @@ public class DatabaseService
         await _database!.UpdateAsync(user);
     }
 
-
- // =========================
+    // =========================
     // TOOTH RECORD CRUD
     // =========================
 
@@ -215,4 +217,35 @@ public class DatabaseService
             await _database!.DeleteAsync(existing);
     }
 
+    // =========================
+    // CEPHALOMETRIC IMAGE CRUD
+    // =========================
+
+    // Gets the current active (non-archived) image for a patient
+    public async Task<CephalometricImage?> GetActiveCephalometricImage(int patientId)
+    {
+        await Init();
+        return await _database!.Table<CephalometricImage>()
+                               .Where(c => c.PatientId == patientId && c.IsActive)
+                               .FirstOrDefaultAsync();
+    }
+
+    // Saves a new image. Archives the old active image first if one exists.
+    public async Task SaveCephalometricImage(CephalometricImage newImage)
+    {
+        await Init();
+
+        // Archive the existing active image for this patient
+        var existing = await GetActiveCephalometricImage(newImage.PatientId);
+        if (existing != null)
+        {
+            existing.IsActive = false;
+            await _database!.UpdateAsync(existing);
+        }
+
+        // Insert the new active image with today's date
+        newImage.IsActive = true;
+        newImage.UploadedDate = DateTime.Now.ToString("yyyy-MM-dd");
+        await _database!.InsertAsync(newImage);
+    }
 }

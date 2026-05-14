@@ -18,6 +18,9 @@
             <converters:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter" />
             <converters:BoolToStatusTextConverter x:Key="BoolToStatusTextConverter" />
 
+            <!-- Converter: inverts bool for upload placeholder visibility -->
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>
