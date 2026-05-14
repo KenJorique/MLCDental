@@ -1,5 +1,6 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Services;
+using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.PatientsRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -88,5 +89,14 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 await LoadPatients();
             }
         }
+
+        [RelayCommand]
+        async Task ViewDentalChart(PatientCardViewModel card)
+        {
+            if (card == null) return;
+            await Shell.Current.GoToAsync(
+                $"{nameof(DentalChartPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
+        }
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using ClinicApp.Views;
+using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.UsersRelated;
@@ -17,6 +18,7 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(AddServicePage), typeof(AddServicePage));
             Routing.RegisterRoute(nameof(UserListPage), typeof(UserListPage));
             Routing.RegisterRoute(nameof(AddUserPage), typeof(AddUserPage));
+            Routing.RegisterRoute(nameof(DentalChartPage), typeof(DentalChartPage));
         }
     }
 }

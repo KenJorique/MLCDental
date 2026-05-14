@@ -18,9 +18,21 @@ public class Patient
 
     public string ContactNumber { get; set; }
 
+    public string Email { get; set; }
+
+    public bool Gender { get; set; }  
+
+    
+    [Column("DateOfBirth")]
+    public string DateOfBirth { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
+
+
     public string Address { get; set; }
 
     public string MedicalHistory { get; set; }
 
     public bool HasNoMedicalHistory { get; set; }
+
+    [Column("DateRegistered")]
+    public string DateRegistered { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
 }

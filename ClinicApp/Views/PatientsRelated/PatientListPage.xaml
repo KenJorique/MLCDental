@@ -48,11 +48,13 @@
                                                   Path=BindingContext.ViewPatientCommand}"
                                         CommandParameter="{Binding .}" />
 
-                                <!-- Dental Chart: disabled placeholder -->
+                                <!-- Dental Chart:  placeholder -->
                                 <Button Grid.Column="1"
                                         Text="Dental Chart"
                                         HeightRequest="80"
-                                        IsEnabled="False" />
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                  Path=BindingContext.ViewDentalChartCommand}"
+                                        CommandParameter="{Binding .}" />
 
                                 <!-- Treatment History: disabled placeholder -->
                                 <Button Grid.Column="2"

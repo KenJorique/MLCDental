@@ -14,8 +14,9 @@ public class DatabaseService
         {
             if (_database != null)
                 return;
-
-            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
+            // This saves it to the "Downloads" folder on the Android Emulator
+            string dbPath = Path.Combine("/storage/emulated/0/Download", "clinicmob.db3");
+            //string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
             _database = new SQLiteAsyncConnection(dbPath);
 
             // Create all tables if they don't exist yet
@@ -23,6 +24,7 @@ public class DatabaseService
             await _database.CreateTableAsync<ServiceModel>();
             await _database.CreateTableAsync<ServicePackage>();
             await _database.CreateTableAsync<User>();
+            await _database.CreateTableAsync<ToothRecord>();
 
             // Seed default users on first run
             var userCount = await _database.Table<User>().CountAsync();
@@ -56,6 +58,7 @@ public class DatabaseService
     {
         try
         {
+            
             await Init();
             int result = await _database!.InsertAsync(patient);
             System.Diagnostics.Debug.WriteLine($"Inserted: {result}");
@@ -169,4 +172,45 @@ public class DatabaseService
         await Init();
         await _database!.UpdateAsync(user);
     }
+
+
+ // =========================
+    // TOOTH RECORD CRUD
+    // =========================
+
+    public async Task<List<ToothRecord>> GetToothRecordsForPatient(int patientId)
+    {
+        await Init();
+        return await _database!.Table<ToothRecord>()
+                               .Where(r => r.PatientId == patientId)
+                               .ToListAsync();
+    }
+
+    public async Task SaveToothRecord(ToothRecord record)
+    {
+        await Init();
+        var existing = await _database!.Table<ToothRecord>()
+            .Where(r => r.PatientId == record.PatientId && r.ToothNumber == record.ToothNumber)
+            .FirstOrDefaultAsync();
+
+        record.LastUpdated = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        if (existing is null)
+            await _database!.InsertAsync(record);
+        else
+        {
+            record.Id = existing.Id;
+            await _database!.UpdateAsync(record);
+        }
+    }
+
+    public async Task DeleteToothRecord(int patientId, int toothNumber)
+    {
+        await Init();
+        var existing = await _database!.Table<ToothRecord>()
+            .Where(r => r.PatientId == patientId && r.ToothNumber == toothNumber)
+            .FirstOrDefaultAsync();
+        if (existing is not null)
+            await _database!.DeleteAsync(existing);
+    }
+
 }

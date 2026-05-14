@@ -11,14 +11,25 @@
         <Entry Placeholder="Last Name"
            Text="{Binding SelectedPatient.LastName}" />
 
+        <Picker Title="Gender"
+                ItemsSource="{Binding Genders}"
+                SelectedItem="{Binding SelectedPatient.Gender}" />
+
+        <DatePicker Date="{Binding SelectedPatient.DateOfBirth}" />
+
         <Entry Placeholder="Contact Number"
            Text="{Binding SelectedPatient.ContactNumber}" />
 
         <Entry Placeholder="Address"
            Text="{Binding SelectedPatient.Address}" />
 
+        <Entry Placeholder="Email"
+           Text="{Binding SelectedPatient.Email}" />
+
         <Entry Placeholder="Medical History"
            Text="{Binding SelectedPatient.MedicalHistory}" />
+
+        <DatePicker Date="{Binding SelectedPatient.DateRegistered}" />
 
         <Button Text="Add Patient"
             Command="{Binding AddPatientCommand}" />
