@@ -21,6 +21,7 @@
                 <converters:StringNotEqualConverter x:Key="StringNotEqualConverter" />
 
                 <converters:InvertedBoolConverter   x:Key="InvertedBoolConverter" />
+                <converters:IntEqualZeroConverter   x:Key="IntEqualZeroConverter" />
 
             <!-- Converter: inverts bool for upload placeholder visibility -->
             <converters:InverseBoolConverter x:Key="InverseBoolConverter" />

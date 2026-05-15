@@ -40,7 +40,6 @@
                                   ColumnSpacing="8"
                                   IsVisible="{Binding IsExpanded}">
 
-								<!-- Patient Records: 📄 -->
 								<Button Grid.Column="0"
                                         Text="📄"
                                         HeightRequest="80"
@@ -49,7 +48,6 @@
                                                   Path=BindingContext.ViewPatientCommand}"
                                         CommandParameter="{Binding .}" />
 
-								<!-- Dental Chart: 🦷 -->
 								<Button Grid.Column="1"
                                         Text="🦷"
                                         HeightRequest="80"
@@ -58,14 +56,14 @@
                                                   Path=BindingContext.ViewDentalChartCommand}"
                                         CommandParameter="{Binding .}" />
 
-								<!-- Treatment History: 📋 (disabled) -->
-								<Button Grid.Column="2"
+                                <Button Grid.Column="2"
                                         Text="📋"
                                         HeightRequest="80"
                                         FontSize="28"
-                                        IsEnabled="False" />
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                        Path=BindingContext.ViewTreatmentHistoryCommand}"
+                                        CommandParameter="{Binding .}" />
 
-								<!-- Cephalometric: 💀 -->
 								<Button Grid.Column="3"
                                         Text="💀"
                                         HeightRequest="80"

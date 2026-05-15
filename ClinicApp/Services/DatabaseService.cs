@@ -14,11 +14,8 @@ public class DatabaseService
         {
             if (_database != null)
                 return;
-
-            // pATH OF DATABASE IN Android DEVICES
+            // This saves it to the "Downloads" folder on the Android Emulator
             // string dbPath = Path.Combine("/storage/emulated/0/Download", "clinicmob.db3");
-
-            //Path of database in Windows devicees
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
 
             //MESSAGE FOR FINDING THE DATABASE PATH
@@ -36,6 +33,7 @@ public class DatabaseService
             await _database.CreateTableAsync<User>();
             await _database.CreateTableAsync<ToothRecord>();
             await _database.CreateTableAsync<CephalometricImage>();
+            await _database.CreateTableAsync<TreatmentHistory>();
 
             // Migrate: add new columns to User table if they don't exist yet
             // Safe to run on existing installs — SQLite ignores duplicate columns
@@ -75,7 +73,7 @@ public class DatabaseService
     {
         try
         {
-            
+
             await Init();
             int result = await _database!.InsertAsync(patient);
             System.Diagnostics.Debug.WriteLine($"Inserted: {result}");
@@ -229,6 +227,41 @@ public class DatabaseService
             await _database!.DeleteAsync(existing);
     }
 
+
+    // =========================
+    // TREATMENT HISTORY CRUD
+    // =========================
+
+    /// <summary>Returns all history entries for a patient, newest first.</summary>
+    public async Task<List<TreatmentHistory>> GetTreatmentHistoryForPatient(int patientId)
+    {
+        await Init();
+        var list = await _database!.Table<TreatmentHistory>()
+                                   .Where(h => h.PatientId == patientId)
+                                   .ToListAsync();
+        list.Sort((a, b) => string.Compare(b.Timestamp, a.Timestamp, StringComparison.Ordinal));
+        return list;
+    }
+
+    /// <summary>Appends a new history entry (never updates, always inserts).</summary>
+    public async Task AddTreatmentHistory(TreatmentHistory entry)
+    {
+        await Init();
+        entry.Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        await _database!.InsertAsync(entry);
+    }
+
+    /// <summary>Deletes all history for a patient (e.g. when patient is deleted).</summary>
+    public async Task DeleteTreatmentHistoryForPatient(int patientId)
+    {
+        await Init();
+        var entries = await _database!.Table<TreatmentHistory>()
+                                      .Where(h => h.PatientId == patientId)
+                                      .ToListAsync();
+        foreach (var e in entries)
+            await _database!.DeleteAsync(e);
+    }
+
     // =========================
     // CEPHALOMETRIC IMAGE CRUD
     // =========================
@@ -260,4 +293,5 @@ public class DatabaseService
         newImage.UploadedDate = DateTime.Now.ToString("yyyy-MM-dd");
         await _database!.InsertAsync(newImage);
     }
+
 }

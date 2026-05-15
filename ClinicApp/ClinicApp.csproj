@@ -114,6 +114,12 @@
 	  <MauiXaml Update="Views\PatientsRelated\PatientListPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+   	  <MauiXaml Update="Views\PatientsRelated\TreatmentHistoryPage.xaml">
+		<Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\ServicesRelated\ServicePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Views\ServicesRelated\AddServicePage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

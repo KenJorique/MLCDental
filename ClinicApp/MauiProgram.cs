@@ -35,6 +35,8 @@ namespace ClinicApp
             builder.Services.AddTransient<PatientDetailsViewModel>();
             builder.Services.AddTransient<DentalChartPage>();
             builder.Services.AddTransient<DentalChartViewModel>();
+            builder.Services.AddTransient<TreatmentHistoryPage>();
+            builder.Services.AddTransient<TreatmentHistoryViewModel>();
             builder.Services.AddTransient<CephalometricPage>();
             builder.Services.AddTransient<CephalometricViewModel>();
             builder.Services.AddTransient<ServiceListPage>();
@@ -45,6 +47,8 @@ namespace ClinicApp
             builder.Services.AddSingleton<UserViewModel>();
             builder.Services.AddTransient<AddUserPage>();
             builder.Services.AddTransient<AddUserViewModel>();
+            builder.Services.AddTransient<DentalChartPage>();
+            builder.Services.AddTransient<DentalChartViewModel>();
 
             builder
                 .UseMauiApp<App>()
