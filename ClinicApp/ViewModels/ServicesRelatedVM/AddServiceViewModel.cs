@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 
-namespace ClinicApp.ViewModels;
+namespace ClinicApp.ViewModels.ServicesRelatedVM;
 
 // QueryProperties handle both service edit (ServiceId) and package edit (PackageId)
 [QueryProperty(nameof(ServiceId), "ServiceId")]
@@ -23,6 +23,17 @@ public partial class AddServiceViewModel : ObservableObject
     [ObservableProperty] bool isServiceTabSelected = true;
     [ObservableProperty] bool isPackageTabSelected = false;
     [ObservableProperty] string pageTitle = "Add Service";
+
+    // Package tab is only enabled when there are 2 or more services
+    [ObservableProperty] bool canAddPackage;
+
+    // Called by AddServicePage.OnAppearing to check if Package tab should be enabled
+    [RelayCommand]
+    async Task CheckPackageEligibility()
+    {
+        var services = await _db.GetServices();
+        CanAddPackage = services.Count >= 2;
+    }
 
     // ─── Service tab fields ──────────────────────────────────
     [ObservableProperty] int serviceId;
@@ -204,6 +215,14 @@ public partial class AddServiceViewModel : ObservableObject
             .Where(s => s.IsSelected)
             .Select(s => s.Service.ServiceName)
             .ToList();
+
+        // Must select at least 2 services to form a package
+        if (selected.Count < 2)
+        {
+            await Shell.Current.DisplayAlert("Validation", "Please select at least 2 services for a package.", "OK");
+            return;
+        }
+
         string includedServices = string.Join(",", selected);
 
         if (PackageId > 0)

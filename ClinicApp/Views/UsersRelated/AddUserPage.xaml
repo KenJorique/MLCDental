@@ -1,37 +1,89 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:viewmodels="clr-namespace:ClinicApp.ViewModels"
              x:Class="ClinicApp.Views.UsersRelated.AddUserPage"
-             Title="Staff Details"
+             Title="{Binding PageTitle}"
              Shell.TabBarIsVisible="False">
 
-    <VerticalStackLayout Padding="20" Spacing="15">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="12">
 
-        <Label Text="Full Name" FontAttributes="Bold"/>
-        <Entry Text="{Binding FullName}" Placeholder="Enter full name"/>
+            <Label Text="Full Name" FontAttributes="Bold"/>
+            <Entry Text="{Binding FullName}" Placeholder="Enter full name"/>
 
-        <Label Text="Username" FontAttributes="Bold"/>
-        <Entry Text="{Binding Username}" Placeholder="Enter username"/>
+            <Label Text="Username" FontAttributes="Bold"/>
+            <Entry Text="{Binding Username}" Placeholder="Enter username"/>
 
-        <Label Text="Password" FontAttributes="Bold"/>
-        <Entry Text="{Binding Password}" Placeholder="Enter password" IsPassword="True"/>
+            <Label Text="Password" FontAttributes="Bold"/>
+            <Entry Text="{Binding Password}" Placeholder="Enter password" IsPassword="True"/>
 
-        <Label Text="Role" FontAttributes="Bold"/>
-        <Picker SelectedItem="{Binding Role}" Title="Select Role">
-            <Picker.ItemsSource>
-                <x:Array Type="{x:Type x:String}">
-                    <x:String>Dentist</x:String>
-                    <x:String>Assistant</x:String>
-                    <x:String>Admin</x:String>
-                </x:Array>
-            </Picker.ItemsSource>
-        </Picker>
+            <Label Text="Contact No." FontAttributes="Bold"/>
+            <Entry Text="{Binding ContactNo}"
+                   Placeholder="09xxxxxxxxx"
+                   Keyboard="Telephone"
+                   MaxLength="11"/>
 
-        <Button Text="Save Staff Member"
-                Command="{Binding SaveUserCommand}"
-                Margin="0,20,0,0"
-                BackgroundColor="MediumPurple"/>
+            <Label Text="Email Address" FontAttributes="Bold"/>
+            <Entry Text="{Binding Email}"
+                   Placeholder="email@example.com"
+                   Keyboard="Email"/>
 
-    </VerticalStackLayout>
+            <Label Text="Role" FontAttributes="Bold"/>
+            <Picker SelectedItem="{Binding Role}" Title="Select Role">
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>Dentist</x:String>
+                        <x:String>Assistant</x:String>
+                        <x:String>Admin</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+            </Picker>
+
+            <!-- Status switch: only visible when editing an existing user -->
+            <VerticalStackLayout IsVisible="{Binding IsEditMode}"
+                                 Spacing="8"
+                                 Margin="0,10,0,0">
+
+                <Label Text="Status" FontAttributes="Bold"/>
+
+                <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+
+                    <!-- Colored dot reflects current switch state -->
+                    <Ellipse WidthRequest="12"
+                             HeightRequest="12"
+                             VerticalOptions="Center">
+                        <Ellipse.Fill>
+                            <Binding Path="IsActive">
+                                <Binding.Converter>
+                                    <local:BoolToStatusColorConverter xmlns:local="clr-namespace:ClinicApp.Converters"/>
+                                </Binding.Converter>
+                            </Binding>
+                        </Ellipse.Fill>
+                    </Ellipse>
+
+                    <Label VerticalOptions="Center" FontSize="15">
+                        <Label.Text>
+                            <Binding Path="IsActive">
+                                <Binding.Converter>
+                                    <local:BoolToStatusTextConverter xmlns:local="clr-namespace:ClinicApp.Converters"/>
+                                </Binding.Converter>
+                            </Binding>
+                        </Label.Text>
+                    </Label>
+
+                    <!-- Toggle switch -->
+                    <Switch IsToggled="{Binding IsActive}" VerticalOptions="Center"/>
+
+                </HorizontalStackLayout>
+
+            </VerticalStackLayout>
+
+            <!-- Save button -->
+            <Button Text="Save"
+                    Command="{Binding SaveUserCommand}"
+                    Margin="0,20,0,0"
+                    BackgroundColor="MediumPurple"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

@@ -40,37 +40,39 @@
                                   ColumnSpacing="8"
                                   IsVisible="{Binding IsExpanded}">
 
-                                <!-- Patient Records: navigates to PatientDetailsPage -->
-                                <Button Grid.Column="0"
-                                        Text="Patient Records"
+								<Button Grid.Column="0"
+                                        Text="📄"
                                         HeightRequest="80"
+                                        FontSize="28"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                                   Path=BindingContext.ViewPatientCommand}"
                                         CommandParameter="{Binding .}" />
 
-                                <!-- Dental Chart:  placeholder -->
-                                <Button Grid.Column="1"
-                                        Text="Dental Chart"
+								<Button Grid.Column="1"
+                                        Text="🦷"
                                         HeightRequest="80"
+                                        FontSize="28"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                                   Path=BindingContext.ViewDentalChartCommand}"
                                         CommandParameter="{Binding .}" />
 
-                                <!-- Treatment History: disabled placeholder -->
                                 <Button Grid.Column="2"
-                                          Text="Treatment History"
-                                          HeightRequest="80"
-                                          Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                    Path=BindingContext.ViewTreatmentHistoryCommand}"
-                                          CommandParameter="{Binding .}" />
-
-                                <!-- Cephalometric: disabled placeholder -->
-                                <Button Grid.Column="3"
-                                        Text="Cephalometric"
+                                        Text="📋"
                                         HeightRequest="80"
-                                        IsEnabled="False" />
+                                        FontSize="28"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                        Path=BindingContext.ViewTreatmentHistoryCommand}"
+                                        CommandParameter="{Binding .}" />
 
-                            </Grid>
+								<Button Grid.Column="3"
+                                        Text="💀"
+                                        HeightRequest="80"
+                                        FontSize="28"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                  Path=BindingContext.GoToCephalometricCommand}"
+                                        CommandParameter="{Binding .}" />
+
+							</Grid>
 
                         </VerticalStackLayout>
                     </Frame>

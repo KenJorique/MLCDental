@@ -58,6 +58,21 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <AndroidResource Remove="NewFolder1\**" />
+	  <AndroidResource Remove="NewFolder\**" />
+	  <Compile Remove="NewFolder1\**" />
+	  <Compile Remove="NewFolder\**" />
+	  <EmbeddedResource Remove="NewFolder1\**" />
+	  <EmbeddedResource Remove="NewFolder\**" />
+	  <MauiCss Remove="NewFolder1\**" />
+	  <MauiCss Remove="NewFolder\**" />
+	  <MauiXaml Remove="NewFolder1\**" />
+	  <MauiXaml Remove="NewFolder\**" />
+	  <None Remove="NewFolder1\**" />
+	  <None Remove="NewFolder\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.100" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.100" />
@@ -73,6 +88,9 @@
 
 	<ItemGroup>
 	  <MauiXaml Update="Views\AppointmentPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\CephalometricRelated\CephalometricPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\DentalChart\DentalChartPage.xaml">
@@ -96,8 +114,8 @@
 	  <MauiXaml Update="Views\PatientsRelated\PatientListPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\PatientsRelated\TreatmentHistoryPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
+   	  <MauiXaml Update="Views\PatientsRelated\TreatmentHistoryPage.xaml">
+		<Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\ServicesRelated\ServicePage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
@@ -114,11 +132,6 @@
 	  <MauiXaml Update="Views\UsersRelated\UserListPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="NewFolder1\" />
-	  <Folder Include="NewFolder\" />
 	</ItemGroup>
 
 </Project>

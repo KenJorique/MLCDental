@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ClinicApp.Views.CephalometricRelated.CephalometricPage"
+             Title="Cephalometric"
+             Shell.TabBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+
+            <!-- Patient info header -->
+            <Frame Padding="12" HasShadow="True">
+                <HorizontalStackLayout Spacing="15">
+
+                    <HorizontalStackLayout Spacing="5">
+                        <Label Text="Patient ID:" FontAttributes="Bold" FontSize="13"/>
+                        <Label Text="{Binding PatientId}" FontSize="13"/>
+                    </HorizontalStackLayout>
+
+                    <BoxView WidthRequest="1" Color="LightGray" HeightRequest="20" VerticalOptions="Center"/>
+
+                    <HorizontalStackLayout Spacing="5">
+                        <Label Text="Patient Name:" FontAttributes="Bold" FontSize="13"/>
+                        <Label Text="{Binding PatientName}" FontSize="13"/>
+                    </HorizontalStackLayout>
+
+                </HorizontalStackLayout>
+            </Frame>
+
+            <!-- ── NO IMAGE STATE: upload placeholder ── -->
+            <Frame IsVisible="{Binding HasImage, Converter={StaticResource InverseBoolConverter}}"
+                   Padding="40"
+                   HasShadow="True"
+                   BackgroundColor="#F5F5F5">
+                <Frame.GestureRecognizers>
+                    <!-- Tap the placeholder to open image picker -->
+                    <TapGestureRecognizer Command="{Binding UploadImageCommand}" />
+                </Frame.GestureRecognizers>
+
+                <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+
+                    <!-- Upload icon using text symbol -->
+                    <Label Text="🖼"
+                           FontSize="48"
+                           HorizontalOptions="Center"/>
+
+                    <Label Text="Upload Lateral Cephalometric X-ray Image"
+                           FontSize="16"
+                           FontAttributes="Bold"
+						   TextColor="Black"
+                           HorizontalTextAlignment="Center"/>
+
+                    <Label Text="Tap to select a JPEG or PNG image"
+                           FontSize="13"
+                           TextColor="Gray"
+                           HorizontalTextAlignment="Center"/>
+
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- ── HAS IMAGE STATE: show X-ray + action buttons ── -->
+            <VerticalStackLayout IsVisible="{Binding HasImage}" Spacing="12">
+
+                <!-- X-ray image display -->
+                <Frame Padding="0" HasShadow="True" IsClippedToBounds="True">
+                    <Image Source="{Binding ImagePath}"
+                           Aspect="AspectFit"
+                           HeightRequest="300"/>
+                </Frame>
+
+                <!-- Analyze Image: disabled for now -->
+                <Button Text="Analyze Image"
+                        Command="{Binding AnalyzeImageCommand}"
+                        IsEnabled="False"
+                        BackgroundColor="Gray"/>
+
+                <!-- Replace Image: shows confirmation first -->
+                <Button Text="Replace Image"
+                        Command="{Binding ReplaceImageCommand}"/>
+
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

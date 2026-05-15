@@ -1,6 +1,7 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Services;
 using ClinicApp.Views.DentalChart;
+using ClinicApp.Views.CephalometricRelated;
 using ClinicApp.Views.PatientsRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -98,6 +99,15 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 $"{nameof(DentalChartPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
         }
 
+        // Navigates to CephalometricPage passing patient ID and full name
+        [RelayCommand]
+        async Task GoToCephalometric(PatientCardViewModel card)
+        {
+            if (card == null) return;
+            string fullName = Uri.EscapeDataString($"{card.Patient.FirstName} {card.Patient.LastName}");
+            await Shell.Current.GoToAsync(
+                $"{nameof(CephalometricPage)}?PatientId={card.Patient.PatientID}&PatientName={fullName}");
+        }
 
         [RelayCommand]
         async Task ViewTreatmentHistory(PatientCardViewModel card)
@@ -106,6 +116,5 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             await Shell.Current.GoToAsync(
                 $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
         }
-
     }
 }

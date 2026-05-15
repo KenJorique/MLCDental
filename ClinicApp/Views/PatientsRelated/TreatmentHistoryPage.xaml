@@ -49,14 +49,12 @@
                                  VerticalOptions="Center"
                                  HorizontalOptions="Center"
                                  Spacing="12"
-                                 Padding="40,0">
-                <Label Text="Treatment Record" FontSize="48" HorizontalTextAlignment="Center"/>
+								 Margin="0, -80, 0, 0"
+                                 Padding="20,0">
+                <Label Text="Treatment Record" FontSize="48" HorizontalTextAlignment="Center" TextColor="Black"/>
                 <Label Text="No treatment history yet"
                        FontSize="16" FontAttributes="Bold"
                        TextColor="#374151" HorizontalTextAlignment="Center"/>
-                <Label Text="Treatments recorded on the dental chart will appear here."
-                       FontSize="13" TextColor="#9CA3AF"
-                       HorizontalTextAlignment="Center" LineBreakMode="WordWrap"/>
             </VerticalStackLayout>
 
             <!-- History list -->

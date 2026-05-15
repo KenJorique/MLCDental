@@ -353,10 +353,10 @@
                                    TextColor="#9CA3AF" Margin="0,4,0,0"/>
                             <Editor Text="{Binding EditNotes}"
                                     Placeholder="Add clinical notes…"
-                                    TextColor="Black"
                                     PlaceholderColor="#9CA3AF"
                                     FontSize="13"
                                     BackgroundColor="#F8FAFC"
+									TextColor="Black"
                                     MinimumHeightRequest="80"
                                     AutoSize="TextChanges"/>
                         </VerticalStackLayout>
