@@ -2,11 +2,13 @@
 using ClinicApp.ViewModels;
 using ClinicApp.ViewModels.CephalometricVM;
 using ClinicApp.ViewModels.PatientsRelatedVM;
+using ClinicApp.ViewModels.DentalChart;
 using ClinicApp.ViewModels.ServicesRelatedVM;
 using ClinicApp.ViewModels.UsersRelated;
 using ClinicApp.Views;
 using ClinicApp.Views.CephalometricRelated;
 using ClinicApp.Views.PatientsRelated;
+using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.UsersRelated;
 using Microsoft.Extensions.Logging;
@@ -31,6 +33,8 @@ namespace ClinicApp
             builder.Services.AddTransient<AddPatientViewModel>();
             builder.Services.AddTransient<PatientDetailsPage>();
             builder.Services.AddTransient<PatientDetailsViewModel>();
+            builder.Services.AddTransient<DentalChartPage>();
+            builder.Services.AddTransient<DentalChartViewModel>();
             builder.Services.AddTransient<CephalometricPage>();
             builder.Services.AddTransient<CephalometricViewModel>();
             builder.Services.AddTransient<ServiceListPage>();

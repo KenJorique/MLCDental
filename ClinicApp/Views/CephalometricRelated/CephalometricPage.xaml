@@ -47,6 +47,7 @@
                     <Label Text="Upload Lateral Cephalometric X-ray Image"
                            FontSize="16"
                            FontAttributes="Bold"
+						   TextColor="Black"
                            HorizontalTextAlignment="Center"/>
 
                     <Label Text="Tap to select a JPEG or PNG image"

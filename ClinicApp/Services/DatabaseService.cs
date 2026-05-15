@@ -15,8 +15,8 @@ public class DatabaseService
             if (_database != null)
                 return;
             // This saves it to the "Downloads" folder on the Android Emulator
-            string dbPath = Path.Combine("/storage/emulated/0/Download", "clinicmob.db3");
-            //string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
+            // string dbPath = Path.Combine("/storage/emulated/0/Download", "clinicmob.db3");
+            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
             _database = new SQLiteAsyncConnection(dbPath);
 
             // Create all tables if they don't exist yet
@@ -29,9 +29,9 @@ public class DatabaseService
 
             // Migrate: add new columns to User table if they don't exist yet
             // Safe to run on existing installs — SQLite ignores duplicate columns
-            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN ContactNo TEXT"); } catch { }
-            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN Email TEXT"); } catch { }
-            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsActive INTEGER DEFAULT 1"); } catch { }
+            //try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN ContactNo TEXT"); } catch { }
+            //try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN Email TEXT"); } catch { }
+            //try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsActive INTEGER DEFAULT 1"); } catch { }
 
             // Seed default users on first run — both Active by default
             var userCount = await _database.Table<User>().CountAsync();

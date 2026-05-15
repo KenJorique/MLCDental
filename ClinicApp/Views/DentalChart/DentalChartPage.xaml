@@ -356,6 +356,7 @@
                                     PlaceholderColor="#9CA3AF"
                                     FontSize="13"
                                     BackgroundColor="#F8FAFC"
+									TextColor="Black"
                                     MinimumHeightRequest="80"
                                     AutoSize="TextChanges"/>
                         </VerticalStackLayout>
