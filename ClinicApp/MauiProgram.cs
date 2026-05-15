@@ -1,9 +1,11 @@
 ﻿using ClinicApp.Services;
 using ClinicApp.ViewModels;
+using ClinicApp.ViewModels.CephalometricVM;
 using ClinicApp.ViewModels.PatientsRelatedVM;
 using ClinicApp.ViewModels.ServicesRelatedVM;
 using ClinicApp.ViewModels.UsersRelated;
 using ClinicApp.Views;
+using ClinicApp.Views.CephalometricRelated;
 using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.UsersRelated;
@@ -29,6 +31,8 @@ namespace ClinicApp
             builder.Services.AddTransient<AddPatientViewModel>();
             builder.Services.AddTransient<PatientDetailsPage>();
             builder.Services.AddTransient<PatientDetailsViewModel>();
+            builder.Services.AddTransient<CephalometricPage>();
+            builder.Services.AddTransient<CephalometricViewModel>();
             builder.Services.AddTransient<ServiceListPage>();
             builder.Services.AddSingleton<ServiceViewModel>();
             builder.Services.AddTransient<AddServicePage>();
