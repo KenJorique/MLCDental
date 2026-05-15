@@ -10,10 +10,11 @@ public class DatabaseService
 
     public async Task Init()
     {
+        if (_database != null)
+            return;
         try
         {
-            if (_database != null)
-                return;
+          
             // This saves it to the "Downloads" folder on the Android Emulator
             string dbPath = Path.Combine("/storage/emulated/0/Download", "clinicmob.db3");
             //string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
@@ -25,6 +26,7 @@ public class DatabaseService
             await _database.CreateTableAsync<ServicePackage>();
             await _database.CreateTableAsync<User>();
             await _database.CreateTableAsync<ToothRecord>();
+            await _database.CreateTableAsync<TreatmentHistory>();
 
             // Seed default users on first run
             var userCount = await _database.Table<User>().CountAsync();
@@ -211,6 +213,40 @@ public class DatabaseService
             .FirstOrDefaultAsync();
         if (existing is not null)
             await _database!.DeleteAsync(existing);
+    }
+
+    // =========================
+    // TREATMENT HISTORY CRUD
+    // =========================
+
+    /// <summary>Returns all history entries for a patient, newest first.</summary>
+    public async Task<List<TreatmentHistory>> GetTreatmentHistoryForPatient(int patientId)
+    {
+        await Init();
+        var list = await _database!.Table<TreatmentHistory>()
+                                   .Where(h => h.PatientId == patientId)
+                                   .ToListAsync();
+        list.Sort((a, b) => string.Compare(b.Timestamp, a.Timestamp, StringComparison.Ordinal));
+        return list;
+    }
+
+    /// <summary>Appends a new history entry (never updates, always inserts).</summary>
+    public async Task AddTreatmentHistory(TreatmentHistory entry)
+    {
+        await Init();
+        entry.Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        await _database!.InsertAsync(entry);
+    }
+
+    /// <summary>Deletes all history for a patient (e.g. when patient is deleted).</summary>
+    public async Task DeleteTreatmentHistoryForPatient(int patientId)
+    {
+        await Init();
+        var entries = await _database!.Table<TreatmentHistory>()
+                                      .Where(h => h.PatientId == patientId)
+                                      .ToListAsync();
+        foreach (var e in entries)
+            await _database!.DeleteAsync(e);
     }
 
 }

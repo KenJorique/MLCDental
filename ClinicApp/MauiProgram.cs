@@ -40,6 +40,8 @@ namespace ClinicApp
             builder.Services.AddTransient<AddUserViewModel>();
             builder.Services.AddTransient<DentalChartPage>();
             builder.Services.AddTransient<DentalChartViewModel>();
+            builder.Services.AddTransient<TreatmentHistoryPage>();
+            builder.Services.AddTransient<TreatmentHistoryViewModel>();
 
             builder
                 .UseMauiApp<App>()

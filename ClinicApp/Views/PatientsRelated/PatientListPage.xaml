@@ -58,9 +58,11 @@
 
                                 <!-- Treatment History: disabled placeholder -->
                                 <Button Grid.Column="2"
-                                        Text="Treatment History"
-                                        HeightRequest="80"
-                                        IsEnabled="False" />
+                                          Text="Treatment History"
+                                          HeightRequest="80"
+                                          Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                    Path=BindingContext.ViewTreatmentHistoryCommand}"
+                                          CommandParameter="{Binding .}" />
 
                                 <!-- Cephalometric: disabled placeholder -->
                                 <Button Grid.Column="3"

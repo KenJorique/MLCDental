@@ -98,9 +98,11 @@ public partial class DentalChartViewModel : ObservableObject
             StatusMessage = records.Count > 0
                 ? $"{records.Count} condition(s) on record."
                 : "No chart history yet — tap a tooth to begin.";
+
         }
         finally { IsBusy = false; }
     }
+
 
     // ── Tooth tap → open modal ────────────────────────────────────
 
@@ -169,6 +171,8 @@ public partial class DentalChartViewModel : ObservableObject
         try
         {
             var hex = ConditionColors[EditCondition];
+            var previousCondition = _modalTooth.Condition;
+            var isNew = previousCondition == "Normal" && string.IsNullOrWhiteSpace(_modalTooth.LastUpdated);
 
             var record = new ToothRecord
             {
@@ -182,6 +186,20 @@ public partial class DentalChartViewModel : ObservableObject
             _modalTooth.ApplyRecord(record);
             await _db.SaveToothRecord(record);
 
+            // Log to treatment history
+            var historyEntry = new Models.TreatmentHistory
+            {
+                PatientId = PatientId,
+                ToothNumber = _modalTooth.ToothNumber,
+                ToothName = _modalTooth.ToothName,
+                Condition = EditCondition,
+                PreviousCondition = previousCondition,
+                Color = hex,
+                Notes = EditNotes ?? string.Empty,
+                ActionType = isNew ? "Added" : "Updated",
+            };
+            await _db.AddTreatmentHistory(historyEntry);
+
             // Refresh modal display fields
             ModalCondition = EditCondition;
             ModalConditionColor = Color.FromArgb(hex);
@@ -190,6 +208,7 @@ public partial class DentalChartViewModel : ObservableObject
 
             StatusMessage = $"✔  Tooth #{_modalTooth.ToothNumber}: {EditCondition} saved.";
             IsEditMode = false;
+
         }
         finally { IsBusy = false; }
     }
@@ -202,11 +221,32 @@ public partial class DentalChartViewModel : ObservableObject
         try
         {
             int num = _modalTooth.ToothNumber;
+            var prevCondition = _modalTooth.Condition;
+            var prevColor = ConditionColors.ContainsKey(prevCondition) ? ConditionColors[prevCondition] : "#FFFFFF";
+
+            // Log the clear action to history
+            if (prevCondition != "Normal")
+            {
+                var historyEntry = new Models.TreatmentHistory
+                {
+                    PatientId = PatientId,
+                    ToothNumber = num,
+                    ToothName = _modalTooth.ToothName,
+                    Condition = "Normal",
+                    PreviousCondition = prevCondition,
+                    Color = prevColor,
+                    Notes = string.Empty,
+                    ActionType = "Cleared",
+                };
+                await _db.AddTreatmentHistory(historyEntry);
+            }
+
             _modalTooth.Reset();
             await _db.DeleteToothRecord(PatientId, num);
 
             StatusMessage = $"Tooth #{num} cleared.";
             CloseModal();
+
         }
         finally { IsBusy = false; }
     }

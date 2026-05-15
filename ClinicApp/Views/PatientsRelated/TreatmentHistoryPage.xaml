@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels.PatientsRelatedVM"
+    x:Class="ClinicApp.Views.PatientsRelated.TreatmentHistoryPage"
+    x:DataType="vm:TreatmentHistoryViewModel"
+    Title="Treatment History"
+    Shell.TabBarIsVisible="False"
+    BackgroundColor="#F0F4F8">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- ── Patient header ── -->
+        <Frame Grid.Row="0"
+               BackgroundColor="White" CornerRadius="0"
+               HasShadow="True" Padding="16,14"
+               Margin="0">
+            <Grid ColumnDefinitions="*,Auto">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="{Binding PatientName}"
+                           FontSize="18" FontAttributes="Bold" TextColor="#1A2B4A"/>
+                    <Label Text="{Binding PatientId, StringFormat='Patient ID: {0}'}"
+                           FontSize="12" TextColor="#6B7A9A"/>
+                </VerticalStackLayout>
+                <Frame Grid.Column="1"
+                       BackgroundColor="#EFF6FF"
+                       Padding="10,4" CornerRadius="10"
+                       HasShadow="False" BorderColor="#BFDBFE"
+                       VerticalOptions="Center">
+                    <Label Text="{Binding HistoryCountText}"
+                           FontSize="12" TextColor="#2563EB" FontAttributes="Bold"/>
+                </Frame>
+            </Grid>
+        </Frame>
+
+        <!-- ── Body ── -->
+        <Grid Grid.Row="1">
+
+            <!-- Loading indicator -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="#2563EB"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center"/>
+
+            <!-- Empty state -->
+            <VerticalStackLayout IsVisible="{Binding IsHistoryEmpty}"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="12"
+                                 Padding="40,0">
+                <Label Text="Treatment Record" FontSize="48" HorizontalTextAlignment="Center"/>
+                <Label Text="No treatment history yet"
+                       FontSize="16" FontAttributes="Bold"
+                       TextColor="#374151" HorizontalTextAlignment="Center"/>
+                <Label Text="Treatments recorded on the dental chart will appear here."
+                       FontSize="13" TextColor="#9CA3AF"
+                       HorizontalTextAlignment="Center" LineBreakMode="WordWrap"/>
+            </VerticalStackLayout>
+
+            <!-- History list -->
+            <CollectionView ItemsSource="{Binding History}"
+                            SelectionMode="None"
+                            IsVisible="{Binding IsHistoryEmpty,
+                                Converter={StaticResource InvertedBoolConverter}}"
+                            Margin="12,12,12,0">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TreatmentHistoryItemViewModel">
+
+                        <Frame BackgroundColor="White" CornerRadius="12"
+                               HasShadow="True" Padding="0" Margin="0,0,0,10">
+                            <Grid ColumnDefinitions="6,*">
+
+                                <!-- Condition colour accent bar -->
+                                <BoxView Grid.Column="0"
+                                         Color="{Binding ConditionColor}"
+                                         CornerRadius="6,0,0,6"/>
+
+                                <!-- Card content -->
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Padding="14,12" Spacing="7">
+
+                                    <!-- Row 1: Date · Time  +  Action badge -->
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <HorizontalStackLayout Grid.Column="0" Spacing="8"
+                                                               VerticalOptions="Center">
+                                            <Label Text="{Binding DateDisplay}"
+                                                   FontSize="11" TextColor="#6B7A9A"
+                                                   FontAttributes="Bold"
+                                                   VerticalTextAlignment="Center"/>
+                                            <BoxView WidthRequest="1" HeightRequest="12"
+                                                     BackgroundColor="#E2E8F0"
+                                                     VerticalOptions="Center"/>
+                                            <Label Text="{Binding TimeDisplay}"
+                                                   FontSize="11" TextColor="#9CA3AF"
+                                                   VerticalTextAlignment="Center"/>
+                                        </HorizontalStackLayout>
+
+                                       
+                                    </Grid>
+
+                                    <!-- Divider -->
+                                    <BoxView HeightRequest="1" BackgroundColor="#F1F5F9"/>
+
+                                    <!-- Row 2: Tooth # · Name -->
+                                    <Label FontSize="15" FontAttributes="Bold"
+                                           TextColor="#1A2B4A">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="{Binding ToothLabel}"
+                                                      FontAttributes="Bold" TextColor="#1A2B4A"/>
+                                                <Span Text=" · " TextColor="#CBD5E1"/>
+                                                <Span Text="{Binding ToothName}"
+                                                      TextColor="#6B7A9A" FontSize="13"/>
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
+
+                                    <!-- Row 3: Condition dot + label + previous -->
+                                    <HorizontalStackLayout Spacing="8">
+                                        <BoxView WidthRequest="12" HeightRequest="12"
+                                                 CornerRadius="6"
+                                                 Color="{Binding ConditionColor}"
+                                                 VerticalOptions="Center"/>
+                                        <Label Text="{Binding Condition}"
+                                               FontSize="13" FontAttributes="Bold"
+                                               TextColor="#374151"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Text="{Binding PreviousConditionDisplay}"
+                                               FontSize="11" TextColor="#9CA3AF"
+                                               FontAttributes="Italic"
+                                               VerticalTextAlignment="Center"
+                                               IsVisible="{Binding HasPreviousCondition}"/>
+                                    </HorizontalStackLayout>
+
+                                    <!-- Row 4: Notes (only when present) -->
+                                    <VerticalStackLayout IsVisible="{Binding HasNotes}" Spacing="4">
+                                        <BoxView HeightRequest="1" BackgroundColor="#F1F5F9"/>
+                                        <Label Text="{Binding Notes}"
+                                               FontSize="12" TextColor="#6B7A9A"
+                                               LineBreakMode="WordWrap"/>
+                                    </VerticalStackLayout>
+
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Frame>
+
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </Grid>
+    </Grid>
+</ContentPage>

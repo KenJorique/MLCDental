@@ -98,5 +98,14 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 $"{nameof(DentalChartPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
         }
 
+
+        [RelayCommand]
+        async Task ViewTreatmentHistory(PatientCardViewModel card)
+        {
+            if (card == null) return;
+            await Shell.Current.GoToAsync(
+                $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
+        }
+
     }
 }

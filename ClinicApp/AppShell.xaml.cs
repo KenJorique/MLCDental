@@ -19,6 +19,7 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(UserListPage), typeof(UserListPage));
             Routing.RegisterRoute(nameof(AddUserPage), typeof(AddUserPage));
             Routing.RegisterRoute(nameof(DentalChartPage), typeof(DentalChartPage));
+            Routing.RegisterRoute(nameof(TreatmentHistoryPage), typeof(TreatmentHistoryPage));
         }
     }
 }
