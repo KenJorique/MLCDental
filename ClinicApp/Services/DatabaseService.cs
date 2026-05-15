@@ -14,9 +14,19 @@ public class DatabaseService
         {
             if (_database != null)
                 return;
-            // This saves it to the "Downloads" folder on the Android Emulator
+
+            // pATH OF DATABASE IN Android DEVICES
             // string dbPath = Path.Combine("/storage/emulated/0/Download", "clinicmob.db3");
+
+            //Path of database in Windows devicees
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
+
+            //MESSAGE FOR FINDING THE DATABASE PATH
+            //  await Shell.Current.DisplayAlert(
+            //"DB PATH",
+            //dbPath,
+            //"OK");
+
             _database = new SQLiteAsyncConnection(dbPath);
 
             // Create all tables if they don't exist yet
