@@ -20,6 +20,13 @@
             <Label Text="User Management" FontSize="16" />
         </Frame>
 
+        <Frame Padding="15" HasShadow="True">
+            <Frame.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding GoToSupplyCommand}" />
+            </Frame.GestureRecognizers>
+            <Label Text="Medical Supplies" FontSize="16" />
+        </Frame>
+
     </VerticalStackLayout>
 
 </ContentPage>

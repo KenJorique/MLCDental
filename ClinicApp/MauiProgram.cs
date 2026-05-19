@@ -12,6 +12,8 @@ using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.UsersRelated;
 using Microsoft.Extensions.Logging;
+using ClinicApp.Views.SupplyRelated;
+using ClinicApp.ViewModels.SupplyVM;
 
 namespace ClinicApp
 {
@@ -49,6 +51,12 @@ namespace ClinicApp
             builder.Services.AddTransient<AddUserViewModel>();
             builder.Services.AddTransient<DentalChartPage>();
             builder.Services.AddTransient<DentalChartViewModel>();
+            builder.Services.AddTransient<SupplyListPage>();
+            builder.Services.AddTransient<SupplyListViewModel>();
+            builder.Services.AddTransient<AddSupplyPage>();
+            builder.Services.AddTransient<AddSupplyViewModel>();
+            builder.Services.AddTransient<SupplyInfoPage>();
+            builder.Services.AddTransient<SupplyInfoViewModel>();
 
             builder
                 .UseMauiApp<App>()

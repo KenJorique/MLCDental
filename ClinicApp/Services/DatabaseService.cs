@@ -15,16 +15,24 @@ public class DatabaseService
             if (_database != null)
                 return;
             // This saves it to the "Downloads" folder on the Android Emulator
-            // string dbPath = Path.Combine("/storage/emulated/0/Download", "clinicmob.db3");
+            //string dbPath = Path.Combine("/storage/emulated/0/Download", "clinicmob.db3");
+
+            // this saves in windows
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
 
             //MESSAGE FOR FINDING THE DATABASE PATH
-            //  await Shell.Current.DisplayAlert(
-            //"DB PATH",
-            //dbPath,
-            //"OK");
+            await Shell.Current.DisplayAlert(
+          "DB PATH",
+          dbPath,
+          "OK");
 
-            _database = new SQLiteAsyncConnection(dbPath);
+            _database = new SQLiteAsyncConnection(dbPath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
+            await _database.ExecuteAsync("PRAGMA journal_mode=WAL;");
+            await _database.ExecuteAsync("PRAGMA busy_timeout=3000;");
+
+         
+
+            //_database = new SQLiteAsyncConnection(dbPath);
 
             // Create all tables if they don't exist yet
             await _database.CreateTableAsync<Patient>();
@@ -34,6 +42,8 @@ public class DatabaseService
             await _database.CreateTableAsync<ToothRecord>();
             await _database.CreateTableAsync<CephalometricImage>();
             await _database.CreateTableAsync<TreatmentHistory>();
+            await _database.CreateTableAsync<SupplyStockLog>();
+            await _database.CreateTableAsync<SupplyItem>();
 
             // Migrate: add new columns to User table if they don't exist yet
             // Safe to run on existing installs — SQLite ignores duplicate columns
@@ -93,6 +103,24 @@ public class DatabaseService
     public async Task DeletePatient(Patient patient)
     {
         await Init();
+
+        // Delete all related records first
+        var toothRecords = await _database!.Table<ToothRecord>()
+            .Where(r => r.PatientId == patient.PatientID).ToListAsync();
+        foreach (var r in toothRecords)
+            await _database!.DeleteAsync(r);
+
+        var histories = await _database!.Table<TreatmentHistory>()
+            .Where(h => h.PatientId == patient.PatientID).ToListAsync();
+        foreach (var h in histories)
+            await _database!.DeleteAsync(h);
+
+        var images = await _database!.Table<CephalometricImage>()
+            .Where(c => c.PatientId == patient.PatientID).ToListAsync();
+        foreach (var img in images)
+            await _database!.DeleteAsync(img);
+
+        // Now safe to delete the patient
         await _database!.DeleteAsync(patient);
     }
 
@@ -292,6 +320,96 @@ public class DatabaseService
         newImage.IsActive = true;
         newImage.UploadedDate = DateTime.Now.ToString("yyyy-MM-dd");
         await _database!.InsertAsync(newImage);
+    }
+
+    // =========================
+    // SUPPLY ITEM CRUD
+    // =========================
+
+    public async Task<List<SupplyItem>> GetSupplyItems()
+    {
+        await Init();
+        return await _database!.Table<SupplyItem>().ToListAsync();
+    }
+
+    public async Task<SupplyItem?> GetSupplyItemById(int id)
+    {
+        await Init();
+        return await _database!.Table<SupplyItem>().Where(s => s.Id == id).FirstOrDefaultAsync();
+    }
+
+    public async Task<int> AddSupplyItem(SupplyItem item)
+    {
+        await Init();
+        item.AddedDate = DateTime.Now.ToString("yyyy-MM-dd");
+        await _database!.InsertAsync(item);
+        return item.Id;
+    }
+
+    public async Task UpdateSupplyItem(SupplyItem item)
+    {
+        await Init();
+        await _database!.UpdateAsync(item);
+    }
+
+    public async Task DeleteSupplyItem(SupplyItem item)
+    {
+        await Init();
+        var logs = await _database!.Table<SupplyStockLog>()
+                                   .Where(l => l.SupplyItemId == item.Id)
+                                   .ToListAsync();
+        foreach (var l in logs) await _database!.DeleteAsync(l);
+        await _database!.DeleteAsync(item);
+    }
+
+    /// <summary>Returns all supply items that are at or below their minimum stock level.</summary>
+    public async Task<List<SupplyItem>> GetLowStockItems()
+    {
+        await Init();
+        var all = await _database!.Table<SupplyItem>().ToListAsync();
+        return all.Where(s => s.QuantityInPieces <= s.MinimumStockPieces).ToList();
+    }
+
+    // =========================
+    // SUPPLY STOCK LOG CRUD
+    // =========================
+
+    public async Task<List<SupplyStockLog>> GetLogsForSupplyItem(int supplyItemId)
+    {
+        await Init();
+        var list = await _database!.Table<SupplyStockLog>()
+                                   .Where(l => l.SupplyItemId == supplyItemId)
+                                   .ToListAsync();
+        list.Sort((a, b) => string.Compare(b.Timestamp, a.Timestamp, StringComparison.Ordinal));
+        return list;
+    }
+
+    /// <summary>
+    /// Adjusts SupplyItem.QuantityInPieces and appends a log entry atomically.
+    /// changeInPieces: positive = restock, negative = consume.
+    /// </summary>
+    public async Task ApplyStockChange(int supplyItemId, int changeInPieces, string changeType,
+                                       string note = "", int patientId = 0, string patientName = "")
+    {
+        await Init();
+        var item = await GetSupplyItemById(supplyItemId);
+        if (item == null) return;
+
+        item.QuantityInPieces = Math.Max(0, item.QuantityInPieces + changeInPieces);
+        await _database!.UpdateAsync(item);
+
+        var log = new SupplyStockLog
+        {
+            SupplyItemId = supplyItemId,
+            ChangeInPieces = changeInPieces,
+            ChangeType = changeType,
+            PatientId = patientId,
+            PatientName = patientName,
+            StockAfterChange = item.QuantityInPieces,
+            
+            Timestamp = DateTime.Now.ToString("yyyy-MM-dd"),
+        };
+        await _database!.InsertAsync(log);
     }
 
 }

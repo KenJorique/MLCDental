@@ -1,4 +1,5 @@
 ﻿using ClinicApp.Views.ServicesRelated;
+using ClinicApp.Views.SupplyRelated;
 using ClinicApp.Views.UsersRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -17,5 +18,11 @@ public partial class MenuViewModel : ObservableObject
     async Task GoToUsers()
     {
         await Shell.Current.GoToAsync(nameof(UserListPage));
+    }
+
+    [RelayCommand]
+    async Task GoToSupply()
+    {
+        await Shell.Current.GoToAsync(nameof(SupplyListPage));
     }
 }
