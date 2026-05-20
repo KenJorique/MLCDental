@@ -53,9 +53,12 @@ public partial class AddSupplyViewModel : ObservableObject
 
     public AddSupplyViewModel(DatabaseService db) => _db = db;
 
+    // FIX 1: Use MainThread.BeginInvokeOnMainThread to avoid deadlock crash
+    // when QueryProperty fires OnSupplyIdChanged from the navigation thread.
     partial void OnSupplyIdChanged(int value)
     {
-        if (value > 0) LoadForEditAsync(value).ConfigureAwait(false);
+        if (value > 0)
+            MainThread.BeginInvokeOnMainThread(async () => await LoadForEditAsync(value));
     }
 
     partial void OnItemNameChanged(string value) { ValidateForm(); UpdateSuggestions(value); }
@@ -65,22 +68,30 @@ public partial class AddSupplyViewModel : ObservableObject
 
     private async Task LoadForEditAsync(int id)
     {
-        var item = await _db.GetSupplyItemById(id);
-        if (item is null) return;
-        _editing = item;
-        IsEditMode = true;
-        PageTitle = "Edit Item";
+        // FIX 2: Wrap DB load in try/catch — unhandled exception here crashes the app silently
+        try
+        {
+            var item = await _db.GetSupplyItemById(id);
+            if (item is null) return;
+            _editing = item;
+            IsEditMode = true;
+            PageTitle = "Edit Item";
 
-        ItemName = item.Name;
-        SelectedUnit = item.Unit;
-        PiecesPerUnit = item.PiecesPerUnit;
-        Quantity = item.QuantityInPieces;
-        SizeVariant = item.SizeVariant;
-        HasExpiration = item.HasExpiration;
-        MinimumStock = item.MinimumStockPieces;
+            ItemName = item.Name;
+            SelectedUnit = item.Unit;
+            PiecesPerUnit = item.PiecesPerUnit;
+            Quantity = item.QuantityInPieces;
+            SizeVariant = item.SizeVariant;
+            HasExpiration = item.HasExpiration;
+            MinimumStock = item.MinimumStockPieces;
 
-        if (item.HasExpiration && DateTime.TryParse(item.ExpirationDate, out var exp))
-            ExpirationDate = exp;
+            if (item.HasExpiration && DateTime.TryParse(item.ExpirationDate, out var exp))
+                ExpirationDate = exp;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AddSupply] LoadForEdit error: {ex}");
+        }
     }
 
     private void UpdateSuggestions(string text)
@@ -118,8 +129,10 @@ public partial class AddSupplyViewModel : ObservableObject
                 _editing.QuantityInPieces = Quantity;
                 _editing.SizeVariant = SizeVariant.Trim();
                 _editing.HasExpiration = HasExpiration;
-                _editing.ExpirationDate = HasExpiration ? ExpirationDate.ToString("yyyy-MM-dd") : string.Empty;
+                _editing.ExpirationDate = HasExpiration
+                    ? ExpirationDate.ToString("yyyy-MM-dd") : string.Empty;
                 _editing.MinimumStockPieces = MinimumStock;
+
                 await _db.UpdateSupplyItem(_editing);
             }
             else
@@ -132,18 +145,52 @@ public partial class AddSupplyViewModel : ObservableObject
                     QuantityInPieces = Quantity,
                     SizeVariant = SizeVariant.Trim(),
                     HasExpiration = HasExpiration,
-                    ExpirationDate = HasExpiration ? ExpirationDate.ToString("yyyy-MM-dd") : string.Empty,
+                    ExpirationDate = HasExpiration
+                        ? ExpirationDate.ToString("yyyy-MM-dd") : string.Empty,
                     MinimumStockPieces = MinimumStock,
                 };
+
+                // FIX 3: Await AddSupplyItem fully before calling ApplyStockChange.
+                // The original code used the return value directly but if AddSupplyItem
+                // threw (e.g. duplicate name constraint), ApplyStockChange was called
+                // with id=0 which crashed the app.
                 int newId = await _db.AddSupplyItem(item);
+
+                if (newId <= 0)
+                {
+                    await Shell.Current.DisplayAlert("Error",
+                        "Could not save the item. Please try again.", "OK");
+                    return;
+                }
 
                 if (Quantity > 0)
                     await _db.ApplyStockChange(newId, Quantity, "Restocked",
                         "Initial stock on creation");
             }
-            await Shell.Current.GoToAsync("..");
+
+            // FIX 4: GoToAsync("..") must run on the main thread.
+            // Calling it directly from an async Task that was started off-thread crashes Android.
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+                await Shell.Current.GoToAsync(".."));
+        }
+        catch (Exception ex)
+        {
+            // Show the error instead of crashing silently
+            System.Diagnostics.Debug.WriteLine($"[AddSupply] Save error: {ex}");
+            await Shell.Current.DisplayAlert("Save Failed",
+                $"An error occurred: {ex.Message}", "OK");
         }
         finally { IsBusy = false; }
+    }
+
+    // Automatically resets PiecesPerUnit to 1 if the user selects "Piece" or units that don't use packaging calculations
+    partial void OnSelectedUnitChanged(string value)
+    {
+        if (value != "Box" && value != "Pack")
+        {
+            PiecesPerUnit = 1;
+        }
+        ValidateForm();
     }
 
     [RelayCommand]

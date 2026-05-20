@@ -53,7 +53,8 @@ public partial class SupplyInfoViewModel : ObservableObject
 
     partial void OnSupplyIdChanged(int value)
     {
-        if (value > 0) LoadAsync().ConfigureAwait(false);
+        if (value > 0)
+            MainThread.BeginInvokeOnMainThread(async () => await LoadAsync());
     }
 
     [RelayCommand]
@@ -71,6 +72,10 @@ public partial class SupplyInfoViewModel : ObservableObject
             Logs.Clear();
             foreach (var log in logs)
                 Logs.Add(new StockLogRowViewModel(log));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SupplyInfo] Load error: {ex}");
         }
         finally { IsBusy = false; }
     }

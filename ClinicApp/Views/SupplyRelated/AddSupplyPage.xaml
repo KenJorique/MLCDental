@@ -49,16 +49,31 @@
                         SelectedItem="{Binding SelectedUnit}"/>
 
                 <!-- Pieces per Unit -->
-                <Label FontSize="14">
-                    <Label.FormattedText>
-                        <FormattedString>
-                            <Span Text="Pieces per Unit" FontAttributes="Bold"/>
-                            <Span Text="  (shown when unit is box or pack)" TextColor="Gray" FontSize="12"/>
-                        </FormattedString>
-                    </Label.FormattedText>
-                </Label>
-                <Entry Placeholder="e.g. 50" Keyboard="Numeric"
-                       Text="{Binding PiecesPerUnit}"/>
+                <VerticalStackLayout x:Name="PiecesPerUnitContainer" IsVisible="False" Spacing="6">
+                    <Label FontSize="14">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Pieces per Unit" FontAttributes="Bold"/>
+                                <Span Text="  (e.g., how many items are inside the package)" TextColor="Gray" FontSize="12"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <Entry Placeholder="e.g. 50" Keyboard="Numeric"
+                           Text="{Binding PiecesPerUnit}"/>
+
+                    <VerticalStackLayout.Triggers>
+                        <DataTrigger TargetType="VerticalStackLayout" 
+                                     Binding="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectedUnit}" 
+                                     Value="Box">
+                            <Setter Property="IsVisible" Value="True"/>
+                        </DataTrigger>
+                        <DataTrigger TargetType="VerticalStackLayout" 
+                                     Binding="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectedUnit}" 
+                                     Value="Pack">
+                            <Setter Property="IsVisible" Value="True"/>
+                        </DataTrigger>
+                    </VerticalStackLayout.Triggers>
+                </VerticalStackLayout>
 
                 <!-- Quantity -->
                 <Label Text="Quantity" FontAttributes="Bold" FontSize="14"/>

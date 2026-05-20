@@ -22,12 +22,12 @@
                             <Label Text="{Binding StockStatus}"
                                    FontSize="13" TextColor="Gray"/>
                         </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1" HorizontalOptions="End"
+                        <!--<VerticalStackLayout Grid.Column="1" HorizontalOptions="End"
                                              VerticalOptions="Center" Spacing="2">
                             <Label Text="{Binding StockDisplay}"
                                    FontSize="18" FontAttributes="Bold"
                                    HorizontalTextAlignment="End"/>
-                        </VerticalStackLayout>
+                        </VerticalStackLayout>-->
                     </Grid>
                 </Frame>
 

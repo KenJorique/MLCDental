@@ -29,7 +29,7 @@
 
         <!-- ── Main body ── -->
         <Grid Grid.Row="2">
-
+    
             <!-- Loading -->
             <ActivityIndicator IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
@@ -100,7 +100,7 @@
                                     </VerticalStackLayout>
 
                                     <!-- Right: stock count + In Stock label -->
-                                    <VerticalStackLayout Grid.Column="1"
+                                    <!--<VerticalStackLayout Grid.Column="1"
                                                          HorizontalOptions="End"
                                                          VerticalOptions="Center"
                                                          Spacing="2">
@@ -112,7 +112,7 @@
                                                Text="In Stock"
                                                FontSize="11" TextColor="Gray"
                                                HorizontalTextAlignment="End"/>
-                                    </VerticalStackLayout>
+                                    </VerticalStackLayout>-->
 
                                 </Grid>
                             </Frame>

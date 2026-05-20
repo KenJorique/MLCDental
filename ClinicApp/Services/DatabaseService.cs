@@ -10,64 +10,91 @@ public class DatabaseService
 
     public async Task Init()
     {
+        // Already fully initialised — skip
+        if (_database != null) return;
+
         try
         {
-            if (_database != null)
-                return;
+            // this saves in windows
+            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
+            System.Diagnostics.Debug.WriteLine($"[DB] Path: {dbPath}");
             // This saves it to the "Downloads" folder on the Android Emulator
             //string dbPath = Path.Combine("/storage/emulated/0/Download", "clinicmob.db3");
 
             // this saves in windows
-            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
 
             //MESSAGE FOR FINDING THE DATABASE PATH
-            await Shell.Current.DisplayAlert(
-          "DB PATH",
-          dbPath,
-          "OK");
+            //  await Shell.Current.DisplayAlert(
+            //"DB PATH",
+            //dbPath,
+            //"OK");
 
-            _database = new SQLiteAsyncConnection(dbPath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
-            await _database.ExecuteAsync("PRAGMA journal_mode=WAL;");
-            await _database.ExecuteAsync("PRAGMA busy_timeout=3000;");
+            _database = new SQLiteAsyncConnection(
+                dbPath,
+                SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
 
-         
+            // Run each pragma and table creation individually with its own try/catch
+            // so one failure can never skip the remaining tables
+            try { await _database.ExecuteAsync("PRAGMA journal_mode=WAL;"); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] WAL pragma: {ex.Message}"); }
 
-            //_database = new SQLiteAsyncConnection(dbPath);
+            try { await _database.ExecuteAsync("PRAGMA busy_timeout=3000;"); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] busy_timeout: {ex.Message}"); }
 
-            // Create all tables if they don't exist yet
-            await _database.CreateTableAsync<Patient>();
-            await _database.CreateTableAsync<ServiceModel>();
-            await _database.CreateTableAsync<ServicePackage>();
-            await _database.CreateTableAsync<User>();
-            await _database.CreateTableAsync<ToothRecord>();
-            await _database.CreateTableAsync<CephalometricImage>();
-            await _database.CreateTableAsync<TreatmentHistory>();
-            await _database.CreateTableAsync<SupplyStockLog>();
-            await _database.CreateTableAsync<SupplyItem>();
+            try { await _database.CreateTableAsync<Patient>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Patient table: {ex.Message}"); }
 
-            // Migrate: add new columns to User table if they don't exist yet
-            // Safe to run on existing installs — SQLite ignores duplicate columns
-            //try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN ContactNo TEXT"); } catch { }
-            //try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN Email TEXT"); } catch { }
-            //try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsActive INTEGER DEFAULT 1"); } catch { }
+            try { await _database.CreateTableAsync<ServiceModel>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ServiceModel table: {ex.Message}"); }
 
-            // Seed default users on first run — both Active by default
-            var userCount = await _database.Table<User>().CountAsync();
-            if (userCount == 0)
+            try { await _database.CreateTableAsync<ServicePackage>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ServicePackage table: {ex.Message}"); }
+
+            try { await _database.CreateTableAsync<User>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] User table: {ex.Message}"); }
+
+            try { await _database.CreateTableAsync<ToothRecord>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ToothRecord table: {ex.Message}"); }
+
+            try { await _database.CreateTableAsync<CephalometricImage>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] CephalometricImage table: {ex.Message}"); }
+
+            try { await _database.CreateTableAsync<TreatmentHistory>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] TreatmentHistory table: {ex.Message}"); }
+
+            try { await _database.CreateTableAsync<SupplyStockLog>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] SupplyStockLog table: {ex.Message}"); }
+
+            try { await _database.CreateTableAsync<SupplyItem>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] SupplyItem table: {ex.Message}"); }
+
+            System.Diagnostics.Debug.WriteLine("[DB] Init complete.");
+
+            // Seed default users on first run
+            try
             {
-                var defaultUsers = new List<User>
+                var userCount = await _database.Table<User>().CountAsync();
+                if (userCount == 0)
                 {
-                    new User { FullName = "Dr. Full Name", Username = "dentist1", Password = "123", Role = "Dentist", IsActive = true },
-                    new User { FullName = "Assistant Name", Username = "staff1", Password = "123", Role = "Assistant", IsActive = true }
-                };
-                await _database.InsertAllAsync(defaultUsers);
+                    await _database.InsertAllAsync(new List<User>
+                    {
+                        new User { FullName = "Dr. Full Name",  Username = "dentist1", Password = "123", Role = "Dentist",   IsActive = true },
+                        new User { FullName = "Assistant Name", Username = "staff1",   Password = "123", Role = "Assistant", IsActive = true }
+                    });
+                    System.Diagnostics.Debug.WriteLine("[DB] Default users seeded.");
+                }
             }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Seed error: {ex.Message}"); }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine(ex.Message);
+            // Only the connection itself failed — reset so next call retries
+            System.Diagnostics.Debug.WriteLine($"[DB] Connection error: {ex.Message}");
+            _database = null;
         }
     }
+
+
 
     // =========================
     // PATIENT CRUD
@@ -403,11 +430,12 @@ public class DatabaseService
             SupplyItemId = supplyItemId,
             ChangeInPieces = changeInPieces,
             ChangeType = changeType,
+            Note = note,    
             PatientId = patientId,
             PatientName = patientName,
             StockAfterChange = item.QuantityInPieces,
             
-            Timestamp = DateTime.Now.ToString("yyyy-MM-dd"),
+            Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
         };
         await _database!.InsertAsync(log);
     }
