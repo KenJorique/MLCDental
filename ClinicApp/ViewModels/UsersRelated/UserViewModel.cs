@@ -10,6 +10,8 @@ namespace ClinicApp.ViewModels.UsersRelated;
 public partial class UserViewModel : ObservableObject
 {
     private readonly DatabaseService _db;
+    [ObservableProperty] private bool isBusy;
+    [ObservableProperty] private bool isRefreshing;
 
     // Wrapped user cards shown in the list
     public ObservableCollection<UserCardViewModel> Users { get; set; } = new();
@@ -23,10 +25,21 @@ public partial class UserViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadUsers()
     {
-        Users.Clear();
-        var list = await _db.GetUsers();
-        foreach (var user in list)
-            Users.Add(new UserCardViewModel(user));
+
+        if (isBusy) return;
+        isBusy = true;
+        try
+        {
+            Users.Clear();
+            var list = await _db.GetUsers();
+            foreach (var user in list)
+                Users.Add(new UserCardViewModel(user));
+        }
+        finally
+        {
+            isBusy = false;
+            isRefreshing = false;
+        }
     }
 
     // Navigates to AddUserPage pre-filled with the selected user's data
@@ -50,7 +63,8 @@ public partial class UserViewModel : ObservableObject
 
         if (confirm)
         {
-            await _db.DeleteUser(card.User);
+            try { await _db.DeleteUser(card.User); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Delete] {ex.Message}"); }
             await LoadUsers();
         }
     }

@@ -12,6 +12,7 @@ public partial class SupplyListViewModel : ObservableObject
     private readonly DatabaseService _db;
 
     [ObservableProperty] private bool isBusy;
+    [ObservableProperty] private bool isRefreshing;
     [ObservableProperty] private bool isEmpty;
     [ObservableProperty] private int lowStockCount;
     [ObservableProperty] private string lowStockSummary = string.Empty;
@@ -39,7 +40,14 @@ public partial class SupplyListViewModel : ObservableObject
             ApplyFilter();
             RefreshSummary();
         }
-        finally { IsBusy = false; }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[LoadSupplies] {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private void ApplyFilter()
@@ -90,12 +98,24 @@ public partial class SupplyListViewModel : ObservableObject
     async Task DeleteSupply(SupplyCardViewModel card)
     {
         if (card is null) return;
+
         bool ok = await Shell.Current.DisplayAlert(
             "Delete Supply",
             $"Delete \"{card.Supply.Name}\" and all its stock history?",
             "Delete", "Cancel");
         if (!ok) return;
-        await _db.DeleteSupplyItem(card.Supply);
+
+        try
+        {
+            await _db.DeleteSupplyItem(card.Supply);
+        }
+        catch (Exception ex)
+        {
+            // Item may have already been deleted externally — log and continue
+            System.Diagnostics.Debug.WriteLine($"[Delete] {ex.Message}");
+        }
+
+        // Always remove from UI regardless of DB result
         AllCards.Remove(card);
         ApplyFilter();
         RefreshSummary();

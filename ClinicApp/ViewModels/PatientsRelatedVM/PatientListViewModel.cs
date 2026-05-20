@@ -16,6 +16,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         // Holds the list of wrapped patient cards (with expand/collapse state)
         public ObservableCollection<PatientCardViewModel> Patients { get; set; } = new();
 
+        [ObservableProperty] private bool isBusy;
+        [ObservableProperty] private bool isRefreshing;
         public PatientListViewModel(DatabaseService db)
         {
             _db = db;
@@ -28,10 +30,21 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         [RelayCommand]
         async Task LoadPatients()
         {
-            Patients.Clear();
-            var list = await _db.GetPatients();
-            foreach (var p in list)
-                Patients.Add(new PatientCardViewModel(p));
+
+            if (isBusy) return;
+            isBusy = true;
+            try
+            {
+                Patients.Clear();
+                var list = await _db.GetPatients();
+                foreach (var p in list)
+                    Patients.Add(new PatientCardViewModel(p));
+            }
+            finally
+            {
+                isBusy = false;
+                isRefreshing = false;
+            }
         }
 
         // Toggles the card expansion. Collapses all others first (only one open at a time).
@@ -86,7 +99,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
 
             if (answer)
             {
-                await _db.DeletePatient(card.Patient);
+                try { await _db.DeletePatient(card.Patient); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Delete] {ex.Message}"); }
                 await LoadPatients();
             }
         }

@@ -11,6 +11,8 @@ namespace ClinicApp.ViewModels.ServicesRelatedVM;
 public partial class ServiceViewModel : ObservableObject
 {
     readonly DatabaseService _db;
+    [ObservableProperty] private bool isBusy;
+    [ObservableProperty] private bool isRefreshing;
 
     // Wrapped service cards with expand/collapse state
     public ObservableCollection<ServiceCardViewModel> ServiceCards { get; set; } = new();
@@ -56,6 +58,11 @@ public partial class ServiceViewModel : ObservableObject
         catch (Exception ex)
         {
             Debug.WriteLine($"Database Error: {ex.Message}");
+        }
+        finally
+        {
+            isBusy = false;
+            isRefreshing = false;
         }
     }
 
@@ -121,7 +128,8 @@ public partial class ServiceViewModel : ObservableObject
 
         if (answer)
         {
-            await _db.DeleteService(card.Service);
+            try { await _db.DeleteService(card.Service); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Delete] {ex.Message}"); }
             await LoadServices();
         }
     }

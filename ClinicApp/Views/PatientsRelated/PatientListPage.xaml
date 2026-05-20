@@ -40,7 +40,7 @@
                                   ColumnSpacing="8"
                                   IsVisible="{Binding IsExpanded}">
 
-								<Button Grid.Column="0"
+                                <Button Grid.Column="0"
                                         Text="📄"
                                         HeightRequest="80"
                                         FontSize="28"
@@ -48,7 +48,7 @@
                                                   Path=BindingContext.ViewPatientCommand}"
                                         CommandParameter="{Binding .}" />
 
-								<Button Grid.Column="1"
+                                <Button Grid.Column="1"
                                         Text="🦷"
                                         HeightRequest="80"
                                         FontSize="28"
@@ -64,7 +64,7 @@
                                         Path=BindingContext.ViewTreatmentHistoryCommand}"
                                         CommandParameter="{Binding .}" />
 
-								<Button Grid.Column="3"
+                                <Button Grid.Column="3"
                                         Text="💀"
                                         HeightRequest="80"
                                         FontSize="28"
@@ -72,7 +72,7 @@
                                                   Path=BindingContext.GoToCephalometricCommand}"
                                         CommandParameter="{Binding .}" />
 
-							</Grid>
+                            </Grid>
 
                         </VerticalStackLayout>
                     </Frame>

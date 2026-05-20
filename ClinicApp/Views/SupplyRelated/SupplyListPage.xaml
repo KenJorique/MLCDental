@@ -29,7 +29,7 @@
 
         <!-- ── Main body ── -->
         <Grid Grid.Row="2">
-    
+
             <!-- Loading -->
             <ActivityIndicator IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
@@ -126,6 +126,7 @@
 
     <!-- Floating Add button -->
     <ContentPage.ToolbarItems>
+        <ToolbarItem Text="↻ Refresh" Command="{Binding LoadSuppliesCommand}"/>
         <ToolbarItem Text="+ Add Item" Command="{Binding GoToAddSupplyCommand}"/>
     </ContentPage.ToolbarItems>
 
