@@ -14,6 +14,7 @@ public partial class SupplyListPage : ContentPage
     {
         base.OnAppearing();
         if (BindingContext is SupplyListViewModel vm)
-            vm.LoadSuppliesCommand.ExecuteAsync(null);
+            MainThread.BeginInvokeOnMainThread(async () =>
+                await vm.LoadSuppliesCommand.ExecuteAsync(null));
     }
 }

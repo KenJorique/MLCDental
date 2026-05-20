@@ -101,7 +101,9 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             {
                 try { await _db.DeletePatient(card.Patient); }
                 catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Delete] {ex.Message}"); }
-                await LoadPatients();
+
+                // Reload fresh from DB on main thread
+                await MainThread.InvokeOnMainThreadAsync(async () => await LoadPatients());
             }
         }
 

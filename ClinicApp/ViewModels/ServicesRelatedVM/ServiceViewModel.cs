@@ -39,21 +39,23 @@ public partial class ServiceViewModel : ObservableObject
     {
         try
         {
-            ServiceCards.Clear();
             var serviceList = await _db.GetServices();
-            foreach (var s in serviceList)
-                ServiceCards.Add(new ServiceCardViewModel(s));
-
-            // Package tab is only enabled when there are 2 or more services
-            CanAddPackage = serviceList.Count >= 2;
-
-            PackageCards.Clear();
             var packageList = await _db.GetServicePackages();
-            foreach (var p in packageList)
-                PackageCards.Add(new PackageCardViewModel(p));
 
-            // Show the Service Packages section only if at least one package exists
-            HasPackages = packageList.Count > 0;
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                ServiceCards.Clear();
+                foreach (var s in serviceList)
+                    ServiceCards.Add(new ServiceCardViewModel(s));
+
+                CanAddPackage = serviceList.Count >= 2;
+
+                PackageCards.Clear();
+                foreach (var p in packageList)
+                    PackageCards.Add(new PackageCardViewModel(p));
+
+                HasPackages = packageList.Count > 0;
+            });
         }
         catch (Exception ex)
         {

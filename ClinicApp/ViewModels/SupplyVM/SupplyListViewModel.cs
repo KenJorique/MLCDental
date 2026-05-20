@@ -33,12 +33,19 @@ public partial class SupplyListViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            // FIX 1: Always fetch fresh data from DB
             var list = await _db.GetSupplyItems();
-            AllCards.Clear();
-            foreach (var s in list)
-                AllCards.Add(new SupplyCardViewModel(s));
-            ApplyFilter();
-            RefreshSummary();
+
+            // FIX 2: Modify collections on the main thread so Android
+            // doesn't silently swallow the update
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                AllCards.Clear();
+                foreach (var s in list)
+                    AllCards.Add(new SupplyCardViewModel(s));
+                ApplyFilter();
+                RefreshSummary();
+            });
         }
         catch (Exception ex)
         {
@@ -105,20 +112,36 @@ public partial class SupplyListViewModel : ObservableObject
             "Delete", "Cancel");
         if (!ok) return;
 
+        IsBusy = true;
         try
         {
+            // Delete from database
             await _db.DeleteSupplyItem(card.Supply);
+
+            // FIX 3: Find by ID, not by reference — the card instance from
+            // the swipe command is NOT the same object as the one in AllCards
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                var inAll = AllCards.FirstOrDefault(c => c.Supply.Id == card.Supply.Id);
+                var inFiltered = FilteredCards.FirstOrDefault(c => c.Supply.Id == card.Supply.Id);
+
+                if (inAll is not null) AllCards.Remove(inAll);
+                if (inFiltered is not null) FilteredCards.Remove(inFiltered);
+
+                RefreshSummary();
+                IsEmpty = FilteredCards.Count == 0;
+            });
         }
         catch (Exception ex)
         {
-            // Item may have already been deleted externally — log and continue
-            System.Diagnostics.Debug.WriteLine($"[Delete] {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[DeleteSupply] {ex.Message}");
+            await Shell.Current.DisplayAlert("Error",
+                $"Could not delete item: {ex.Message}", "OK");
         }
-
-        // Always remove from UI regardless of DB result
-        AllCards.Remove(card);
-        ApplyFilter();
-        RefreshSummary();
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
