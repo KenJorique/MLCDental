@@ -68,6 +68,21 @@ public class DatabaseService
             try { await _database.CreateTableAsync<SupplyItem>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] SupplyItem table: {ex.Message}"); }
 
+            try { await _database.CreateTableAsync<Guardian>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Guardian table: {ex.Message}"); }
+
+            try { await _database.CreateTableAsync<MedicalHistory>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] MedicalHistory table: {ex.Message}"); }
+
+            try { await _database.CreateTableAsync<Allergy>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Allergy table: {ex.Message}"); }
+
+            try { await _database.CreateTableAsync<MedicalCondition>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] MedicalCondition table: {ex.Message}"); }
+
+            try { await _database.CreateTableAsync<PatientCondition>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] PatientCondition table: {ex.Message}"); }
+
             System.Diagnostics.Debug.WriteLine("[DB] Init complete.");
 
             // Seed default users on first run
@@ -134,13 +149,28 @@ public class DatabaseService
         // Delete all related records first
         var toothRecords = await _database!.Table<ToothRecord>()
             .Where(r => r.PatientId == patient.PatientID).ToListAsync();
-        foreach (var r in toothRecords)
-            await _database!.DeleteAsync(r);
+        foreach (var r in toothRecords) await _database!.DeleteAsync(r);
 
         var histories = await _database!.Table<TreatmentHistory>()
             .Where(h => h.PatientId == patient.PatientID).ToListAsync();
-        foreach (var h in histories)
-            await _database!.DeleteAsync(h);
+        foreach (var h in histories) await _database!.DeleteAsync(h);
+
+        // Cascade delete new related tables
+        var guardians = await _database!.Table<Guardian>()
+            .Where(g => g.PatientID == patient.PatientID).ToListAsync();
+        foreach (var g in guardians) await _database!.DeleteAsync(g);
+
+        var medHist = await _database!.Table<MedicalHistory>()
+            .Where(m => m.PatientID == patient.PatientID).ToListAsync();
+        foreach (var m in medHist) await _database!.DeleteAsync(m);
+
+        var allergies = await _database!.Table<Allergy>()
+            .Where(a => a.PatientID == patient.PatientID).ToListAsync();
+        foreach (var a in allergies) await _database!.DeleteAsync(a);
+
+        var conditions = await _database!.Table<PatientCondition>()
+            .Where(pc => pc.PatientID == patient.PatientID).ToListAsync();
+        foreach (var pc in conditions) await _database!.DeleteAsync(pc);
 
         var images = await _database!.Table<CephalometricImage>()
             .Where(c => c.PatientId == patient.PatientID).ToListAsync();
@@ -157,6 +187,96 @@ public class DatabaseService
         return await _database!.Table<Patient>()
                                .Where(p => p.PatientID == id)
                                .FirstOrDefaultAsync();
+    }
+
+
+    // ══════════════════════════════════════════
+    // GUARDIAN
+    // ══════════════════════════════════════════
+    public async Task<Guardian?> GetGuardianByPatient(int patientId)
+    {
+        await Init();
+        return await _database!.Table<Guardian>()
+            .Where(g => g.PatientID == patientId).FirstOrDefaultAsync();
+    }
+    public async Task SaveGuardian(Guardian g)
+    {
+        await Init();
+        var ex = await GetGuardianByPatient(g.PatientID);
+        if (ex is null) await _database!.InsertAsync(g);
+        else { g.GuardianID = ex.GuardianID; await _database!.UpdateAsync(g); }
+    }
+
+    // ══════════════════════════════════════════
+    // MEDICAL HISTORY
+    // ══════════════════════════════════════════
+    public async Task<MedicalHistory?> GetMedicalHistory(int patientId)
+    {
+        await Init();
+        return await _database!.Table<MedicalHistory>()
+            .Where(m => m.PatientID == patientId).FirstOrDefaultAsync();
+    }
+    public async Task SaveMedicalHistory(MedicalHistory m)
+    {
+        await Init();
+        var ex = await GetMedicalHistory(m.PatientID);
+        m.LastUpdated = DateTime.Now.ToString("yyyy-MM-dd");
+        if (ex is null) await _database!.InsertAsync(m);
+        else { m.MedicalHistoryID = ex.MedicalHistoryID; await _database!.UpdateAsync(m); }
+    }
+
+    // ══════════════════════════════════════════
+    // ALLERGY
+    // ══════════════════════════════════════════
+    public async Task<Allergy?> GetAllergy(int patientId)
+    {
+        await Init();
+        return await _database!.Table<Allergy>()
+            .Where(a => a.PatientID == patientId).FirstOrDefaultAsync();
+    }
+    public async Task SaveAllergy(Allergy a)
+    {
+        await Init();
+        var ex = await GetAllergy(a.PatientID);
+        if (ex is null) await _database!.InsertAsync(a);
+        else { a.AllergyID = ex.AllergyID; await _database!.UpdateAsync(a); }
+    }
+
+    // ══════════════════════════════════════════
+    // MEDICAL CONDITIONS
+    // ══════════════════════════════════════════
+    public async Task<List<MedicalCondition>> GetAllConditions()
+    {
+        await Init();
+        return await _database!.Table<MedicalCondition>().ToListAsync();
+    }
+    public async Task<List<PatientCondition>> GetPatientConditions(int patientId)
+    {
+        await Init();
+        return await _database!.Table<PatientCondition>()
+            .Where(pc => pc.PatientID == patientId).ToListAsync();
+    }
+    public async Task SavePatientConditions(int patientId, List<int> conditionIds)
+    {
+        await Init();
+        // Remove existing then insert fresh
+        var existing = await GetPatientConditions(patientId);
+        foreach (var e in existing) await _database!.DeleteAsync(e);
+        foreach (var id in conditionIds)
+            await _database!.InsertAsync(new PatientCondition { PatientID = patientId, ConditionID = id });
+    }
+    public async Task EnsureDefaultConditions()
+    {
+        await Init();
+        if (await _database!.Table<MedicalCondition>().CountAsync() > 0) return;
+        var defaults = new[]
+        {
+            "Diabetes","Hypertension","Heart Disease","Asthma","Epilepsy / Seizures",
+            "Thyroid Disorder","Kidney Disease","Liver Disease","Blood Disorder",
+            "Arthritis","Osteoporosis","Stroke","Cancer","Tuberculosis",
+            "Hepatitis","HIV / AIDS","Psychiatric Disorder","Other"
+        };
+        await _database!.InsertAllAsync(defaults.Select(n => new MedicalCondition { ConditionName = n }));
     }
 
     // =========================
