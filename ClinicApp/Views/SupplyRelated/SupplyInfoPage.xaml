@@ -8,230 +8,141 @@
     Title=" "
     Shell.TabBarIsVisible="False">
 
-    <Grid RowDefinitions="*,Auto">
+	<Grid RowDefinitions="*,Auto">
 
-        <ScrollView Grid.Row="0">
-            <VerticalStackLayout Padding="14" Spacing="12">
+		<ScrollView Grid.Row="0">
+			<VerticalStackLayout Padding="14" Spacing="12">
 
-                <!-- ── Supply Header ── -->
-                <Frame Padding="16,14" HasShadow="True" BackgroundColor="White">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <VerticalStackLayout Grid.Column="0" Spacing="2">
-                            <Label Text="{Binding Supply.Name}"
-                                   FontSize="20" FontAttributes="Bold"/>
-                            <Label Text="{Binding StockStatus}"
-                                   FontSize="13" TextColor="Gray"/>
-                        </VerticalStackLayout>
-                        <!--<VerticalStackLayout Grid.Column="1" HorizontalOptions="End"
-                                             VerticalOptions="Center" Spacing="2">
-                            <Label Text="{Binding StockDisplay}"
-                                   FontSize="18" FontAttributes="Bold"
+				<!-- Supply Header: Name | Status badge | Qty -->
+				<Frame Padding="16,14" HasShadow="True" BackgroundColor="White">
+					<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+						<Label Grid.Column="0"
+                               Text="{Binding Supply.Name}"
+                               FontSize="18" FontAttributes="Bold" TextColor="Black"
+                               VerticalOptions="Center"/>
+						<Frame Grid.Column="1"
+                               Padding="8,3" CornerRadius="8"
+                               HasShadow="False" BorderColor="Transparent"
+                               BackgroundColor="{Binding StockStatusColor}"
+                               VerticalOptions="Center">
+							<Label Text="{Binding StockStatus}"
+                                   FontSize="11" FontAttributes="Bold"
+                                   TextColor="White"/>
+						</Frame>
+						<Label Grid.Column="2"
+                               Text="{Binding StockDisplay}"
+                               FontSize="16" FontAttributes="Bold"
+                               TextColor="Black" VerticalOptions="Center"/>
+					</Grid>
+				</Frame>
+
+				<!-- Item Details -->
+				<Frame Padding="16" HasShadow="True" BackgroundColor="White">
+					<VerticalStackLayout Spacing="10">
+						<Label Text="Item Details" FontAttributes="Bold" FontSize="15" TextColor="Black"/>
+						<BoxView HeightRequest="1" Color="LightGray"/>
+						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+							<Label Grid.Row="0" Grid.Column="0" Text="Size / Variant"
+                                   TextColor="Gray" FontSize="13"/>
+							<Label Grid.Row="0" Grid.Column="1"
+                                   Text="{Binding Supply.SizeVariant}"
+                                   FontAttributes="Bold" FontSize="13" TextColor="Black"
                                    HorizontalTextAlignment="End"/>
-                        </VerticalStackLayout>-->
-                    </Grid>
-                </Frame>
-
-                <!-- ── Item Details ── -->
-                <Frame Padding="16" HasShadow="True" BackgroundColor="White">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Item Details" FontAttributes="Bold" FontSize="15"/>
-                        <BoxView HeightRequest="1" Color="LightGray"/>
-
-                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
-                            <Label Grid.Row="0" Grid.Column="0" Text="Unit" TextColor="Gray" FontSize="13"/>
-                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding Supply.Unit}"
-                                   FontAttributes="Bold" FontSize="13" HorizontalTextAlignment="End"/>
-
-                            <Label Grid.Row="1" Grid.Column="0" Text="Pieces per Unit" TextColor="Gray" FontSize="13"/>
-                            <Label Grid.Row="1" Grid.Column="1"
-                                   Text="{Binding Supply.PiecesPerUnit, StringFormat='{0} pcs'}"
-                                   FontAttributes="Bold" FontSize="13" HorizontalTextAlignment="End"/>
-
-                            <Label Grid.Row="2" Grid.Column="0" Text="Size / Variant" TextColor="Gray" FontSize="13"/>
-                            <Label Grid.Row="2" Grid.Column="1" Text="{Binding Supply.SizeVariant}"
-                                   FontAttributes="Bold" FontSize="13" HorizontalTextAlignment="End"/>
-
-                            <Label Grid.Row="3" Grid.Column="0" Text="Expiration" TextColor="Gray" FontSize="13"/>
-                            <Label Grid.Row="3" Grid.Column="1" Text="{Binding ExpirationDisplay}"
-                                   FontAttributes="Bold" FontSize="13" HorizontalTextAlignment="End"/>
-
-                            <Label Grid.Row="4" Grid.Column="0" Text="Minimum Stock" TextColor="Gray" FontSize="13"/>
-                            <Label Grid.Row="4" Grid.Column="1"
+							<Label Grid.Row="1" Grid.Column="0" Text="Expiration"
+                                   TextColor="Gray" FontSize="13"/>
+							<Label Grid.Row="1" Grid.Column="1"
+                                   Text="{Binding ExpirationDisplay}"
+                                   FontAttributes="Bold" FontSize="13" TextColor="Black"
+                                   HorizontalTextAlignment="End"/>
+							<Label Grid.Row="2" Grid.Column="0" Text="Minimum Stock"
+                                   TextColor="Gray" FontSize="13"/>
+							<Label Grid.Row="2" Grid.Column="1"
                                    Text="{Binding Supply.MinimumStockPieces, StringFormat='{0} pcs'}"
-                                   FontAttributes="Bold" FontSize="13" HorizontalTextAlignment="End"/>
-                        </Grid>
+                                   FontAttributes="Bold" FontSize="13" TextColor="Black"
+                                   HorizontalTextAlignment="End"/>
+						</Grid>
+					</VerticalStackLayout>
+				</Frame>
 
-                        <!-- Note (only when present) -->
-                        <!--<VerticalStackLayout
-                            IsVisible="{Binding Supply.Note, Converter={StaticResource StringNotEmptyConverter}}"
-                            Spacing="4" Margin="0,4,0,0">
-                            <BoxView HeightRequest="1" Color="LightGray"/>
-                            <Label Text="Note" TextColor="Gray" FontSize="13"/>
-                            <Label Text="{Binding Supply.Note}" FontSize="14"/>
-                        </VerticalStackLayout>-->
-                    </VerticalStackLayout>
-                </Frame>
+				<!-- Stock History (recent 4) -->
+				<Frame Padding="16" HasShadow="True" BackgroundColor="White">
+					<VerticalStackLayout Spacing="10">
+						<Grid ColumnDefinitions="*,Auto">
+							<Label Grid.Column="0" Text="Stock History"
+                                   FontAttributes="Bold" FontSize="15" TextColor="Black"/>
+							<Label Grid.Column="1" Text="View All ›"
+                                   FontSize="13" TextColor="#2196F3"
+                                   VerticalOptions="Center">
+								<Label.GestureRecognizers>
+									<TapGestureRecognizer Command="{Binding ViewAllLogsCommand}"/>
+								</Label.GestureRecognizers>
+							</Label>
+						</Grid>
+						<BoxView HeightRequest="1" Color="LightGray"/>
 
-                <!-- ── Stock History ── -->
-                <Frame Padding="16" HasShadow="True" BackgroundColor="White">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Stock History" FontAttributes="Bold" FontSize="15"/>
-                        <BoxView HeightRequest="1" Color="LightGray"/>
+						<!-- Header -->
+						<Grid ColumnDefinitions="*,*,*">
+							<Label Grid.Column="0" Text="Change"
+                                   FontAttributes="Bold" FontSize="12" TextColor="Gray"
+                                   HorizontalTextAlignment="Center"/>
+							<Label Grid.Column="1" Text="Type"
+                                   FontAttributes="Bold" FontSize="12" TextColor="Gray"
+                                   HorizontalTextAlignment="Center"/>
+							<Label Grid.Column="2" Text="Date"
+                                   FontAttributes="Bold" FontSize="12" TextColor="Gray"
+                                   HorizontalTextAlignment="Center"/>
+						</Grid>
 
-                        <!-- Table header -->
-                        <Grid ColumnDefinitions="*,Auto,Auto" Padding="0,2">
-                            <Label Grid.Column="0" Text="Change" FontAttributes="Bold"
-                                   FontSize="12" TextColor="Gray"/>
-                            <Label Grid.Column="1" Text="Type" FontAttributes="Bold"
-                                   FontSize="12" TextColor="Gray" Margin="0,0,16,0"/>
-                            <Label Grid.Column="2" Text="Date" FontAttributes="Bold"
-                                   FontSize="12" TextColor="Gray"/>
-                        </Grid>
-
-                        <CollectionView ItemsSource="{Binding Logs}" SelectionMode="None">
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate x:DataType="vm:StockLogRowViewModel">
-                                    <Grid ColumnDefinitions="*,Auto,Auto"
-                                          Padding="0,5">
-                                        <Label Grid.Column="0"
+						<!-- Rows -->
+						<CollectionView ItemsSource="{Binding RecentLogs}" SelectionMode="None">
+							<CollectionView.ItemTemplate>
+								<DataTemplate x:DataType="vm:StockLogRowViewModel">
+									<Grid ColumnDefinitions="*,*,*" Padding="0,5">
+										<Label Grid.Column="0"
                                                IsVisible="{Binding IsIncrease}"
                                                Text="{Binding ChangeDisplay}"
-                                               FontAttributes="Bold" FontSize="14"
-                                               TextColor="SeaGreen"/>
-                                        <Label Grid.Column="0"
+                                               FontAttributes="Bold" FontSize="13"
+                                               TextColor="SeaGreen"
+                                               HorizontalTextAlignment="Center"/>
+										<Label Grid.Column="0"
                                                IsVisible="{Binding IsIncrease, Converter={StaticResource InvertedBoolConverter}}"
                                                Text="{Binding ChangeDisplay}"
-                                               FontAttributes="Bold" FontSize="14"
-                                               TextColor="Crimson"/>
-                                        <Label Grid.Column="1" Text="{Binding TypeDisplay}"
+                                               FontAttributes="Bold" FontSize="13"
+                                               TextColor="Crimson"
+                                               HorizontalTextAlignment="Center"/>
+										<Label Grid.Column="1" Text="{Binding TypeDisplay}"
                                                FontSize="13" TextColor="Gray"
-                                               Margin="0,0,16,0"
+                                               HorizontalTextAlignment="Center"
                                                VerticalTextAlignment="Center"/>
-                                        <Label Grid.Column="2" Text="{Binding DateDisplay}"
+										<Label Grid.Column="2" Text="{Binding DateDisplay}"
                                                FontSize="13" TextColor="Gray"
+                                               HorizontalTextAlignment="Center"
                                                VerticalTextAlignment="Center"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+									</Grid>
+								</DataTemplate>
+							</CollectionView.ItemTemplate>
+						</CollectionView>
 
-                        <Label IsVisible="{Binding Logs.Count,
-                                   Converter={StaticResource IntEqualZeroConverter}}"
+						<Label IsVisible="{Binding Logs.Count, Converter={StaticResource IntEqualZeroConverter}}"
                                Text="No stock history yet."
                                TextColor="Gray" FontSize="13"
                                HorizontalTextAlignment="Center" Margin="0,8"/>
-                    </VerticalStackLayout>
-                </Frame>
+					</VerticalStackLayout>
+				</Frame>
 
-                <!-- ── Add Stock Modal (inline) ── -->
-                <Frame IsVisible="{Binding IsAddStockVisible}"
-                       Padding="16" HasShadow="True" BackgroundColor="White">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Add Stock" FontAttributes="Bold" FontSize="15"/>
-                        <BoxView HeightRequest="1" Color="LightGray"/>
+				<BoxView HeightRequest="20"/>
+			</VerticalStackLayout>
+		</ScrollView>
 
-                        <Label Text="Quantity to Add" FontSize="14"/>
-                        <Entry Placeholder="Enter quantity" Keyboard="Numeric"
-                               Text="{Binding AddQty}"/>
+		<!-- Bottom bar -->
+		<Grid Grid.Row="1" Padding="14,10" BackgroundColor="White">
+			<Button Text="Adjust Stock"
+                    Clicked="OnAdjustStockClicked"
+                    BackgroundColor="#2196F3"
+                    TextColor="White"
+                    CornerRadius="8"/>
+		</Grid>
 
-                        <Label Text="Expiration Date (optional)" FontSize="14"/>
-                        <Entry Placeholder="yyyy-MM-dd or leave blank"
-                               Text="{Binding AddExpiration}"/>
-
-                        <Label Text="Note (optional)" FontSize="14"/>
-                        <Entry Placeholder="e.g. New delivery"
-                               Text="{Binding AddNote}"/>
-
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,4,0,0">
-                            <Button Grid.Column="0" Text="Cancel"
-                                    Command="{Binding HideAddStockCommand}"
-                                    BackgroundColor="LightGray" TextColor="Black"/>
-                            <Button Grid.Column="1" Text="Save"
-                                    Command="{Binding ConfirmAddStockCommand}"/>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Frame>
-
-                <!-- ── Reduce Stock Modal (inline) ── -->
-                <Frame IsVisible="{Binding IsReduceStockVisible}"
-                       Padding="16" HasShadow="True" BackgroundColor="White">
-                    <VerticalStackLayout Spacing="10">
-
-                        <!-- Header with stock snapshot -->
-                        <Grid ColumnDefinitions="*,Auto">
-                            <Label Grid.Column="0" Text="{Binding Supply.Name}"
-                                   FontSize="16" FontAttributes="Bold"
-                                   VerticalTextAlignment="Center"/>
-                            <Label Grid.Column="1" Text="{Binding StockDisplay}"
-                                   FontSize="14" FontAttributes="Bold"
-                                   VerticalTextAlignment="Center"/>
-                        </Grid>
-                        <BoxView HeightRequest="1" Color="LightGray"/>
-
-                        <Label Text="Quantity to Reduce" FontSize="14"/>
-                        <Entry Placeholder="Enter quantity used" Keyboard="Numeric"
-                               Text="{Binding ReduceQty}"/>
-                        <Label Text="{Binding MaxAvailableText}"
-                               FontSize="12" TextColor="Gray"/>
-
-                        <Label Text="{Binding ReduceError}"
-                               FontSize="12" TextColor="Crimson"
-                               IsVisible="{Binding ReduceError, Converter={StaticResource StringNotEmptyConverter}}"/>
-
-                        <!-- Procedure suggestions -->
-                        <Label Text="Note / Procedure" FontSize="14"/>
-                        <Entry Placeholder="Type or pick a procedure below"
-                               Text="{Binding ReduceNote}"/>
-                        <Label Text="Suggestions:" FontSize="12" TextColor="Gray"/>
-                        <CollectionView ItemsSource="{Binding NoteSuggestions}"
-                                        SelectionMode="None" HeightRequest="160">
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate x:DataType="x:String">
-                                    <Frame Padding="10,7" Margin="0,1"
-                                           BackgroundColor="#F5F5F5"
-                                           BorderColor="LightGray" HasShadow="False">
-                                        <Frame.GestureRecognizers>
-                                            <TapGestureRecognizer
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                          Path=BindingContext.SelectNoteSuggestionCommand}"
-                                                CommandParameter="{Binding .}"/>
-                                        </Frame.GestureRecognizers>
-                                        <Label Text="{Binding .}" FontSize="13"/>
-                                    </Frame>
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
-
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,4,0,0">
-                            <Button Grid.Column="0" Text="Cancel"
-                                    Command="{Binding HideReduceStockCommand}"
-                                    BackgroundColor="LightGray" TextColor="Black"/>
-                            <Button Grid.Column="1" Text="Save"
-                                    Command="{Binding ConfirmReduceStockCommand}"/>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Frame>
-
-                <!-- Spacer at bottom -->
-                <BoxView HeightRequest="20"/>
-
-            </VerticalStackLayout>
-        </ScrollView>
-
-        <!-- ── Bottom action bar ── -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="14,10" ColumnSpacing="12"
-              BackgroundColor="White">
-            <Button Grid.Column="0" Text="Add Stock"
-                    Command="{Binding ShowAddStockCommand}"/>
-            <Button Grid.Column="1" Text="Reduce Stock"
-                    Command="{Binding ShowReduceStockCommand}"
-                    BackgroundColor="LightGray" TextColor="Black"/>
-        </Grid>
-
-    </Grid>
-
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Edit" Command="{Binding GoToEditCommand}"/>
-    </ContentPage.ToolbarItems>
+	</Grid>
 
 </ContentPage>

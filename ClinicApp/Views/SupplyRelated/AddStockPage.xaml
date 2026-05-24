@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels.SupplyVM"
+    x:Class="ClinicApp.Views.SupplyRelated.AddStockPage"
+    x:DataType="vm:AddStockViewModel"
+    Title="Add Stock"
+    Shell.TabBarIsVisible="False">
+
+	<Grid RowDefinitions="*,Auto">
+
+		<ScrollView Grid.Row="0">
+			<VerticalStackLayout Padding="16" Spacing="14">
+
+				<!-- Quantity to Add -->
+				<Label Text="Quantity to Add (pcs)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
+				<Entry Placeholder="e.g. 50" Keyboard="Numeric"
+                       Text="{Binding AddQty}"/>
+				<Label Text="{Binding QtyError}"
+                       FontSize="12" TextColor="Crimson"
+                       IsVisible="{Binding QtyError, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+				<!-- Expiration Date — always visible, disabled when item has no expiration -->
+				<Label Text="Expiration Date" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
+				<DatePicker Date="{Binding ExpirationDate}"
+                            Format="MMMM dd, yyyy"
+                            MinimumDate="{x:Static sys:DateTime.Today}"
+                            IsEnabled="{Binding HasExpirationParam}"/>
+				<Label IsVisible="{Binding HasExpirationParam, Converter={StaticResource InvertedBoolConverter}}"
+                       Text="This item does not track an expiration date."
+                       FontSize="12" TextColor="Gray"/>
+
+			</VerticalStackLayout>
+		</ScrollView>
+
+		<!-- Action buttons -->
+		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,10" ColumnSpacing="12"
+              BackgroundColor="White">
+			<Button Grid.Column="0" Text="Cancel"
+                    Command="{Binding CancelCommand}"
+                    BackgroundColor="LightGray" TextColor="Black"/>
+			<Button Grid.Column="1" Text="Save"
+                    Command="{Binding SaveCommand}"
+                    BackgroundColor="#2196F3" TextColor="White"/>
+		</Grid>
+
+	</Grid>
+</ContentPage>

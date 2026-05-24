@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+	<!--
+        Material3 theme is REQUIRED for The49.Maui.BottomSheet to work correctly:
+        - HasBackdrop (dim background) needs it
+        - HasHandle (the drag handle line at top) needs it
+        Without this, both features silently do nothing on Android.
+    -->
+	<style name="Maui.MainTheme" parent="Theme.Material3.DayNight.NoActionBar"></style>
+</resources>

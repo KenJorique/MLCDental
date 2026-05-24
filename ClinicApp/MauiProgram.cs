@@ -14,6 +14,7 @@ using ClinicApp.Views.UsersRelated;
 using Microsoft.Extensions.Logging;
 using ClinicApp.Views.SupplyRelated;
 using ClinicApp.ViewModels.SupplyVM;
+using The49.Maui.BottomSheet;
 
 namespace ClinicApp
 {
@@ -49,17 +50,26 @@ namespace ClinicApp
             builder.Services.AddSingleton<UserViewModel>();
             builder.Services.AddTransient<AddUserPage>();
             builder.Services.AddTransient<AddUserViewModel>();
-            builder.Services.AddTransient<DentalChartPage>();
-            builder.Services.AddTransient<DentalChartViewModel>();
+
             builder.Services.AddTransient<SupplyListPage>();
             builder.Services.AddTransient<SupplyListViewModel>();
             builder.Services.AddTransient<AddSupplyPage>();
             builder.Services.AddTransient<AddSupplyViewModel>();
             builder.Services.AddTransient<SupplyInfoPage>();
             builder.Services.AddTransient<SupplyInfoViewModel>();
+            builder.Services.AddTransient<AddStockPage>();
+            builder.Services.AddTransient<AddStockViewModel>();
+            builder.Services.AddTransient<ReduceStockPage>();
+            builder.Services.AddTransient<ReduceStockViewModel>();
+            builder.Services.AddTransient<StockHistoryPage>();
+            builder.Services.AddTransient<StockHistoryViewModel>();
+
+            // Register the bottom sheet itself
+            builder.Services.AddTransient<AdjustStockSheet>();
 
             builder
                 .UseMauiApp<App>()
+                .UseBottomSheet()           // The49.Maui.BottomSheet
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

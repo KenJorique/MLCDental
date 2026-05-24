@@ -65,7 +65,6 @@ public partial class SupplyListViewModel : ObservableObject
         {
             if (string.IsNullOrEmpty(q) ||
                 card.Supply.Name.ToLowerInvariant().Contains(q) ||
-                card.Supply.Unit.ToLowerInvariant().Contains(q) ||
                 card.Supply.SizeVariant.ToLowerInvariant().Contains(q))
             {
                 FilteredCards.Add(card);

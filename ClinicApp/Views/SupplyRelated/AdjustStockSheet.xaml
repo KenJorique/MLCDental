@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<the49:BottomSheet
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:the49="https://schemas.the49.com/dotnet/2023/maui"
+    x:Class="ClinicApp.Views.SupplyRelated.AdjustStockSheet"
+    HasHandle="False"
+    HasBackdrop="True"
+    CornerRadius="20"
+    IsCancelable="True"
+    BackgroundColor="White">
+
+	<the49:BottomSheet.Detents>
+		<the49:ContentDetent />
+	</the49:BottomSheet.Detents>
+
+	<VerticalStackLayout Spacing="0" Padding="0,12,0,0">
+
+		<!-- Manual drag handle line -->
+		<BoxView WidthRequest="40"
+                 HeightRequest="4"
+                 CornerRadius="2"
+                 BackgroundColor="#CCCCCC"
+                 HorizontalOptions="Center"
+                 Margin="0,0,0,16"/>
+
+		<Label Text="Adjust Stock"
+               FontSize="18" FontAttributes="Bold"
+               TextColor="Black"
+               HorizontalTextAlignment="Center"
+               Margin="0,0,0,4"/>
+
+		<Label Text="Choose an action to adjust the stock."
+               FontSize="13" TextColor="Gray"
+               HorizontalTextAlignment="Center"
+               Margin="0,0,0,20"/>
+
+		<!-- Add Stock row -->
+		<Frame Margin="16,0,16,10" Padding="16,14"
+               BackgroundColor="White" BorderColor="#E0E0E0"
+               CornerRadius="12" HasShadow="False">
+			<Frame.GestureRecognizers>
+				<TapGestureRecognizer Tapped="OnAddStockTapped"/>
+			</Frame.GestureRecognizers>
+			<Grid ColumnDefinitions="Auto,*,Auto">
+				<Frame Grid.Column="0"
+                       BackgroundColor="#F0F0F0" BorderColor="Transparent"
+                       CornerRadius="22" Padding="0"
+                       WidthRequest="44" HeightRequest="44"
+                       HasShadow="False">
+					<Label Text="+" FontSize="24" FontAttributes="Bold"
+                           TextColor="Black"
+                           HorizontalOptions="Center" VerticalOptions="Center"/>
+				</Frame>
+				<VerticalStackLayout Grid.Column="1" Margin="12,0,0,0"
+                                     Spacing="2" VerticalOptions="Center">
+					<Label Text="Add Stock" FontSize="15" FontAttributes="Bold" TextColor="Black"/>
+					<Label Text="Increase the quantity" FontSize="12" TextColor="Gray"/>
+				</VerticalStackLayout>
+				<Label Grid.Column="2" Text="›" FontSize="22"
+                       TextColor="Gray" VerticalOptions="Center"/>
+			</Grid>
+		</Frame>
+
+		<!-- Reduce Stock row -->
+		<Frame Margin="16,0,16,10" Padding="16,14"
+               BackgroundColor="White" BorderColor="#E0E0E0"
+               CornerRadius="12" HasShadow="False">
+			<Frame.GestureRecognizers>
+				<TapGestureRecognizer Tapped="OnReduceStockTapped"/>
+			</Frame.GestureRecognizers>
+			<Grid ColumnDefinitions="Auto,*,Auto">
+				<Frame Grid.Column="0"
+                       BackgroundColor="#F0F0F0" BorderColor="Transparent"
+                       CornerRadius="22" Padding="0"
+                       WidthRequest="44" HeightRequest="44"
+                       HasShadow="False">
+					<Label Text="−" FontSize="24" FontAttributes="Bold"
+                           TextColor="Black"
+                           HorizontalOptions="Center" VerticalOptions="Center"/>
+				</Frame>
+				<VerticalStackLayout Grid.Column="1" Margin="12,0,0,0"
+                                     Spacing="2" VerticalOptions="Center">
+					<Label Text="Reduce Stock" FontSize="15" FontAttributes="Bold" TextColor="Black"/>
+					<Label Text="Decrease the quantity" FontSize="12" TextColor="Gray"/>
+				</VerticalStackLayout>
+				<Label Grid.Column="2" Text="›" FontSize="22"
+                       TextColor="Gray" VerticalOptions="Center"/>
+			</Grid>
+		</Frame>
+
+		<BoxView HeightRequest="16" BackgroundColor="Transparent"/>
+
+	</VerticalStackLayout>
+
+</the49:BottomSheet>

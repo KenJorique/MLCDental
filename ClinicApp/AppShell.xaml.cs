@@ -30,6 +30,9 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(SupplyListPage), typeof(SupplyListPage));
             Routing.RegisterRoute(nameof(AddSupplyPage), typeof(AddSupplyPage));
             Routing.RegisterRoute(nameof(SupplyInfoPage), typeof(SupplyInfoPage));
+            Routing.RegisterRoute(nameof(AddStockPage), typeof(AddStockPage));
+            Routing.RegisterRoute(nameof(ReduceStockPage), typeof(ReduceStockPage));
+            Routing.RegisterRoute(nameof(StockHistoryPage), typeof(StockHistoryPage));
         }
     }
 }

@@ -18,36 +18,18 @@ public partial class SupplyInfoViewModel : ObservableObject
 
     public ObservableCollection<StockLogRowViewModel> Logs { get; } = new();
 
-    // Add Stock modal
-    [ObservableProperty] private bool isAddStockVisible;
-    [ObservableProperty] private int addQty;
-    [ObservableProperty] private string addExpiration = string.Empty;
-    [ObservableProperty] private string addNote = string.Empty;
-
-    // Reduce Stock modal
-    [ObservableProperty] private bool isReduceStockVisible;
-    [ObservableProperty] private int reduceQty;
-    [ObservableProperty] private string reduceNote = string.Empty;
-    [ObservableProperty] private string reduceError = string.Empty;
-    [ObservableProperty] private string maxAvailableText = string.Empty;
-
     // Computed display
     public string StockDisplay => Supply?.QuantityDisplay ?? "—";
     public bool IsLowStock => Supply?.IsLowStock ?? false;
     public bool IsOutOfStock => Supply?.IsOutOfStock ?? false;
     public string StockStatus => IsOutOfStock ? "Out of Stock" : IsLowStock ? "Low Stock" : "In Stock";
+    public string StockStatusColor => IsOutOfStock ? "#D32F2F" : IsLowStock ? "#F57C00" : "#388E3C";
     public string ExpirationDisplay => Supply is null ? "—"
         : Supply.HasExpiration && !string.IsNullOrWhiteSpace(Supply.ExpirationDate)
             ? Supply.ExpirationDate : "—";
 
-    public ObservableCollection<string> NoteSuggestions { get; } = new()
-    {
-        "Prophylaxis", "Extraction", "Restoration / Filling", "Root Canal Treatment",
-        "Crown Placement", "Braces Adjustment", "Orthodontic Procedure",
-        "Teeth Whitening", "Dental X-Ray", "Emergency Treatment",
-        "Implant Procedure", "Bridge Placement", "Scaling / Cleaning",
-        "Fluoride Treatment", "Expired / Damaged"
-    };
+    // 4 most recent logs shown on SupplyInfoPage
+    public IEnumerable<StockLogRowViewModel> RecentLogs => Logs.Take(4);
 
     public SupplyInfoViewModel(DatabaseService db) => _db = db;
 
@@ -72,6 +54,8 @@ public partial class SupplyInfoViewModel : ObservableObject
             Logs.Clear();
             foreach (var log in logs)
                 Logs.Add(new StockLogRowViewModel(log));
+
+            OnPropertyChanged(nameof(RecentLogs));
         }
         catch (Exception ex)
         {
@@ -86,89 +70,34 @@ public partial class SupplyInfoViewModel : ObservableObject
         OnPropertyChanged(nameof(IsLowStock));
         OnPropertyChanged(nameof(IsOutOfStock));
         OnPropertyChanged(nameof(StockStatus));
+        OnPropertyChanged(nameof(StockStatusColor));
         OnPropertyChanged(nameof(ExpirationDisplay));
-        MaxAvailableText = $"Maximum available: {Supply?.QuantityInPieces} pcs";
-    }
-
-    // ── Add Stock ────────────────────────────────────────────────────
-
-    [RelayCommand]
-    void ShowAddStock()
-    {
-        AddQty = 0; AddExpiration = string.Empty; AddNote = string.Empty;
-        IsReduceStockVisible = false;
-        IsAddStockVisible = true;
-    }
-
-    [RelayCommand]
-    void HideAddStock() => IsAddStockVisible = false;
-
-    [RelayCommand]
-    async Task ConfirmAddStockAsync()
-    {
-        if (AddQty <= 0 || IsBusy) return;
-        IsBusy = true;
-        try
-        {
-            await _db.ApplyStockChange(SupplyId, AddQty, "Restocked", AddNote);
-
-            if (!string.IsNullOrWhiteSpace(AddExpiration) && Supply is not null)
-            {
-                Supply.HasExpiration = true;
-                Supply.ExpirationDate = AddExpiration;
-                await _db.UpdateSupplyItem(Supply);
-            }
-            IsAddStockVisible = false;
-            await LoadAsync();
-        }
-        finally { IsBusy = false; }
-    }
-
-    // ── Reduce Stock ─────────────────────────────────────────────────
-
-    [RelayCommand]
-    void ShowReduceStock()
-    {
-        ReduceQty = 0; ReduceNote = string.Empty; ReduceError = string.Empty;
-        IsAddStockVisible = false;
-        MaxAvailableText = $"Maximum available: {Supply?.QuantityInPieces} pcs";
-        IsReduceStockVisible = true;
-    }
-
-    [RelayCommand]
-    void HideReduceStock() => IsReduceStockVisible = false;
-
-    [RelayCommand]
-    void SelectNoteSuggestion(string suggestion) => ReduceNote = suggestion;
-
-    [RelayCommand]
-    async Task ConfirmReduceStockAsync()
-    {
-        ReduceError = string.Empty;
-        if (ReduceQty <= 0) { ReduceError = "Enter a quantity greater than 0."; return; }
-        if (Supply is not null && ReduceQty > Supply.QuantityInPieces)
-        {
-            ReduceError = $"Cannot reduce by more than current stock ({Supply.QuantityInPieces} pcs).";
-            return;
-        }
-        if (IsBusy) return;
-        IsBusy = true;
-        try
-        {
-            await _db.ApplyStockChange(SupplyId, -ReduceQty, "Used", ReduceNote);
-            IsReduceStockVisible = false;
-            await LoadAsync();
-        }
-        finally { IsBusy = false; }
     }
 
     // ── Navigation ───────────────────────────────────────────────────
 
     [RelayCommand]
-    async Task GoToEdit()
+    public async Task GoToAddStock()
     {
         if (Supply is null) return;
-        await Shell.Current.GoToAsync($"{nameof(AddSupplyPage)}?supplyId={Supply.Id}");
+        await Shell.Current.GoToAsync(
+            $"{nameof(AddStockPage)}?supplyId={Supply.Id}&hasExpiration={Supply.HasExpiration}");
+    }
+
+    [RelayCommand]
+    public async Task GoToReduceStock()
+    {
+        if (Supply is null) return;
+        await Shell.Current.GoToAsync(
+            $"{nameof(ReduceStockPage)}?supplyId={Supply.Id}&currentStock={Supply.QuantityInPieces}");
+    }
+
+    [RelayCommand]
+    async Task ViewAllLogs()
+    {
+        if (Supply is null) return;
+        await Shell.Current.GoToAsync(
+            $"{nameof(StockHistoryPage)}?supplyId={Supply.Id}");
     }
 }
 

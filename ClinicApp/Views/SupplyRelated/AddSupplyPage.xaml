@@ -9,134 +9,69 @@
     Title="{Binding PageTitle}"
     Shell.TabBarIsVisible="False">
 
-    <Grid RowDefinitions="*,Auto">
+	<Grid RowDefinitions="*,Auto">
 
-        <ScrollView Grid.Row="0">
-            <VerticalStackLayout Padding="16" Spacing="14">
+		<ScrollView Grid.Row="0">
+			<VerticalStackLayout Padding="16" Spacing="14">
 
-                <!-- Item Name -->
-                <Label Text="Item Name" FontAttributes="Bold" FontSize="14"/>
-                <Entry Placeholder="e.g. Disposable Gloves"
+				<!-- Item Name -->
+				<Label Text="Item Name" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
+				<Entry Placeholder="e.g. Disposable Gloves"
                        Text="{Binding ItemName}"
                        ClearButtonVisibility="WhileEditing"/>
-                <Label Text="{Binding NameError}"
+				<Label Text="{Binding NameError}"
                        FontSize="12" TextColor="Crimson"
                        IsVisible="{Binding NameError, Converter={StaticResource StringNotEmptyConverter}}"/>
 
-                <!-- Suggestions dropdown -->
-                <CollectionView ItemsSource="{Binding NameSuggestions}"
-                                SelectionMode="None"
-                                IsVisible="{Binding NameSuggestions.Count, Converter={StaticResource IntNotEqualZeroConverter}}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="x:String">
-                            <Frame Padding="10,8" Margin="0,1" BackgroundColor="#F8F8F8"
-                                   BorderColor="LightGray" HasShadow="False">
-                                <Frame.GestureRecognizers>
-                                    <TapGestureRecognizer
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                  Path=BindingContext.SelectSuggestionCommand}"
-                                        CommandParameter="{Binding .}"/>
-                                </Frame.GestureRecognizers>
-                                <Label Text="{Binding .}" FontSize="14"/>
-                            </Frame>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-
-                <!-- Unit -->
-                <Label Text="Unit" FontAttributes="Bold" FontSize="14"/>
-                <Picker ItemsSource="{Binding UnitOptions}"
-                        SelectedItem="{Binding SelectedUnit}"/>
-
-                <!-- Pieces per Unit -->
-                <VerticalStackLayout x:Name="PiecesPerUnitContainer" IsVisible="False" Spacing="6">
-                    <Label FontSize="14">
-                        <Label.FormattedText>
-                            <FormattedString>
-                                <Span Text="Pieces per Unit" FontAttributes="Bold"/>
-                                <Span Text="  (e.g., how many items are inside the package)" TextColor="Gray" FontSize="12"/>
-                            </FormattedString>
-                        </Label.FormattedText>
-                    </Label>
-                    <Entry Placeholder="e.g. 50" Keyboard="Numeric"
-                           Text="{Binding PiecesPerUnit}"/>
-
-                    <VerticalStackLayout.Triggers>
-                        <DataTrigger TargetType="VerticalStackLayout" 
-                                     Binding="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectedUnit}" 
-                                     Value="Box">
-                            <Setter Property="IsVisible" Value="True"/>
-                        </DataTrigger>
-                        <DataTrigger TargetType="VerticalStackLayout" 
-                                     Binding="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectedUnit}" 
-                                     Value="Pack">
-                            <Setter Property="IsVisible" Value="True"/>
-                        </DataTrigger>
-                    </VerticalStackLayout.Triggers>
-                </VerticalStackLayout>
-
-                <!-- Quantity -->
-                <Label Text="Quantity" FontAttributes="Bold" FontSize="14"/>
-                <Entry Placeholder="Current quantity on hand" Keyboard="Numeric"
+				<!-- Quantity -->
+				<Label Text="Initial Quantity (pcs)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
+				<Entry Placeholder="e.g. 50" Keyboard="Numeric"
                        Text="{Binding Quantity}"/>
 
-                <!-- Size / Variant -->
-                <Label Text="Size / Variant (optional)" FontAttributes="Bold" FontSize="14" TextColor="Gray"/>
-                <Entry Placeholder="e.g. Small, Medium, 250mg"
+				<!-- Size / Variant -->
+				<Label Text="Size / Variant (optional)" FontAttributes="Bold" FontSize="14" TextColor="Gray"/>
+				<Entry Placeholder="e.g. Small, Medium, 250mg"
                        Text="{Binding SizeVariant}"/>
 
-                <!-- Has Expiration -->
-                <Grid ColumnDefinitions="*,Auto">
-                    <Label Grid.Column="0" Text="Has Expiration?" FontAttributes="Bold" FontSize="14"
-                           VerticalTextAlignment="Center"/>
-                    <HorizontalStackLayout Grid.Column="1" Spacing="16">
-                        <RadioButton Content="Yes" Value="True"
+				<!-- Has Expiration -->
+				<Grid ColumnDefinitions="*,Auto">
+					<Label Grid.Column="0" Text="Has Expiration?" FontAttributes="Bold" FontSize="14"
+                           TextColor="Black" VerticalTextAlignment="Center"/>
+					<HorizontalStackLayout Grid.Column="1" Spacing="16">
+						<RadioButton Content="Yes" Value="True" TextColor="Black"
                                      IsChecked="{Binding HasExpiration}"/>
-                        <RadioButton Content="No" Value="False"
+						<RadioButton Content="No" Value="False" TextColor="Black"
                                      IsChecked="{Binding HasExpiration, Converter={StaticResource InvertedBoolConverter}}"/>
-                    </HorizontalStackLayout>
-                </Grid>
+					</HorizontalStackLayout>
+				</Grid>
 
-                <!-- Expiration Date (shown only when HasExpiration = true) -->
-                <VerticalStackLayout IsVisible="{Binding HasExpiration}" Spacing="6">
-                    <Label Text="Expiration Date" FontAttributes="Bold" FontSize="14"/>
-                    <DatePicker Date="{Binding ExpirationDate}" Format="MMMM dd, yyyy"
+				<!-- Expiration Date -->
+				<VerticalStackLayout IsVisible="{Binding HasExpiration}" Spacing="6">
+					<Label Text="Expiration Date" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
+					<DatePicker Date="{Binding ExpirationDate}" Format="MMMM dd, yyyy"
                                 MinimumDate="{x:Static sys:DateTime.Today}"/>
-                </VerticalStackLayout>
+				</VerticalStackLayout>
 
-                <!-- Minimum Stock -->
-                <Label FontSize="14">
-                    <Label.FormattedText>
-                        <FormattedString>
-                            <Span Text="Minimum Stock" FontAttributes="Bold"/>
-                        </FormattedString>
-                    </Label.FormattedText>
-                </Label>
-                <Entry Placeholder="e.g. 10" Keyboard="Numeric"
+				<!-- Minimum Stock -->
+				<Label Text="Minimum Stock (pcs)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
+				<Entry Placeholder="e.g. 10" Keyboard="Numeric"
                        Text="{Binding MinimumStock}"/>
-                <Label Text="You will be alerted when stock is at or below this level."
+				<Label Text="You will be alerted when stock is at or below this level."
                        FontSize="12" TextColor="Gray"/>
 
-                <!-- Note -->
-                <!--<Label Text="Note (optional)" FontAttributes="Bold" FontSize="14" TextColor="Gray"/>
-                <Editor Placeholder="Any additional information..."
-                        Text="{Binding Note}"
-                        AutoSize="TextChanges"
-                        MinimumHeightRequest="60"/>-->
+			</VerticalStackLayout>
+		</ScrollView>
 
-            </VerticalStackLayout>
-        </ScrollView>
-
-        <!-- ── Action buttons ── -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,10" ColumnSpacing="12"
+		<!-- Action buttons -->
+		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,10" ColumnSpacing="12"
               BackgroundColor="White">
-            <Button Grid.Column="0" Text="Cancel"
+			<Button Grid.Column="0" Text="Cancel"
                     Command="{Binding CancelCommand}"
                     BackgroundColor="LightGray" TextColor="Black"/>
-            <Button Grid.Column="1" Text="Save"
+			<Button Grid.Column="1" Text="Save"
                     Command="{Binding SaveCommand}"
                     IsEnabled="{Binding CanSave}"/>
-        </Grid>
+		</Grid>
 
-    </Grid>
+	</Grid>
 </ContentPage>

@@ -8,126 +8,106 @@
     Title="Medical Supply"
     Shell.TabBarIsVisible="False">
 
-    <Grid RowDefinitions="Auto,Auto,*">
+	<AbsoluteLayout>
 
-        <!-- ── Low-stock alert banner ── -->
-        <Frame Grid.Row="0"
-               IsVisible="{Binding HasLowStock}"
-               BackgroundColor="#FFF3CD"
-               BorderColor="#FFC107"
-               CornerRadius="0" HasShadow="False" Padding="14,10" Margin="0">
-            <Label Text="{Binding LowStockSummary}"
-                   FontSize="13" FontAttributes="Bold"
-                   TextColor="#856404"/>
-        </Frame>
+		<Grid RowDefinitions="*"
+              AbsoluteLayout.LayoutBounds="0,0,1,1"
+              AbsoluteLayout.LayoutFlags="All">
 
-        <!-- ── Search bar ── -->
-        <!--<SearchBar Grid.Row="1"
-                   Placeholder="Search supplies..."
-                   Text="{Binding SearchText}"
-                   Margin="10,8"/>-->
-
-        <!-- ── Main body ── -->
-        <Grid Grid.Row="2">
-
-            <!-- Loading -->
-            <ActivityIndicator IsRunning="{Binding IsBusy}"
+			<!-- Loading -->
+			<ActivityIndicator IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
                                VerticalOptions="Center" HorizontalOptions="Center"/>
 
-            <!-- Empty state -->
-            <VerticalStackLayout IsVisible="{Binding IsEmpty}"
+			<!-- Empty state -->
+			<VerticalStackLayout IsVisible="{Binding IsEmpty}"
                                  VerticalOptions="Center" HorizontalOptions="Center"
                                  Spacing="10" Padding="40,0">
-                <Label Text="No supplies found." FontSize="16"
+				<Label Text="No supplies found." FontSize="16"
                        TextColor="Gray" HorizontalTextAlignment="Center"/>
-                <Label Text="Tap '+ Add Item' to add your first supply."
+				<Label Text="Tap ＋ to add your first supply."
                        FontSize="13" TextColor="LightGray"
                        HorizontalTextAlignment="Center"/>
-            </VerticalStackLayout>
+			</VerticalStackLayout>
 
-            <!-- Supply list -->
-            <CollectionView ItemsSource="{Binding FilteredCards}"
+			<!-- Supply list -->
+			<CollectionView ItemsSource="{Binding FilteredCards}"
                             SelectionMode="None"
                             IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}"
-                            Margin="10,0,10,80">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:SupplyCardViewModel">
-                        <SwipeView>
-                            <SwipeView.RightItems>
-                                <SwipeItems>
-                                    <SwipeItem Text="Edit"
+                            Margin="10,8,10,80">
+				<CollectionView.ItemTemplate>
+					<DataTemplate x:DataType="vm:SupplyCardViewModel">
+						<SwipeView>
+							<SwipeView.RightItems>
+								<SwipeItems>
+									<SwipeItem Text="Edit"
                                                BackgroundColor="RoyalBlue"
                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                                          Path=BindingContext.EditSupplyCommand}"
                                                CommandParameter="{Binding .}"/>
-                                    <SwipeItem Text="Delete"
+									<SwipeItem Text="Delete"
                                                BackgroundColor="Crimson"
                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                                          Path=BindingContext.DeleteSupplyCommand}"
                                                CommandParameter="{Binding .}"/>
-                                </SwipeItems>
-                            </SwipeView.RightItems>
+								</SwipeItems>
+							</SwipeView.RightItems>
 
-                            <Frame Margin="0,0,0,8" Padding="14,12" HasShadow="True"
-                                   BackgroundColor="White">
-                                <Frame.GestureRecognizers>
-                                    <TapGestureRecognizer
+							<Frame Margin="0,0,0,8" Padding="14,12"
+                                   HasShadow="True" BackgroundColor="White">
+								<Frame.GestureRecognizers>
+									<TapGestureRecognizer
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                                   Path=BindingContext.ViewSupplyInfoCommand}"
                                         CommandParameter="{Binding .}"/>
-                                </Frame.GestureRecognizers>
+								</Frame.GestureRecognizers>
 
-                                <Grid ColumnDefinitions="*,Auto">
+								<!-- Single row: Name | Status badge | Qty -->
+								<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
 
-                                    <!-- Left: name + unit + status badge -->
-                                    <VerticalStackLayout Grid.Column="0" Spacing="4">
-                                        <Label Text="{Binding Supply.Name}"
-                                               FontSize="16" FontAttributes="Bold"/>
-                                        <Label Text="{Binding UnitDisplay}"
-                                               FontSize="12" TextColor="Gray"/>
+									<!-- Supply name -->
+									<Label Grid.Column="0"
+                                           Text="{Binding Supply.Name}"
+                                           FontSize="15" FontAttributes="Bold"
+                                           TextColor="Black"
+                                           VerticalOptions="Center"/>
 
-                                        <!-- Low / Out badge -->
-                                        <Frame IsVisible="{Binding IsLowStock}"
-                                               BackgroundColor="#FFF3CD"
-                                               BorderColor="#FFC107"
-                                               Padding="6,2" CornerRadius="6"
-                                               HasShadow="False" HorizontalOptions="Start">
-                                            <Label Text="{Binding StockStatusLabel}"
-                                                   FontSize="11" FontAttributes="Bold"
-                                                   TextColor="#856404"/>
-                                        </Frame>
-                                    </VerticalStackLayout>
+									<!-- Colored status badge -->
+									<Frame Grid.Column="1"
+                                           Padding="8,3" CornerRadius="8"
+                                           HasShadow="False" BorderColor="Transparent"
+                                           BackgroundColor="{Binding StockStatusColor}"
+                                           VerticalOptions="Center">
+										<Label Text="{Binding StockStatusLabel}"
+                                               FontSize="11" FontAttributes="Bold"
+                                               TextColor="White"/>
+									</Frame>
 
-                                    <!-- Right: stock count + In Stock label -->
-                                    <!--<VerticalStackLayout Grid.Column="1"
-                                                         HorizontalOptions="End"
-                                                         VerticalOptions="Center"
-                                                         Spacing="2">
-                                        <Label Text="{Binding StockDisplay}"
-                                               FontSize="15" FontAttributes="Bold"
-                                               HorizontalTextAlignment="End"/>
-                                        <Label IsVisible="{Binding IsLowStock,
-                                                   Converter={StaticResource InvertedBoolConverter}}"
-                                               Text="In Stock"
-                                               FontSize="11" TextColor="Gray"
-                                               HorizontalTextAlignment="End"/>
-                                    </VerticalStackLayout>-->
+									<!-- Quantity -->
+									<Label Grid.Column="2"
+                                           Text="{Binding StockDisplay}"
+                                           FontSize="14" FontAttributes="Bold"
+                                           TextColor="Black"
+                                           VerticalOptions="Center"/>
 
-                                </Grid>
-                            </Frame>
-                        </SwipeView>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+								</Grid>
+							</Frame>
+						</SwipeView>
+					</DataTemplate>
+				</CollectionView.ItemTemplate>
+			</CollectionView>
 
-        </Grid>
-    </Grid>
+		</Grid>
 
-    <!-- Floating Add button -->
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="↻ Refresh" Command="{Binding LoadSuppliesCommand}"/>
-        <ToolbarItem Text="+ Add Item" Command="{Binding GoToAddSupplyCommand}"/>
-    </ContentPage.ToolbarItems>
+		<!-- Floating Add Button -->
+		<Button Text="+ Add Item"
+                Command="{Binding GoToAddSupplyCommand}"
+                VerticalOptions="End"
+                HorizontalOptions="End"
+                Margin="0,0,20,20"
+                CornerRadius="30"
+                Padding="20,12" />
+
+	</AbsoluteLayout>
 
 </ContentPage>
