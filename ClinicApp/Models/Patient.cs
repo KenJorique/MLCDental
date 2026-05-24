@@ -1,38 +1,60 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SQLite;
+﻿using SQLite;
 
 namespace ClinicApp.Models;
 
+[Table("Patient")]
 public class Patient
 {
     [PrimaryKey, AutoIncrement]
     public int PatientID { get; set; }
 
-    public string FirstName { get; set; }
+    // ── Basic Info ───────────────────────────────────────────────
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Nickname { get; set; } = string.Empty;
+    public string Nationality { get; set; } = string.Empty;
 
-    public string LastName { get; set; }
+    // Gender stored as string ("Male"/"Female"/"Other")
+    public string Gender { get; set; } = string.Empty;
+    public string DateOfBirth { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public string Religion { get; set; } = string.Empty;
+    public string Occupation { get; set; } = string.Empty;
 
-    public string ContactNumber { get; set; }
+    // ── Contact ──────────────────────────────────────────────────
+    public string MobileNo { get; set; } = string.Empty;
+    public string HomeNo { get; set; } = string.Empty;
+    public string FaxNo { get; set; } = string.Empty;
+    public string OfficeNo { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
 
-    public string Email { get; set; }
+    // ── Referral / Insurance ─────────────────────────────────────
+    public string ReferredBy { get; set; } = string.Empty;
+    public string ReasonForConsultation { get; set; } = string.Empty;
+    public string DentalInsurance { get; set; } = string.Empty;
+    public string InsuranceEffectiveDate { get; set; } = string.Empty;
 
-    public bool Gender { get; set; }  
-
-    
-    [Column("DateOfBirth")]
-    public string DateOfBirth { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
-
-
-    public string Address { get; set; }
-
-    public string MedicalHistory { get; set; }
-
-    public bool HasNoMedicalHistory { get; set; }
-
-    [Column("DateRegistered")]
+    // ── Registration ─────────────────────────────────────────────
     public string DateRegistered { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
+
+    // ── Legacy fields (kept for backward compat) ─────────────────
+    public string MedicalHistory { get; set; } = string.Empty;
+    public bool HasNoMedicalHistory { get; set; } = false;
+
+    // ── Computed (not stored) ─────────────────────────────────────
+    [Ignore]
+    public string FullName => $"{FirstName} {LastName}".Trim();
+
+    [Ignore]
+    public int Age
+    {
+        get
+        {
+            if (!DateTime.TryParse(DateOfBirth, out var dob)) return 0;
+            var today = DateTime.Today;
+            var age = today.Year - dob.Year;
+            if (dob.Date > today.AddYears(-age)) age--;
+            return age;
+        }
+    }
 }
