@@ -80,6 +80,15 @@ public partial class PatientDetailsViewModel : ObservableObject
             MainThread.BeginInvokeOnMainThread(async () => await LoadPatientAsync(value));
     }
 
+    [RelayCommand]
+    public async Task LoadPatient()
+    {
+        // Reset IsBusy in case a previous load left it stuck true
+        IsBusy = false;
+        if (PatientId > 0)
+            await LoadPatientAsync(PatientId);
+    }
+
     private async Task LoadPatientAsync(int id)
     {
         IsBusy = true;

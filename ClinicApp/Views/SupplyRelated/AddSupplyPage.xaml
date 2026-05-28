@@ -24,12 +24,12 @@
                        IsVisible="{Binding NameError, Converter={StaticResource StringNotEmptyConverter}}"/>
 
 				<!-- Quantity -->
-				<Label Text="Initial Quantity (pcs)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
+				<Label Text="Quantity (pcs)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
 				<Entry Placeholder="e.g. 50" Keyboard="Numeric"
                        Text="{Binding Quantity}"/>
 
 				<!-- Size / Variant -->
-				<Label Text="Size / Variant (optional)" FontAttributes="Bold" FontSize="14" TextColor="Gray"/>
+				<Label Text="Size / Variant (optional)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
 				<Entry Placeholder="e.g. Small, Medium, 250mg"
                        Text="{Binding SizeVariant}"/>
 

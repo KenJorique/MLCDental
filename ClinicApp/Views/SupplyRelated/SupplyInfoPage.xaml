@@ -130,7 +130,6 @@
 					</VerticalStackLayout>
 				</Frame>
 
-				<BoxView HeightRequest="20"/>
 			</VerticalStackLayout>
 		</ScrollView>
 

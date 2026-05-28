@@ -7,296 +7,420 @@
              Title="Patient Profile"
              Shell.TabBarIsVisible="False">
 
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="⋮" Command="{Binding ShowMenuCommand}"/>
-    </ContentPage.ToolbarItems>
+	<ContentPage.ToolbarItems>
+		<ToolbarItem Text="⋮" Command="{Binding ShowMenuCommand}"/>
+	</ContentPage.ToolbarItems>
 
-    <ContentPage.Resources>
-        <Style x:Key="Card" TargetType="Border">
-            <Setter Property="BackgroundColor" Value="White"/>
-            <Setter Property="StrokeThickness" Value="0"/>
-            <Setter Property="Padding" Value="16"/>
-            <Setter Property="Margin" Value="0,0,0,10"/>
-        </Style>
-        <Style x:Key="SectionTitle" TargetType="Label">
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontAttributes" Value="Bold"/>
-            <Setter Property="TextColor" Value="#1A2B4A"/>
-            <Setter Property="Margin" Value="0,0,0,10"/>
-        </Style>
-        <Style x:Key="FieldKey" TargetType="Label">
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="TextColor" Value="#9CA3AF"/>
-        </Style>
-        <Style x:Key="FieldVal" TargetType="Label">
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="TextColor" Value="#1E293B"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
-        </Style>
-    </ContentPage.Resources>
+	<ContentPage.Resources>
+		<!-- Card container -->
+		<Style x:Key="Card" TargetType="Border">
+			<Setter Property="BackgroundColor" Value="White"/>
+			<Setter Property="StrokeThickness" Value="0"/>
+			<Setter Property="Padding" Value="16"/>
+			<Setter Property="Margin" Value="0,0,0,12"/>
+		</Style>
+		<!-- Section title -->
+		<Style x:Key="SectionTitle" TargetType="Label">
+			<Setter Property="FontSize" Value="14"/>
+			<Setter Property="FontAttributes" Value="Bold"/>
+			<Setter Property="TextColor" Value="Black"/>
+			<Setter Property="Margin" Value="0,0,0,10"/>
+		</Style>
+		<!-- Row label (left, gray) -->
+		<Style x:Key="RowLabel" TargetType="Label">
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="TextColor" Value="#6B7280"/>
+			<Setter Property="VerticalOptions" Value="Center"/>
+		</Style>
+		<!-- Row value (right, black) -->
+		<Style x:Key="RowValue" TargetType="Label">
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="TextColor" Value="Black"/>
+			<Setter Property="FontAttributes" Value="Bold"/>
+			<Setter Property="VerticalOptions" Value="Center"/>
+			<Setter Property="HorizontalTextAlignment" Value="End"/>
+		</Style>
+	</ContentPage.Resources>
 
-    <ScrollView>
-        <VerticalStackLayout Padding="12,10,12,30" Spacing="0">
+	<ScrollView>
+		<VerticalStackLayout Padding="14,12,14,30" Spacing="0">
 
-            <!-- Loading indicator -->
-            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
-                               Color="#1A2B4A" HorizontalOptions="Center" Margin="20"/>
+			<ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                               HorizontalOptions="Center" Margin="20"/>
 
-            <!-- ── Header Card ── -->
-            <Border Style="{StaticResource Card}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="16"/>
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#20000000" Offset="0,3" Radius="10"/>
-                </Border.Shadow>
-                <Grid ColumnDefinitions="*,Auto">
-                    <VerticalStackLayout Grid.Column="0">
-                        <Label Text="{Binding FullName}" 
-                               FontSize="22" 
-                               FontAttributes="Bold" 
-                               TextColor="#1A2B4A"/>
+			<!-- ── HEADER CARD ── -->
+			<Border Style="{StaticResource Card}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="16"/>
+				</Border.StrokeShape>
+				<Border.Shadow>
+					<Shadow Brush="#20000000" Offset="0,3" Radius="10"/>
+				</Border.Shadow>
+				<VerticalStackLayout Spacing="4">
+					<Label Text="{Binding FullName}"
+                           FontSize="22" FontAttributes="Bold" TextColor="Black"/>
+					<!-- Nickname shown only if filled, subtle gray -->
+					<Label Text="{Binding Nickname}"
+                           FontSize="13" TextColor="#9CA3AF"
+                           IsVisible="{Binding Nickname, Converter={StaticResource StringNotEmptyConverter}}"/>
+					<HorizontalStackLayout Spacing="6" Margin="0,2,0,0">
+						<Label Text="{Binding Gender}" FontSize="13" TextColor="#6B7280"/>
+						<Label Text="·" TextColor="#9CA3AF"/>
+						<Label Text="{Binding Age, StringFormat='{0} yrs old'}" FontSize="13" TextColor="#6B7280"/>
+						<Label Text="·" TextColor="#9CA3AF"/>
+						<Label Text="{Binding DateOfBirth}" FontSize="13" TextColor="#6B7280"/>
+					</HorizontalStackLayout>
+					<Label Text="{Binding DateRegistered, StringFormat='Registered: {0}'}"
+                           FontSize="11" TextColor="#9CA3AF"/>
+				</VerticalStackLayout>
+			</Border>
 
-                        <Label Text="{Binding Nickname, StringFormat='&quot;{0}&quot;'}" 
-                               FontSize="14" 
-                               TextColor="#6B7A9A"
-                               IsVisible="{Binding Nickname, Converter={StaticResource StringNotEmptyConverter}}"/>
+			<!-- ── A. PERSONAL INFORMATION ── -->
+			<Border Style="{StaticResource Card}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.Shadow>
+					<Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
+				</Border.Shadow>
+				<VerticalStackLayout Spacing="0">
+					<Label Text="Personal Information" Style="{StaticResource SectionTitle}"/>
 
-                        <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
-                            <Label Text="{Binding Gender}" FontSize="13" TextColor="#64748B"/>
-                                <Label Text="·" TextColor="#CBD5E1"/>
-                                <Label Text="{Binding Age, StringFormat='{0} yrs old'}" FontSize="13" TextColor="#64748B"/>
-                            </HorizontalStackLayout>
-                            <Label Text="{Binding DateRegistered, StringFormat='Registered: {0}'}"
-                               FontSize="11" TextColor="#9CA3AF" Margin="0,4,0,0"/>
-                    </VerticalStackLayout>
-                </Grid>
-            </Border>
+					<!-- Each row: label left, value right, divider below.
+                         Row is hidden entirely when value is empty. -->
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding DateOfBirth, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Date of Birth" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding DateOfBirth}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding DateOfBirth, Converter={StaticResource StringNotEmptyConverter}}"/>
 
-            <!-- ── A. Personal Information ── -->
-            <Border Style="{StaticResource Card}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="14"/>
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
-                </Border.Shadow>
-                <VerticalStackLayout>
-                    <Label Text="👤  Personal Information" Style="{StaticResource SectionTitle}"/>
-                    <Label Text="Date of Birth" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding DateOfBirth}" Style="{StaticResource FieldVal}"/>
-                    <Label Text="Nationality" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding Nationality}" Style="{StaticResource FieldVal}"/>
-                    <Label Text="Religion" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding Religion}" Style="{StaticResource FieldVal}"/>
-                    <Label Text="Occupation" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding Occupation}" Style="{StaticResource FieldVal}"/>
-                    <Label Text="Address" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding Address}" Style="{StaticResource FieldVal}"/>
-                </VerticalStackLayout>
-            </Border>
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding Nationality, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Nationality" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding Nationality}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding Nationality, Converter={StaticResource StringNotEmptyConverter}}"/>
 
-            <!-- ── B. Contact ── -->
-            <Border Style="{StaticResource Card}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="14"/>
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
-                </Border.Shadow>
-                <VerticalStackLayout>
-                    <Label Text="📞  Contact Details" Style="{StaticResource SectionTitle}"/>
-                    <Grid ColumnDefinitions="*,*">
-                        <VerticalStackLayout Grid.Column="0">
-                            <Label Text="Mobile" Style="{StaticResource FieldKey}"/>
-                            <Label Text="{Binding MobileNo}" Style="{StaticResource FieldVal}"/>
-                            <Label Text="Office" Style="{StaticResource FieldKey}"/>
-                            <Label Text="{Binding OfficeNo}" Style="{StaticResource FieldVal}"/>
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1">
-                            <Label Text="Home" Style="{StaticResource FieldKey}"/>
-                            <Label Text="{Binding HomeNo}" Style="{StaticResource FieldVal}"/>
-                            <Label Text="Fax" Style="{StaticResource FieldKey}"/>
-                            <Label Text="{Binding FaxNo}" Style="{StaticResource FieldVal}"/>
-                        </VerticalStackLayout>
-                    </Grid>
-                    <Label Text="Email" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding Email}" Style="{StaticResource FieldVal}"/>
-                </VerticalStackLayout>
-            </Border>
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding Religion, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Religion" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding Religion}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding Religion, Converter={StaticResource StringNotEmptyConverter}}"/>
 
-            <!-- ── C. Referral & Insurance ── -->
-            <Border Style="{StaticResource Card}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="14"/>
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
-                </Border.Shadow>
-                <VerticalStackLayout>
-                    <Label Text="🏥  Referral &amp; Insurance" Style="{StaticResource SectionTitle}"/>
-                    <Label Text="Referred By" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding ReferredBy}" Style="{StaticResource FieldVal}"/>
-                    <Label Text="Reason for Consultation" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding ReasonForConsultation}" Style="{StaticResource FieldVal}"/>
-                    <Label Text="Dental Insurance" Style="{StaticResource FieldKey}" IsVisible="{Binding HasInsurance}"/>
-                    <Label Text="{Binding DentalInsurance}" Style="{StaticResource FieldVal}" IsVisible="{Binding HasInsurance}"/>
-                    <Label Text="Insurance Effective Date" Style="{StaticResource FieldKey}" IsVisible="{Binding HasInsurance}"/>
-                    <Label Text="{Binding InsuranceEffectiveDate}" Style="{StaticResource FieldVal}" IsVisible="{Binding HasInsurance}"/>
-                    <Label Text="No insurance on record." FontSize="13" TextColor="#9CA3AF"
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding Occupation, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Occupation" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding Occupation}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding Occupation, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,0"
+                          IsVisible="{Binding Address, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Address" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding Address}" Style="{StaticResource RowValue}"/>
+					</Grid>
+				</VerticalStackLayout>
+			</Border>
+
+			<!-- ── B. CONTACT DETAILS ── -->
+			<Border Style="{StaticResource Card}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.Shadow>
+					<Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
+				</Border.Shadow>
+				<VerticalStackLayout Spacing="0">
+					<Label Text="Contact Details" Style="{StaticResource SectionTitle}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding MobileNo, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Mobile" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding MobileNo}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding MobileNo, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding HomeNo, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Home" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding HomeNo}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding HomeNo, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding OfficeNo, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Office" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding OfficeNo}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding OfficeNo, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding FaxNo, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Fax" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding FaxNo}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding FaxNo, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,0"
+                          IsVisible="{Binding Email, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Email" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding Email}" Style="{StaticResource RowValue}"/>
+					</Grid>
+				</VerticalStackLayout>
+			</Border>
+
+			<!-- ── C. REFERRAL & INSURANCE ── -->
+			<Border Style="{StaticResource Card}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.Shadow>
+					<Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
+				</Border.Shadow>
+				<VerticalStackLayout Spacing="0">
+					<Label Text="Referral &amp; Insurance" Style="{StaticResource SectionTitle}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding ReferredBy, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Referred By" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding ReferredBy}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding ReferredBy, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding ReasonForConsultation, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Reason" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding ReasonForConsultation}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding ReasonForConsultation, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<!-- Insurance: show details if has insurance, show "None" label if not -->
+					<VerticalStackLayout IsVisible="{Binding HasInsurance}" Spacing="0">
+						<Grid ColumnDefinitions="*,*" Margin="0,0,0,8">
+							<Label Grid.Column="0" Text="Insurance" Style="{StaticResource RowLabel}"/>
+							<Label Grid.Column="1" Text="{Binding DentalInsurance}" Style="{StaticResource RowValue}"/>
+						</Grid>
+						<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"/>
+						<Grid ColumnDefinitions="*,*" Margin="0,0,0,0">
+							<Label Grid.Column="0" Text="Effective Date" Style="{StaticResource RowLabel}"/>
+							<Label Grid.Column="1" Text="{Binding InsuranceEffectiveDate}" Style="{StaticResource RowValue}"/>
+						</Grid>
+					</VerticalStackLayout>
+					<Label Text="No dental insurance on record."
+                           FontSize="13" TextColor="#9CA3AF"
                            IsVisible="{Binding HasInsurance, Converter={StaticResource InvertedBoolConverter}}"/>
-                </VerticalStackLayout>
-            </Border>
+				</VerticalStackLayout>
+			</Border>
 
-            <!-- ── D. Guardian ── -->
-            <Border Style="{StaticResource Card}" IsVisible="{Binding HasGuardian}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="14"/>
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
-                </Border.Shadow>
-                <VerticalStackLayout>
-                    <Label Text="👪  Guardian / Emergency Contact" Style="{StaticResource SectionTitle}"/>
-                    <Label Text="Name" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding GuardianName}" Style="{StaticResource FieldVal}"/>
-                    <Grid ColumnDefinitions="*,*">
-                        <VerticalStackLayout Grid.Column="0">
-                            <Label Text="Relationship" Style="{StaticResource FieldKey}"/>
-                            <Label Text="{Binding GuardianRelationship}" Style="{StaticResource FieldVal}"/>
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1">
-                            <Label Text="Occupation" Style="{StaticResource FieldKey}"/>
-                            <Label Text="{Binding GuardianOccupation}" Style="{StaticResource FieldVal}"/>
-                        </VerticalStackLayout>
-                    </Grid>
-                    <Label Text="Mobile" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding GuardianMobile}" Style="{StaticResource FieldVal}"/>
-                </VerticalStackLayout>
-            </Border>
+			<!-- ── D. GUARDIAN (hidden if no guardian) ── -->
+			<Border Style="{StaticResource Card}" IsVisible="{Binding HasGuardian}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.Shadow>
+					<Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
+				</Border.Shadow>
+				<VerticalStackLayout Spacing="0">
+					<Label Text="Guardian / Emergency Contact" Style="{StaticResource SectionTitle}"/>
 
-            <!-- ── E. Medical History ── -->
-            <Border Style="{StaticResource Card}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="14"/>
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
-                </Border.Shadow>
-                <VerticalStackLayout>
-                    <Label Text="🩺  Medical History" Style="{StaticResource SectionTitle}"/>
-                    <Grid ColumnDefinitions="*,*">
-                        <VerticalStackLayout Grid.Column="0">
-                            <Label Text="Blood Type" Style="{StaticResource FieldKey}"/>
-                            <Label Text="{Binding BloodType}" Style="{StaticResource FieldVal}"/>
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1">
-                            <Label Text="Blood Pressure" Style="{StaticResource FieldKey}"/>
-                            <Label Text="{Binding BloodPressure}" Style="{StaticResource FieldVal}"/>
-                        </VerticalStackLayout>
-                    </Grid>
-                    <Label Text="Physician" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding PhysicianName}" Style="{StaticResource FieldVal}"/>
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8">
+						<Label Grid.Column="0" Text="Name" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding GuardianName}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"/>
 
-                    <!-- Flag chips -->
-                    <FlexLayout Wrap="Wrap" Direction="Row" Margin="0,4,0,8">
-                        <Border BackgroundColor="#DCFCE7" Padding="8,4" Margin="0,2,6,2"
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding GuardianRelationship, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Relationship" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding GuardianRelationship}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding GuardianRelationship, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding GuardianOccupation, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Occupation" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding GuardianOccupation}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding GuardianOccupation, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,0"
+                          IsVisible="{Binding GuardianMobile, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Mobile" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding GuardianMobile}" Style="{StaticResource RowValue}"/>
+					</Grid>
+				</VerticalStackLayout>
+			</Border>
+
+			<!-- ── E. MEDICAL HISTORY ── -->
+			<Border Style="{StaticResource Card}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.Shadow>
+					<Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
+				</Border.Shadow>
+				<VerticalStackLayout Spacing="0">
+					<Label Text="Medical History" Style="{StaticResource SectionTitle}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding BloodType, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Blood Type" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding BloodType}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding BloodType, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding BloodPressure, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Blood Pressure" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding BloodPressure}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding BloodPressure, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding PhysicianName, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Physician" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding PhysicianName}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding PhysicianName, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding BleedingTime, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Bleeding Time" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding BleedingTime}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding BleedingTime, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding LastDentalVisit, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Last Dental Visit" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding LastDentalVisit}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding LastDentalVisit, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<Grid ColumnDefinitions="*,*" Margin="0,0,0,8"
+                          IsVisible="{Binding PreviousDentist, Converter={StaticResource StringNotEmptyConverter}}">
+						<Label Grid.Column="0" Text="Previous Dentist" Style="{StaticResource RowLabel}"/>
+						<Label Grid.Column="1" Text="{Binding PreviousDentist}" Style="{StaticResource RowValue}"/>
+					</Grid>
+					<BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,0,0,8"
+                             IsVisible="{Binding PreviousDentist, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+					<!-- Status chips — only shown when true -->
+					<FlexLayout Wrap="Wrap" Direction="Row" Margin="0,4,0,0">
+						<Border BackgroundColor="#DCFCE7" Padding="8,4" Margin="0,2,6,2"
                                 IsVisible="{Binding IsGoodHealth}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="20"/>
-                            </Border.StrokeShape>
-                            <Label Text="✓ Good Health" FontSize="11" TextColor="#15803D"/>
-                        </Border>
-                        <Border BackgroundColor="#FEF3C7" Padding="8,4" Margin="0,2,6,2"
+							<Border.StrokeShape>
+								<RoundRectangle CornerRadius="20"/>
+							</Border.StrokeShape>
+							<Label Text="✓ Good Health" FontSize="11" TextColor="#15803D"/>
+						</Border>
+						<Border BackgroundColor="#FEF3C7" Padding="8,4" Margin="0,2,6,2"
                                 IsVisible="{Binding IsPregnant}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="20"/>
-                            </Border.StrokeShape>
-                            <Label Text="Pregnant" FontSize="11" TextColor="#92400E"/>
-                        </Border>
-                        <Border BackgroundColor="#FEE2E2" Padding="8,4" Margin="0,2,6,2"
+							<Border.StrokeShape>
+								<RoundRectangle CornerRadius="20"/>
+							</Border.StrokeShape>
+							<Label Text="Pregnant" FontSize="11" TextColor="#92400E"/>
+						</Border>
+						<Border BackgroundColor="#FEE2E2" Padding="8,4" Margin="0,2,6,2"
                                 IsVisible="{Binding UnderMedicalTreatment}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="20"/>
-                            </Border.StrokeShape>
-                            <Label Text="Under Treatment" FontSize="11" TextColor="#991B1B"/>
-                        </Border>
-                        <Border BackgroundColor="#FEE2E2" Padding="8,4" Margin="0,2,6,2"
+							<Border.StrokeShape>
+								<RoundRectangle CornerRadius="20"/>
+							</Border.StrokeShape>
+							<Label Text="Under Treatment" FontSize="11" TextColor="#991B1B"/>
+						</Border>
+						<Border BackgroundColor="#FEE2E2" Padding="8,4" Margin="0,2,6,2"
                                 IsVisible="{Binding HasBeenHospitalized}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="20"/>
-                            </Border.StrokeShape>
-                            <Label Text="Prev. Hospitalized" FontSize="11" TextColor="#991B1B"/>
-                        </Border>
-                        <Border BackgroundColor="#F1F5F9" Padding="8,4" Margin="0,2,6,2"
+							<Border.StrokeShape>
+								<RoundRectangle CornerRadius="20"/>
+							</Border.StrokeShape>
+							<Label Text="Prev. Hospitalized" FontSize="11" TextColor="#991B1B"/>
+						</Border>
+						<Border BackgroundColor="#F1F5F9" Padding="8,4" Margin="0,2,6,2"
                                 IsVisible="{Binding UsesTobacco}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="20"/>
-                            </Border.StrokeShape>
-                            <Label Text="Uses Tobacco" FontSize="11" TextColor="#475569"/>
-                        </Border>
-                        <Border BackgroundColor="#F1F5F9" Padding="8,4" Margin="0,2,6,2"
+							<Border.StrokeShape>
+								<RoundRectangle CornerRadius="20"/>
+							</Border.StrokeShape>
+							<Label Text="Uses Tobacco" FontSize="11" TextColor="#475569"/>
+						</Border>
+						<Border BackgroundColor="#F1F5F9" Padding="8,4" Margin="0,2,6,2"
                                 IsVisible="{Binding UsesAlcohol}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="20"/>
-                            </Border.StrokeShape>
-                            <Label Text="Uses Alcohol" FontSize="11" TextColor="#475569"/>
-                        </Border>
-                    </FlexLayout>
+							<Border.StrokeShape>
+								<RoundRectangle CornerRadius="20"/>
+							</Border.StrokeShape>
+							<Label Text="Uses Alcohol" FontSize="11" TextColor="#475569"/>
+						</Border>
+						<Border BackgroundColor="#F1F5F9" Padding="8,4" Margin="0,2,6,2"
+                                IsVisible="{Binding TakingMedications}">
+							<Border.StrokeShape>
+								<RoundRectangle CornerRadius="20"/>
+							</Border.StrokeShape>
+							<Label Text="On Medications" FontSize="11" TextColor="#475569"/>
+						</Border>
+					</FlexLayout>
 
-                    <Label Text="Medications" Style="{StaticResource FieldKey}"
-                           IsVisible="{Binding TakingMedications}"/>
-                    <Label Text="{Binding MedicationDetails}" Style="{StaticResource FieldVal}"
-                           IsVisible="{Binding TakingMedications}"/>
+					<!-- Medication details (only if taking meds) -->
+					<VerticalStackLayout IsVisible="{Binding TakingMedications}" Spacing="0" Margin="0,8,0,0">
+						<Label Text="Medications" FontSize="12" TextColor="#6B7280"/>
+						<Label Text="{Binding MedicationDetails}" FontSize="13" TextColor="Black" Margin="0,2,0,0"/>
+					</VerticalStackLayout>
 
-                    <Label Text="Hospitalization Details" Style="{StaticResource FieldKey}"
-                           IsVisible="{Binding HasBeenHospitalized}"/>
-                    <Label Text="{Binding HospitalizationDetails}" Style="{StaticResource FieldVal}"
-                           IsVisible="{Binding HasBeenHospitalized}"/>
+					<!-- Hospitalization details -->
+					<VerticalStackLayout IsVisible="{Binding HasBeenHospitalized}" Spacing="0" Margin="0,8,0,0">
+						<Label Text="Hospitalization Details" FontSize="12" TextColor="#6B7280"/>
+						<Label Text="{Binding HospitalizationDetails}" FontSize="13" TextColor="Black" Margin="0,2,0,0"/>
+					</VerticalStackLayout>
+				</VerticalStackLayout>
+			</Border>
 
-                    <Grid ColumnDefinitions="*,*">
-                        <VerticalStackLayout Grid.Column="0">
-                            <Label Text="Bleeding Time" Style="{StaticResource FieldKey}"/>
-                            <Label Text="{Binding BleedingTime}" Style="{StaticResource FieldVal}"/>
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1">
-                            <Label Text="Last Dental Visit" Style="{StaticResource FieldKey}"/>
-                            <Label Text="{Binding LastDentalVisit}" Style="{StaticResource FieldVal}"/>
-                        </VerticalStackLayout>
-                    </Grid>
-                    <Label Text="Previous Dentist" Style="{StaticResource FieldKey}"/>
-                    <Label Text="{Binding PreviousDentist}" Style="{StaticResource FieldVal}"/>
-                </VerticalStackLayout>
-            </Border>
+			<!-- ── F. ALLERGIES ── -->
+			<Border Style="{StaticResource Card}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.Shadow>
+					<Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
+				</Border.Shadow>
+				<VerticalStackLayout Spacing="4">
+					<Label Text="Allergies" Style="{StaticResource SectionTitle}"/>
+					<!-- AllergyText is a computed string from VM e.g. "Latex, Aspirin" or "None reported" -->
+					<Label Text="{Binding AllergyText}" FontSize="13" TextColor="Black"/>
+				</VerticalStackLayout>
+			</Border>
 
-            <!-- ── F. Allergies ── -->
-            <Border Style="{StaticResource Card}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="14"/>
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
-                </Border.Shadow>
-                <VerticalStackLayout>
-                    <Label Text="⚠️  Allergies" Style="{StaticResource SectionTitle}"/>
-                    <Label Text="{Binding AllergyText}" Style="{StaticResource FieldVal}"/>
-                </VerticalStackLayout>
-            </Border>
+			<!-- ── G. MEDICAL CONDITIONS ── -->
+			<Border Style="{StaticResource Card}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.Shadow>
+					<Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
+				</Border.Shadow>
+				<VerticalStackLayout Spacing="4">
+					<Label Text="Medical Conditions" Style="{StaticResource SectionTitle}"/>
+					<!-- ConditionsText is a computed string from VM e.g. "Diabetes, Hypertension" or "None reported" -->
+					<Label Text="{Binding ConditionsText}" FontSize="13" TextColor="Black"/>
+				</VerticalStackLayout>
+			</Border>
 
-            <!-- ── G. Medical Conditions ── -->
-            <Border Style="{StaticResource Card}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="14"/>
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#18000000" Offset="0,2" Radius="8"/>
-                </Border.Shadow>
-                <VerticalStackLayout>
-                    <Label Text="🏷️  Medical Conditions" Style="{StaticResource SectionTitle}"/>
-                    <Label Text="{Binding ConditionsText}" Style="{StaticResource FieldVal}"/>
-                </VerticalStackLayout>
-            </Border>
-
-        </VerticalStackLayout>
-    </ScrollView>
+		</VerticalStackLayout>
+	</ScrollView>
 </ContentPage>

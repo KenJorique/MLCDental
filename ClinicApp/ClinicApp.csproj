@@ -92,9 +92,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiXaml Update="Platforms\Android\Resources\values\styles.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

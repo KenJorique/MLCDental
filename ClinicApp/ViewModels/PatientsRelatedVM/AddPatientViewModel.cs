@@ -1,5 +1,4 @@
-﻿
-using ClinicApp.Models;
+﻿using ClinicApp.Models;
 using ClinicApp.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -80,12 +79,35 @@ public partial class AddPatientViewModel : ObservableObject
     public List<string> BloodTypeOptions { get; } = new() { "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown" };
     public List<string> RelationshipOptions { get; } = new() { "Parent", "Spouse", "Sibling", "Child", "Grandparent", "Guardian", "Other" };
 
+    // ── Computed: is the patient a minor (under 18)? ──────────────
+    // Recalculated whenever DateOfBirth changes
+    public bool IsMinor
+    {
+        get
+        {
+            var today = DateTime.Today;
+            var age = today.Year - DateOfBirth.Year;
+            if (DateOfBirth.Date > today.AddYears(-age)) age--;
+            return age < 18;
+        }
+    }
+
+    // Notify IsMinor whenever DateOfBirth changes
+    partial void OnDateOfBirthChanged(DateTime value) =>
+        OnPropertyChanged(nameof(IsMinor));
+
+    // Called by AddPatientPage.OnAppearing() — conditions always load for new patients.
+    // OnPatientIdChanged never fires for value=0 because 0 is the field default.
+    public async Task InitializeAsync()
+    {
+        if (PatientId <= 0)
+            await LoadConditionListAsync();
+    }
+
     partial void OnPatientIdChanged(int value)
     {
         if (value > 0)
             MainThread.BeginInvokeOnMainThread(async () => await LoadForEditAsync(value));
-        else
-            MainThread.BeginInvokeOnMainThread(async () => await LoadConditionListAsync());
     }
 
     private async Task LoadConditionListAsync()
@@ -178,9 +200,31 @@ public partial class AddPatientViewModel : ObservableObject
     [RelayCommand]
     async Task SavePatient()
     {
+        // ── Validate required fields ──────────────────────────────
+        var errors = new List<string>();
+
         if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
+            errors.Add("• First and last name are required.");
+        if (string.IsNullOrWhiteSpace(SelectedGender))
+            errors.Add("• Gender is required.");
+        if (string.IsNullOrWhiteSpace(Address))
+            errors.Add("• Address is required.");
+        if (string.IsNullOrWhiteSpace(MobileNo))
+            errors.Add("• Mobile number is required.");
+        if (string.IsNullOrWhiteSpace(Email))
+            errors.Add("• Email address is required.");
+        if (IsMinor)
         {
-            await Shell.Current.DisplayAlert("Required", "First and last name are required.", "OK");
+            if (string.IsNullOrWhiteSpace(GuardianName))
+                errors.Add("• Guardian name is required for patients under 18.");
+            if (string.IsNullOrWhiteSpace(GuardianMobileNo))
+                errors.Add("• Guardian mobile number is required for patients under 18.");
+        }
+
+        if (errors.Count > 0)
+        {
+            await Shell.Current.DisplayAlert("Required Fields Missing",
+                string.Join("\n", errors), "OK");
             return;
         }
 
@@ -189,13 +233,9 @@ public partial class AddPatientViewModel : ObservableObject
         {
             Patient p;
             if (PatientId > 0)
-            {
                 p = await _db.GetPatientById(PatientId) ?? new Patient();
-            }
             else
-            {
                 p = new Patient { DateRegistered = DateTime.Now.ToString("yyyy-MM-dd") };
-            }
 
             p.FirstName = FirstName.Trim();
             p.LastName = LastName.Trim();
@@ -224,15 +264,10 @@ public partial class AddPatientViewModel : ObservableObject
             }
             else
             {
-                // Simply await the void task execution
                 await _db.AddPatient(p);
-
-                // Fallback: Use the updated property from the object reference 
-                // (most SQLite/EF contexts automatically populate the ID on the model)
                 pid = p.PatientID;
             }
 
-            // Guardian
             if (!string.IsNullOrWhiteSpace(GuardianName))
                 await _db.SaveGuardian(new Guardian
                 {
@@ -243,7 +278,6 @@ public partial class AddPatientViewModel : ObservableObject
                     MobileNo = GuardianMobileNo.Trim(),
                 });
 
-            // Medical History
             await _db.SaveMedicalHistory(new MedicalHistory
             {
                 PatientID = pid,
@@ -264,7 +298,6 @@ public partial class AddPatientViewModel : ObservableObject
                 LastDentalVisit = LastDentalVisit.Trim(),
             });
 
-            // Allergies
             await _db.SaveAllergy(new Allergy
             {
                 PatientID = pid,
@@ -276,7 +309,6 @@ public partial class AddPatientViewModel : ObservableObject
                 OtherAllergy = OtherAllergy.Trim(),
             });
 
-            // Conditions
             var selectedIds = Conditions.Where(c => c.IsSelected).Select(c => c.ConditionID).ToList();
             await _db.SavePatientConditions(pid, selectedIds);
 
