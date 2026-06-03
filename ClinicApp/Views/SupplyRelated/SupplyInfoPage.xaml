@@ -42,24 +42,28 @@
 						<Label Text="Item Details" FontAttributes="Bold" FontSize="15" TextColor="Black"/>
 						<BoxView HeightRequest="1" Color="LightGray"/>
 						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
-							<Label Grid.Row="0" Grid.Column="0" Text="Size / Variant"
+
+							<Label Grid.Row="0" Grid.Column="0" Text="Unit"
                                    TextColor="Gray" FontSize="13"/>
 							<Label Grid.Row="0" Grid.Column="1"
-                                   Text="{Binding Supply.SizeVariant}"
+                                   Text="{Binding UnitDisplay}"
                                    FontAttributes="Bold" FontSize="13" TextColor="Black"
                                    HorizontalTextAlignment="End"/>
+
 							<Label Grid.Row="1" Grid.Column="0" Text="Expiration"
                                    TextColor="Gray" FontSize="13"/>
 							<Label Grid.Row="1" Grid.Column="1"
                                    Text="{Binding ExpirationDisplay}"
                                    FontAttributes="Bold" FontSize="13" TextColor="Black"
                                    HorizontalTextAlignment="End"/>
+
 							<Label Grid.Row="2" Grid.Column="0" Text="Minimum Stock"
                                    TextColor="Gray" FontSize="13"/>
 							<Label Grid.Row="2" Grid.Column="1"
                                    Text="{Binding Supply.MinimumStockPieces, StringFormat='{0} pcs'}"
                                    FontAttributes="Bold" FontSize="13" TextColor="Black"
                                    HorizontalTextAlignment="End"/>
+
 						</Grid>
 					</VerticalStackLayout>
 				</Frame>
