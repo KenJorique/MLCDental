@@ -68,6 +68,10 @@ public class DatabaseService
             try { await _database.CreateTableAsync<SupplyItem>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] SupplyItem table: {ex.Message}"); }
 
+            // Migrate SupplyItem: add Unit and PiecesPerUnit if they don't exist yet
+            try { await _database.ExecuteAsync("ALTER TABLE SupplyItem ADD COLUMN Unit TEXT DEFAULT 'Per Piece'"); } catch { }
+            try { await _database.ExecuteAsync("ALTER TABLE SupplyItem ADD COLUMN PiecesPerUnit INTEGER DEFAULT 1"); } catch { }
+
             try { await _database.CreateTableAsync<Guardian>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Guardian table: {ex.Message}"); }
 
@@ -550,11 +554,11 @@ public class DatabaseService
             SupplyItemId = supplyItemId,
             ChangeInPieces = changeInPieces,
             ChangeType = changeType,
-            Note = note,    
+            Note = note,
             PatientId = patientId,
             PatientName = patientName,
             StockAfterChange = item.QuantityInPieces,
-            
+
             Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
         };
         await _database!.InsertAsync(log);
