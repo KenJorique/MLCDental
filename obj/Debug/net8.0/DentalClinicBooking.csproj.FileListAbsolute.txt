@@ -1,0 +1,8 @@
+C:\Users\Kenny\source\repos\KenJorique\MLCDental\obj\Debug\net8.0\DentalClinicBooking.csproj.AssemblyReference.cache
+C:\Users\Kenny\source\repos\KenJorique\MLCDental\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Users\Kenny\source\repos\KenJorique\MLCDental\obj\Debug\net8.0\DentalClinicBooking.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Kenny\source\repos\KenJorique\MLCDental\obj\Debug\net8.0\DentalClinicBooking.AssemblyInfoInputs.cache
+C:\Users\Kenny\source\repos\KenJorique\MLCDental\obj\Debug\net8.0\DentalClinicBooking.AssemblyInfo.cs
+C:\Users\Kenny\source\repos\KenJorique\MLCDental\obj\Debug\net8.0\DentalClinicBooking.csproj.CoreCompileInputs.cache
+C:\Users\Kenny\source\repos\KenJorique\MLCDental\obj\Debug\net8.0\DentalClinicBooking.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\Kenny\source\repos\KenJorique\MLCDental\obj\Debug\net8.0\DentalClinicBooking.sourcelink.json

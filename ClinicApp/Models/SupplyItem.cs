@@ -15,7 +15,7 @@ public class SupplyItem
     /// Optional: size or variant label (e.g. "Small", "Large", "250mg")
     public string SizeVariant { get; set; } = string.Empty;
 
-    /// <summary>Whether the item has an expiration date to track.
+    /// <summary>Whether the item has an expiration date to track.</summary>
     public bool HasExpiration { get; set; } = false;
 
     /// <summary>ISO date string for expiration. Empty if not applicable.</summary>

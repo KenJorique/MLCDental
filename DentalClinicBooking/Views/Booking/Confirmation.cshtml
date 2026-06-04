@@ -1,0 +1,62 @@
+﻿@{
+    ViewData["Title"] = "Booking Confirmed";
+    var name = TempData["PatientName"]?.ToString() ?? "Patient";
+    var date = TempData["AppointmentDate"]?.ToString() ?? "";
+    var service = TempData["Service"]?.ToString() ?? "";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 text-center">
+
+            <div class="card border-0 shadow-sm p-5">
+                <div class="mb-4">
+                    <div style="width: 80px; height: 80px; background: #e8f5e9; border-radius: 50%;
+                                display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                        <i class="bi bi-check-lg text-success" style="font-size: 2.5rem;"></i>
+                    </div>
+                </div>
+
+                <h2 class="fw-bold">Booking Received!</h2>
+                <p class="text-muted mt-2">
+                    Thank you, <strong>@name</strong>. Your appointment request has been submitted successfully.
+                </p>
+
+                @if (!string.IsNullOrEmpty(date))
+                {
+                    <div class="card bg-light border-0 p-3 my-4 text-start">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-calendar-event text-primary me-2"></i>
+                            <span class="fw-semibold">Appointment Date</span>
+                        </div>
+                        <p class="mb-0 ms-4">@date</p>
+
+                        <hr class="my-3" />
+
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-clipboard2-pulse text-primary me-2"></i>
+                            <span class="fw-semibold">Service</span>
+                        </div>
+                        <p class="mb-0 ms-4">@service</p>
+                    </div>
+                }
+
+                <div class="alert alert-info text-start small">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Our clinic staff will contact you to <strong>confirm your schedule</strong>.
+                    Please keep your phone available.
+                </div>
+
+                <div class="d-grid gap-2 mt-3">
+                    <a href="/Booking" class="btn btn-clinic">
+                        <i class="bi bi-calendar-plus me-2"></i>Book Another Appointment
+                    </a>
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="bi bi-house me-2"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

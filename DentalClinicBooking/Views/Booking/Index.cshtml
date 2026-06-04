@@ -1,0 +1,204 @@
+﻿@model DentalClinicBooking.ViewModels.BookingViewModel
+@{
+    ViewData["Title"] = "Book an Appointment";
+    var tomorrow = DateTime.Now.AddDays(1).ToString("yyyy-MM-dd");
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+
+            <div class="text-center mb-4">
+                <i class="bi bi-calendar-plus text-primary" style="font-size: 2.5rem;"></i>
+                <h2 class="fw-bold mt-2">Book an Appointment</h2>
+                <p class="text-muted">Fill in your details and we'll get back to you to confirm.</p>
+            </div>
+
+            <div class="card border-0 shadow-sm p-4">
+                <form asp-action="Index" method="post">
+                    @Html.AntiForgeryToken()
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <ul class="text-danger small">
+                            @foreach (var error in ViewData.ModelState.Values
+                                                    .SelectMany(v => v.Errors))
+                            {
+                                <li>@error.ErrorMessage</li>
+                            }
+                        </ul>
+                    }
+
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3"
+                        style="font-size: 0.75rem; letter-spacing: 1px;">
+                        Patient Information
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label fw-semibold"></label>
+                        <input asp-for="FullName" class="form-control"
+                               placeholder="e.g. Juan dela Cruz" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Phone" class="form-label fw-semibold"></label>
+                            <input asp-for="Phone" class="form-control"
+                                   placeholder="e.g. 09171234567" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Email" class="form-label fw-semibold"></label>
+                            <input asp-for="Email" class="form-control" placeholder="optional" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="DateOfBirth" class="form-label fw-semibold"></label>
+                        <input asp-for="DateOfBirth" class="form-control" type="date" />
+                        <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3"
+                        style="font-size: 0.75rem; letter-spacing: 1px;">
+                        Appointment Details
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="Service" class="form-label fw-semibold"></label>
+                        <select asp-for="Service" class="form-select">
+                            <option value="">— Select a service —</option>
+                            @foreach (var s in Model.AvailableServices)
+                            {
+                                <option value="@s">@s</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Service" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Appointment Date (date only) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Preferred Appointment Date</label>
+                        <input id="apptDate" name="apptDate" type="date"
+                               class="form-control"
+                               min="@tomorrow" />
+                        <small class="text-muted">Clinic is open Monday – Saturday.</small>
+                    </div>
+
+                    <!-- Appointment Time (restricted to 10:30 AM – 3:30 PM) -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Preferred Appointment Time</label>
+                        <select id="apptTime" name="apptTime" class="form-select">
+                            <option value="">— Select a time slot —</option>
+                            <option value="10:30">10:30 AM</option>
+                            <option value="11:00">11:00 AM</option>
+                            <option value="11:30">11:30 AM</option>
+                            <option value="12:00">12:00 PM</option>
+                            <option value="12:30">12:30 PM</option>
+                            <option value="13:00">1:00 PM</option>
+                            <option value="13:30">1:30 PM</option>
+                            <option value="14:00">2:00 PM</option>
+                            <option value="14:30">2:30 PM</option>
+                            <option value="15:00">3:00 PM</option>
+                            <option value="15:30">3:30 PM</option>
+                        </select>
+                        <small class="text-muted">Clinic hours: 10:30 AM – 4:00 PM</small>
+                        <div id="timeError" class="text-danger small d-none">
+                            Please select a time slot.
+                        </div>
+                    </div>
+
+                    <!-- Hidden field that combines date + time for model binding -->
+                    <input type="hidden" asp-for="AppointmentDate" id="AppointmentDate" />
+
+                    <div class="mb-4">
+                        <label asp-for="Notes" class="form-label fw-semibold"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="3"
+                                  placeholder="Any concerns or special requests..."></textarea>
+                        <span asp-validation-for="Notes" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-clinic btn-lg" id="submitBtn">
+                            <i class="bi bi-send me-2"></i>Submit Booking
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Clinic hours info card -->
+            <div class="card border-0 bg-light mt-3 p-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-clock text-primary"></i>
+                    <div>
+                        <div class="fw-semibold small">Clinic Hours</div>
+                        <div class="text-muted small">Monday – Saturday: 10:30 AM – 4:00 PM</div>
+                        <div class="text-muted small">Sunday: Closed</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScripts")
+
+    <script>
+        const dateInput = document.getElementById('apptDate');
+        const timeInput = document.getElementById('apptTime');
+        const hiddenDt  = document.getElementById('AppointmentDate');
+        const timeError = document.getElementById('timeError');
+        const form      = document.querySelector('form');
+
+        // Combine date + time into the hidden AppointmentDate field on any change
+        function combineDateTime() {
+            const d = dateInput.value;
+            const t = timeInput.value;
+            if (d && t) {
+                hiddenDt.value = `${d}T${t}:00`;
+                timeError.classList.add('d-none');
+            } else {
+                hiddenDt.value = '';
+            }
+        }
+
+        dateInput.addEventListener('change', combineDateTime);
+        timeInput.addEventListener('change', combineDateTime);
+
+        // Disable Sundays in the date picker
+        dateInput.addEventListener('input', function () {
+            const selected = new Date(this.value);
+            if (selected.getUTCDay() === 0) { // 0 = Sunday
+                this.value = '';
+                alert('The clinic is closed on Sundays. Please select another day.');
+            }
+            combineDateTime();
+        });
+
+        // Validate before submit
+        form.addEventListener('submit', function (e) {
+            if (!timeInput.value) {
+                e.preventDefault();
+                timeError.classList.remove('d-none');
+                timeInput.focus();
+            }
+            if (!dateInput.value) {
+                e.preventDefault();
+                dateInput.focus();
+            }
+        });
+
+        // Set default date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        // Skip Sunday
+        if (tomorrow.getDay() === 0) tomorrow.setDate(tomorrow.getDate() + 1);
+        dateInput.value = tomorrow.toISOString().split('T')[0];
+    </script>
+}

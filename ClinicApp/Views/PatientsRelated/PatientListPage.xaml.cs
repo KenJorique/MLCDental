@@ -4,18 +4,26 @@ namespace ClinicApp.Views.PatientsRelated;
 
 public partial class PatientListPage : ContentPage
 {
-    PatientListViewModel _viewModel;
+    readonly PatientListViewModel _viewModel;
 
     public PatientListPage(PatientListViewModel vm)
     {
         InitializeComponent();
-        BindingContext = _viewModel = vm;
+        _viewModel = vm;
+        BindingContext = vm;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
-        // Refresh the list every time the user navigates back to this page
-        _viewModel.LoadPatientsCommand.Execute(null);
+        try
+        {
+            await _viewModel.StartRealtimeAsync(); // safe — has _realtimeStarted guard
+            await _viewModel.LoadPatientsCommand.ExecuteAsync(null);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PatientListPage] {ex.Message}");
+        }
     }
 }

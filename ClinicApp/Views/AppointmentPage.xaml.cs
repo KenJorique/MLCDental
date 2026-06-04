@@ -1,9 +1,29 @@
-namespace ClinicApp.Views;
+using ClinicApp.ViewModels;
 
-public partial class AppointmentPage : ContentPage
+namespace ClinicApp.Views
 {
-    public AppointmentPage()
+    public partial class AppointmentPage : ContentPage
     {
-        InitializeComponent();
+        readonly AppointmentViewModel _vm;
+
+        public AppointmentPage(AppointmentViewModel vm)
+        {
+            InitializeComponent();
+            _vm = vm;
+            BindingContext = vm;
+        }
+
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+            try
+            {
+                await _vm.LoadAppointments();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AppointmentPage] {ex.Message}");
+            }
+        }
     }
 }
