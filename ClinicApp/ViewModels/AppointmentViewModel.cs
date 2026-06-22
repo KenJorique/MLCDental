@@ -66,6 +66,7 @@ namespace ClinicApp.ViewModels
         // Core fetch logic shared by both
         private async Task FetchAndPopulate()
         {
+
             try
             {
                 var pendingTask = _supabaseData.GetBookingsByStatusAsync("pending");
@@ -98,6 +99,7 @@ namespace ClinicApp.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"[FetchAndPopulate] {ex.Message}");
             }
+
         }
 
         [RelayCommand]
@@ -115,7 +117,7 @@ namespace ClinicApp.ViewModels
             IsLoading = true;
             try
             {
-                // 1. Save to local SQLite — this is what PatientList reads from
+                // 1. Save patient to local SQLite
                 var parts = (booking.FullName ?? "").Trim().Split(' ', 2);
                 var patient = new Patient
                 {
@@ -124,44 +126,120 @@ namespace ClinicApp.ViewModels
                     MobileNo = booking.Phone ?? "",
                     Email = booking.Email ?? "",
                     DateOfBirth = booking.DateOfBirth.HasValue
-                                                ? booking.DateOfBirth.Value.ToString("yyyy-MM-dd")
-                                                : "",
+                                                ? booking.DateOfBirth.Value.ToString("yyyy-MM-dd") : "",
                     ReasonForConsultation = booking.Service ?? "",
                     ReferredBy = "Online Booking",
                     DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
                 };
                 await _db.AddPatient(patient);
-                System.Diagnostics.Debug.WriteLine($"[Approve] SQLite PatientID={patient.PatientID}");
 
-                // 2. Save to Supabase patients table for cross-device sync
+                // 2. Save patient to Supabase patients table
                 var supPatient = new SupabasePatient
                 {
                     FirstName = patient.FirstName,
                     LastName = patient.LastName,
                     Phone = patient.MobileNo,
                     Email = patient.Email,
-                    DateOfBirth = booking.DateOfBirth,
                     ReasonForConsultation = patient.ReasonForConsultation,
                     ReferredBy = "Online Booking",
-                    DateRegistered = DateTime.Now
+                    DateRegistered = DateTime.UtcNow
                 };
                 await _supabaseData.AddPatientAsync(supPatient);
 
-                // 3. Update booking status to approved
+                // 3. Create appointment entry in local SQLite
+                var localEntry = new AppointmentEntry
+                {
+                    SupabaseBookingId = booking.Id,
+                    PatientName = booking.FullName ?? "",
+                    Phone = booking.Phone ?? "",
+                    Email = booking.Email ?? "",
+                    Service = booking.Service ?? "",
+                    Notes = booking.Notes ?? "",
+                    AppointmentDateTime = booking.AppointmentDate
+                                              .ToString("yyyy-MM-dd HH:mm:ss"),
+                    Status = "approved"
+                };
+                await _db.AddAppointmentEntry(localEntry);
+
+                // 4. Create appointment entry in Supabase — syncs to other devices
+                var supEntry = new SupabaseAppointmentEntry
+                {
+                    SupabaseBookingId = booking.Id,
+                    PatientName = booking.FullName ?? "",
+                    Phone = booking.Phone ?? "",
+                    Email = booking.Email ?? "",
+                    Service = booking.Service ?? "",
+                    Notes = booking.Notes ?? "",
+                    AppointmentDateTime = booking.AppointmentDate.ToUniversalTime(),
+                    Status = "approved"
+                };
+                await _supabaseData.AddAppointmentEntryAsync(supEntry);
+
+                // 5. Update booking status to approved
                 await _supabaseData.UpdateBookingStatusAsync(booking.Id, "approved");
 
                 await Shell.Current.DisplayAlert("Approved",
-                    $"{booking.FullName} has been added to the patient list.", "OK");
+                    $"{booking.FullName} added to patient list and schedule.", "OK");
 
-                // 4. Reload appointments
                 await FetchAndPopulate();
             }
+
+
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Approve] FAILED: {ex.Message}");
                 await Shell.Current.DisplayAlert("Error", $"Failed: {ex.Message}", "OK");
             }
             finally { IsLoading = false; }
+
+            // After all the existing approve logic, add at the end:
+
+            // Create Google Task for whoever approved (dentist or secretary)
+            if (GoogleTasksService.Instance.IsSignedIn)
+            {
+                var taskId = await GoogleTasksService.Instance
+                    .CreateAppointmentTaskAsync(
+                        booking.FullName ?? "",
+                        booking.Service ?? "",
+                        booking.AppointmentDate,
+                        booking.Phone ?? "",
+                        booking.Notes ?? "");
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Approve] Google Task created: {taskId}");
+            }
+
+            // At the end of Approve(), after FetchAndPopulate():
+
+            var accessToken = Preferences.Get("google_access_token", "");
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                var taskId = await _supabaseData.SyncToGoogleTasksAsync(
+                    accessToken,
+                    booking.FullName ?? "",
+                    booking.Service ?? "",
+                    booking.AppointmentDate,
+                    booking.Phone ?? "",
+                    booking.Notes ?? "");
+
+                if (!string.IsNullOrEmpty(taskId))
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] Google Task created: {taskId}");
+
+                    // Save taskId to AppointmentEntry for later complete/delete
+                    // Update local entry
+                    var entries = await _db.GetAppointmentsForWeek(
+                        booking.AppointmentDate.AddDays(-7));
+                    var entry = entries.FirstOrDefault(
+                        e => e.SupabaseBookingId == booking.Id);
+                    if (entry != null)
+                    {
+                        entry.GoogleTaskId = taskId;
+                        await _db.UpdateAppointmentEntry(entry);
+                    }
+                }
+            }
         }
 
         [RelayCommand]

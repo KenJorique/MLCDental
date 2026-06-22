@@ -17,9 +17,9 @@ namespace DentalClinicBooking.ViewModels
         [Display(Name = "Email Address")]
         public string? Email { get; set; }
 
-        [Required(ErrorMessage = "Date of birth is required")]
-        [Display(Name = "Date of Birth")]
-        [DataType(DataType.Date)]
+        //[Required(ErrorMessage = "Date of birth is required")]
+        //[Display(Name = "Date of Birth")]
+        //[DataType(DataType.Date)]
         public DateTime? DateOfBirth { get; set; }
 
         // In BookingViewModel.cs, update AppointmentDate property:
@@ -30,7 +30,7 @@ namespace DentalClinicBooking.ViewModels
 
         // Add these helper properties for JS validation:
         public string MinTime => "10:30";
-        public string MaxTime => "15:30"; // 3:30 PM is last slot (30 min before 4PM closing)
+        public string MaxTime => "15:00"; // 3:30 PM is last slot (30 min before 4PM closing)
 
         [Required(ErrorMessage = "Please select a service")]
         [Display(Name = "Service")]

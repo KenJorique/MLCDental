@@ -47,6 +47,16 @@ namespace ClinicApp
                                             sp.GetRequiredService<SupabaseDataService>()
                                         ));
             builder.Services.AddSingleton<AppointmentPage>();
+            builder.Services.AddSingleton<AppointmentScheduleViewModel>();
+            builder.Services.AddSingleton<AppointmentSchedulePage>();
+
+            builder.Services.AddSingleton<AppointmentScheduleViewModel>(sp =>
+                                        new AppointmentScheduleViewModel(
+                                            sp.GetRequiredService<DatabaseService>(),
+                                            sp.GetRequiredService<SupabaseDataService>()
+                                        ));
+            builder.Services.AddSingleton<AppointmentSchedulePage>();
+
 
             // ── Patients ──────────────────────────────────────────
             builder.Services.AddSingleton<PatientListPage>();

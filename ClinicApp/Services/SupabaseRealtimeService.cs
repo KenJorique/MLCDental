@@ -173,5 +173,43 @@ namespace ClinicApp.Services
                 System.Diagnostics.Debug.WriteLine($"[Sync] SyncMissedPatients error: {ex.Message}");
             }
         }
+
+        public event Action? OnAppointmentChanged;
+
+        public async Task SubscribeToAppointmentEntriesAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-appointments");
+                channel.Register(new PostgresChangesOptions(
+                    "public", "appointment_entries"));
+
+                channel.AddPostgresChangeHandler(ListenType.Inserts, (sender, change) =>
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[Realtime] New appointment entry from another device");
+                    MainThread.BeginInvokeOnMainThread(() =>
+                        OnAppointmentChanged?.Invoke());
+                });
+
+                channel.AddPostgresChangeHandler(ListenType.Updates, (sender, change) =>
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[Realtime] Appointment entry updated from another device");
+                    MainThread.BeginInvokeOnMainThread(() =>
+                        OnAppointmentChanged?.Invoke());
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine(
+                    "[Realtime] Subscribed to appointment_entries.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Realtime] SubscribeAppointments error: {ex.Message}");
+            }
+        }
     }
 }

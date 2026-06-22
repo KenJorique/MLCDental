@@ -82,3 +82,31 @@ public class StringToBoolConverter : IValueConverter
                               object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+public class BoolToColorConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType,
+                          object? parameter, CultureInfo culture)
+    {
+        var parts = parameter?.ToString()?.Split('|');
+        if (parts?.Length != 2) return Colors.Transparent;
+        var colorStr = (value is true) ? parts[0] : parts[1];
+        return Color.FromArgb(colorStr);
+    }
+    public object ConvertBack(object? value, Type targetType,
+                              object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+public class IntToBoolConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType,
+                          object? parameter, CultureInfo culture)
+    {
+        bool result = value is int i && i > 0;
+        return parameter?.ToString() == "invert" ? !result : result;
+    }
+    public object ConvertBack(object? value, Type targetType,
+                              object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}

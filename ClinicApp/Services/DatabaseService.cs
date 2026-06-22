@@ -33,6 +33,14 @@ public class DatabaseService
                 dbPath,
                 SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
 
+            // Clear synced booking cache so missed bookings get re-synced
+            try
+            {
+                await _database!.ExecuteAsync("DELETE FROM SyncedBooking");
+                System.Diagnostics.Debug.WriteLine("[DB] Cleared SyncedBooking cache");
+            }
+            catch { }
+
             // Run each pragma and table creation individually with its own try/catch
             // so one failure can never skip the remaining tables
             try { await _database.ExecuteAsync("PRAGMA journal_mode=WAL;"); }
@@ -98,6 +106,13 @@ public class DatabaseService
             try { await _database.CreateTableAsync<Appointment>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] PendingAppointment table: {ex.Message}"); }
 
+            try { await _database!.CreateTableAsync<AppointmentEntry>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] AppointmentEntry: {ex.Message}"); }
+
+            try
+            { await _database!.ExecuteAsync(
+                    "ALTER TABLE AppointmentEntry ADD COLUMN GoogleTaskId TEXT DEFAULT ''"); }
+            catch { /* already exists */ }
 
             System.Diagnostics.Debug.WriteLine("[DB] Init complete.");
 
@@ -125,7 +140,13 @@ public class DatabaseService
         }
     }
 
-
+    //for google tasks
+    public async System.Threading.Tasks.Task UpdateAppointmentEntry(
+    AppointmentEntry entry)
+    {
+        await Init();
+        await _database!.UpdateAsync(entry);
+    }
 
     // =========================
     // PATIENT CRUD
@@ -878,5 +899,61 @@ public class DatabaseService
                     $"[Backfill] Linked PatientID={local.PatientID} → SupabaseId={sp.Id}");
             }
         }
+    }
+
+    // ── APPOINTMENT ENTRIES ────────────────────────────────────────
+
+    public async Task<List<AppointmentEntry>> GetAppointmentsForDate(DateTime date)
+    {
+        await Init();
+        var dateStr = date.ToString("yyyy-MM-dd");
+        var all = await _database!.Table<AppointmentEntry>().ToListAsync();
+        return all.Where(a => a.AppointmentDateTime.StartsWith(dateStr))
+                  .OrderBy(a => a.AppointmentDateTime)
+                  .ToList();
+    }
+
+    public async Task<List<AppointmentEntry>> GetAppointmentsForWeek(DateTime weekStart)
+    {
+        await Init();
+        var weekEnd = weekStart.AddDays(7);
+        var all = await _database!.Table<AppointmentEntry>().ToListAsync();
+        return all.Where(a =>
+        {
+            if (!DateTime.TryParse(a.AppointmentDateTime, out var dt)) return false;
+            return dt >= weekStart && dt < weekEnd;
+        })
+        .OrderBy(a => a.AppointmentDateTime)
+        .ToList();
+    }
+
+    public async Task AddAppointmentEntry(AppointmentEntry entry)
+    {
+        await Init();
+        // Prevent duplicates by SupabaseBookingId
+        if (!string.IsNullOrEmpty(entry.SupabaseBookingId))
+        {
+            var existing = await _database!.Table<AppointmentEntry>()
+                .Where(a => a.SupabaseBookingId == entry.SupabaseBookingId)
+                .FirstOrDefaultAsync();
+            if (existing != null) return;
+        }
+        await _database!.InsertAsync(entry);
+    }
+
+    public async Task UpdateAppointmentStatus(int id, string status)
+    {
+        await Init();
+        var entry = await _database!.Table<AppointmentEntry>()
+            .Where(a => a.Id == id).FirstOrDefaultAsync();
+        if (entry == null) return;
+        entry.Status = status;
+        await _database!.UpdateAsync(entry);
+    }
+
+    public async Task DeleteAppointmentEntry(AppointmentEntry entry)
+    {
+        await Init();
+        await _database!.DeleteAsync(entry);
     }
 }

@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "mlcdental",
+  "private_key_id": "6cf873fa2496eea8967feb3d6e24b5f87073df22",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDXNcHsyXhoEmZM\nTUmkpMnkYCY29047SnveykkEs10+vCxJxf8ftA+5HZVMAD0HS2bM79Ugm6Ne2FNG\ntKLesofO3V2ctuYn5b2VZXlz+O3SJL4FxNVfi51uIjPo+092QSOahp5DG/e4rrhX\nWZKTpx0Wt5LnNOeviU2ZFgVX6pTHtVMnKeRiJzyMYoybCP7LyPZI5YUsAOZuQ7Zn\niXqcdRqQur5bMMSl2oAuMcqcJyRk7E/HxhUst+6cDkQ8wtiAXdvIFKd8lwV0kXhj\nUhb1i6uG11A7ozaBd3oMidl9Ejje9HNGov7HahtTU02E+O42A8/SLZ0cePBAsvjN\nfrP+XMfjAgMBAAECggEAG1IT7jCozE7NqtEYUMJUw7J1wijvcbUjzZA7kyZcEjXx\nn2Sh3eSjfFomP7w7WHzjg4/M1t4Qmt6hOnV9xFdrc0EEpyZMSJ4F99HRMyj+XrJT\nEfNqLRN8fGSeLMJpVOIHGDu6cAWRvgx8PXvoZj3jAk/IDU8DkfQUeaM4hsUydw8G\nbzQzs4MECE+H7m2nkycwYHt+F2/0Rhdq6fHjk5O2jQp+IMbqZjXOpiE/1cz5992u\nhnrUFK8JL0Zb/+tKIq37Q4pvmD0GLdzTwcYJ7X53jZVNEzs7Ud3tijXDsZT1UV8Y\nRzo/4VjwTkHx1j0Pkn9Hgd3Y22ipBFzUC/nbwfxkNQKBgQDwQ28Tbn6AFYT/okj9\ntfiTSIHYwPrEMLOoydoLfyPYChfxGn+/SJMEqTij9/lU70R30BQTrUs8NIjGXeu9\nr82VQ7rzYdXn6Y7fGbUhEoTQyRrkLJ8GAas+aAwkfcQ3zaKiM/SgGoEKM+np4VMk\nRcyJrA2/4hBnB2wULHgeU8/5nQKBgQDlTj7iIVM9pYf09vplIlg4I5Qk3Ri85gmA\naYgFt/Uv+rF+ik6X0eFd6RdY9XAKEhxOQyxTCufl9b+jZA9F/vnuO4RkfL9egwuy\npijj875AZechgzgxrPnGdNrmzuI4cXfBpbloYq2491d1LsQwrATktOK6VRh0ZFA1\nePivUqLPfwKBgDRBlnEVgTH+fDTVaSa1Y2E1TfiE0IXHSewWKvSBLJyaZWatKsfB\n0ygaXhVbo8ETYULl4Nf+wvRPQMhUOSfCiuZCGvFAgDO2mrpvbvPIgVafxteF1PiL\neGFUY/+z0u+ILC03O6du3E4JyIBz349uFvSClWL8mjCubpVcrqt58ywJAoGBANgI\nz9Xb78C0o1J3HZEKunKpknjolNXjJDCHPE+m8KkzVuYRB9qhMeJ4KDb3hYb3aROS\n1b+nFrPgw5v8OSeJAY8hI6pInUM901eMlBmvGh8x4oAAUID8ppYCofmyEA99V4Zp\nzDQ8Q89vuEX+uXfhmPqgMLu8UD3YBHlcb28+O4WhAoGAI00JozCbLbIIZ2EV+AaI\nLiic9PIiAVlPFcw0WB+Gh0UiduVpL6t/691aoB7xRRqIDhOBlQ/AEFk+Xml7Yo5w\n23KSpFe7CCd26P+eoDoPbcA8ti3j3tgROJWCGV09VCsV9Qu267Ap5ChJOycNV2RM\ntJtTx8+Aletujl9Bsy+AAGU=\n-----END PRIVATE KEY-----\n",
+  "client_email": "mlcdental-clinic@mlcdental.iam.gserviceaccount.com",
+  "client_id": "104940751025821811974",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/mlcdental-clinic%40mlcdental.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ClinicApp.Views.GoogleSignInPage"
+             Title="Connect Google Account"
+             BackgroundColor="White">
+
+    <VerticalStackLayout Padding="32" Spacing="24"
+                         VerticalOptions="Center">
+
+        <Image Source="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png"
+               HeightRequest="60" Aspect="AspectFit"/>
+
+        <Label Text="Connect your Google account"
+               FontSize="18" FontAttributes="Bold"
+               TextColor="#333" HorizontalOptions="Center"/>
+
+        <Label Text="When you approve appointments, they will automatically appear in your Google Tasks — accessible from any device."
+               FontSize="13" TextColor="#666"
+               HorizontalOptions="Center"
+               HorizontalTextAlignment="Center"
+               LineHeight="1.5"/>
+
+        <Frame BackgroundColor="#F8F9FA" BorderColor="#E0E0E0"
+               CornerRadius="12" Padding="16">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="✓  Appointments added to your Google Tasks"
+                       FontSize="12" TextColor="#444"/>
+                <Label Text="✓  Mark tasks complete when appointment done"
+                       FontSize="12" TextColor="#444"/>
+                <Label Text="✓  Each staff member sees their own tasks"
+                       FontSize="12" TextColor="#444"/>
+            </VerticalStackLayout>
+        </Frame>
+
+        <Button x:Name="SignInButton"
+                Text="Sign in with Google"
+                BackgroundColor="#4285F4"
+                TextColor="White"
+                CornerRadius="10"
+                HeightRequest="50"
+                FontSize="14"
+                FontAttributes="Bold"
+                Clicked="OnSignInClicked"/>
+
+        <Button Text="Skip for now"
+                BackgroundColor="Transparent"
+                TextColor="#888"
+                BorderColor="#E0E0E0"
+                BorderWidth="1"
+                CornerRadius="10"
+                HeightRequest="44"
+                FontSize="13"
+                Clicked="OnSkipClicked"/>
+
+        <Label x:Name="StatusLabel"
+               FontSize="12" TextColor="#888"
+               HorizontalOptions="Center"
+               IsVisible="False"/>
+
+    </VerticalStackLayout>
+
+</ContentPage>

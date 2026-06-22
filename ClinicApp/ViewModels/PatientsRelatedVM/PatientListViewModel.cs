@@ -106,6 +106,13 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 await _realtime.SubscribeToBookingsAsync();
                 await _realtime.SubscribeToPatientsAsync();
 
+                // Temporary debug — check what's actually in Supabase bookings
+                var allBookings = await _supabaseData.GetAllBookingsDebugAsync();
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Debug] Total bookings in Supabase: {allBookings.Count}");
+                foreach (var b in allBookings)
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Debug] Booking: {b.FullName} | Status={b.Status} | Date={b.AppointmentDate}");
                 // When another device adds/edits a patient → sync + reload
                 _realtime.OnPatientChanged += async () =>
                 {
@@ -125,6 +132,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             {
                 System.Diagnostics.Debug.WriteLine($"[StartRealtime] {ex.Message}");
             }
+
+
         }
 
         [RelayCommand]

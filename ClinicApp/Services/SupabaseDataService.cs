@@ -180,5 +180,230 @@ namespace ClinicApp.Services
                 return new List<SupabaseBooking>();
             }
         }
+
+        // ── Appointment Entries ───────────────────────────────────────
+
+        public async Task<SupabaseAppointmentEntry?> AddAppointmentEntryAsync(
+            SupabaseAppointmentEntry entry)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Insert(entry);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] AddAppointmentEntry: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<SupabaseAppointmentEntry>> GetAppointmentEntriesAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Order("appointment_datetime",
+                           Supabase.Postgrest.Constants.Ordering.Ascending)
+                    .Get();
+                return result.Models ?? new List<SupabaseAppointmentEntry>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetAppointmentEntries: {ex.Message}");
+                return new List<SupabaseAppointmentEntry>();
+            }
+        }
+
+        public async Task UpdateAppointmentEntryStatusAsync(string supabaseId, string status)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Where(a => a.Id == supabaseId)
+                    .Single();
+                if (result == null) return;
+                result.Status = status;
+                await _client!.From<SupabaseAppointmentEntry>().Update(result);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] UpdateAppointmentEntryStatus: {ex.Message}");
+            }
+        }
+
+        public async Task DeleteBookingAsync(string bookingId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBooking>()
+                    .Where(b => b.Id == bookingId)
+                    .Single();
+                if (result == null) return;
+                await _client!.From<SupabaseBooking>().Delete(result);
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] Booking {bookingId} deleted.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] DeleteBooking: {ex.Message}");
+            }
+        }
+
+        public async Task DeleteAppointmentEntryAsync(string supabaseId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Where(a => a.Id == supabaseId)
+                    .Single();
+                if (result == null) return;
+                await _client!.From<SupabaseAppointmentEntry>().Delete(result);
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] AppointmentEntry {supabaseId} deleted.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] DeleteAppointmentEntry: {ex.Message}");
+            }
+        }
+
+        // Temporary debug method — gets ALL bookings regardless of status
+        public async Task<List<SupabaseBooking>> GetAllBookingsDebugAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseBooking>().Get();
+                return result.Models ?? new List<SupabaseBooking>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetAllBookingsDebug: {ex.Message}");
+                return new List<SupabaseBooking>();
+            }
+        }
+
+        public async Task<List<SupabaseBooking>> GetBookingsForWeekAsync(
+    DateTime weekStart, DateTime weekEnd)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBooking>()
+                    .Get();
+
+                return result.Models
+                    .Where(b =>
+                    {
+                        var inRange = b.AppointmentDate >= weekStart
+                                   && b.AppointmentDate < weekEnd;
+                        var notDone = b.Status != "completed"
+                                   && b.Status != "rejected";
+                        return inRange && notDone;
+                    })
+                    .OrderBy(b => b.AppointmentDate)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetBookingsForWeek: {ex.Message}");
+                return new List<SupabaseBooking>();
+            }
+        }
+
+        public async Task<string?> SyncToGoogleTasksAsync(
+                string accessToken,
+                string patientName,
+                string service,
+                DateTime appointmentDateTime,
+                string phone,
+                string notes = "")
+        {
+            try
+            {
+                var payload = new
+                {
+                    accessToken,
+                    patientName,
+                    service,
+                    appointmentDateTime = appointmentDateTime
+                                              .ToUniversalTime()
+                                              .ToString("o"),
+                    phone,
+                    notes
+                };
+
+                var json = System.Text.Json.JsonSerializer.Serialize(payload);
+                var content = new StringContent(
+                    json, System.Text.Encoding.UTF8, "application/json");
+
+                using var http = new HttpClient();
+                http.DefaultRequestHeaders.Add(
+                    "Authorization", $"Bearer {_key}");
+
+                var response = await http.PostAsync(
+                    $"{_url}/functions/v1/sync-to-calendar", content);
+
+                var responseText = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine(
+                    $"[GoogleTasks] Sync result: {responseText}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var doc = System.Text.Json.JsonDocument.Parse(responseText);
+                    return doc.RootElement
+                              .TryGetProperty("taskId", out var id)
+                              ? id.GetString() : null;
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[GoogleTasks] SyncToTasks failed: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async System.Threading.Tasks.Task CompleteGoogleTaskAsync(
+    string accessToken, string taskId)
+        {
+            try
+            {
+                var payload = new { accessToken, taskId, action = "complete" };
+                var json = System.Text.Json.JsonSerializer.Serialize(payload);
+                using var http = new HttpClient();
+                http.DefaultRequestHeaders.Add("Authorization", $"Bearer {_key}");
+                await http.PostAsync(
+                    $"{_url}/functions/v1/sync-to-calendar",
+                    new StringContent(json,
+                        System.Text.Encoding.UTF8, "application/json"));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[CompleteTask] {ex.Message}");
+            }
+        }
     }
 }

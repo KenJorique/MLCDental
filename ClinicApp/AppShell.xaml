@@ -20,8 +20,8 @@
 
         <Tab Title="Appointment">
             <ShellContent
-                ContentTemplate="{DataTemplate views:AppointmentPage}"
-                Route="AppointmentPage" />
+        ContentTemplate="{DataTemplate views:AppointmentSchedulePage}"
+        Route="AppointmentSchedulePage" />
         </Tab>
 
         <Tab Title="Patient">
