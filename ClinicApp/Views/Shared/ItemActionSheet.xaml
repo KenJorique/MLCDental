@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<the49:BottomSheet
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:the49="https://schemas.the49.com/dotnet/2023/maui"
+    x:Class="ClinicApp.Views.Shared.ItemActionSheet"
+    HasHandle="False"
+    HasBackdrop="True"
+    CornerRadius="20"
+    IsCancelable="True"
+    BackgroundColor="White">
+
+	<the49:BottomSheet.Detents>
+		<the49:ContentDetent />
+	</the49:BottomSheet.Detents>
+
+	<VerticalStackLayout Spacing="0" Padding="0,12,0,0">
+
+		<!-- Drag handle -->
+		<BoxView WidthRequest="40" HeightRequest="4" CornerRadius="2"
+                 BackgroundColor="#CCCCCC"
+                 HorizontalOptions="Center" Margin="0,0,0,16"/>
+
+		<!-- Title -->
+		<Label x:Name="TitleLabel"
+               FontSize="18" FontAttributes="Bold"
+               TextColor="Black"
+               HorizontalTextAlignment="Center"
+               Margin="20,0,20,4"/>
+
+		<!-- Subtitle -->
+		<Label x:Name="SubtitleLabel"
+               FontSize="13" TextColor="Gray"
+               HorizontalTextAlignment="Center"
+               Margin="0,0,0,20"/>
+
+		<!-- Dynamic action rows -->
+		<VerticalStackLayout x:Name="ActionsContainer" Spacing="0"/>
+
+		<BoxView HeightRequest="16" BackgroundColor="Transparent"/>
+
+	</VerticalStackLayout>
+
+</the49:BottomSheet>

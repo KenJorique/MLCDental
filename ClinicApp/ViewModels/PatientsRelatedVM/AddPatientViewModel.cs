@@ -72,8 +72,11 @@ public partial class AddPatientViewModel : ObservableObject
     [ObservableProperty] bool hasLocalAnestheticAllergy;
     [ObservableProperty] string otherAllergy = string.Empty;
 
-    // ── Section G: Medical Conditions ─────────────────────────────
+    // ── Section G: Medical Conditions ─────────────────────────
     public ObservableCollection<ConditionCheckItem> Conditions { get; } = new();
+
+    // Free-text "Other" condition — shown as Entry below the checklist
+    [ObservableProperty] string otherCondition = string.Empty;
 
     public List<string> GenderOptions { get; } = new() { "Male", "Female", "Other" };
     public List<string> BloodTypeOptions { get; } = new() { "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown" };
@@ -115,7 +118,9 @@ public partial class AddPatientViewModel : ObservableObject
         await _db.EnsureDefaultConditions();
         var all = await _db.GetAllConditions();
         Conditions.Clear();
-        foreach (var c in all)
+        // Sort alphabetically, excluding "Other" (shown as text entry instead)
+        foreach (var c in all.Where(c => c.ConditionName != "Other")
+                             .OrderBy(c => c.ConditionName))
             Conditions.Add(new ConditionCheckItem { ConditionID = c.ConditionID, ConditionName = c.ConditionName });
     }
 
@@ -329,4 +334,7 @@ public partial class ConditionCheckItem : ObservableObject
     public int ConditionID { get; set; }
     public string ConditionName { get; set; } = string.Empty;
     [ObservableProperty] bool isSelected;
+
+    // Hides "Other" from checkbox list — shown as a text Entry instead
+    public bool IsNotOther => ConditionName != "Other";
 }

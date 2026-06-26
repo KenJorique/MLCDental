@@ -37,6 +37,10 @@ public class Patient
     // ── Registration ─────────────────────────────────────────────
     public string DateRegistered { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
 
+    // ── Last updated timestamp for Personal Info tab ──────────────
+    // Saved every time the user taps Save Changes on the Personal Info tab
+    public string LastUpdated { get; set; } = string.Empty;
+
     // ── Legacy fields (kept for backward compat) ─────────────────
     public string MedicalHistory { get; set; } = string.Empty;
     public bool HasNoMedicalHistory { get; set; } = false;

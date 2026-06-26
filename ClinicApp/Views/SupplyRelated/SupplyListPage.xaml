@@ -14,12 +14,10 @@
               AbsoluteLayout.LayoutBounds="0,0,1,1"
               AbsoluteLayout.LayoutFlags="All">
 
-			<!-- Loading -->
 			<ActivityIndicator IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
                                VerticalOptions="Center" HorizontalOptions="Center"/>
 
-			<!-- Empty state -->
 			<VerticalStackLayout IsVisible="{Binding IsEmpty}"
                                  VerticalOptions="Center" HorizontalOptions="Center"
                                  Spacing="10" Padding="40,0">
@@ -30,83 +28,62 @@
                        HorizontalTextAlignment="Center"/>
 			</VerticalStackLayout>
 
-			<!-- Supply list -->
 			<CollectionView ItemsSource="{Binding FilteredCards}"
                             SelectionMode="None"
                             IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}"
                             Margin="10,8,10,80">
 				<CollectionView.ItemTemplate>
 					<DataTemplate x:DataType="vm:SupplyCardViewModel">
-						<SwipeView>
-							<SwipeView.RightItems>
-								<SwipeItems>
-									<SwipeItem Text="Edit"
-                                               BackgroundColor="RoyalBlue"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                         Path=BindingContext.EditSupplyCommand}"
-                                               CommandParameter="{Binding .}"/>
-									<SwipeItem Text="Delete"
-                                               BackgroundColor="Crimson"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                         Path=BindingContext.DeleteSupplyCommand}"
-                                               CommandParameter="{Binding .}"/>
-								</SwipeItems>
-							</SwipeView.RightItems>
 
-							<Frame Margin="0,0,0,8" Padding="14,12"
-                                   HasShadow="True" BackgroundColor="White">
-								<Frame.GestureRecognizers>
-									<TapGestureRecognizer
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                  Path=BindingContext.ViewSupplyInfoCommand}"
-                                        CommandParameter="{Binding .}"/>
-								</Frame.GestureRecognizers>
+						<Frame Margin="0,0,0,8" Padding="14,12"
+                               HasShadow="True" BackgroundColor="White">
+							<Frame.GestureRecognizers>
+								<TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                              Path=BindingContext.ShowActionSheetCommand}"
+                                    CommandParameter="{Binding .}"/>
+							</Frame.GestureRecognizers>
 
-								<!-- Single row: Name | Status badge | Qty -->
-								<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+							<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
 
-									<!-- Supply name -->
-									<Label Grid.Column="0"
-                                           Text="{Binding Supply.Name}"
-                                           FontSize="15" FontAttributes="Bold"
-                                           TextColor="Black"
-                                           VerticalOptions="Center"/>
+								<Label Grid.Column="0"
+                                       Text="{Binding Supply.Name}"
+                                       FontSize="15" FontAttributes="Bold"
+                                       TextColor="Black"
+                                       VerticalOptions="Center"/>
 
-									<!-- Colored status badge -->
-									<Frame Grid.Column="1"
-                                           Padding="8,3" CornerRadius="8"
-                                           HasShadow="False" BorderColor="Transparent"
-                                           BackgroundColor="{Binding StockStatusColor}"
-                                           VerticalOptions="Center">
-										<Label Text="{Binding StockStatusLabel}"
-                                               FontSize="11" FontAttributes="Bold"
-                                               TextColor="White"/>
-									</Frame>
+								<Frame Grid.Column="1"
+                                       Padding="8,3" CornerRadius="8"
+                                       HasShadow="False" BorderColor="Transparent"
+                                       BackgroundColor="{Binding StockStatusColor}"
+                                       VerticalOptions="Center">
+									<Label Text="{Binding StockStatusLabel}"
+                                           FontSize="11" FontAttributes="Bold"
+                                           TextColor="White"/>
+								</Frame>
 
-									<!-- Quantity -->
-									<Label Grid.Column="2"
-                                           Text="{Binding StockDisplay}"
-                                           FontSize="14" FontAttributes="Bold"
-                                           TextColor="Black"
-                                           VerticalOptions="Center"/>
+								<Label Grid.Column="2"
+                                       Text="{Binding StockDisplay}"
+                                       FontSize="14" FontAttributes="Bold"
+                                       TextColor="Black"
+                                       VerticalOptions="Center"/>
 
-								</Grid>
-							</Frame>
-						</SwipeView>
+							</Grid>
+						</Frame>
+
 					</DataTemplate>
 				</CollectionView.ItemTemplate>
 			</CollectionView>
 
 		</Grid>
 
-		<!-- Floating Add Button -->
 		<Button Text="+ Add Item"
                 Command="{Binding GoToAddSupplyCommand}"
                 VerticalOptions="End"
                 HorizontalOptions="End"
                 Margin="0,0,20,30"
                 CornerRadius="30"
-				AbsoluteLayout.LayoutBounds="1,1,-1,-1"
+                AbsoluteLayout.LayoutBounds="1,1,-1,-1"
                 AbsoluteLayout.LayoutFlags="PositionProportional"
                 Padding="20,12" />
 

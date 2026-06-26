@@ -4,29 +4,29 @@
              x:Class="ClinicApp.Views.MenuPage"
              Title="Menu">
 
-    <VerticalStackLayout Padding="20" Spacing="10">
+	<VerticalStackLayout Padding="20" Spacing="10">
 
-        <Frame Padding="15" HasShadow="True">
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Command="{Binding GoToServicesCommand}" />
-            </Frame.GestureRecognizers>
-            <Label Text="Service &amp; Pricing" FontSize="16" />
-        </Frame>
+		<Frame Padding="15" HasShadow="True">
+			<Frame.GestureRecognizers>
+				<TapGestureRecognizer Command="{Binding GoToServicesCommand}" />
+			</Frame.GestureRecognizers>
+			<Label Text="Service &amp; Pricing" FontSize="16" />
+		</Frame>
 
-        <Frame Padding="15" HasShadow="True">
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Command="{Binding GoToUsersCommand}" />
-            </Frame.GestureRecognizers>
-            <Label Text="User Management" FontSize="16" />
-        </Frame>
+		<Frame Padding="15" HasShadow="True">
+			<Frame.GestureRecognizers>
+				<TapGestureRecognizer Command="{Binding GoToUsersCommand}" />
+			</Frame.GestureRecognizers>
+			<Label Text="User Management" FontSize="16" />
+		</Frame>
 
-        <Frame Padding="15" HasShadow="True">
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Command="{Binding GoToSupplyCommand}" />
-            </Frame.GestureRecognizers>
-            <Label Text="Medical Supplies" FontSize="16" />
-        </Frame>
+		<Frame Padding="15" HasShadow="True">
+			<Frame.GestureRecognizers>
+				<TapGestureRecognizer Command="{Binding GoToSupplyCommand}" />
+			</Frame.GestureRecognizers>
+			<Label Text="Medical Supplies" FontSize="16" />
+		</Frame>
 
-    </VerticalStackLayout>
+	</VerticalStackLayout>
 
 </ContentPage>

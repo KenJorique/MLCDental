@@ -18,23 +18,12 @@ public class DatabaseService
             // this saves in windows
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
             System.Diagnostics.Debug.WriteLine($"[DB] Path: {dbPath}");
-            // This saves it to the "Downloads" folder on the Android Emulator
-            //string dbPath = Path.Combine("/storage/emulated/0/Download", "clinicmob.db3");
-
-            // this saves in windows
-
-            //MESSAGE FOR FINDING THE DATABASE PATH
-            //  await Shell.Current.DisplayAlert(
-            //"DB PATH",
-            //dbPath,
-            //"OK");
 
             _database = new SQLiteAsyncConnection(
                 dbPath,
                 SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
 
             // Run each pragma and table creation individually with its own try/catch
-            // so one failure can never skip the remaining tables
             try { await _database.ExecuteAsync("PRAGMA journal_mode=WAL;"); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] WAL pragma: {ex.Message}"); }
 
@@ -46,9 +35,7 @@ public class DatabaseService
 
             try { await _database.CreateTableAsync<ServiceModel>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ServiceModel table: {ex.Message}"); }
-
-            try { await _database.CreateTableAsync<ServicePackage>(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ServicePackage table: {ex.Message}"); }
+            try { await _database.ExecuteAsync("ALTER TABLE ServiceModel ADD COLUMN IsDeleted INTEGER DEFAULT 0"); } catch { }
 
             try { await _database.CreateTableAsync<User>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] User table: {ex.Message}"); }
@@ -68,9 +55,19 @@ public class DatabaseService
             try { await _database.CreateTableAsync<SupplyItem>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] SupplyItem table: {ex.Message}"); }
 
-            // Migrate SupplyItem: add Unit and PiecesPerUnit if they don't exist yet
+            // Migrations — safe to run every time, SQLite ignores duplicate columns
             try { await _database.ExecuteAsync("ALTER TABLE SupplyItem ADD COLUMN Unit TEXT DEFAULT 'Per Piece'"); } catch { }
             try { await _database.ExecuteAsync("ALTER TABLE SupplyItem ADD COLUMN PiecesPerUnit INTEGER DEFAULT 1"); } catch { }
+            try { await _database.ExecuteAsync("ALTER TABLE SupplyItem ADD COLUMN IsDeleted INTEGER DEFAULT 0"); } catch { }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsDeleted INTEGER DEFAULT 0"); } catch { }
+
+            // User management migrations (contact, email, active status)
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN ContactNo TEXT"); } catch { }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN Email TEXT"); } catch { }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsActive INTEGER DEFAULT 1"); } catch { }
+
+            // Patient personal info last-updated timestamp
+            try { await _database.ExecuteAsync("ALTER TABLE Patient ADD COLUMN LastUpdated TEXT DEFAULT ''"); } catch { }
 
             try { await _database.CreateTableAsync<Guardian>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Guardian table: {ex.Message}"); }
@@ -107,13 +104,10 @@ public class DatabaseService
         }
         catch (Exception ex)
         {
-            // Only the connection itself failed — reset so next call retries
             System.Diagnostics.Debug.WriteLine($"[DB] Connection error: {ex.Message}");
             _database = null;
         }
     }
-
-
 
     // =========================
     // PATIENT CRUD
@@ -129,7 +123,6 @@ public class DatabaseService
     {
         try
         {
-
             await Init();
             int result = await _database!.InsertAsync(patient);
             System.Diagnostics.Debug.WriteLine($"Inserted: {result}");
@@ -159,7 +152,6 @@ public class DatabaseService
             .Where(h => h.PatientId == patient.PatientID).ToListAsync();
         foreach (var h in histories) await _database!.DeleteAsync(h);
 
-        // Cascade delete new related tables
         var guardians = await _database!.Table<Guardian>()
             .Where(g => g.PatientID == patient.PatientID).ToListAsync();
         foreach (var g in guardians) await _database!.DeleteAsync(g);
@@ -178,10 +170,8 @@ public class DatabaseService
 
         var images = await _database!.Table<CephalometricImage>()
             .Where(c => c.PatientId == patient.PatientID).ToListAsync();
-        foreach (var img in images)
-            await _database!.DeleteAsync(img);
+        foreach (var img in images) await _database!.DeleteAsync(img);
 
-        // Now safe to delete the patient
         await _database!.DeleteAsync(patient);
     }
 
@@ -192,7 +182,6 @@ public class DatabaseService
                                .Where(p => p.PatientID == id)
                                .FirstOrDefaultAsync();
     }
-
 
     // ══════════════════════════════════════════
     // GUARDIAN
@@ -263,7 +252,6 @@ public class DatabaseService
     public async Task SavePatientConditions(int patientId, List<int> conditionIds)
     {
         await Init();
-        // Remove existing then insert fresh
         var existing = await GetPatientConditions(patientId);
         foreach (var e in existing) await _database!.DeleteAsync(e);
         foreach (var id in conditionIds)
@@ -290,7 +278,9 @@ public class DatabaseService
     public async Task<List<ServiceModel>> GetServices()
     {
         await Init();
-        return await _database!.Table<ServiceModel>().ToListAsync();
+        return await _database!.Table<ServiceModel>()
+                               .Where(s => !s.IsDeleted)
+                               .ToListAsync();
     }
 
     public async Task AddService(ServiceModel service)
@@ -302,7 +292,8 @@ public class DatabaseService
     public async Task DeleteService(ServiceModel service)
     {
         await Init();
-        await _database!.DeleteAsync(service);
+        service.IsDeleted = true;
+        await _database!.UpdateAsync(service);
     }
 
     public async Task UpdateService(ServiceModel service)
@@ -312,41 +303,15 @@ public class DatabaseService
     }
 
     // =========================
-    // SERVICE PACKAGE CRUD
-    // =========================
-
-    public async Task<List<ServicePackage>> GetServicePackages()
-    {
-        await Init();
-        return await _database!.Table<ServicePackage>().ToListAsync();
-    }
-
-    public async Task AddServicePackage(ServicePackage package)
-    {
-        await Init();
-        await _database!.InsertAsync(package);
-    }
-
-    public async Task UpdateServicePackage(ServicePackage package)
-    {
-        await Init();
-        await _database!.UpdateAsync(package);
-    }
-
-    public async Task DeleteServicePackage(ServicePackage package)
-    {
-        await Init();
-        await _database!.DeleteAsync(package);
-    }
-
-    // =========================
     // USER CRUD
     // =========================
 
     public async Task<List<User>> GetUsers()
     {
         await Init();
-        return await _database!.Table<User>().ToListAsync();
+        return await _database!.Table<User>()
+                               .Where(u => !u.IsDeleted)
+                               .ToListAsync();
     }
 
     public async Task AddUser(User user)
@@ -358,7 +323,8 @@ public class DatabaseService
     public async Task<int> DeleteUser(User user)
     {
         await Init();
-        return await _database!.DeleteAsync(user);
+        user.IsDeleted = true;
+        return await _database!.UpdateAsync(user);
     }
 
     public async Task UpdateUser(User user)
@@ -406,12 +372,10 @@ public class DatabaseService
             await _database!.DeleteAsync(existing);
     }
 
-
     // =========================
     // TREATMENT HISTORY CRUD
     // =========================
 
-    /// <summary>Returns all history entries for a patient, newest first.</summary>
     public async Task<List<TreatmentHistory>> GetTreatmentHistoryForPatient(int patientId)
     {
         await Init();
@@ -422,7 +386,6 @@ public class DatabaseService
         return list;
     }
 
-    /// <summary>Appends a new history entry (never updates, always inserts).</summary>
     public async Task AddTreatmentHistory(TreatmentHistory entry)
     {
         await Init();
@@ -430,7 +393,6 @@ public class DatabaseService
         await _database!.InsertAsync(entry);
     }
 
-    /// <summary>Deletes all history for a patient (e.g. when patient is deleted).</summary>
     public async Task DeleteTreatmentHistoryForPatient(int patientId)
     {
         await Init();
@@ -445,7 +407,6 @@ public class DatabaseService
     // CEPHALOMETRIC IMAGE CRUD
     // =========================
 
-    // Gets the current active (non-archived) image for a patient
     public async Task<CephalometricImage?> GetActiveCephalometricImage(int patientId)
     {
         await Init();
@@ -454,20 +415,15 @@ public class DatabaseService
                                .FirstOrDefaultAsync();
     }
 
-    // Saves a new image. Archives the old active image first if one exists.
     public async Task SaveCephalometricImage(CephalometricImage newImage)
     {
         await Init();
-
-        // Archive the existing active image for this patient
         var existing = await GetActiveCephalometricImage(newImage.PatientId);
         if (existing != null)
         {
             existing.IsActive = false;
             await _database!.UpdateAsync(existing);
         }
-
-        // Insert the new active image with today's date
         newImage.IsActive = true;
         newImage.UploadedDate = DateTime.Now.ToString("yyyy-MM-dd");
         await _database!.InsertAsync(newImage);
@@ -480,7 +436,9 @@ public class DatabaseService
     public async Task<List<SupplyItem>> GetSupplyItems()
     {
         await Init();
-        return await _database!.Table<SupplyItem>().ToListAsync();
+        return await _database!.Table<SupplyItem>()
+                               .Where(s => !s.IsDeleted)
+                               .ToListAsync();
     }
 
     public async Task<SupplyItem?> GetSupplyItemById(int id)
@@ -506,14 +464,10 @@ public class DatabaseService
     public async Task DeleteSupplyItem(SupplyItem item)
     {
         await Init();
-        var logs = await _database!.Table<SupplyStockLog>()
-                                   .Where(l => l.SupplyItemId == item.Id)
-                                   .ToListAsync();
-        foreach (var l in logs) await _database!.DeleteAsync(l);
-        await _database!.DeleteAsync(item);
+        item.IsDeleted = true;
+        await _database!.UpdateAsync(item);
     }
 
-    /// <summary>Returns all supply items that are at or below their minimum stock level.</summary>
     public async Task<List<SupplyItem>> GetLowStockItems()
     {
         await Init();
@@ -535,10 +489,6 @@ public class DatabaseService
         return list;
     }
 
-    /// <summary>
-    /// Adjusts SupplyItem.QuantityInPieces and appends a log entry atomically.
-    /// changeInPieces: positive = restock, negative = consume.
-    /// </summary>
     public async Task ApplyStockChange(int supplyItemId, int changeInPieces, string changeType,
                                        string note = "", int patientId = 0, string patientName = "")
     {
@@ -558,10 +508,8 @@ public class DatabaseService
             PatientId = patientId,
             PatientName = patientName,
             StockAfterChange = item.QuantityInPieces,
-
             Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
         };
         await _database!.InsertAsync(log);
     }
-
 }

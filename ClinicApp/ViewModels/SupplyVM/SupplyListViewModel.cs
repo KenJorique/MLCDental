@@ -1,5 +1,6 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
 using ClinicApp.Views.SupplyRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -33,11 +34,7 @@ public partial class SupplyListViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            // FIX 1: Always fetch fresh data from DB
             var list = await _db.GetSupplyItems();
-
-            // FIX 2: Modify collections on the main thread so Android
-            // doesn't silently swallow the update
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 AllCards.Clear();
@@ -51,10 +48,7 @@ public partial class SupplyListViewModel : ObservableObject
         {
             System.Diagnostics.Debug.WriteLine($"[LoadSupplies] {ex.Message}");
         }
-        finally
-        {
-            IsBusy = false;
-        }
+        finally { IsBusy = false; }
     }
 
     private void ApplyFilter()
@@ -65,9 +59,7 @@ public partial class SupplyListViewModel : ObservableObject
         {
             if (string.IsNullOrEmpty(q) ||
                 card.Supply.Name.ToLowerInvariant().Contains(q))
-            {
                 FilteredCards.Add(card);
-            }
         }
         IsEmpty = FilteredCards.Count == 0;
     }
@@ -85,6 +77,7 @@ public partial class SupplyListViewModel : ObservableObject
     async Task GoToAddSupply() =>
         await Shell.Current.GoToAsync(nameof(AddSupplyPage));
 
+    // Row tap → go directly to View Info
     [RelayCommand]
     async Task ViewSupplyInfo(SupplyCardViewModel card)
     {
@@ -92,40 +85,70 @@ public partial class SupplyListViewModel : ObservableObject
         await Shell.Current.GoToAsync($"{nameof(SupplyInfoPage)}?supplyId={card.Supply.Id}");
     }
 
+    // ⋮ button tap → open action sheet
     [RelayCommand]
-    async Task EditSupply(SupplyCardViewModel card)
+    async Task ShowActionSheet(SupplyCardViewModel card)
     {
         if (card is null) return;
-        await Shell.Current.GoToAsync($"{nameof(AddSupplyPage)}?supplyId={card.Supply.Id}");
+
+        var sheet = new ItemActionSheet();
+        sheet.Configure(
+            title: card.Supply.Name,
+            subtitle: string.Empty,
+            options: new[]
+            {
+                new ActionSheetOption
+                {
+                    Icon = "\ue88e",
+                    Label = "View Info",
+                    Subtitle = "See full supply details",
+                    IconBackgroundColor = Color.FromArgb("#E3F2FD"),
+                    IconColor = Color.FromArgb("#1565C0"),
+                    OnTapped = async () =>
+                        await Shell.Current.GoToAsync($"{nameof(SupplyInfoPage)}?supplyId={card.Supply.Id}"),
+                },
+                new ActionSheetOption
+                {
+                    Icon = "\ue3c9",
+                    Label = "Edit",
+                    Subtitle = "Update supply information",
+                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                    IconColor = Color.FromArgb("#2E7D32"),
+                    OnTapped = async () =>
+                        await Shell.Current.GoToAsync($"{nameof(AddSupplyPage)}?supplyId={card.Supply.Id}"),
+                },
+                new ActionSheetOption
+                {
+                    Icon = "\ue872",
+                    Label = "Delete",
+                    Subtitle = "Hide from supply list",
+                    LabelColor = Colors.Crimson,
+                    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
+                    OnTapped = async () => await DeleteSupplyAsync(card),
+                },
+            });
+
+        await sheet.ShowAsync();
     }
 
-    [RelayCommand]
-    async Task DeleteSupply(SupplyCardViewModel card)
+    private async Task DeleteSupplyAsync(SupplyCardViewModel card)
     {
-        if (card is null) return;
-
         bool ok = await Shell.Current.DisplayAlert(
-            "Delete Supply",
-            $"Delete \"{card.Supply.Name}\" and all its stock history?",
-            "Delete", "Cancel");
+            "Remove Supply",
+            $"Remove \"{card.Supply.Name}\" from the supply list?",
+            "Remove", "Cancel");
         if (!ok) return;
 
         IsBusy = true;
         try
         {
-            // Delete from database
             await _db.DeleteSupplyItem(card.Supply);
-
-            // FIX 3: Find by ID, not by reference — the card instance from
-            // the swipe command is NOT the same object as the one in AllCards
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 var inAll = AllCards.FirstOrDefault(c => c.Supply.Id == card.Supply.Id);
                 var inFiltered = FilteredCards.FirstOrDefault(c => c.Supply.Id == card.Supply.Id);
-
                 if (inAll is not null) AllCards.Remove(inAll);
                 if (inFiltered is not null) FilteredCards.Remove(inFiltered);
-
                 RefreshSummary();
                 IsEmpty = FilteredCards.Count == 0;
             });
@@ -133,13 +156,9 @@ public partial class SupplyListViewModel : ObservableObject
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[DeleteSupply] {ex.Message}");
-            await Shell.Current.DisplayAlert("Error",
-                $"Could not delete item: {ex.Message}", "OK");
+            await Shell.Current.DisplayAlert("Error", $"Could not delete item: {ex.Message}", "OK");
         }
-        finally
-        {
-            IsBusy = false;
-        }
+        finally { IsBusy = false; }
     }
 
     [RelayCommand]

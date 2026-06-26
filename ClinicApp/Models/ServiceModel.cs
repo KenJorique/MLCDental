@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SQLite;
+﻿using SQLite;
 
 namespace ClinicApp.Models;
 
@@ -17,4 +12,7 @@ public class ServiceModel
     public double Price { get; set; }
 
     public string Description { get; set; }
+
+    // Soft delete — hidden from list but kept in DB
+    public bool IsDeleted { get; set; } = false;
 }

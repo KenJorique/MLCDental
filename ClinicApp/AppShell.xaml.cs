@@ -5,6 +5,9 @@ using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.UsersRelated;
 using ClinicApp.Views.SupplyRelated;
+using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Core.Platform;
+using Microsoft.Maui.Graphics;
 
 namespace ClinicApp
 {
@@ -33,6 +36,16 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(AddStockPage), typeof(AddStockPage));
             Routing.RegisterRoute(nameof(ReduceStockPage), typeof(ReduceStockPage));
             Routing.RegisterRoute(nameof(StockHistoryPage), typeof(StockHistoryPage));
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+
+        #if ANDROID
+                StatusBar.SetColor(Colors.White);
+                StatusBar.SetStyle(CommunityToolkit.Maui.Core.StatusBarStyle.DarkContent);
+        #endif
         }
     }
 }

@@ -6,76 +6,53 @@
              Title="Clinic Staff"
              Shell.TabBarIsVisible="False">
 
-    <Grid>
+	<Grid>
 
-        <CollectionView ItemsSource="{Binding Users}" Margin="10">
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="vm:UserCardViewModel">
+		<CollectionView ItemsSource="{Binding Users}" Margin="10">
+			<CollectionView.ItemTemplate>
+				<DataTemplate x:DataType="vm:UserCardViewModel">
 
-                    <!-- SwipeView: swipe left to reveal Edit then Delete -->
-                    <SwipeView SwipeStarted="OnSwipeStarted">
-                        <SwipeView.RightItems>
-                            <SwipeItems>
+					<Frame Margin="5" Padding="15" HasShadow="True">
+						<Frame.GestureRecognizers>
+							<TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                          Path=BindingContext.ShowActionSheetCommand}"
+                                CommandParameter="{Binding .}"/>
+						</Frame.GestureRecognizers>
 
-                                <!-- Edit is first (left of swipe reveal) -->
-                                <SwipeItem Text="Edit"
-                                           BackgroundColor="RoyalBlue"
-                                           Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                     Path=BindingContext.EditUserCommand}"
-                                           CommandParameter="{Binding .}" />
+						<Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
 
-                                <!-- Delete is second (right of swipe reveal) -->
-                                <SwipeItem Text="Delete"
-                                           BackgroundColor="Crimson"
-                                           Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                     Path=BindingContext.DeleteUserCommand}"
-                                           CommandParameter="{Binding .}" />
+							<!-- Left: Full name and role -->
+							<VerticalStackLayout Grid.Column="0" Spacing="3">
+								<Label Text="{Binding User.FullName}"
+                                       FontAttributes="Bold"
+                                       FontSize="16"/>
+								<Label Text="{Binding User.Role}"
+                                       TextColor="Gray"
+                                       FontSize="13"/>
+							</VerticalStackLayout>
 
-                            </SwipeItems>
-                        </SwipeView.RightItems>
+							<!-- Right: status dot + label -->
+							<HorizontalStackLayout Grid.Column="1"
+                                                   Spacing="6"
+                                                   VerticalOptions="Center">
+								<Ellipse WidthRequest="10"
+                                         HeightRequest="10"
+                                         Fill="{Binding StatusColor}"
+                                         VerticalOptions="Center"/>
+								<Label Text="{Binding StatusText}"
+                                       FontSize="13"
+                                       VerticalOptions="Center"/>
+							</HorizontalStackLayout>
 
-                        <!-- Card content -->
-                        <Frame Margin="5" Padding="15" HasShadow="True">
-                            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+						</Grid>
+					</Frame>
 
-                                <!-- Left: Full name and role -->
-                                <VerticalStackLayout Grid.Column="0" Spacing="3">
-                                    <Label Text="{Binding User.FullName}"
-                                           FontAttributes="Bold"
-                                           FontSize="16"/>
-                                    <Label Text="{Binding User.Role}"
-                                           TextColor="Gray"
-                                           FontSize="13"/>
-                                </VerticalStackLayout>
+				</DataTemplate>
+			</CollectionView.ItemTemplate>
+		</CollectionView>
 
-                                <!-- Right: colored dot + Active/Inactive label -->
-                                <HorizontalStackLayout Grid.Column="1"
-                                                       Spacing="6"
-                                                       VerticalOptions="Center">
-
-                                    <!-- Colored circle indicator: green = Active, red = Inactive -->
-                                    <Ellipse WidthRequest="10"
-                                             HeightRequest="10"
-                                             Fill="{Binding StatusColor}"
-                                             VerticalOptions="Center"/>
-
-                                    <Label Text="{Binding StatusText}"
-                                           FontSize="13"
-                                           VerticalOptions="Center"/>
-
-                                </HorizontalStackLayout>
-
-                            </Grid>
-                        </Frame>
-
-                    </SwipeView>
-
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-
-        <!-- Floating Add Staff button (bottom right) -->
-        <Button Text="+ Add Staff"
+		<Button Text="+ Add Staff"
                 Command="{Binding GoToAddUserCommand}"
                 VerticalOptions="End"
                 HorizontalOptions="End"
@@ -83,5 +60,5 @@
                 CornerRadius="30"
                 Padding="20,12" />
 
-    </Grid>
+	</Grid>
 </ContentPage>

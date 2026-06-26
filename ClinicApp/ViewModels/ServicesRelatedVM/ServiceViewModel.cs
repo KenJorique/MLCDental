@@ -1,5 +1,6 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
 using ClinicApp.Views.ServicesRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -25,7 +26,6 @@ public partial class ServiceViewModel : ObservableObject
         try
         {
             var serviceList = await _db.GetServices();
-
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 ServiceCards.Clear();
@@ -44,38 +44,61 @@ public partial class ServiceViewModel : ObservableObject
         }
     }
 
+    // Tap on card → open action sheet
     [RelayCommand]
-    void ToggleServiceCard(ServiceCardViewModel card)
+    async Task ShowActionSheet(ServiceCardViewModel card)
     {
-        if (card == null) return;
-        bool wasExpanded = card.IsExpanded;
-        foreach (var s in ServiceCards)
-            s.IsExpanded = false;
-        if (!wasExpanded)
-            card.IsExpanded = true;
+        if (card is null) return;
+
+        var sheet = new ItemActionSheet();
+        sheet.Configure(
+            title: card.Service.ServiceName,
+            subtitle: string.IsNullOrWhiteSpace(card.Service.Description)
+                ? string.Empty
+                : card.Service.Description,
+            options: new[]
+            {
+                new ActionSheetOption
+                {
+                    Icon = "\ue3c9",  // edit
+                    Label = "Edit",
+                    Subtitle = "Update service details",
+                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                    IconColor = Color.FromArgb("#2E7D32"),
+                    OnTapped = async () =>
+                        await Shell.Current.GoToAsync(
+                            $"{nameof(AddServicePage)}?ServiceId={card.Service.ServiceID}"),
+                },
+                new ActionSheetOption
+                {
+                    Icon = "\ue872",  // delete
+                    Label = "Delete",
+                    Subtitle = "Remove this service",
+                    LabelColor = Colors.Crimson,
+                    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
+                    IconColor = Colors.Crimson,
+                    OnTapped = async () => await DeleteServiceAsync(card),
+                },
+            });
+
+        await sheet.ShowAsync();
     }
 
-    [RelayCommand]
-    async Task EditService(ServiceCardViewModel card)
+    private async Task DeleteServiceAsync(ServiceCardViewModel card)
     {
-        if (card == null) return;
-        await Shell.Current.GoToAsync($"{nameof(AddServicePage)}?ServiceId={card.Service.ServiceID}");
-    }
+        bool answer = await Shell.Current.DisplayAlert(
+            "Delete Service",
+            $"Are you sure you want to delete \"{card.Service.ServiceName}\"?",
+            "Delete", "Cancel");
 
-    [RelayCommand]
-    async Task DeleteService(ServiceCardViewModel card)
-    {
-        if (card == null) return;
+        if (!answer) return;
 
-        bool answer = await Shell.Current.DisplayAlert("Confirm Delete",
-            $"Are you sure you want to delete {card.Service.ServiceName}?", "Yes", "No");
+        try { await _db.DeleteService(card.Service); }
+        catch (Exception ex) { Debug.WriteLine($"[Delete] {ex.Message}"); }
 
-        if (answer)
-        {
-            try { await _db.DeleteService(card.Service); }
-            catch (Exception ex) { Debug.WriteLine($"[Delete] {ex.Message}"); }
-            await LoadServices();
-        }
+        var existing = ServiceCards.FirstOrDefault(c => c.Service.ServiceID == card.Service.ServiceID);
+        if (existing is not null)
+            ServiceCards.Remove(existing);
     }
 
     [RelayCommand]

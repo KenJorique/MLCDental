@@ -8,72 +8,36 @@
 
 	<Grid>
 
-		<ScrollView>
-			<VerticalStackLayout Padding="10" Spacing="5">
+		<CollectionView ItemsSource="{Binding ServiceCards}" Margin="10">
+			<CollectionView.ItemTemplate>
+				<DataTemplate x:DataType="vm:ServiceCardViewModel">
 
-				<CollectionView ItemsSource="{Binding ServiceCards}">
-					<CollectionView.ItemTemplate>
-						<DataTemplate x:DataType="vm:ServiceCardViewModel">
+					<Frame Margin="5" Padding="15" HasShadow="True">
+						<Frame.GestureRecognizers>
+							<TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                          Path=BindingContext.ShowActionSheetCommand}"
+                                CommandParameter="{Binding .}"/>
+						</Frame.GestureRecognizers>
 
-							<SwipeView SwipeStarted="OnSwipeStarted">
-								<SwipeView.RightItems>
-									<SwipeItems>
-										<SwipeItem Text="Edit"
-                                                   BackgroundColor="RoyalBlue"
-                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                             Path=BindingContext.EditServiceCommand}"
-                                                   CommandParameter="{Binding .}" />
-										<SwipeItem Text="Delete"
-                                                   BackgroundColor="Crimson"
-                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                             Path=BindingContext.DeleteServiceCommand}"
-                                                   CommandParameter="{Binding .}" />
-									</SwipeItems>
-								</SwipeView.RightItems>
+						<Grid ColumnDefinitions="*,Auto">
+							<Label Grid.Column="0"
+                                   Text="{Binding Service.ServiceName}"
+                                   FontAttributes="Bold"
+                                   FontSize="16"
+                                   VerticalOptions="Center"/>
+							<Label Grid.Column="1"
+                                   Text="{Binding Service.Price, StringFormat='₱{0:N2}'}"
+                                   FontAttributes="Bold"
+                                   FontSize="16"
+                                   TextColor="MediumPurple"
+                                   VerticalOptions="Center"/>
+						</Grid>
+					</Frame>
 
-								<Frame Margin="5" Padding="15">
-									<Frame.GestureRecognizers>
-										<TapGestureRecognizer
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                      Path=BindingContext.ToggleServiceCardCommand}"
-                                            CommandParameter="{Binding .}" />
-									</Frame.GestureRecognizers>
-
-									<VerticalStackLayout Spacing="8">
-										<Grid ColumnDefinitions="*,Auto">
-											<Label Grid.Column="0"
-                                                   Text="{Binding Service.ServiceName}"
-                                                   FontAttributes="Bold"
-                                                   FontSize="16"
-                                                   VerticalOptions="Center"/>
-											<Label Grid.Column="1"
-                                                   Text="{Binding Service.Price, StringFormat='₱{0:N2}'}"
-                                                   FontAttributes="Bold"
-                                                   FontSize="16"
-                                                   TextColor="MediumPurple"
-                                                   VerticalOptions="Center"/>
-										</Grid>
-
-										<VerticalStackLayout IsVisible="{Binding IsExpanded}" Spacing="6">
-											<BoxView HeightRequest="1" Color="LightGray" Margin="0,2"/>
-											<Label Text="Description:"
-                                                   FontAttributes="Bold"
-                                                   FontSize="14"
-                                                   TextColor="Gray"/>
-											<Label Text="{Binding Service.Description}"
-                                                   FontSize="15"/>
-										</VerticalStackLayout>
-									</VerticalStackLayout>
-								</Frame>
-
-							</SwipeView>
-
-						</DataTemplate>
-					</CollectionView.ItemTemplate>
-				</CollectionView>
-
-			</VerticalStackLayout>
-		</ScrollView>
+				</DataTemplate>
+			</CollectionView.ItemTemplate>
+		</CollectionView>
 
 		<Button Text="+ Add Service"
                 Command="{Binding GoToAddServiceCommand}"

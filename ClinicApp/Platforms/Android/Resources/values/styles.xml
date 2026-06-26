@@ -5,6 +5,16 @@
         - HasBackdrop (dim background) needs it
         - HasHandle (the drag handle line at top) needs it
         Without this, both features silently do nothing on Android.
+
+        bottomNavigationStyle is added here ONLY to override the native BottomNavigationView icon size 
     -->
-	<style name="Maui.MainTheme" parent="Theme.Material3.DayNight.NoActionBar"></style>
+	
+	<style name="Maui.MainTheme" parent="Theme.Material3.DayNight.NoActionBar">
+		<item name="bottomNavigationStyle">@style/ClinicApp.BottomNav</item>
+	</style>
+
+	<!-- Increases the tab bar icon size from Android's default 24dp to 32dp -->
+	<style name="ClinicApp.BottomNav" parent="Widget.Material3.BottomNavigationView">
+		<item name="itemIconSize">32dp</item>
+	</style>
 </resources>

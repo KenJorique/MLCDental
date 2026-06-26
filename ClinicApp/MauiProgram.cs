@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using ClinicApp.Views.SupplyRelated;
 using ClinicApp.ViewModels.SupplyVM;
 using The49.Maui.BottomSheet;
+using CommunityToolkit.Maui;
 
 namespace ClinicApp
 {
@@ -28,24 +29,29 @@ namespace ClinicApp
 
             builder.Services.AddSingleton<HomePage>();
             builder.Services.AddSingleton<AppointmentPage>();
+
             builder.Services.AddSingleton<MenuPage>();
             builder.Services.AddSingleton<MenuViewModel>();
+
             builder.Services.AddSingleton<PatientListPage>();
             builder.Services.AddSingleton<PatientListViewModel>();
             builder.Services.AddTransient<AddPatientPage>();
             builder.Services.AddTransient<AddPatientViewModel>();
             builder.Services.AddTransient<PatientDetailsPage>();
             builder.Services.AddTransient<PatientDetailsViewModel>();
+
             builder.Services.AddTransient<DentalChartPage>();
             builder.Services.AddTransient<DentalChartViewModel>();
             builder.Services.AddTransient<TreatmentHistoryPage>();
             builder.Services.AddTransient<TreatmentHistoryViewModel>();
             builder.Services.AddTransient<CephalometricPage>();
             builder.Services.AddTransient<CephalometricViewModel>();
+
             builder.Services.AddTransient<ServiceListPage>();
             builder.Services.AddSingleton<ServiceViewModel>();
             builder.Services.AddTransient<AddServicePage>();
             builder.Services.AddTransient<AddServiceViewModel>();
+
             builder.Services.AddTransient<UserListPage>();
             builder.Services.AddSingleton<UserViewModel>();
             builder.Services.AddTransient<AddUserPage>();
@@ -64,16 +70,18 @@ namespace ClinicApp
             builder.Services.AddTransient<StockHistoryPage>();
             builder.Services.AddTransient<StockHistoryViewModel>();
 
-            // Register the bottom sheet itself
             builder.Services.AddTransient<AdjustStockSheet>();
 
             builder
                 .UseMauiApp<App>()
                 .UseBottomSheet()           // The49.Maui.BottomSheet
+                .UseMauiCommunityToolkit()   // status bar
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                    fonts.AddFont("MaterialSymbolsRounded.ttf", "MaterialSymbolsRounded");
+                    fonts.AddFont("MaterialSymbolsRoundedFilled.ttf", "MaterialSymbolsRoundedFilled");
                 });
 
 #if DEBUG

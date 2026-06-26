@@ -5,37 +5,66 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:ClinicApp"
     xmlns:patients="clr-namespace:ClinicApp.Views.PatientsRelated"
-    xmlns:services="clr-namespace:ClinicApp.Views.ServicesRelated"
-    xmlns:users="clr-namespace:ClinicApp.Views.UsersRelated"
     xmlns:views="clr-namespace:ClinicApp.Views"
-    Shell.FlyoutBehavior="Disabled">
+    Shell.FlyoutBehavior="Disabled"
+    Shell.TabBarBackgroundColor="{StaticResource PageBg}"
+    Shell.TabBarTitleColor="{StaticResource PrimaryPink}"
+    Shell.TabBarUnselectedColor="{StaticResource TextMuted}">
 
-    <TabBar>
+	<TabBar>
 
-        <Tab Title="Home">
-            <ShellContent
+		<Tab Title="Home">
+			<Tab.Icon>
+				<FontImageSource
+                    FontFamily="MaterialSymbolsRoundedFilled"
+                    Glyph="&#xe88a;"
+                    Color="{StaticResource PrimaryPink}"
+                    Size="42"/>
+			</Tab.Icon>
+			<ShellContent
                 ContentTemplate="{DataTemplate views:HomePage}"
-                Route="HomePage" />
-        </Tab>
+                Route="HomePage"/>
+		</Tab>
 
-        <Tab Title="Appointment">
-            <ShellContent
+		<Tab Title="Appointment">
+			<Tab.Icon>
+				<FontImageSource
+                    FontFamily="MaterialSymbolsRoundedFilled"
+                    Glyph="&#xebcc;"
+                    Color="{StaticResource PrimaryPink}"
+                    Size="42"/>
+			</Tab.Icon>
+			<ShellContent
                 ContentTemplate="{DataTemplate views:AppointmentPage}"
-                Route="AppointmentPage" />
-        </Tab>
+                Route="AppointmentPage"/>
+		</Tab>
 
-        <Tab Title="Patient">
-            <ShellContent
+		<Tab Title="Patient">
+			<Tab.Icon>
+				<FontImageSource
+                    FontFamily="MaterialSymbolsRoundedFilled"
+                    Glyph="&#xf233;"
+                    Color="{StaticResource PrimaryPink}"
+                    Size="42"/>
+			</Tab.Icon>
+			<ShellContent
                 ContentTemplate="{DataTemplate patients:PatientListPage}"
-                Route="PatientListPage" />
-        </Tab>
+                Route="PatientListPage"/>
+		</Tab>
 
-        <Tab Title="Menu">
-            <ShellContent
+		<Tab Title="Menu">
+			<Tab.Icon>
+				<FontImageSource
+                    FontFamily="MaterialSymbolsRoundedFilled"
+                    Glyph="&#xe5d2;"
+                    Color="{StaticResource PrimaryPink}"
+                    Size="42"/>
+			</Tab.Icon>
+			<ShellContent
                 ContentTemplate="{DataTemplate views:MenuPage}"
-                Route="MenuPage" />
-        </Tab>
+                Route="MenuPage"/>
+		</Tab>
 
-    </TabBar>
+	</TabBar>
 
 </Shell>

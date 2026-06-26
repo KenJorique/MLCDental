@@ -10,10 +10,8 @@ public class SupplyItem
 
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Per Piece | Per Pack | Per Box | Per Kit</summary>
     public string Unit { get; set; } = "Per Piece";
 
-    /// <summary>How many pieces are in one unit. Always 1 when Unit is Per Piece.</summary>
     public int PiecesPerUnit { get; set; } = 1;
 
     public int QuantityInPieces { get; set; } = 0;
@@ -26,7 +24,9 @@ public class SupplyItem
 
     public string AddedDate { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
 
-    // ── Computed (not stored) ─────────────────────────────────────
+    // True = hidden from list but kept in DB (soft delete)
+    public bool IsDeleted { get; set; } = false;
+
     [Ignore]
     public bool IsLowStock => QuantityInPieces <= MinimumStockPieces;
 
