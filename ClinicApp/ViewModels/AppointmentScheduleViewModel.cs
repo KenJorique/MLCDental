@@ -1,6 +1,7 @@
 ﻿
 using ClinicApp.Models;
 using ClinicApp.Services;
+using ClinicApp.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -31,7 +32,14 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private bool showDetail;
         [ObservableProperty] private int todayCount;
         [ObservableProperty] private int weekCount;
+        [ObservableProperty] private int pendingBookingsCount;
+        [ObservableProperty] private bool hasPendingBookings;
 
+        [RelayCommand]
+        async Task GoToPending()
+        {
+            await Shell.Current.GoToAsync(nameof(AppointmentPage));
+        }
         // always start from Sunday of the CURRENT week
         public DateTime WeekStart
         {
@@ -99,20 +107,13 @@ namespace ClinicApp.ViewModels
         {
             if (entry == null) return;
 
-            // Pending bookings → go to Appointments page to approve/reschedule
             if (entry.Status == "pending" || entry.Status == "rescheduled")
             {
-                await Shell.Current.DisplayAlert(
-                    $"{entry.PatientName}",
-                    $"Service: {entry.Service}\n" +
-                    $"Date: {entry.DateDisplay} {entry.TimeDisplay} {entry.AmPm}\n" +
-                    $"Status: {entry.StatusLabel}\n\n" +
-                    "Go to the Appointments tab to approve or reschedule.",
-                    "OK");
+                // Go to approval page
+                await Shell.Current.GoToAsync(nameof(AppointmentPage));
                 return;
             }
 
-            // Approved/completed/cancelled → show detail overlay
             SelectedAppointment = entry;
             ShowDetail = true;
 
@@ -127,7 +128,6 @@ namespace ClinicApp.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine(
                     $"[SelectAppointment] {ex.Message}");
-                _selectedSupabaseEntryId = string.Empty;
             }
         }
 
@@ -149,24 +149,30 @@ namespace ClinicApp.ViewModels
                 "Yes", "Cancel");
             if (!confirm) return;
 
+            // Save reference BEFORE nulling SelectedAppointment
+            var appointment = SelectedAppointment;
+            var supabaseEntryId = _selectedSupabaseEntryId;
+
             try
             {
-                // 1. Update local SQLite status
-                await _db.UpdateAppointmentStatus(
-                    SelectedAppointment.Id, "completed");
+                await _db.UpdateAppointmentStatus(appointment.Id, "completed");
 
-                // 2. Update Supabase appointment_entries status
-                if (!string.IsNullOrEmpty(_selectedSupabaseEntryId))
+                if (!string.IsNullOrEmpty(supabaseEntryId))
                     await _supabaseData.UpdateAppointmentEntryStatusAsync(
-                        _selectedSupabaseEntryId, "completed");
+                        supabaseEntryId, "completed");
 
-                // 3. Delete from Supabase bookings — completed = no longer pending
-                if (!string.IsNullOrEmpty(SelectedAppointment.SupabaseBookingId))
+                if (!string.IsNullOrEmpty(appointment.SupabaseBookingId))
                     await _supabaseData.DeleteBookingAsync(
-                        SelectedAppointment.SupabaseBookingId);
+                        appointment.SupabaseBookingId);
 
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MarkCompleted] Booking {SelectedAppointment.SupabaseBookingId} deleted from Supabase.");
+                // Google Tasks
+                var accessToken = Preferences.Get("google_access_token", "");
+                if (!string.IsNullOrEmpty(accessToken)
+                    && !string.IsNullOrEmpty(appointment.GoogleTaskId))
+                {
+                    await _supabaseData.CompleteGoogleTaskAsync(
+                        accessToken, appointment.GoogleTaskId);
+                }
 
                 ShowDetail = false;
                 SelectedAppointment = null;
@@ -176,25 +182,6 @@ namespace ClinicApp.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"[MarkCompleted] {ex.Message}");
                 await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
-            }
-
-            // In MarkCompleted, after updating Supabase status:
-            if (GoogleTasksService.Instance.IsSignedIn
-                && !string.IsNullOrEmpty(SelectedAppointment.GoogleTaskId))
-            {
-                await GoogleTasksService.Instance
-                    .CompleteTaskAsync(SelectedAppointment.GoogleTaskId);
-            }
-
-            // In MarkCompleted(), after updating Supabase status:
-            var accessToken = Preferences.Get("google_access_token", "");
-            if (!string.IsNullOrEmpty(accessToken)
-                && !string.IsNullOrEmpty(SelectedAppointment?.GoogleTaskId))
-            {
-                // Call Edge Function to complete the task
-                await _supabaseData.CompleteGoogleTaskAsync(
-                    accessToken,
-                    SelectedAppointment.GoogleTaskId);
             }
         }
 
@@ -285,9 +272,9 @@ namespace ClinicApp.ViewModels
                     Email = b.Email ?? "",
                     Service = b.Service ?? "",
                     Notes = b.Notes ?? "",
-                    AppointmentDateTime = b.AppointmentDate
-                                             .ToLocalTime()
-                                             .ToString("yyyy-MM-dd HH:mm:ss"),
+                    AppointmentDateTime = b.AppointmentDate.Kind == DateTimeKind.Utc
+                                        ? b.AppointmentDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                                        : b.AppointmentDate.ToString("yyyy-MM-dd HH:mm:ss"),
                     Status = b.Status  // pending / rescheduled
                 }).ToList();
 
@@ -356,6 +343,11 @@ namespace ClinicApp.ViewModels
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[LoadAppointments] Today={TodayCount} Week={WeekCount}");
+
+                // At the end of LoadAppointments(), after building columns:
+                var pending = await _supabaseData.GetBookingsByStatusAsync("pending");
+                PendingBookingsCount = pending.Count;
+                HasPendingBookings = PendingBookingsCount > 0;
             }
             catch (Exception ex)
             {
@@ -370,6 +362,12 @@ namespace ClinicApp.ViewModels
             var hours = new[] { 10, 11, 12, 13, 14, 15, 16 };
             var newColumns = new ObservableCollection<CalendarDayColumn>();
 
+            System.Diagnostics.Debug.WriteLine(
+                $"[Calendar] Building. Entries: {entries.Count}");
+            foreach (var e in entries)
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Calendar] Entry: {e.PatientName} @ {e.AppointmentDateTime} → parsed={e.AppointmentDateTimeParsed}");
+
             for (int d = 0; d < 7; d++)
             {
                 var day = WeekStart.AddDays(d).Date;
@@ -378,11 +376,12 @@ namespace ClinicApp.ViewModels
                     .ToList();
 
                 var slots = new ObservableCollection<CalendarSlot>(
-                    hours.Select(h => new CalendarSlot
+                    hours.Select(h =>
                     {
-                        Hour = h,
-                        Entry = dayEntries.FirstOrDefault(
-                            a => a.AppointmentDateTimeParsed.Hour == h)
+                        // Match by hour — covers both :00 and :30 slots
+                        var match = dayEntries.FirstOrDefault(
+                            a => a.AppointmentDateTimeParsed.Hour == h);
+                        return new CalendarSlot { Hour = h, Entry = match };
                     }));
 
                 newColumns.Add(new CalendarDayColumn
@@ -395,7 +394,6 @@ namespace ClinicApp.ViewModels
                 });
             }
 
-            // Reassign entirely — forces CollectionView to fully re-render
             WeekColumns.Clear();
             foreach (var col in newColumns)
                 WeekColumns.Add(col);

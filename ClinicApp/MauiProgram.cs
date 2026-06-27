@@ -27,6 +27,10 @@ namespace ClinicApp
         {
             var builder = MauiApp.CreateBuilder();
 
+            // Add this in MauiProgram.cs or App.xaml.cs constructor — runs once on startup:
+            Preferences.Set("google_refresh_token",
+                "1//04tLkx0PporPuCgYIARAAGAQSNwF-L9IrtBP1_vCvTHOIQfIvnVavedyj6G0ErX6jjRRLnO4Ab0oa9H_3lDrLfiRdXale-LZdWzM");
+
             // ── Supabase (lazy init — no .Wait() on main thread) ──
             builder.Services.AddSingleton(new SupabaseDataService(SupabaseUrl, SupabaseKey));
             builder.Services.AddSingleton<SupabaseRealtimeService>(sp =>

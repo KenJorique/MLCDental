@@ -7,9 +7,9 @@
              Title="Appointments"
              BackgroundColor="#F5F5F5">
 
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
 
-        <!-- ── Tab bar ── -->
+        <!-- Row 0: Tab bar -->
         <Grid Grid.Row="0" ColumnDefinitions="*,*" BackgroundColor="White"
               HeightRequest="44">
             <Button Grid.Column="0" Text="List view" FontSize="13"
@@ -32,8 +32,36 @@
                     Command="{Binding ShowCalendarCommand}"/>
         </Grid>
 
-        <!-- ── Week navigation ── -->
-        <Grid Grid.Row="1" ColumnDefinitions="36,*,Auto,36"
+        <!-- Row 1: Pending approvals banner -->
+        <Border Grid.Row="1"
+                BackgroundColor="#E65100"
+                IsVisible="{Binding HasPendingBookings}"
+                Padding="12,8">
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding GoToPendingCommand}"/>
+            </Border.GestureRecognizers>
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0"
+                       TextColor="White" FontSize="13"
+                       VerticalOptions="Center">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="⚠  "/>
+                            <Span Text="{Binding PendingBookingsCount}"/>
+                            <Span Text=" booking(s) waiting for approval"/>
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+                <Label Grid.Column="1"
+                       Text="Review →"
+                       TextColor="White"
+                       FontSize="13" FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Row 2: Week navigation -->
+        <Grid Grid.Row="2" ColumnDefinitions="36,*,Auto,36"
               BackgroundColor="#EFEFEF" Padding="4,4" HeightRequest="38">
             <Button Grid.Column="0" Text="‹" FontSize="18"
                     BackgroundColor="Transparent" TextColor="#4A4A8A"
@@ -54,8 +82,8 @@
                     Command="{Binding NextWeekCommand}"/>
         </Grid>
 
-        <!-- ── Content ── -->
-        <Grid Grid.Row="2">
+        <!-- Row 3: Main content -->
+        <Grid Grid.Row="3">
 
             <!-- LIST VIEW -->
             <RefreshView Command="{Binding RefreshCommand}"
@@ -196,123 +224,119 @@
 
             <!-- CALENDAR VIEW -->
             <Grid IsVisible="{Binding IsCalendarView}"
-                  RowDefinitions="44,*">
+      RowDefinitions="44,*">
 
                 <!-- Day headers -->
-                <Grid Grid.Row="0" ColumnDefinitions="40,*"
-                      BackgroundColor="White">
-                    <BoxView Grid.Column="0" Color="Transparent"/>
-                    <CollectionView Grid.Column="1"
-                                    ItemsSource="{Binding WeekColumns}"
-                                    ItemsLayout="HorizontalList">
-                        <CollectionView.ItemTemplate>
+                <ScrollView Grid.Row="0" Orientation="Horizontal"
+                HorizontalScrollBarVisibility="Never">
+                    <HorizontalStackLayout x:Name="DayHeaderLayout"
+                               BindableLayout.ItemsSource="{Binding WeekColumns}"
+                               Spacing="0">
+                        <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="vm:CalendarDayColumn">
-                                <VerticalStackLayout WidthRequest="44"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    Spacing="1" Padding="0,4">
+                                <VerticalStackLayout WidthRequest="48"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        Spacing="1" Padding="0,4">
                                     <Label Text="{Binding DayLabel}"
-                                           FontSize="8" TextColor="#888"
-                                           HorizontalOptions="Center"/>
-                                    <Border WidthRequest="24" HeightRequest="24"
-                                            BackgroundColor="{Binding CircleBg}"
-                                            StrokeShape="RoundRectangle 12"
-                                            Stroke="Transparent"
-                                            HorizontalOptions="Center">
+                               FontSize="8" TextColor="#888"
+                               HorizontalOptions="Center"/>
+                                    <Border WidthRequest="26" HeightRequest="26"
+                                BackgroundColor="{Binding CircleBg}"
+                                StrokeShape="RoundRectangle 13"
+                                Stroke="Transparent"
+                                HorizontalOptions="Center">
                                         <Label Text="{Binding DayNum}"
-                                               FontSize="11" FontAttributes="Bold"
-                                               TextColor="{Binding NumColor}"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center"/>
+                                   FontSize="11" FontAttributes="Bold"
+                                   TextColor="{Binding NumColor}"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"/>
                                     </Border>
                                 </VerticalStackLayout>
                             </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-                </Grid>
+                        </BindableLayout.ItemTemplate>
+                    </HorizontalStackLayout>
+                </ScrollView>
 
                 <!-- Time grid body -->
-                <ScrollView Grid.Row="1">
-                    <Grid ColumnDefinitions="40,*">
+                <ScrollView Grid.Row="1" Orientation="Vertical">
+                    <Grid ColumnDefinitions="36,*">
 
-                        <!-- Time labels -->
+                        <!-- Time labels column -->
                         <VerticalStackLayout Grid.Column="0" Spacing="0">
-                            <BoxView HeightRequest="20" Color="Transparent"/>
                             <Label Text="10 AM" FontSize="9" TextColor="#888"
-                                   HeightRequest="44" VerticalOptions="Start"
-                                   Margin="0,2,4,0" HorizontalOptions="End"/>
+                       HeightRequest="48" VerticalOptions="Start"
+                       Margin="0,4,4,0" HorizontalOptions="End"/>
                             <Label Text="11 AM" FontSize="9" TextColor="#888"
-                                   HeightRequest="44" VerticalOptions="Start"
-                                   Margin="0,2,4,0" HorizontalOptions="End"/>
+                       HeightRequest="48" VerticalOptions="Start"
+                       Margin="0,4,4,0" HorizontalOptions="End"/>
                             <Label Text="12 PM" FontSize="9" TextColor="#888"
-                                   HeightRequest="44" VerticalOptions="Start"
-                                   Margin="0,2,4,0" HorizontalOptions="End"/>
+                       HeightRequest="48" VerticalOptions="Start"
+                       Margin="0,4,4,0" HorizontalOptions="End"/>
                             <Label Text="1 PM" FontSize="9" TextColor="#888"
-                                   HeightRequest="44" VerticalOptions="Start"
-                                   Margin="0,2,4,0" HorizontalOptions="End"/>
+                       HeightRequest="48" VerticalOptions="Start"
+                       Margin="0,4,4,0" HorizontalOptions="End"/>
                             <Label Text="2 PM" FontSize="9" TextColor="#888"
-                                   HeightRequest="44" VerticalOptions="Start"
-                                   Margin="0,2,4,0" HorizontalOptions="End"/>
+                       HeightRequest="48" VerticalOptions="Start"
+                       Margin="0,4,4,0" HorizontalOptions="End"/>
                             <Label Text="3 PM" FontSize="9" TextColor="#888"
-                                   HeightRequest="44" VerticalOptions="Start"
-                                   Margin="0,2,4,0" HorizontalOptions="End"/>
+                       HeightRequest="48" VerticalOptions="Start"
+                       Margin="0,4,4,0" HorizontalOptions="End"/>
                             <Label Text="4 PM" FontSize="9" TextColor="#888"
-                                   HeightRequest="44" VerticalOptions="Start"
-                                   Margin="0,2,4,0" HorizontalOptions="End"/>
+                       HeightRequest="48" VerticalOptions="Start"
+                       Margin="0,4,4,0" HorizontalOptions="End"/>
                         </VerticalStackLayout>
 
-                        <!-- Day columns -->
-                        <CollectionView Grid.Column="1"
-                                        ItemsSource="{Binding WeekColumns}"
-                                        ItemsLayout="HorizontalList">
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate x:DataType="vm:CalendarDayColumn">
-                                    <VerticalStackLayout WidthRequest="44" Spacing="0">
-                                        <!-- 7 time slots -->
-                                        <BindableLayout.ItemsSource>
-                                            <x:Array Type="{x:Type vm:CalendarSlot}"/>
-                                        </BindableLayout.ItemsSource>
-                                        <VerticalStackLayout
-                                            BindableLayout.ItemsSource="{Binding Slots}"
-                                            Spacing="0">
+                        <!-- Day columns using BindableLayout on HorizontalStackLayout -->
+                        <ScrollView Grid.Column="1" Orientation="Horizontal"
+                        HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout
+                    BindableLayout.ItemsSource="{Binding WeekColumns}"
+                    Spacing="0">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CalendarDayColumn">
+                                        <VerticalStackLayout WidthRequest="48" Spacing="0"
+                                BindableLayout.ItemsSource="{Binding Slots}">
                                             <BindableLayout.ItemTemplate>
                                                 <DataTemplate x:DataType="vm:CalendarSlot">
-                                                    <Grid HeightRequest="44"
-                                                          WidthRequest="44">
-                                                        <BoxView Color="#F0F0F0"
-                                                                 HeightRequest="0.5"
-                                                                 VerticalOptions="Start"/>
+                                                    <Grid HeightRequest="48" WidthRequest="48">
+                                                        <!-- Hour divider line -->
+                                                        <BoxView Color="#E8E8E8"
+                                                     HeightRequest="0.5"
+                                                     VerticalOptions="Start"
+                                                     HorizontalOptions="Fill"/>
                                                         <!-- Event block -->
                                                         <Border IsVisible="{Binding HasEntry}"
-                                                                BackgroundColor="{Binding Entry.StatusColor}"
-                                                                StrokeShape="RoundRectangle 4"
-                                                                Margin="1,2"
-                                                                Padding="3,2">
+                                                    BackgroundColor="{Binding Entry.StatusColor}"
+                                                    StrokeShape="RoundRectangle 5"
+                                                    Stroke="Transparent"
+                                                    Margin="2,3" Padding="4,3">
                                                             <Border.GestureRecognizers>
                                                                 <TapGestureRecognizer
-                                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                                              Path=BindingContext.SelectAppointmentCommand}"
-                                                                    CommandParameter="{Binding Entry}"/>
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                                  Path=BindingContext.SelectAppointmentCommand}"
+                                                        CommandParameter="{Binding Entry}"/>
                                                             </Border.GestureRecognizers>
-                                                            <VerticalStackLayout Spacing="0">
+                                                            <VerticalStackLayout Spacing="1">
                                                                 <Label Text="{Binding HourLabel}"
-                                                                       FontSize="8"
-                                                                       TextColor="White"
-                                                                       FontAttributes="Bold"/>
+                                                           FontSize="8"
+                                                           TextColor="White"
+                                                           FontAttributes="Bold"
+                                                           LineBreakMode="NoWrap"/>
                                                                 <Label Text="{Binding Entry.PatientName}"
-                                                                       FontSize="7"
-                                                                       TextColor="White"
-                                                                       LineBreakMode="TailTruncation"/>
+                                                           FontSize="7"
+                                                           TextColor="White"
+                                                           LineBreakMode="TailTruncation"/>
                                                             </VerticalStackLayout>
                                                         </Border>
                                                     </Grid>
                                                 </DataTemplate>
                                             </BindableLayout.ItemTemplate>
                                         </VerticalStackLayout>
-                                    </VerticalStackLayout>
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </HorizontalStackLayout>
+                        </ScrollView>
 
                     </Grid>
                 </ScrollView>
@@ -320,11 +344,9 @@
 
             <!-- DETAIL OVERLAY -->
             <Grid IsVisible="{Binding ShowDetail}"
-                  BackgroundColor="#80000000"
-                  ZIndex="10">
-                <Frame Margin="12,50,12,50"
-                       CornerRadius="16" Padding="0"
-                       HasShadow="False" BackgroundColor="White">
+                  BackgroundColor="#80000000" ZIndex="10">
+                <Frame Margin="12,50,12,50" CornerRadius="16"
+                       Padding="0" HasShadow="False" BackgroundColor="White">
                     <Grid RowDefinitions="Auto,*,Auto">
 
                         <Grid Grid.Row="0" BackgroundColor="#4A4A8A"
@@ -336,15 +358,13 @@
                             <Button Grid.Column="1" Text="✕"
                                     BackgroundColor="Transparent"
                                     TextColor="White" FontSize="16"
-                                    WidthRequest="36" HeightRequest="36"
-                                    Padding="0"
+                                    WidthRequest="36" HeightRequest="36" Padding="0"
                                     Command="{Binding CloseDetailCommand}"/>
                         </Grid>
 
                         <ScrollView Grid.Row="1"
                                     BindingContext="{Binding SelectedAppointment}">
                             <VerticalStackLayout Spacing="0">
-
                                 <Grid ColumnDefinitions="Auto,*"
                                       Padding="14,12" ColumnSpacing="12">
                                     <Border Grid.Column="0"
@@ -365,8 +385,7 @@
                                                TextColor="#222"/>
                                         <Border BackgroundColor="{Binding StatusColor}"
                                                 StrokeShape="RoundRectangle 6"
-                                                Stroke="Transparent"
-                                                Padding="7,2"
+                                                Stroke="Transparent" Padding="7,2"
                                                 HorizontalOptions="Start">
                                             <Label Text="{Binding StatusLabel}"
                                                    FontSize="10" FontAttributes="Bold"
@@ -377,25 +396,22 @@
 
                                 <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
 
-                                <Grid Padding="14,10"
-                                      RowDefinitions="Auto,Auto"
-                                      ColumnDefinitions="*,*"
-                                      RowSpacing="10">
+                                <Grid Padding="14,10" RowDefinitions="Auto,Auto"
+                                      ColumnDefinitions="*,*" RowSpacing="10">
                                     <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2">
                                         <Label Text="Contact no." FontSize="10" TextColor="#888"/>
-                                        <Label Text="{Binding Phone}"
-                                               FontSize="13" FontAttributes="Bold" TextColor="#222"/>
+                                        <Label Text="{Binding Phone}" FontSize="13"
+                                               FontAttributes="Bold" TextColor="#222"/>
                                     </VerticalStackLayout>
                                     <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="2">
                                         <Label Text="Email" FontSize="10" TextColor="#888"/>
-                                        <Label Text="{Binding Email}"
-                                               FontSize="11" TextColor="#555"
-                                               LineBreakMode="TailTruncation"/>
+                                        <Label Text="{Binding Email}" FontSize="11"
+                                               TextColor="#555" LineBreakMode="TailTruncation"/>
                                     </VerticalStackLayout>
                                     <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="2">
                                         <Label Text="Date" FontSize="10" TextColor="#888"/>
-                                        <Label Text="{Binding DateDisplay}"
-                                               FontSize="12" FontAttributes="Bold" TextColor="#222"/>
+                                        <Label Text="{Binding DateDisplay}" FontSize="12"
+                                               FontAttributes="Bold" TextColor="#222"/>
                                     </VerticalStackLayout>
                                     <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="2">
                                         <Label Text="Time" FontSize="10" TextColor="#888"/>
@@ -415,22 +431,20 @@
 
                                 <VerticalStackLayout Padding="14,10" Spacing="2">
                                     <Label Text="Service" FontSize="10" TextColor="#888"/>
-                                    <Label Text="{Binding Service}"
-                                           FontSize="13" FontAttributes="Bold" TextColor="#222"/>
+                                    <Label Text="{Binding Service}" FontSize="13"
+                                           FontAttributes="Bold" TextColor="#222"/>
                                 </VerticalStackLayout>
 
                                 <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
 
                                 <VerticalStackLayout Padding="14,10" Spacing="2">
                                     <Label Text="Notes" FontSize="10" TextColor="#888"/>
-                                    <Label Text="{Binding Notes}"
-                                           FontSize="12" TextColor="#555" LineHeight="1.4"/>
-                                    <Label Text="No notes added"
-                                           FontSize="12" TextColor="#BBB"
+                                    <Label Text="{Binding Notes}" FontSize="12"
+                                           TextColor="#555" LineHeight="1.4"/>
+                                    <Label Text="No notes added" FontSize="12" TextColor="#BBB"
                                            IsVisible="{Binding Notes,
                                                Converter={StaticResource StringEmptyConverter}}"/>
                                 </VerticalStackLayout>
-
                             </VerticalStackLayout>
                         </ScrollView>
 
@@ -446,21 +460,16 @@
                             <Button Text="Cancel appointment"
                                     BackgroundColor="Transparent"
                                     BorderColor="#DDDDDD" BorderWidth="1"
-                                    TextColor="#888"
-                                    CornerRadius="10" HeightRequest="44" FontSize="13"
+                                    TextColor="#888" CornerRadius="10"
+                                    HeightRequest="44" FontSize="13"
                                     Command="{Binding CancelAppointmentCommand}"/>
-
                             <Button Text="Delete appointment"
                                     BackgroundColor="Transparent"
-                                    BorderColor="#FFCDD2"
-                                    BorderWidth="1"
-                                    TextColor="#C62828"
-                                    CornerRadius="10"
-                                    HeightRequest="44"
-                                    FontSize="13"
+                                    BorderColor="#FFCDD2" BorderWidth="1"
+                                    TextColor="#C62828" CornerRadius="10"
+                                    HeightRequest="44" FontSize="13"
                                     Command="{Binding DeleteAppointmentCommand}"/>
                         </VerticalStackLayout>
-
                     </Grid>
                 </Frame>
             </Grid>

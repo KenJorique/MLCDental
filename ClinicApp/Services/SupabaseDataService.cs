@@ -332,55 +332,67 @@ namespace ClinicApp.Services
         }
 
         public async Task<string?> SyncToGoogleTasksAsync(
-                string accessToken,
-                string patientName,
-                string service,
-                DateTime appointmentDateTime,
-                string phone,
-                string notes = "")
+             string accessToken,
+             string patientName,
+             string service,
+             DateTime appointmentDateTime,
+             string phone,
+             string notes = "")
         {
             try
             {
-                var payload = new
+                // Format date for display
+                var localTime = appointmentDateTime.Kind == DateTimeKind.Utc
+                    ? appointmentDateTime.ToLocalTime()
+                    : appointmentDateTime;
+
+                var formattedDate = localTime.ToString("MMMM dd, yyyy h:mm tt");
+
+                var task = new
                 {
-                    accessToken,
-                    patientName,
-                    service,
-                    appointmentDateTime = appointmentDateTime
-                                              .ToUniversalTime()
-                                              .ToString("o"),
-                    phone,
-                    notes
+                    title = $"Appointment: {patientName} — {service}",
+                    notes = $"Patient: {patientName}\n" +
+                             $"Service: {service}\n" +
+                             $"Date: {formattedDate}\n" +
+                             $"Phone: {phone}" +
+                             (string.IsNullOrEmpty(notes) ? "" : $"\nNotes: {notes}"),
+                    due = localTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    status = "needsAction"
                 };
 
-                var json = System.Text.Json.JsonSerializer.Serialize(payload);
+                var json = System.Text.Json.JsonSerializer.Serialize(task);
                 var content = new StringContent(
                     json, System.Text.Encoding.UTF8, "application/json");
 
+                // Call Google Tasks API directly — no Edge Function needed
                 using var http = new HttpClient();
                 http.DefaultRequestHeaders.Add(
-                    "Authorization", $"Bearer {_key}");
+                    "Authorization", $"Bearer {accessToken}");
 
                 var response = await http.PostAsync(
-                    $"{_url}/functions/v1/sync-to-calendar", content);
+                    "https://tasks.googleapis.com/tasks/v1/lists/@default/tasks",
+                    content);
 
                 var responseText = await response.Content.ReadAsStringAsync();
                 System.Diagnostics.Debug.WriteLine(
-                    $"[GoogleTasks] Sync result: {responseText}");
+                    $"[GoogleTasks] Response: {responseText}");
 
                 if (response.IsSuccessStatusCode)
                 {
                     var doc = System.Text.Json.JsonDocument.Parse(responseText);
                     return doc.RootElement
-                              .TryGetProperty("taskId", out var id)
+                              .TryGetProperty("id", out var id)
                               ? id.GetString() : null;
                 }
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[GoogleTasks] Failed: {response.StatusCode} — {responseText}");
                 return null;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(
-                    $"[GoogleTasks] SyncToTasks failed: {ex.Message}");
+                    $"[GoogleTasks] Exception: {ex.Message}");
                 return null;
             }
         }
@@ -403,6 +415,47 @@ namespace ClinicApp.Services
             {
                 System.Diagnostics.Debug.WriteLine(
                     $"[CompleteTask] {ex.Message}");
+            }
+        }
+
+        public async Task<string?> GetFreshAccessTokenAsync()
+        {
+            try
+            {
+                var refreshToken = Preferences.Get("google_refresh_token",
+                    "1//04tLkx0PporPuCgYIARAAGAQSNwF-L9IrtBP1_vCvTHOIQfIvnVavedyj6G0ErX6jjRRLnO4Ab0oa9H_3lDrLfiRdXale-LZdWzM");
+
+                if (string.IsNullOrEmpty(refreshToken)) return null;
+
+                using var http = new HttpClient();
+                var body = new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    ["client_id"] = "697851532160-76uhho3a71cif1q0k143g22u6n7ledhf.apps.googleusercontent.com",
+                    ["client_secret"] = "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",
+                    ["refresh_token"] = refreshToken,
+                    ["grant_type"] = "refresh_token"
+                });
+
+                var response = await http.PostAsync(
+                    "https://oauth2.googleapis.com/token", body);
+                var json = await response.Content.ReadAsStringAsync();
+
+                System.Diagnostics.Debug.WriteLine($"[Auth] Token response: {json}");
+
+                var doc = System.Text.Json.JsonDocument.Parse(json);
+                var token = doc.RootElement
+                               .GetProperty("access_token")
+                               .GetString();
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Auth] Fresh token obtained successfully");
+                return token;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Auth] Refresh failed: {ex.Message}");
+                return null;
             }
         }
     }

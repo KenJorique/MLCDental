@@ -33,6 +33,10 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(AddStockPage), typeof(AddStockPage));
             Routing.RegisterRoute(nameof(ReduceStockPage), typeof(ReduceStockPage));
             Routing.RegisterRoute(nameof(StockHistoryPage), typeof(StockHistoryPage));
+
+            Routing.RegisterRoute(nameof(AppointmentPage), typeof(AppointmentPage));
+
+            Routing.RegisterRoute(nameof(GoogleSignInPage), typeof(GoogleSignInPage));
         }
     }
 }

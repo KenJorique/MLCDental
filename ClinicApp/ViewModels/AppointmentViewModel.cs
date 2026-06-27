@@ -133,7 +133,7 @@ namespace ClinicApp.ViewModels
                 };
                 await _db.AddPatient(patient);
 
-                // 2. Save patient to Supabase patients table
+                // 2. Save patient to Supabase
                 var supPatient = new SupabasePatient
                 {
                     FirstName = patient.FirstName,
@@ -156,12 +156,13 @@ namespace ClinicApp.ViewModels
                     Service = booking.Service ?? "",
                     Notes = booking.Notes ?? "",
                     AppointmentDateTime = booking.AppointmentDate
+                                              .ToLocalTime()
                                               .ToString("yyyy-MM-dd HH:mm:ss"),
                     Status = "approved"
                 };
                 await _db.AddAppointmentEntry(localEntry);
 
-                // 4. Create appointment entry in Supabase — syncs to other devices
+                // 4. Create appointment entry in Supabase
                 var supEntry = new SupabaseAppointmentEntry
                 {
                     SupabaseBookingId = booking.Id,
@@ -175,71 +176,72 @@ namespace ClinicApp.ViewModels
                 };
                 await _supabaseData.AddAppointmentEntryAsync(supEntry);
 
-                // 5. Update booking status to approved
+                // 5. Update booking status
                 await _supabaseData.UpdateBookingStatusAsync(booking.Id, "approved");
+
+                // 6. ── Google Tasks sync ───────────────────────────────────
+                System.Diagnostics.Debug.WriteLine("[Approve] Getting fresh Google token...");
+
+                // Always get a fresh token via refresh token — never use hardcoded/expired token
+                var accessToken = await _supabaseData.GetFreshAccessTokenAsync();
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Approve] Token obtained: {(string.IsNullOrEmpty(accessToken) ? "FAILED" : "OK")}");
+
+                if (!string.IsNullOrEmpty(accessToken))
+                {
+                    System.Diagnostics.Debug.WriteLine("[Approve] Syncing to Google Tasks...");
+
+                    var taskId = await _supabaseData.SyncToGoogleTasksAsync(
+                        accessToken,
+                        booking.FullName ?? "",
+                        booking.Service ?? "",
+                        booking.AppointmentDate.Kind == DateTimeKind.Utc
+                            ? booking.AppointmentDate.ToLocalTime()
+                            : booking.AppointmentDate,
+                        booking.Phone ?? "",
+                        booking.Notes ?? "");
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] Google Task result: {taskId ?? "null — sync failed"}");
+
+                    if (!string.IsNullOrEmpty(taskId))
+                    {
+                        var weekEntries = await _db.GetAppointmentsForWeek(
+                            WeekStart(booking.AppointmentDate));
+                        var entry = weekEntries.FirstOrDefault(
+                            e => e.SupabaseBookingId == booking.Id);
+                        if (entry != null)
+                        {
+                            entry.GoogleTaskId = taskId;
+                            await _db.UpdateAppointmentEntry(entry);
+                        }
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[Approve] Could not get Google token — skipping Tasks sync");
+                }
 
                 await Shell.Current.DisplayAlert("Approved",
                     $"{booking.FullName} added to patient list and schedule.", "OK");
 
                 await FetchAndPopulate();
             }
-
-
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Approve] FAILED: {ex.Message}");
                 await Shell.Current.DisplayAlert("Error", $"Failed: {ex.Message}", "OK");
             }
             finally { IsLoading = false; }
+        }
 
-            // After all the existing approve logic, add at the end:
-
-            // Create Google Task for whoever approved (dentist or secretary)
-            if (GoogleTasksService.Instance.IsSignedIn)
-            {
-                var taskId = await GoogleTasksService.Instance
-                    .CreateAppointmentTaskAsync(
-                        booking.FullName ?? "",
-                        booking.Service ?? "",
-                        booking.AppointmentDate,
-                        booking.Phone ?? "",
-                        booking.Notes ?? "");
-
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Approve] Google Task created: {taskId}");
-            }
-
-            // At the end of Approve(), after FetchAndPopulate():
-
-            var accessToken = Preferences.Get("google_access_token", "");
-            if (!string.IsNullOrEmpty(accessToken))
-            {
-                var taskId = await _supabaseData.SyncToGoogleTasksAsync(
-                    accessToken,
-                    booking.FullName ?? "",
-                    booking.Service ?? "",
-                    booking.AppointmentDate,
-                    booking.Phone ?? "",
-                    booking.Notes ?? "");
-
-                if (!string.IsNullOrEmpty(taskId))
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[Approve] Google Task created: {taskId}");
-
-                    // Save taskId to AppointmentEntry for later complete/delete
-                    // Update local entry
-                    var entries = await _db.GetAppointmentsForWeek(
-                        booking.AppointmentDate.AddDays(-7));
-                    var entry = entries.FirstOrDefault(
-                        e => e.SupabaseBookingId == booking.Id);
-                    if (entry != null)
-                    {
-                        entry.GoogleTaskId = taskId;
-                        await _db.UpdateAppointmentEntry(entry);
-                    }
-                }
-            }
+        // Helper to get week start for date lookup
+        private DateTime WeekStart(DateTime date)
+        {
+            var diff = (7 + (date.DayOfWeek - DayOfWeek.Sunday)) % 7;
+            return date.AddDays(-diff).Date;
         }
 
         [RelayCommand]

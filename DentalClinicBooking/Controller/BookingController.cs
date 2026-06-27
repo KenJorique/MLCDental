@@ -29,26 +29,11 @@ namespace DentalClinicBooking.Controller
 
             try
             {
-                // 1. Insert patient
-                var patient = new Patient
-                {
-                    FullName = model.FullName,
-                    Phone = model.Phone,
-                    Email = model.Email,
-                    DateOfBirth = model.DateOfBirth.HasValue
-                                ? model.DateOfBirth.Value
-                                : (DateTime?)null
-                };
-                var patientResult = await _supabase.Client
-                    .From<Patient>()
-                    .Insert(patient);
-                var newPatient = patientResult.Models.First();
-
-                // 2. Insert booking linked to patient
+                // Only insert booking — NO patient insert here
+                // Patient gets created when dentist approves in the MAUI app
                 var booking = new Booking
                 {
-                    PatientId = newPatient.Id,
-                    FullName = model.FullName,    
+                    FullName = model.FullName,
                     Phone = model.Phone,
                     Email = model.Email ?? "",
                     DateOfBirth = model.DateOfBirth,
@@ -57,19 +42,22 @@ namespace DentalClinicBooking.Controller
                     Notes = model.Notes,
                     Status = "pending"
                 };
+
                 await _supabase.Client
                     .From<Booking>()
                     .Insert(booking);
 
                 TempData["PatientName"] = model.FullName;
-                TempData["AppointmentDate"] = model.AppointmentDate.ToString("MMMM dd, yyyy h:mm tt");
+                TempData["AppointmentDate"] = model.AppointmentDate
+                                                   .ToString("MMMM dd, yyyy h:mm tt");
                 TempData["Service"] = model.Service;
 
                 return RedirectToAction("Confirmation");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", "Booking failed. Please try again. " + ex.Message);
+                ModelState.AddModelError("",
+                    "Booking failed. Please try again. " + ex.Message);
                 return View(model);
             }
         }

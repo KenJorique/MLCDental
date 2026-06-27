@@ -9,8 +9,8 @@ namespace DentalClinicBooking.Models
         [PrimaryKey("id", false)]
         public string Id { get; set; } = string.Empty;
 
-        [Column("patient_id")]
-        public string PatientId { get; set; } = string.Empty;
+        //[Column("patient_id")]
+        //public string PatientId { get; set; } = string.Empty;
 
         [Column("appointment_date")]
         public DateTime AppointmentDate { get; set; }
