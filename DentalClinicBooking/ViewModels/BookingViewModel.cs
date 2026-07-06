@@ -29,7 +29,7 @@ namespace DentalClinicBooking.ViewModels
         public DateTime AppointmentDate { get; set; } = DateTime.Now.AddDays(1).Date.AddHours(10).AddMinutes(30);
 
         // Add these helper properties for JS validation:
-        public string MinTime => "10:30";
+        public string MinTime => "10:00";
         public string MaxTime => "15:00"; // 3:30 PM is last slot (30 min before 4PM closing)
 
         [Required(ErrorMessage = "Please select a service")]

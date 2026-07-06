@@ -1,5 +1,6 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Services;
+using ClinicApp.Views;
 using ClinicApp.Views.CephalometricRelated;
 using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.PatientsRelated;
@@ -276,6 +277,16 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             await Shell.Current.GoToAsync(
                 $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}" +
                 $"&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
+        }
+
+        [RelayCommand]
+        async Task ViewTransactions(PatientCardViewModel card)
+        {
+            if (card == null) return;
+            await Shell.Current.GoToAsync(
+                $"{nameof(TransactionPage)}" +
+                $"?patientId={card.Patient.SupabaseId}" +
+                $"&patientName={Uri.EscapeDataString(card.Patient.FullName)}");
         }
     }
 }

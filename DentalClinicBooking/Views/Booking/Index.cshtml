@@ -94,19 +94,14 @@
                         <label class="form-label fw-semibold">Preferred Appointment Time</label>
                         <select id="apptTime" name="apptTime" class="form-select">
                             <option value="">— Select a time slot —</option>
-                            <option value="10:30">10:30 AM</option>
+                            <option value="10:00">10:00 AM</option>
                             <option value="11:00">11:00 AM</option>
-                            <option value="11:30">11:30 AM</option>
                             <option value="12:00">12:00 PM</option>
-                            <option value="12:30">12:30 PM</option>
                             <option value="13:00">1:00 PM</option>
-                            <option value="13:30">1:30 PM</option>
                             <option value="14:00">2:00 PM</option>
-                            <option value="14:30">2:30 PM</option>
-                            <option value="15:00">3:00 PM</option>
                             <option value="15:00">3:00 PM</option>
                         </select>
-                        <small class="text-muted">Clinic hours: 10:30 AM – 4:00 PM</small>
+                        <small class="text-muted">Clinic hours: 10:00 AM – 4:00 PM</small>
                         <div id="timeError" class="text-danger small d-none">
                             Please select a time slot.
                         </div>
@@ -136,7 +131,7 @@
                     <i class="bi bi-clock text-primary"></i>
                     <div>
                         <div class="fw-semibold small">Clinic Hours</div>
-                        <div class="text-muted small">Monday – Saturday: 10:30 AM – 4:00 PM</div>
+                        <div class="text-muted small">Monday – Saturday: 10:00 AM – 4:00 PM</div>
                         <div class="text-muted small">Sunday: Closed</div>
                     </div>
                 </div>
@@ -157,11 +152,11 @@
         const form      = document.querySelector('form');
 
         // Combine date + time into the hidden AppointmentDate field on any change
-        function combineDateTime() {
+                      function combineDateTime() {
             const d = dateInput.value;
-            const t = timeInput.value;
+            const t = apptTime.value;
             if (d && t) {
-                hiddenDt.value = `${d}T${t}:00`;
+                hiddenDt.value = `${d}T${t}:00`;   // :00 for full hour
                 timeError.classList.add('d-none');
             } else {
                 hiddenDt.value = '';

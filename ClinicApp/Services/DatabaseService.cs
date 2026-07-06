@@ -956,4 +956,27 @@ public class DatabaseService
         await Init();
         await _database!.DeleteAsync(entry);
     }
+
+    public async Task CleanupPastLocalAppointmentsAsync()
+    {
+        await Init();
+        try
+        {
+            var now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+            // Delete completed and cancelled past appointments from local SQLite
+            var deleted = await _database!.ExecuteAsync(
+                "DELETE FROM AppointmentEntry " +
+                "WHERE Status IN ('completed', 'cancelled') " +
+                "AND AppointmentDateTime < ?", now);
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[LocalCleanup] Deleted {deleted} local past appointments");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[LocalCleanup] Error: {ex.Message}");
+        }
+    }
 }

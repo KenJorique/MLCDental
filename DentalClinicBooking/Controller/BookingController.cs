@@ -24,40 +24,33 @@ namespace DentalClinicBooking.Controller
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(BookingViewModel model)
         {
-            if (!ModelState.IsValid)
-                return View(model);
+            if (!ModelState.IsValid) return View(model);
 
             try
             {
-                // Only insert booking — NO patient insert here
-                // Patient gets created when dentist approves in the MAUI app
                 var booking = new Booking
                 {
                     FullName = model.FullName,
                     Phone = model.Phone,
                     Email = model.Email ?? "",
                     DateOfBirth = model.DateOfBirth,
-                    AppointmentDate = model.AppointmentDate,
+                    AppointmentDate = model.AppointmentDate.ToUniversalTime(), // Convert to UTC
                     Service = model.Service,
                     Notes = model.Notes,
                     Status = "pending"
                 };
 
-                await _supabase.Client
-                    .From<Booking>()
-                    .Insert(booking);
+                await _supabase.Client.From<Booking>().Insert(booking);
 
                 TempData["PatientName"] = model.FullName;
-                TempData["AppointmentDate"] = model.AppointmentDate
-                                                   .ToString("MMMM dd, yyyy h:mm tt");
+                TempData["AppointmentDate"] = model.AppointmentDate.ToString("MMMM dd, yyyy h:mm tt");
                 TempData["Service"] = model.Service;
 
                 return RedirectToAction("Confirmation");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("",
-                    "Booking failed. Please try again. " + ex.Message);
+                ModelState.AddModelError("", "Booking failed: " + ex.Message);
                 return View(model);
             }
         }

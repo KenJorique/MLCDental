@@ -66,7 +66,8 @@
             <Button Grid.Column="0" Text="‹" FontSize="18"
                     BackgroundColor="Transparent" TextColor="#4A4A8A"
                     HeightRequest="30" Padding="0"
-                    Command="{Binding PreviousWeekCommand}"/>
+                    Command="{Binding PreviousWeekCommand}"
+                    IsEnabled="{Binding CanGoPrevious}"/>
             <Label Grid.Column="1"
                    Text="{Binding DateRangeLabel}"
                    FontSize="12" FontAttributes="Bold"
@@ -92,7 +93,7 @@
                 <ScrollView>
                     <VerticalStackLayout Padding="12" Spacing="0">
 
-                        <Label Text="Today" FontSize="13" FontAttributes="Bold"
+                        <Label Text="{Binding TodayLabel}" FontSize="13" FontAttributes="Bold"
                                TextColor="#4A4A8A" Margin="4,0,0,6"/>
 
                         <Label Text="No appointments today"
@@ -152,7 +153,7 @@
                             </CollectionView.ItemTemplate>
                         </CollectionView>
 
-                        <Label Text="This week" FontSize="13" FontAttributes="Bold"
+                        <Label Text="{Binding WeekLabel}" FontSize="13" FontAttributes="Bold"
                                TextColor="#4A4A8A" Margin="4,12,0,6"/>
 
                         <Label Text="No other appointments this week"
@@ -221,125 +222,15 @@
                     </VerticalStackLayout>
                 </ScrollView>
             </RefreshView>
-
             <!-- CALENDAR VIEW -->
-            <Grid IsVisible="{Binding IsCalendarView}"
-      RowDefinitions="44,*">
-
-                <!-- Day headers -->
-                <ScrollView Grid.Row="0" Orientation="Horizontal"
-                HorizontalScrollBarVisibility="Never">
-                    <HorizontalStackLayout x:Name="DayHeaderLayout"
-                               BindableLayout.ItemsSource="{Binding WeekColumns}"
-                               Spacing="0">
-                        <BindableLayout.ItemTemplate>
-                            <DataTemplate x:DataType="vm:CalendarDayColumn">
-                                <VerticalStackLayout WidthRequest="48"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center"
-                        Spacing="1" Padding="0,4">
-                                    <Label Text="{Binding DayLabel}"
-                               FontSize="8" TextColor="#888"
-                               HorizontalOptions="Center"/>
-                                    <Border WidthRequest="26" HeightRequest="26"
-                                BackgroundColor="{Binding CircleBg}"
-                                StrokeShape="RoundRectangle 13"
-                                Stroke="Transparent"
-                                HorizontalOptions="Center">
-                                        <Label Text="{Binding DayNum}"
-                                   FontSize="11" FontAttributes="Bold"
-                                   TextColor="{Binding NumColor}"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"/>
-                                    </Border>
-                                </VerticalStackLayout>
-                            </DataTemplate>
-                        </BindableLayout.ItemTemplate>
-                    </HorizontalStackLayout>
-                </ScrollView>
-
-                <!-- Time grid body -->
-                <ScrollView Grid.Row="1" Orientation="Vertical">
-                    <Grid ColumnDefinitions="36,*">
-
-                        <!-- Time labels column -->
-                        <VerticalStackLayout Grid.Column="0" Spacing="0">
-                            <Label Text="10 AM" FontSize="9" TextColor="#888"
-                       HeightRequest="48" VerticalOptions="Start"
-                       Margin="0,4,4,0" HorizontalOptions="End"/>
-                            <Label Text="11 AM" FontSize="9" TextColor="#888"
-                       HeightRequest="48" VerticalOptions="Start"
-                       Margin="0,4,4,0" HorizontalOptions="End"/>
-                            <Label Text="12 PM" FontSize="9" TextColor="#888"
-                       HeightRequest="48" VerticalOptions="Start"
-                       Margin="0,4,4,0" HorizontalOptions="End"/>
-                            <Label Text="1 PM" FontSize="9" TextColor="#888"
-                       HeightRequest="48" VerticalOptions="Start"
-                       Margin="0,4,4,0" HorizontalOptions="End"/>
-                            <Label Text="2 PM" FontSize="9" TextColor="#888"
-                       HeightRequest="48" VerticalOptions="Start"
-                       Margin="0,4,4,0" HorizontalOptions="End"/>
-                            <Label Text="3 PM" FontSize="9" TextColor="#888"
-                       HeightRequest="48" VerticalOptions="Start"
-                       Margin="0,4,4,0" HorizontalOptions="End"/>
-                            <Label Text="4 PM" FontSize="9" TextColor="#888"
-                       HeightRequest="48" VerticalOptions="Start"
-                       Margin="0,4,4,0" HorizontalOptions="End"/>
-                        </VerticalStackLayout>
-
-                        <!-- Day columns using BindableLayout on HorizontalStackLayout -->
-                        <ScrollView Grid.Column="1" Orientation="Horizontal"
-                        HorizontalScrollBarVisibility="Never">
-                            <HorizontalStackLayout
-                    BindableLayout.ItemsSource="{Binding WeekColumns}"
-                    Spacing="0">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:CalendarDayColumn">
-                                        <VerticalStackLayout WidthRequest="48" Spacing="0"
-                                BindableLayout.ItemsSource="{Binding Slots}">
-                                            <BindableLayout.ItemTemplate>
-                                                <DataTemplate x:DataType="vm:CalendarSlot">
-                                                    <Grid HeightRequest="48" WidthRequest="48">
-                                                        <!-- Hour divider line -->
-                                                        <BoxView Color="#E8E8E8"
-                                                     HeightRequest="0.5"
-                                                     VerticalOptions="Start"
-                                                     HorizontalOptions="Fill"/>
-                                                        <!-- Event block -->
-                                                        <Border IsVisible="{Binding HasEntry}"
-                                                    BackgroundColor="{Binding Entry.StatusColor}"
-                                                    StrokeShape="RoundRectangle 5"
-                                                    Stroke="Transparent"
-                                                    Margin="2,3" Padding="4,3">
-                                                            <Border.GestureRecognizers>
-                                                                <TapGestureRecognizer
-                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                                  Path=BindingContext.SelectAppointmentCommand}"
-                                                        CommandParameter="{Binding Entry}"/>
-                                                            </Border.GestureRecognizers>
-                                                            <VerticalStackLayout Spacing="1">
-                                                                <Label Text="{Binding HourLabel}"
-                                                           FontSize="8"
-                                                           TextColor="White"
-                                                           FontAttributes="Bold"
-                                                           LineBreakMode="NoWrap"/>
-                                                                <Label Text="{Binding Entry.PatientName}"
-                                                           FontSize="7"
-                                                           TextColor="White"
-                                                           LineBreakMode="TailTruncation"/>
-                                                            </VerticalStackLayout>
-                                                        </Border>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </BindableLayout.ItemTemplate>
-                                        </VerticalStackLayout>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </HorizontalStackLayout>
-                        </ScrollView>
-
-                    </Grid>
-                </ScrollView>
+            <Grid IsVisible="{Binding IsCalendarView}" BackgroundColor="#F5F5F5">
+                <GraphicsView x:Name="CalendarGraphics"
+                  HeightRequest="620"
+                  WidthRequest="460"
+                  Drawable="{Binding CalendarDrawable}"
+                  BackgroundColor="#F5F5F5"
+                  VerticalOptions="Fill"
+                  HorizontalOptions="Fill" />
             </Grid>
 
             <!-- DETAIL OVERLAY -->

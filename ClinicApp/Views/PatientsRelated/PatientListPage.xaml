@@ -35,7 +35,7 @@
                                     </Label.FormattedText>
                                 </Label>
 
-                                <Grid ColumnDefinitions="*,*,*,*"
+                                <Grid ColumnDefinitions="*,*,*,*,*"
                                       ColumnSpacing="8"
                                       IsVisible="{Binding IsExpanded}">
 
@@ -62,6 +62,15 @@
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                                       Path=BindingContext.GoToCephalometricCommand}"
                                             CommandParameter="{Binding .}" />
+
+                                    <!-- Add as Grid.Column="4" or in a new row -->
+                                    <Button Grid.Column="4"
+                                            Text="💳"
+                                            HeightRequest="80"
+                                            FontSize="28"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.ViewTransactionsCommand}"
+                                            CommandParameter="{Binding .}"/>
 
                                 </Grid>
                             </VerticalStackLayout>

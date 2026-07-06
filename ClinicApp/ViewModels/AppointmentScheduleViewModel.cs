@@ -2,6 +2,7 @@
 using ClinicApp.Models;
 using ClinicApp.Services;
 using ClinicApp.Views;
+using ClinicApp.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -16,12 +17,15 @@ namespace ClinicApp.ViewModels
         // Add this field to track the Supabase appointment_entries UUID
         private string _selectedSupabaseEntryId = string.Empty;
 
+        // Calendar drawable — GraphicsView renders this
+        public CalendarDrawable CalendarDrawable { get; } = new();
+        public event Action? CalendarNeedsRedraw;
         public ObservableCollection<AppointmentEntry> TodayAppointments { get; } = new();
         public ObservableCollection<AppointmentEntry> WeekAppointments { get; } = new();
 
         // Calendar grid — 7 days x time slots
         public ObservableCollection<CalendarDayColumn> WeekColumns { get; } = new();
-
+        [ObservableProperty] private bool canGoPrevious = true;
         [ObservableProperty] private bool isListView = true;
         [ObservableProperty] private bool isCalendarView;
         [ObservableProperty] private bool isRefreshing;
@@ -34,6 +38,8 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private int weekCount;
         [ObservableProperty] private int pendingBookingsCount;
         [ObservableProperty] private bool hasPendingBookings;
+        [ObservableProperty] private string todayLabel = "Today";
+        [ObservableProperty]  private string weekLabel = "This week";
 
         [RelayCommand]
         async Task GoToPending()
@@ -50,6 +56,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
+
         public AppointmentScheduleViewModel(DatabaseService db, SupabaseDataService supabaseData)
         {
             _db = db;
@@ -62,7 +69,9 @@ namespace ClinicApp.ViewModels
             var ws = WeekStart;
             var we = ws.AddDays(6);
             DateRangeLabel = $"{ws:MMM d} – {we:d, yyyy}";
+            UpdateListLabels();
         }
+        
 
         [RelayCommand]
         void ShowList()
@@ -72,18 +81,31 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
-        void ShowCalendar()
+        async void ShowCalendar()
         {
             IsListView = false;
             IsCalendarView = true;
+
+            // Force load and redraw
+            await LoadAppointments();
+            CalendarNeedsRedraw?.Invoke();
         }
 
         [RelayCommand]
         async Task PreviousWeek()
         {
-            CurrentDate = CurrentDate.AddDays(-7);
+            var newDate = CurrentDate.AddDays(-7);
+
+            // Prevent going before current week
+            if (newDate.Date < DateTime.Today.AddDays(-6)) // Allow current week only
+            {
+                return;
+            }
+
+            CurrentDate = newDate;
             UpdateDateLabel();
             await LoadAppointments();
+            CalendarNeedsRedraw?.Invoke();
         }
 
         [RelayCommand]
@@ -91,7 +113,9 @@ namespace ClinicApp.ViewModels
         {
             CurrentDate = CurrentDate.AddDays(7);
             UpdateDateLabel();
+            UpdateCanGoPrevious();
             await LoadAppointments();
+            CalendarNeedsRedraw?.Invoke();
         }
 
         [RelayCommand]
@@ -99,7 +123,37 @@ namespace ClinicApp.ViewModels
         {
             CurrentDate = DateTime.Today;
             UpdateDateLabel();
+            UpdateCanGoPrevious();
             await LoadAppointments();
+            CalendarNeedsRedraw?.Invoke();
+        }
+
+        // Add this method
+        private void UpdateCanGoPrevious()
+        {
+            CanGoPrevious = WeekStart.Date >= DateTime.Today.AddDays(-6); // Current week or future
+        }
+
+        private void UpdateListLabels()
+        {
+            var weekStartDate = WeekStart.Date;
+            var today = DateTime.Today.Date;
+
+            if (weekStartDate == today.AddDays(-(int)today.DayOfWeek).Date) // Current week
+            {
+                TodayLabel = "Today";
+                WeekLabel = "This week";
+            }
+            else if (weekStartDate > today) // Future week
+            {
+                TodayLabel = weekStartDate.ToString("dddd");
+                WeekLabel = "Week of " + weekStartDate.ToString("MMMM d");
+            }
+            else // Past week
+            {
+                TodayLabel = weekStartDate.ToString("dddd");
+                WeekLabel = "Week of " + weekStartDate.ToString("MMMM d");
+            }
         }
 
         [RelayCommand]
@@ -244,6 +298,12 @@ namespace ClinicApp.ViewModels
             finally { IsRefreshing = false; }
         }
 
+        [RelayCommand]
+        void RefreshCalendar()
+        {
+            CalendarNeedsRedraw?.Invoke();
+        }
+
         public async Task LoadAppointments()
         {
             if (IsBusy) return;
@@ -252,18 +312,14 @@ namespace ClinicApp.ViewModels
             {
                 var weekEnd = WeekStart.AddDays(7);
 
-                // ── Pull from both sources in parallel ───────────────────
-                var bookingsTask = _supabaseData.GetBookingsForWeekAsync(
-                                            WeekStart, weekEnd);
+                var bookingsTask = _supabaseData.GetBookingsForWeekAsync(WeekStart, weekEnd);
                 var entriesTask = _supabaseData.GetAppointmentEntriesAsync();
-
                 await Task.WhenAll(bookingsTask, entriesTask);
 
                 var bookings = bookingsTask.Result;
                 var entries = entriesTask.Result;
 
-                // ── Convert SupabaseBookings → AppointmentEntry ───────────
-                // These are pending/rescheduled bookings from the web
+                // Booking entries
                 var bookingEntries = bookings.Select(b => new AppointmentEntry
                 {
                     SupabaseBookingId = b.Id,
@@ -272,20 +328,21 @@ namespace ClinicApp.ViewModels
                     Email = b.Email ?? "",
                     Service = b.Service ?? "",
                     Notes = b.Notes ?? "",
-                    AppointmentDateTime = b.AppointmentDate.Kind == DateTimeKind.Utc
-                                        ? b.AppointmentDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
-                                        : b.AppointmentDate.ToString("yyyy-MM-dd HH:mm:ss"),
-                    Status = b.Status  // pending / rescheduled
+                    AppointmentDateTime = b.AppointmentDate.ToLocalTime()
+                        .ToString("yyyy-MM-dd HH:mm:ss"),
+                    Status = b.Status
                 }).ToList();
 
                 // ── Convert approved AppointmentEntries ───────────────────
                 var approvedEntries = entries
                     .Where(e =>
                     {
-                        if (!DateTime.TryParse(
-                                e.AppointmentDateTime.ToString(), out var dt))
+                        if (string.IsNullOrEmpty(e.AppointmentDateTime.ToString()))
                             return false;
-                        return dt >= WeekStart && dt < weekEnd;
+                        if (!DateTime.TryParse(e.AppointmentDateTime.ToString(), out var dt))
+                            return false;
+                        var localDt = dt.ToLocalTime();
+                        return localDt >= WeekStart && localDt < weekEnd;
                     })
                     .Select(e => new AppointmentEntry
                     {
@@ -295,14 +352,12 @@ namespace ClinicApp.ViewModels
                         Email = e.Email ?? "",
                         Service = e.Service ?? "",
                         Notes = e.Notes ?? "",
-                        AppointmentDateTime = e.AppointmentDateTime
-                                                 .ToLocalTime()
-                                                 .ToString("yyyy-MM-dd HH:mm:ss"),
+                        AppointmentDateTime = e.AppointmentDateTime.ToLocalTime()
+        .ToString("yyyy-MM-dd HH:mm:ss"),
                         Status = e.Status
                     }).ToList();
 
-                // ── Merge — avoid duplicates by SupabaseBookingId ─────────
-                // Approved entries take priority over pending booking entries
+                // ── Merge
                 var approvedIds = approvedEntries
                     .Select(e => e.SupabaseBookingId)
                     .ToHashSet();
@@ -316,7 +371,18 @@ namespace ClinicApp.ViewModels
                     .OrderBy(e => e.AppointmentDateTimeParsed)
                     .ToList();
 
-                // ── Populate Today ────────────────────────────────────────
+                // ── Force round to nearest hour (no :30) ─────────────────────
+                foreach (var entry in allEntries)
+                {
+                    var dt = entry.AppointmentDateTimeParsed;
+                    if (dt != DateTime.MinValue)
+                    {
+                        var rounded = new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, 0, 0);
+                        entry.AppointmentDateTime = rounded.ToString("yyyy-MM-dd HH:mm:ss");
+                    }
+                }
+
+                // ── Populate Today
                 var todayEntries = allEntries
                     .Where(e => e.AppointmentDateTimeParsed.Date == DateTime.Today)
                     .ToList();
@@ -329,7 +395,7 @@ namespace ClinicApp.ViewModels
                     TodayCount = TodayAppointments.Count;
                 });
 
-                // ── Populate Week ─────────────────────────────────────────
+                // ── Populate Week
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     WeekAppointments.Clear();
@@ -338,51 +404,54 @@ namespace ClinicApp.ViewModels
                     WeekCount = WeekAppointments.Count;
                 });
 
-                // ── Build calendar ────────────────────────────────────────
+                // ── Build calendar
                 BuildCalendarColumns(allEntries);
+                UpdateListLabels();
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[LoadAppointments] Today={TodayCount} Week={WeekCount}");
 
-                // At the end of LoadAppointments(), after building columns:
                 var pending = await _supabaseData.GetBookingsByStatusAsync("pending");
                 PendingBookingsCount = pending.Count;
                 HasPendingBookings = PendingBookingsCount > 0;
+
+                System.Diagnostics.Debug.WriteLine("=== LOAD APPOINTMENTS FINISHED ===");
+                System.Diagnostics.Debug.WriteLine($"Total entries: {allEntries.Count}");
+                foreach (var e in allEntries.Take(5))
+                {
+                    System.Diagnostics.Debug.WriteLine($"  - {e.PatientName} at {e.AppointmentDateTimeParsed:yyyy-MM-dd HH:mm}");
+                }
             }
+
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[LoadAppointments] ERROR: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[LoadAppointments] ERROR: {ex.Message}");
             }
-            finally { IsBusy = false; }
+
+
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         private void BuildCalendarColumns(List<AppointmentEntry> entries)
         {
-            var hours = new[] { 10, 11, 12, 13, 14, 15, 16 };
-            var newColumns = new ObservableCollection<CalendarDayColumn>();
-
-            System.Diagnostics.Debug.WriteLine(
-                $"[Calendar] Building. Entries: {entries.Count}");
-            foreach (var e in entries)
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Calendar] Entry: {e.PatientName} @ {e.AppointmentDateTime} → parsed={e.AppointmentDateTimeParsed}");
+            var hours = new[] { 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            var newColumns = new List<CalendarDayColumn>();
 
             for (int d = 0; d < 7; d++)
             {
                 var day = WeekStart.AddDays(d).Date;
-                var dayEntries = entries
-                    .Where(a => a.AppointmentDateTimeParsed.Date == day)
-                    .ToList();
+                var dayEntries = entries.Where(a => a.AppointmentDateTimeParsed.Date == day).ToList();
 
-                var slots = new ObservableCollection<CalendarSlot>(
-                    hours.Select(h =>
-                    {
-                        // Match by hour — covers both :00 and :30 slots
-                        var match = dayEntries.FirstOrDefault(
-                            a => a.AppointmentDateTimeParsed.Hour == h);
-                        return new CalendarSlot { Hour = h, Entry = match };
-                    }));
+                var slots = new ObservableCollection<CalendarSlot>();
+
+                foreach (var h in hours)
+                {
+                    var matching = dayEntries.FirstOrDefault(a => a.AppointmentDateTimeParsed.Hour == h);
+                    slots.Add(new CalendarSlot { Hour = h, Entry = matching });
+                }
 
                 newColumns.Add(new CalendarDayColumn
                 {
@@ -395,10 +464,11 @@ namespace ClinicApp.ViewModels
             }
 
             WeekColumns.Clear();
-            foreach (var col in newColumns)
-                WeekColumns.Add(col);
+            foreach (var col in newColumns) WeekColumns.Add(col);
 
-            OnPropertyChanged(nameof(WeekColumns));
+            CalendarDrawable.Columns = newColumns;
+            OnPropertyChanged(nameof(CalendarDrawable));
+            CalendarNeedsRedraw?.Invoke();
         }
 
         [RelayCommand]

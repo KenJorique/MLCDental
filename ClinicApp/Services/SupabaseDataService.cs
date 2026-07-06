@@ -458,5 +458,204 @@ namespace ClinicApp.Services
                 return null;
             }
         }
+
+        public async Task CleanupPastAppointmentsAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var now = DateTime.UtcNow;
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Cleanup] Starting cleanup for appointments before {now:yyyy-MM-dd HH:mm}");
+
+                // Get all appointment entries that are past and completed/cancelled
+                var entries = await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Get();
+
+                var toDelete = entries.Models
+                    .Where(e => (e.Status == "completed" || e.Status == "cancelled")
+                             && e.AppointmentDateTime < now)
+                    .ToList();
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Cleanup] Found {toDelete.Count} entries to delete");
+
+                foreach (var entry in toDelete)
+                {
+                    // Delete appointment entry
+                    await _client!.From<SupabaseAppointmentEntry>().Delete(entry);
+
+                    // Also delete the linked booking if it exists
+                    if (!string.IsNullOrEmpty(entry.SupabaseBookingId))
+                    {
+                        try
+                        {
+                            var booking = await _client!
+                                .From<SupabaseBooking>()
+                                .Where(b => b.Id == entry.SupabaseBookingId)
+                                .Single();
+
+                            if (booking != null)
+                                await _client!.From<SupabaseBooking>().Delete(booking);
+                        }
+                        catch
+                        {
+                            // Booking already deleted — safe to ignore
+                        }
+                    }
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Cleanup] Deleted entry for {entry.PatientName} " +
+                        $"({entry.Status}) on {entry.AppointmentDateTime:MMM dd}");
+                }
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Cleanup] Done. {toDelete.Count} entries cleaned up.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Cleanup] Error: {ex.Message}");
+            }
+        }
+
+        // ── Treatment Records ─────────────────────────────────────────
+
+        public async Task<SupabaseTreatmentRecord?> AddTreatmentRecordAsync(
+            SupabaseTreatmentRecord record)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTreatmentRecord>()
+                    .Insert(record);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] AddTreatmentRecord: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<SupabaseTreatmentRecord>> GetTreatmentRecordsAsync(
+            string patientId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTreatmentRecord>()
+                    .Where(r => r.PatientId == patientId)
+                    .Order("visit_date",
+                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseTreatmentRecord>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetTreatmentRecords: {ex.Message}");
+                return new List<SupabaseTreatmentRecord>();
+            }
+        }
+
+        // ── Transactions ──────────────────────────────────────────────
+
+        public async Task<SupabaseTransaction?> AddTransactionAsync(
+            SupabaseTransaction transaction)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTransaction>()
+                    .Insert(transaction);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] AddTransaction: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<SupabaseTransaction>> GetTransactionsAsync(
+            string patientId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTransaction>()
+                    .Where(t => t.PatientId == patientId)
+                    .Order("created_at",
+                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseTransaction>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetTransactions: {ex.Message}");
+                return new List<SupabaseTransaction>();
+            }
+        }
+
+        public async Task<List<SupabaseTransaction>> GetUnpaidTransactionsAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTransaction>()
+                    .Where(t => t.PaymentStatus != "paid")
+                    .Order("created_at",
+                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseTransaction>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetUnpaidTransactions: {ex.Message}");
+                return new List<SupabaseTransaction>();
+            }
+        }
+
+        public async Task<bool> RecordPaymentAsync(
+            string transactionId, decimal amountToPay)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var result = await _client!
+                    .From<SupabaseTransaction>()
+                    .Where(t => t.Id == transactionId)
+                    .Single();
+
+                if (result == null) return false;
+
+                result.AmountPaid += amountToPay;
+                result.PaymentDate = DateTime.UtcNow;
+                result.PaymentStatus = result.AmountPaid >= result.TotalAmount
+                    ? "paid" : "partial";
+
+                await _client!.From<SupabaseTransaction>().Update(result);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] RecordPayment: {ex.Message}");
+                return false;
+            }
+        }
     }
 }

@@ -25,8 +25,15 @@ namespace ClinicApp.Models
         public string CreatedAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
         [Ignore]
-        public DateTime AppointmentDateTimeParsed =>
-            DateTime.TryParse(AppointmentDateTime, out var dt) ? dt : DateTime.MinValue;
+        public DateTime AppointmentDateTimeParsed
+        {
+            get
+            {
+                if (DateTime.TryParse(AppointmentDateTime, out var dt))
+                    return dt.ToLocalTime();   // Ensure local
+                return DateTime.MinValue;
+            }
+        }
 
         [Ignore]
         public string TimeDisplay =>
@@ -55,6 +62,7 @@ namespace ClinicApp.Models
                     ? PatientName[0].ToString().ToUpper() : "?";
             }
         }
+
 
         [Ignore]
         public Color StatusColor => Status switch

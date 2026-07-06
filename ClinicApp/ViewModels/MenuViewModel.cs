@@ -6,56 +6,105 @@ using ClinicApp.Views.UsersRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace ClinicApp.ViewModels;
-
-public partial class MenuViewModel : ObservableObject
+namespace ClinicApp.ViewModels
 {
-    [ObservableProperty] private string googleEmail = "Not connected";
-    [ObservableProperty] private string googleButtonText = "Connect";
-
-    // Remove 'override' keyword — ObservableObject doesn't have OnAppearing
-    public void OnAppearing()
+    public partial class MenuViewModel : ObservableObject
     {
-        var isSignedIn = Preferences.Get("google_signed_in", false);
-        GoogleEmail = isSignedIn
-            ? Preferences.Get("google_email", "Connected")
-            : "Not connected";
-        GoogleButtonText = isSignedIn ? "Disconnect" : "Connect";
-    }
+        [ObservableProperty] private string googleEmail = "Not connected";
+        [ObservableProperty] private string googleButtonText = "Connect";
+        [ObservableProperty] private bool isGoogleConnected;
 
-    [RelayCommand]
-    async Task GoogleSignIn()
-    {
-        if (Preferences.Get("google_signed_in", false))
+        public void OnAppearing()
         {
-            // Sign out
-            GoogleTasksService.Instance.SignOut();
-            Preferences.Set("google_signed_in", false);
-            Preferences.Set("google_email", "");
-            GoogleEmail = "Not connected";
-            GoogleButtonText = "Connect";
+            try
+            {
+                var isSignedIn = Preferences.Get("google_signed_in", false);
+                IsGoogleConnected = isSignedIn;
+                GoogleEmail = isSignedIn
+                    ? Preferences.Get("google_email", "Connected")
+                    : "Not connected";
+                GoogleButtonText = isSignedIn ? "Disconnect" : "Connect";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MenuViewModel] OnAppearing error: {ex.Message}");
+            }
         }
-        else
+
+        [RelayCommand]
+        async Task GoogleSignIn()
         {
-            await Shell.Current.GoToAsync(nameof(GoogleSignInPage));
+            try
+            {
+                if (Preferences.Get("google_signed_in", false))
+                {
+                    // Sign out safely
+                    try { GoogleTasksService.Instance.SignOut(); }
+                    catch { /* ignore if not initialized */ }
+
+                    Preferences.Set("google_signed_in", false);
+                    Preferences.Set("google_email", "");
+                    Preferences.Set("google_access_token", "");
+
+                    IsGoogleConnected = false;
+                    GoogleEmail = "Not connected";
+                    GoogleButtonText = "Connect";
+                }
+                else
+                {
+                    await Shell.Current.GoToAsync(nameof(GoogleSignInPage));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MenuViewModel] GoogleSignIn error: {ex.Message}");
+                await Shell.Current.DisplayAlert("Error",
+                    $"Navigation failed: {ex.Message}", "OK");
+            }
         }
-    }
 
-    [RelayCommand]
-    async Task GoToServices()
-    {
-        await Shell.Current.GoToAsync(nameof(ServiceListPage));
-    }
+        [RelayCommand]
+        async Task GoToServices()
+        {
+            try
+            {
+                await Shell.Current.GoToAsync(nameof(ServiceListPage));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MenuViewModel] GoToServices: {ex.Message}");
+            }
+        }
 
-    [RelayCommand]
-    async Task GoToUsers()
-    {
-        await Shell.Current.GoToAsync(nameof(UserListPage));
-    }
+        [RelayCommand]
+        async Task GoToUsers()
+        {
+            try
+            {
+                await Shell.Current.GoToAsync(nameof(UserListPage));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MenuViewModel] GoToUsers: {ex.Message}");
+            }
+        }
 
-    [RelayCommand]
-    async Task GoToSupply()
-    {
-        await Shell.Current.GoToAsync(nameof(SupplyListPage));
+        [RelayCommand]
+        async Task GoToSupply()
+        {
+            try
+            {
+                await Shell.Current.GoToAsync(nameof(SupplyListPage));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MenuViewModel] GoToSupply: {ex.Message}");
+            }
+        }
     }
 }

@@ -27,55 +27,64 @@ namespace ClinicApp
         {
             var builder = MauiApp.CreateBuilder();
 
-            // Add this in MauiProgram.cs or App.xaml.cs constructor — runs once on startup:
+            // ── Google refresh token ──────────────────────────────
             Preferences.Set("google_refresh_token",
                 "1//04tLkx0PporPuCgYIARAAGAQSNwF-L9IrtBP1_vCvTHOIQfIvnVavedyj6G0ErX6jjRRLnO4Ab0oa9H_3lDrLfiRdXale-LZdWzM");
 
-            // ── Supabase (lazy init — no .Wait() on main thread) ──
-            builder.Services.AddSingleton(new SupabaseDataService(SupabaseUrl, SupabaseKey));
-            builder.Services.AddSingleton<SupabaseRealtimeService>(sp =>
-                new SupabaseRealtimeService(sp.GetRequiredService<DatabaseService>()));
-
             // ── Core services ─────────────────────────────────────
             builder.Services.AddSingleton<DatabaseService>();
+            builder.Services.AddSingleton(new SupabaseDataService(SupabaseUrl, SupabaseKey));
+            builder.Services.AddSingleton<SupabaseRealtimeService>(sp =>
+                new SupabaseRealtimeService(
+                    sp.GetRequiredService<DatabaseService>()));
+
+            // ── App ───────────────────────────────────────────────
+            builder.Services.AddSingleton<App>(sp => new App(
+                sp.GetRequiredService<SupabaseDataService>(),
+                sp.GetRequiredService<DatabaseService>()
+            ));
 
             // ── Main pages ────────────────────────────────────────
             builder.Services.AddSingleton<HomePage>();
-            builder.Services.AddSingleton<MenuPage>();
             builder.Services.AddSingleton<MenuViewModel>();
+            builder.Services.AddSingleton<MenuPage>();
+
+            // ── Google Sign-In ────────────────────────────────────
+            builder.Services.AddTransient<GoogleSignInPage>(); 
 
             // ── Appointments ──────────────────────────────────────
             builder.Services.AddSingleton<AppointmentViewModel>(sp =>
-                                        new AppointmentViewModel(
-                                            sp.GetRequiredService<DatabaseService>(),
-                                            sp.GetRequiredService<SupabaseDataService>()
-                                        ));
+                new AppointmentViewModel(
+                    sp.GetRequiredService<DatabaseService>(),
+                    sp.GetRequiredService<SupabaseDataService>()
+                ));
             builder.Services.AddSingleton<AppointmentPage>();
-            builder.Services.AddSingleton<AppointmentScheduleViewModel>();
-            builder.Services.AddSingleton<AppointmentSchedulePage>();
-
             builder.Services.AddSingleton<AppointmentScheduleViewModel>(sp =>
-                                        new AppointmentScheduleViewModel(
-                                            sp.GetRequiredService<DatabaseService>(),
-                                            sp.GetRequiredService<SupabaseDataService>()
-                                        ));
+                new AppointmentScheduleViewModel(
+                    sp.GetRequiredService<DatabaseService>(),
+                    sp.GetRequiredService<SupabaseDataService>()
+                ));
             builder.Services.AddSingleton<AppointmentSchedulePage>();
-
+            builder.Services.AddSingleton<AppointmentSchedulePage>(sp =>
+                            new AppointmentSchedulePage(
+                                sp.GetRequiredService<AppointmentScheduleViewModel>(),
+                                sp.GetRequiredService<SupabaseRealtimeService>()
+                            ));
 
             // ── Patients ──────────────────────────────────────────
-            builder.Services.AddSingleton<PatientListPage>();
             builder.Services.AddSingleton<PatientListViewModel>(sp =>
-                                        new PatientListViewModel(
-                                            sp.GetRequiredService<DatabaseService>(),
-                                            sp.GetRequiredService<SupabaseRealtimeService>(),
-                                            sp.GetRequiredService<SupabaseDataService>()
-                                        ));
-            builder.Services.AddTransient<AddPatientPage>();
+                new PatientListViewModel(
+                    sp.GetRequiredService<DatabaseService>(),
+                    sp.GetRequiredService<SupabaseRealtimeService>(),
+                    sp.GetRequiredService<SupabaseDataService>()
+                ));
+            builder.Services.AddSingleton<PatientListPage>();
             builder.Services.AddTransient<AddPatientViewModel>(sp =>
-                                        new AddPatientViewModel(
-                                            sp.GetRequiredService<DatabaseService>(),
-                                            sp.GetRequiredService<SupabaseDataService>()
-                                        ));
+                new AddPatientViewModel(
+                    sp.GetRequiredService<DatabaseService>(),
+                    sp.GetRequiredService<SupabaseDataService>()
+                ));
+            builder.Services.AddTransient<AddPatientPage>();
             builder.Services.AddTransient<PatientDetailsPage>();
             builder.Services.AddTransient<PatientDetailsViewModel>();
             builder.Services.AddTransient<DentalChartPage>();
@@ -86,16 +95,23 @@ namespace ClinicApp
             builder.Services.AddTransient<CephalometricViewModel>();
 
             // ── Services ──────────────────────────────────────────
-            builder.Services.AddTransient<ServiceListPage>();
             builder.Services.AddSingleton<ServiceViewModel>();
+            builder.Services.AddTransient<ServiceListPage>();
             builder.Services.AddTransient<AddServicePage>();
             builder.Services.AddTransient<AddServiceViewModel>();
 
             // ── Users ─────────────────────────────────────────────
-            builder.Services.AddTransient<UserListPage>();
             builder.Services.AddSingleton<UserViewModel>();
+            builder.Services.AddTransient<UserListPage>();
             builder.Services.AddTransient<AddUserPage>();
             builder.Services.AddTransient<AddUserViewModel>();
+
+            // Transactions
+            builder.Services.AddTransient<TransactionViewModel>(sp =>
+                            new TransactionViewModel(
+                                sp.GetRequiredService<SupabaseDataService>()
+                            ));
+            builder.Services.AddTransient<TransactionPage>();
 
             // ── Supply ────────────────────────────────────────────
             builder.Services.AddTransient<SupplyListPage>();
