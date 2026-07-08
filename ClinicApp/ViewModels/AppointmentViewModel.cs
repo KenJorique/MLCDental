@@ -105,19 +105,28 @@ namespace ClinicApp.ViewModels
         [RelayCommand]
         async Task Approve(SupabaseBooking booking)
         {
-            if (booking == null) return;
+            Console.WriteLine("[Approve] ===== APPROVE STARTED =====");
+
+            if (booking == null)
+            {
+                Console.WriteLine("[Approve] booking is NULL — returning");
+                return;
+            }
+
+            Console.WriteLine($"[Approve] Patient: {booking.FullName}");
 
             bool confirm = await Shell.Current.DisplayAlert(
                 "Approve Booking",
                 $"Approve booking for {booking.FullName}?\nService: {booking.Service}",
                 "Approve", "Cancel");
 
+            Console.WriteLine($"[Approve] Confirmed: {confirm}");
             if (!confirm) return;
 
             IsLoading = true;
             try
             {
-                // 1. Save patient to local SQLite
+                Console.WriteLine("[Approve] Step 1: Adding patient to SQLite...");
                 var parts = (booking.FullName ?? "").Trim().Split(' ', 2);
                 var patient = new Patient
                 {
@@ -132,8 +141,9 @@ namespace ClinicApp.ViewModels
                     DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
                 };
                 await _db.AddPatient(patient);
+                Console.WriteLine($"[Approve] Step 1 done. PatientID={patient.PatientID}");
 
-                // 2. Save patient to Supabase
+                Console.WriteLine("[Approve] Step 2: Adding patient to Supabase...");
                 var supPatient = new SupabasePatient
                 {
                     FirstName = patient.FirstName,
@@ -145,8 +155,9 @@ namespace ClinicApp.ViewModels
                     DateRegistered = DateTime.UtcNow
                 };
                 await _supabaseData.AddPatientAsync(supPatient);
+                Console.WriteLine("[Approve] Step 2 done.");
 
-                // 3. Create appointment entry in local SQLite
+                Console.WriteLine("[Approve] Step 3: Adding local appointment entry...");
                 var localEntry = new AppointmentEntry
                 {
                     SupabaseBookingId = booking.Id,
@@ -155,14 +166,17 @@ namespace ClinicApp.ViewModels
                     Email = booking.Email ?? "",
                     Service = booking.Service ?? "",
                     Notes = booking.Notes ?? "",
-                    AppointmentDateTime = booking.AppointmentDate
-                                              .ToLocalTime()
-                                              .ToString("yyyy-MM-dd HH:mm:ss"),
+                    AppointmentDateTime = booking.AppointmentDate.Kind == DateTimeKind.Utc
+                                              ? booking.AppointmentDate.ToLocalTime()
+                                                    .ToString("yyyy-MM-dd HH:mm:ss")
+                                              : booking.AppointmentDate
+                                                    .ToString("yyyy-MM-dd HH:mm:ss"),
                     Status = "approved"
                 };
                 await _db.AddAppointmentEntry(localEntry);
+                Console.WriteLine("[Approve] Step 3 done.");
 
-                // 4. Create appointment entry in Supabase
+                Console.WriteLine("[Approve] Step 4: Adding Supabase appointment entry...");
                 var supEntry = new SupabaseAppointmentEntry
                 {
                     SupabaseBookingId = booking.Id,
@@ -175,41 +189,32 @@ namespace ClinicApp.ViewModels
                     Status = "approved"
                 };
                 await _supabaseData.AddAppointmentEntryAsync(supEntry);
+                Console.WriteLine("[Approve] Step 4 done.");
 
-                // 5. Update booking status
+                Console.WriteLine("[Approve] Step 5: Updating booking status...");
                 await _supabaseData.UpdateBookingStatusAsync(booking.Id, "approved");
+                Console.WriteLine("[Approve] Step 5 done.");
 
-                // 6. ── Google Tasks sync ───────────────────────────────────
-                System.Diagnostics.Debug.WriteLine("[Approve] Getting fresh Google token...");
-
-                // Always get a fresh token via refresh token — never use hardcoded/expired token
-                var accessToken = await _supabaseData.GetFreshAccessTokenAsync();
-
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Approve] Token obtained: {(string.IsNullOrEmpty(accessToken) ? "FAILED" : "OK")}");
-
-                if (!string.IsNullOrEmpty(accessToken))
+                // ── Step 6: Google Tasks ──────────────────────────────────
+                try
                 {
-                    System.Diagnostics.Debug.WriteLine("[Approve] Syncing to Google Tasks...");
-
                     var taskId = await _supabaseData.SyncToGoogleTasksAsync(
-                        accessToken,
+                        "",  // pass empty — auto-fetches fresh token
                         booking.FullName ?? "",
                         booking.Service ?? "",
-                        booking.AppointmentDate.Kind == DateTimeKind.Utc
-                            ? booking.AppointmentDate.ToLocalTime()
-                            : booking.AppointmentDate,
+                        booking.AppointmentDate,
                         booking.Phone ?? "",
                         booking.Notes ?? "");
 
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[Approve] Google Task result: {taskId ?? "null — sync failed"}");
-
                     if (!string.IsNullOrEmpty(taskId))
                     {
-                        var weekEntries = await _db.GetAppointmentsForWeek(
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Approve] Google Task created: {taskId}");
+
+                        // Save taskId to local entry for later complete/delete
+                        var entries = await _db.GetAppointmentsForWeek(
                             WeekStart(booking.AppointmentDate));
-                        var entry = weekEntries.FirstOrDefault(
+                        var entry = entries.FirstOrDefault(
                             e => e.SupabaseBookingId == booking.Id);
                         if (entry != null)
                         {
@@ -218,20 +223,25 @@ namespace ClinicApp.ViewModels
                         }
                     }
                 }
-                else
+                catch (Exception googleEx)
                 {
+                    // Never block approve if Google Tasks fails
                     System.Diagnostics.Debug.WriteLine(
-                        "[Approve] Could not get Google token — skipping Tasks sync");
+                        $"[Approve] Google Tasks error: {googleEx.Message}");
                 }
+
+                Console.WriteLine("[Approve] Step 6 done.");
 
                 await Shell.Current.DisplayAlert("Approved",
                     $"{booking.FullName} added to patient list and schedule.", "OK");
 
+                Console.WriteLine("[Approve] ===== APPROVE COMPLETE =====");
                 await FetchAndPopulate();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Approve] FAILED: {ex.Message}");
+                Console.WriteLine($"[Approve] MAIN EXCEPTION: {ex.Message}");
+                Console.WriteLine($"[Approve] STACK: {ex.StackTrace}");
                 await Shell.Current.DisplayAlert("Error", $"Failed: {ex.Message}", "OK");
             }
             finally { IsLoading = false; }

@@ -45,7 +45,9 @@
                 Command="{Binding GoogleSignInCommand}"/>
             </Grid>
         </Frame>
-        
+
+       
+
     </VerticalStackLayout>
 
 </ContentPage>

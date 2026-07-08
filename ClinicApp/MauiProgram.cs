@@ -29,7 +29,10 @@ namespace ClinicApp
 
             // ── Google refresh token ──────────────────────────────
             Preferences.Set("google_refresh_token",
-                "1//04tLkx0PporPuCgYIARAAGAQSNwF-L9IrtBP1_vCvTHOIQfIvnVavedyj6G0ErX6jjRRLnO4Ab0oa9H_3lDrLfiRdXale-LZdWzM");
+     "1//0etnD-p20Px5wCgYIARAAGA4SNwF-L9IrRRqCR6LS1Egm5jBQzQycF9dM4KQ5KXD1wi8J9WHx6Yd4LWq9nd5aj0ZyZlOA1gP-wXM");
+            // Clear cached token so fresh one is fetched
+            Preferences.Remove("google_access_token");
+
 
             // ── Core services ─────────────────────────────────────
             builder.Services.AddSingleton<DatabaseService>();
@@ -64,7 +67,7 @@ namespace ClinicApp
                     sp.GetRequiredService<DatabaseService>(),
                     sp.GetRequiredService<SupabaseDataService>()
                 ));
-            builder.Services.AddSingleton<AppointmentSchedulePage>();
+           
             builder.Services.AddSingleton<AppointmentSchedulePage>(sp =>
                             new AppointmentSchedulePage(
                                 sp.GetRequiredService<AppointmentScheduleViewModel>(),

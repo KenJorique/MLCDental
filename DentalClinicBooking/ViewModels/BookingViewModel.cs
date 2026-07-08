@@ -9,7 +9,8 @@ namespace DentalClinicBooking.ViewModels
         public string FullName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Phone number is required")]
-        [Phone(ErrorMessage = "Enter a valid phone number")]
+        [RegularExpression(@"^09\d{9}$",
+      ErrorMessage = "Phone must start with 09 and contain 11 digits")]
         [Display(Name = "Phone Number")]
         public string Phone { get; set; } = string.Empty;
 

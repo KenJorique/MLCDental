@@ -29,9 +29,17 @@ namespace ClinicApp.Models
         {
             get
             {
-                if (DateTime.TryParse(AppointmentDateTime, out var dt))
-                    return dt.ToLocalTime();   // Ensure local
-                return DateTime.MinValue;
+                if (!DateTime.TryParse(AppointmentDateTime, out var dt))
+                    return DateTime.MinValue;
+
+                // Always convert to Philippine local time for display
+                return dt.Kind switch
+                {
+                    DateTimeKind.Utc => dt.ToLocalTime(),
+                    DateTimeKind.Local => dt,
+                    _ => DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+                                                  .ToLocalTime()
+                };
             }
         }
 

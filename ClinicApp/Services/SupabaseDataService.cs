@@ -11,6 +11,8 @@ namespace ClinicApp.Services
         private bool _initialized = false;
         private readonly SemaphoreSlim _initLock = new(1, 1);
 
+
+
         public Client Client => _client!;
 
         public SupabaseDataService(string url, string key)
@@ -331,32 +333,58 @@ namespace ClinicApp.Services
             }
         }
 
+     
+
         public async Task<string?> SyncToGoogleTasksAsync(
-             string accessToken,
-             string patientName,
-             string service,
-             DateTime appointmentDateTime,
-             string phone,
-             string notes = "")
+                        string accessToken,
+                        string patientName,
+                        string service,
+                        DateTime appointmentDateTime,
+                        string phone,
+                        string notes = "")
+        {
+            // Always get fresh token if empty
+            if (string.IsNullOrEmpty(accessToken))
+                accessToken = await GetFreshAccessTokenAsync() ?? "";
+
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    "[GoogleTasks] No token available");
+                return null;
+            }
+
+            return await CallGoogleTasksApiAsync(
+                accessToken, patientName, service,
+                appointmentDateTime, phone, notes, false);
+        }
+
+        private async Task<string?> CallGoogleTasksApiAsync(
+            string accessToken,
+            string patientName,
+            string service,
+            DateTime appointmentDateTime,
+            string phone,
+            string notes,
+            bool isRetry)
         {
             try
             {
-                // Format date for display
                 var localTime = appointmentDateTime.Kind == DateTimeKind.Utc
                     ? appointmentDateTime.ToLocalTime()
                     : appointmentDateTime;
-
-                var formattedDate = localTime.ToString("MMMM dd, yyyy h:mm tt");
 
                 var task = new
                 {
                     title = $"Appointment: {patientName} — {service}",
                     notes = $"Patient: {patientName}\n" +
                              $"Service: {service}\n" +
-                             $"Date: {formattedDate}\n" +
+                             $"Date: {localTime:MMM dd, yyyy h:mm tt}\n" +
                              $"Phone: {phone}" +
-                             (string.IsNullOrEmpty(notes) ? "" : $"\nNotes: {notes}"),
-                    due = localTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                             (string.IsNullOrEmpty(notes)
+                                 ? "" : $"\nNotes: {notes}"),
+                    due = localTime.ToUniversalTime()
+                                      .ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                     status = "needsAction"
                 };
 
@@ -364,30 +392,42 @@ namespace ClinicApp.Services
                 var content = new StringContent(
                     json, System.Text.Encoding.UTF8, "application/json");
 
-                // Call Google Tasks API directly — no Edge Function needed
                 using var http = new HttpClient();
+                http.Timeout = TimeSpan.FromSeconds(20);
                 http.DefaultRequestHeaders.Add(
                     "Authorization", $"Bearer {accessToken}");
 
                 var response = await http.PostAsync(
                     "https://tasks.googleapis.com/tasks/v1/lists/@default/tasks",
                     content);
-
                 var responseText = await response.Content.ReadAsStringAsync();
-                System.Diagnostics.Debug.WriteLine(
-                    $"[GoogleTasks] Response: {responseText}");
 
-                if (response.IsSuccessStatusCode)
+                System.Diagnostics.Debug.WriteLine(
+                    $"[GoogleTasks] {(int)response.StatusCode}: {responseText[..Math.Min(100, responseText.Length)]}");
+
+                // Token expired — refresh and retry once
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized
+                    && !isRetry)
                 {
-                    var doc = System.Text.Json.JsonDocument.Parse(responseText);
-                    return doc.RootElement
-                              .TryGetProperty("id", out var id)
-                              ? id.GetString() : null;
+                    System.Diagnostics.Debug.WriteLine(
+                        "[GoogleTasks] 401 — refreshing and retrying");
+                    _cachedAccessToken = string.Empty;
+                    _tokenExpiresAt = DateTime.MinValue;
+
+                    var newToken = await GetFreshAccessTokenAsync();
+                    if (string.IsNullOrEmpty(newToken)) return null;
+
+                    return await CallGoogleTasksApiAsync(
+                        newToken, patientName, service,
+                        appointmentDateTime, phone, notes, true);
                 }
 
-                System.Diagnostics.Debug.WriteLine(
-                    $"[GoogleTasks] Failed: {response.StatusCode} — {responseText}");
-                return null;
+                if (!response.IsSuccessStatusCode) return null;
+
+                var doc = System.Text.Json.JsonDocument.Parse(responseText);
+                return doc.RootElement
+                          .TryGetProperty("id", out var id)
+                          ? id.GetString() : null;
             }
             catch (Exception ex)
             {
@@ -397,41 +437,62 @@ namespace ClinicApp.Services
             }
         }
 
-        public async System.Threading.Tasks.Task CompleteGoogleTaskAsync(
-    string accessToken, string taskId)
+        public async Task<bool> CompleteGoogleTaskAsync(string accessToken, string taskId)
         {
             try
             {
-                var payload = new { accessToken, taskId, action = "complete" };
-                var json = System.Text.Json.JsonSerializer.Serialize(payload);
+                if (string.IsNullOrEmpty(accessToken))
+                    accessToken = await GetFreshAccessTokenAsync() ?? "";
+
                 using var http = new HttpClient();
-                http.DefaultRequestHeaders.Add("Authorization", $"Bearer {_key}");
-                await http.PostAsync(
-                    $"{_url}/functions/v1/sync-to-calendar",
-                    new StringContent(json,
-                        System.Text.Encoding.UTF8, "application/json"));
+                http.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+
+                // To complete a task, we patch the status to "completed"
+                var patchData = new { status = "completed" };
+                var json = System.Text.Json.JsonSerializer.Serialize(patchData);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                // Google Tasks API requires a PATCH request to update task status
+                var request = new HttpRequestMessage(new HttpMethod("PATCH"),
+                    $"https://tasks.googleapis.com/tasks/v1/lists/@default/tasks/{taskId}")
+                {
+                    Content = content
+                };
+
+                var response = await http.SendAsync(request);
+                return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[CompleteTask] {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[CompleteTask] Exception: {ex.Message}");
+                return false;
             }
         }
+
+        // Store token expiry time
+        private DateTime _tokenExpiresAt = DateTime.MinValue;
+        private string _cachedAccessToken = string.Empty;
 
         public async Task<string?> GetFreshAccessTokenAsync()
         {
             try
             {
-                var refreshToken = Preferences.Get("google_refresh_token",
-                    "1//04tLkx0PporPuCgYIARAAGAQSNwF-L9IrtBP1_vCvTHOIQfIvnVavedyj6G0ErX6jjRRLnO4Ab0oa9H_3lDrLfiRdXale-LZdWzM");
+                // Return cached token if still valid (5 min buffer)
+                if (!string.IsNullOrEmpty(_cachedAccessToken)
+                    && DateTime.UtcNow < _tokenExpiresAt.AddMinutes(-5))
+                    return _cachedAccessToken;
 
-                if (string.IsNullOrEmpty(refreshToken)) return null;
+                const string clientId = "697851532160-76uhho3a71cif1q0k143g22u6n7ledhf.apps.googleusercontent.com";
+                const string clientSecret = "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";
+                const string refreshToken = "1//0etnD-p20Px5wCgYIARAAGA4SNwF-L9IrRRqCR6LS1Egm5jBQzQycF9dM4KQ5KXD1wi8J9WHx6Yd4LWq9nd5aj0ZyZlOA1gP-wXM";
 
                 using var http = new HttpClient();
+                http.Timeout = TimeSpan.FromSeconds(30);
+
                 var body = new FormUrlEncodedContent(new Dictionary<string, string>
                 {
-                    ["client_id"] = "697851532160-76uhho3a71cif1q0k143g22u6n7ledhf.apps.googleusercontent.com",
-                    ["client_secret"] = "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",
+                    ["client_id"] = clientId,
+                    ["client_secret"] = clientSecret,
                     ["refresh_token"] = refreshToken,
                     ["grant_type"] = "refresh_token"
                 });
@@ -440,21 +501,29 @@ namespace ClinicApp.Services
                     "https://oauth2.googleapis.com/token", body);
                 var json = await response.Content.ReadAsStringAsync();
 
-                System.Diagnostics.Debug.WriteLine($"[Auth] Token response: {json}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Auth] Token failed: {json}");
+                    return null;
+                }
 
                 var doc = System.Text.Json.JsonDocument.Parse(json);
-                var token = doc.RootElement
-                               .GetProperty("access_token")
-                               .GetString();
+                var accessToken = doc.RootElement
+                                     .GetProperty("access_token").GetString();
+                var expiresIn = doc.RootElement
+                                     .TryGetProperty("expires_in", out var exp)
+                                     ? exp.GetInt32() : 3600;
 
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Auth] Fresh token obtained successfully");
-                return token;
+                _cachedAccessToken = accessToken ?? string.Empty;
+                _tokenExpiresAt = DateTime.UtcNow.AddSeconds(expiresIn);
+
+                System.Diagnostics.Debug.WriteLine("[Auth] Token refreshed successfully");
+                return accessToken;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Auth] Refresh failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[Auth] {ex.Message}");
                 return null;
             }
         }

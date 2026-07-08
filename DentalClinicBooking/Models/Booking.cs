@@ -25,7 +25,7 @@ namespace DentalClinicBooking.Models
         public string Status { get; set; } = "pending";
 
         [Column("created_at")]
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         [Column("full_name")]
         public string FullName { get; set; } = string.Empty;

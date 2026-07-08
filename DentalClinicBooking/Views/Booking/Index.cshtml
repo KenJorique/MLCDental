@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Book an Appointment";
     var tomorrow = DateTime.Now.AddDays(1).ToString("yyyy-MM-dd");
+    var maxDate = DateTime.Now.AddDays(30).ToString("yyyy-MM-dd");
 }
 
 <div class="container py-5">
@@ -9,67 +10,94 @@
         <div class="col-lg-7">
 
             <div class="text-center mb-4">
-                <i class="bi bi-calendar-plus text-primary" style="font-size: 2.5rem;"></i>
+                <i class="bi bi-calendar-plus text-primary"
+                   style="font-size:2.5rem;"></i>
                 <h2 class="fw-bold mt-2">Book an Appointment</h2>
-                <p class="text-muted">Fill in your details and we'll get back to you to confirm.</p>
+                <p class="text-muted">
+                    Fill in your details and we'll confirm your schedule.
+                </p>
             </div>
 
             <div class="card border-0 shadow-sm p-4">
-                <form asp-action="Index" method="post">
+                <form asp-action="Index" method="post" id="bookingForm">
                     @Html.AntiForgeryToken()
 
                     @if (!ViewData.ModelState.IsValid)
                     {
-                        <ul class="text-danger small">
-                            @foreach (var error in ViewData.ModelState.Values
-                                                    .SelectMany(v => v.Errors))
-                            {
-                                <li>@error.ErrorMessage</li>
-                            }
-                        </ul>
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach (var error in ViewData.ModelState.Values
+                                                            .SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
                     }
 
+                    <!-- Patient Information -->
                     <h6 class="fw-semibold text-muted text-uppercase mb-3"
-                        style="font-size: 0.75rem; letter-spacing: 1px;">
+                        style="font-size:.75rem;letter-spacing:1px">
                         Patient Information
                     </h6>
 
                     <div class="mb-3">
-                        <label asp-for="FullName" class="form-label fw-semibold"></label>
+                        <label asp-for="FullName"
+                               class="form-label fw-semibold"></label>
                         <input asp-for="FullName" class="form-control"
                                placeholder="e.g. Juan dela Cruz" />
-                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                        <span asp-validation-for="FullName"
+                              class="text-danger small"></span>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Phone" class="form-label fw-semibold"></label>
+                            <label asp-for="Phone"
+                                   class="form-label fw-semibold"></label>
                             <input asp-for="Phone" class="form-control"
-                                   placeholder="e.g. 09171234567" />
-                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                                   placeholder="09XXXXXXXXX"
+                                   maxlength="11"
+                                   id="phoneInput" />
+                            <div class="form-text text-muted">
+                                Must start with 09, 11 digits
+                            </div>
+                            <span asp-validation-for="Phone"
+                                  class="text-danger small"></span>
+                            <div id="phoneError"
+                                 class="text-danger small d-none">
+                                Phone must start with 09 and be 11 digits.
+                            </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Email" class="form-label fw-semibold"></label>
-                            <input asp-for="Email" class="form-control" placeholder="optional" />
-                            <span asp-validation-for="Email" class="text-danger small"></span>
+                            <label asp-for="Email"
+                                   class="form-label fw-semibold"></label>
+                            <input asp-for="Email" class="form-control"
+                                   placeholder="optional" />
+                            <span asp-validation-for="Email"
+                                  class="text-danger small"></span>
                         </div>
                     </div>
-
-                 @*    <div class="mb-4">
-                        <label asp-for="DateOfBirth" class="form-label fw-semibold"></label>
-                        <input asp-for="DateOfBirth" class="form-control" type="date" />
-                        <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+@* 
+                    <div class="mb-4">
+                        <label asp-for="DateOfBirth"
+                               class="form-label fw-semibold"></label>
+                        <input asp-for="DateOfBirth" class="form-control"
+                               type="date" />
+                        <span asp-validation-for="DateOfBirth"
+                              class="text-danger small"></span>
                     </div> *@
 
                     <hr class="my-4" />
 
+                    <!-- Appointment Details -->
                     <h6 class="fw-semibold text-muted text-uppercase mb-3"
-                        style="font-size: 0.75rem; letter-spacing: 1px;">
+                        style="font-size:.75rem;letter-spacing:1px">
                         Appointment Details
                     </h6>
 
                     <div class="mb-3">
-                        <label asp-for="Service" class="form-label fw-semibold"></label>
+                        <label asp-for="Service"
+                               class="form-label fw-semibold"></label>
                         <select asp-for="Service" class="form-select">
                             <option value="">— Select a service —</option>
                             @foreach (var s in Model.AvailableServices)
@@ -77,62 +105,107 @@
                                 <option value="@s">@s</option>
                             }
                         </select>
-                        <span asp-validation-for="Service" class="text-danger small"></span>
+                        <span asp-validation-for="Service"
+                              class="text-danger small"></span>
                     </div>
 
-                    <!-- Appointment Date (date only) -->
+                    <!-- Date picker -->
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Preferred Appointment Date</label>
+                        <label class="form-label fw-semibold">
+                            Preferred Appointment Date
+                        </label>
                         <input id="apptDate" name="apptDate" type="date"
                                class="form-control"
-                               min="@tomorrow" />
-                        <small class="text-muted">Clinic is open Monday – Saturday.</small>
+                               min="@tomorrow" max="@maxDate" />
+                        <small class="text-muted">
+                            Clinic is open Monday – Saturday.
+                            Maximum 6 patients per day.
+                        </small>
+                        <!-- Day capacity indicator -->
+                        <div id="dayCapacity" class="mt-2 d-none">
+                            <div class="progress" style="height:8px">
+                                <div id="dayProgress"
+                                     class="progress-bar"
+                                     role="progressbar"
+                                     style="width:0%">
+                                </div>
+                            </div>
+                            <small id="dayCapacityText"
+                                   class="text-muted mt-1 d-block">
+                            </small>
+                        </div>
+                        <div id="dayFullAlert"
+                             class="alert alert-danger mt-2 d-none">
+                            <i class="bi bi-x-circle me-2"></i>
+                            This day is fully booked. Please choose
+                            another date.
+                        </div>
                     </div>
 
-                    <!-- Appointment Time (restricted to 10:30 AM – 3:30 PM) -->
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold">Preferred Appointment Time</label>
-                        <select id="apptTime" name="apptTime" class="form-select">
-                            <option value="">— Select a time slot —</option>
-                            <option value="10:00">10:00 AM</option>
-                            <option value="11:00">11:00 AM</option>
-                            <option value="12:00">12:00 PM</option>
-                            <option value="13:00">1:00 PM</option>
-                            <option value="14:00">2:00 PM</option>
-                            <option value="15:00">3:00 PM</option>
-                        </select>
-                        <small class="text-muted">Clinic hours: 10:00 AM – 4:00 PM</small>
-                        <div id="timeError" class="text-danger small d-none">
+                    <!-- Time slots -->
+                    <div class="mb-4" id="timeSlotSection">
+                        <label class="form-label fw-semibold">
+                            Preferred Time Slot
+                        </label>
+                        <div id="timeSlotLoading" class="d-none">
+                            <div class="spinner-border spinner-border-sm
+                                        text-primary me-2"></div>
+                            Checking availability...
+                        </div>
+                        <div id="timeSlotGrid"
+                             class="row g-2 mt-1">
+                            <!-- Slots rendered by JS -->
+                        </div>
+                        <div id="noDateSelected"
+                             class="text-muted small">
+                            Please select a date first to see
+                            available time slots.
+                        </div>
+                        <div id="timeSlotError"
+                             class="text-danger small d-none">
                             Please select a time slot.
                         </div>
                     </div>
 
-                    <!-- Hidden field that combines date + time for model binding -->
-                    <input type="hidden" asp-for="AppointmentDate" id="AppointmentDate" />
+                    <!-- Hidden fields -->
+                    <input type="hidden" asp-for="AppointmentDate"
+                           id="AppointmentDate" />
 
                     <div class="mb-4">
-                        <label asp-for="Notes" class="form-label fw-semibold"></label>
-                        <textarea asp-for="Notes" class="form-control" rows="3"
-                                  placeholder="Any concerns or special requests..."></textarea>
-                        <span asp-validation-for="Notes" class="text-danger small"></span>
+                        <label asp-for="Notes"
+                               class="form-label fw-semibold"></label>
+                        <textarea asp-for="Notes" class="form-control"
+                                  rows="3"
+                                  placeholder="Any concerns or requests...">
+                        </textarea>
+                        <span asp-validation-for="Notes"
+                              class="text-danger small"></span>
                     </div>
 
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-clinic btn-lg" id="submitBtn">
+                        <button type="submit" id="submitBtn"
+                                class="btn btn-clinic btn-lg">
                             <i class="bi bi-send me-2"></i>Submit Booking
                         </button>
                     </div>
+
                 </form>
             </div>
 
-            <!-- Clinic hours info card -->
+            <!-- Clinic info -->
             <div class="card border-0 bg-light mt-3 p-3">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-clock text-primary"></i>
                     <div>
                         <div class="fw-semibold small">Clinic Hours</div>
-                        <div class="text-muted small">Monday – Saturday: 10:00 AM – 4:00 PM</div>
+                        <div class="text-muted small">
+                            Mon – Sat: 10:00 AM – 4:00 PM
+                        </div>
                         <div class="text-muted small">Sunday: Closed</div>
+                        <div class="text-muted small">
+                            Maximum 6 patients per day /
+                            6 patients per time slot
+                        </div>
                     </div>
                 </div>
             </div>
@@ -145,55 +218,223 @@
     @await Html.PartialAsync("_ValidationScripts")
 
     <script>
-        const dateInput = document.getElementById('apptDate');
-        const timeInput = document.getElementById('apptTime');
-        const hiddenDt  = document.getElementById('AppointmentDate');
-        const timeError = document.getElementById('timeError');
-        const form      = document.querySelector('form');
+        const dateInput    = document.getElementById('apptDate');
+        const hiddenDt     = document.getElementById('AppointmentDate');
+        const dayCapacity  = document.getElementById('dayCapacity');
+        const dayProgress  = document.getElementById('dayProgress');
+        const dayCapText   = document.getElementById('dayCapacityText');
+        const dayFullAlert = document.getElementById('dayFullAlert');
+        const slotGrid     = document.getElementById('timeSlotGrid');
+        const slotLoading  = document.getElementById('timeSlotLoading');
+        const noDateSel    = document.getElementById('noDateSelected');
+        const slotError    = document.getElementById('timeSlotError');
+        const submitBtn    = document.getElementById('submitBtn');
+        const phoneInput   = document.getElementById('phoneInput');
+        const phoneError   = document.getElementById('phoneError');
 
-        // Combine date + time into the hidden AppointmentDate field on any change
-                      function combineDateTime() {
-            const d = dateInput.value;
-            const t = apptTime.value;
-            if (d && t) {
-                hiddenDt.value = `${d}T${t}:00`;   // :00 for full hour
-                timeError.classList.add('d-none');
+        let selectedTime   = null;
+        let isDayFull      = false;
+
+        // ── Phone validation ─────────────────────────────────────────
+        phoneInput.addEventListener('input', function () {
+            // Allow only digits
+            this.value = this.value.replace(/\D/g, '');
+
+            if (this.value.length > 0 && !this.value.startsWith('09')) {
+                phoneError.classList.remove('d-none');
+            } else if (this.value.length > 0 && this.value.length !== 11) {
+                phoneError.classList.remove('d-none');
+                phoneError.textContent =
+                    `Phone must be 11 digits (currently ${this.value.length})`;
             } else {
-                hiddenDt.value = '';
+                phoneError.classList.add('d-none');
+            }
+        });
+
+        // ── Date selection ────────────────────────────────────────────
+        dateInput.addEventListener('change', async function () {
+            const val = this.value;
+            if (!val) return;
+
+            // Block Sundays
+            const d = new Date(val + 'T00:00:00');
+            if (d.getDay() === 0) {
+                alert('The clinic is closed on Sundays. Please pick another day.');
+                this.value = '';
+                resetSlots();
+                return;
+            }
+
+            await loadAvailability(val);
+        });
+
+        async function loadAvailability(dateStr) {
+            // Show loading
+            slotLoading.classList.remove('d-none');
+            slotGrid.innerHTML = '';
+            noDateSel.classList.add('d-none');
+            dayCapacity.classList.add('d-none');
+            dayFullAlert.classList.add('d-none');
+            selectedTime = null;
+            hiddenDt.value = '';
+
+            try {
+                const res  = await fetch(`/Booking/GetAvailability?date=${dateStr}`);
+                const data = await res.json();
+
+                // Day capacity bar
+                       // In loadAvailability(), replace the capacity text line:
+        const availableSlots = data.slots.filter(s => !s.full).length;
+        dayCapText.textContent =
+            `${availableSlots} of 6 time slots still available`;
+        dayProgress.style.width =
+            Math.round(((6 - availableSlots) / 6) * 100) + '%';
+
+                if (data.dayFull) {
+                    dayFullAlert.classList.remove('d-none');
+                    slotGrid.innerHTML = '';
+                    submitBtn.disabled = true;
+                    isDayFull = true;
+                } else {
+                    dayFullAlert.classList.add('d-none');
+                    isDayFull = false;
+                    submitBtn.disabled = false;
+                    renderSlots(dateStr, data.slots);
+                }
+            } catch (err) {
+                slotGrid.innerHTML =
+                    '<p class="text-danger small">Failed to load availability.</p>';
+            } finally {
+                slotLoading.classList.add('d-none');
             }
         }
 
-        dateInput.addEventListener('change', combineDateTime);
-        timeInput.addEventListener('change', combineDateTime);
+              function renderSlots(dateStr, slots) {
+            slotGrid.innerHTML = '';
 
-        // Disable Sundays in the date picker
-        dateInput.addEventListener('input', function () {
-            const selected = new Date(this.value);
-            if (selected.getUTCDay() === 0) { // 0 = Sunday
-                this.value = '';
-                alert('The clinic is closed on Sundays. Please select another day.');
+            slots.forEach(slot => {
+                const col = document.createElement('div');
+                col.className = 'col-4 col-md-3';
+
+                const btn = document.createElement('button');
+                btn.type      = 'button';
+
+                if (slot.full) {
+                    // Fully booked slot — show as unavailable, not clickable
+                    btn.className = 'btn w-100 slot-btn btn-secondary disabled-slot';
+                    btn.disabled  = true;
+                    btn.innerHTML = `
+                        <div class="fw-semibold">${slot.display}</div>
+                        <div class="small text-white-50">Unavailable</div>`;
+                    btn.style.opacity = '0.45';
+                    btn.style.cursor  = 'not-allowed';
+                } else {
+                    // Available slot — no count shown
+                    btn.className = 'btn w-100 slot-btn btn-outline-primary';
+                    btn.innerHTML = `
+                        <div class="fw-semibold">${slot.display}</div>
+                        <div class="small text-muted">Available</div>`;
+
+                    btn.addEventListener('click', () => {
+                        // Deselect all
+                        document.querySelectorAll('.slot-btn').forEach(b => {
+                            if (!b.disabled) {
+                                b.classList.remove('btn-primary', 'active-slot');
+                                b.classList.add('btn-outline-primary');
+                            }
+                        });
+
+                        // Select this slot
+                        btn.classList.remove('btn-outline-primary');
+                        btn.classList.add('btn-primary', 'active-slot');
+
+                        selectedTime = slot.time;
+                        slotError.classList.add('d-none');
+
+                     
+                         // Creates a date object parsing the explicit local matrix parameters
+                        const [hours, minutes] = slot.time.split(':');
+                        const [year, month, day] = dateStr.split('-');
+
+                        // Note: month index is 0-based in JS Date constructor
+                        const localDate = new Date(year, month - 1, day, hours, minutes, 0);
+
+                        // .toISOString() automatically outputs true UTC variant regardless of local settings!
+                        hiddenDt.value = localDate.toISOString();
+                    });
+                }
+
+                col.appendChild(btn);
+                slotGrid.appendChild(col);
+            });
+        }
+
+        function resetSlots() {
+            slotGrid.innerHTML   = '';
+            selectedTime         = null;
+            hiddenDt.value       = '';
+            isDayFull            = false;
+            submitBtn.disabled   = false;
+            dayCapacity.classList.add('d-none');
+            dayFullAlert.classList.add('d-none');
+            noDateSel.classList.remove('d-none');
+        }
+
+        // ── Form submit validation ────────────────────────────────────
+        document.getElementById('bookingForm')
+            .addEventListener('submit', function (e) {
+
+            let valid = true;
+
+            // Phone check
+            const phone = phoneInput.value;
+            if (!phone.startsWith('09') || phone.length !== 11) {
+                phoneError.classList.remove('d-none');
+          
+                valid = false;
             }
-            combineDateTime();
+
+            // Time slot check
+            if (!selectedTime && !isDayFull) {
+                slotError.classList.remove('d-none');
+                valid = false;
+            }
+
+            // Day full check
+            if (isDayFull) {
+                e.preventDefault();
+                alert('This day is fully booked. Please select another date.');
+                return;
+            }
+
+            if (!valid) e.preventDefault();
         });
 
-        // Validate before submit
-        form.addEventListener('submit', function (e) {
-            if (!timeInput.value) {
-                e.preventDefault();
-                timeError.classList.remove('d-none');
-                timeInput.focus();
-            }
-            if (!dateInput.value) {
-                e.preventDefault();
-                dateInput.focus();
-            }
-        });
-
-        // Set default date to tomorrow
+        // Set default date to tomorrow, skip Sunday
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        // Skip Sunday
-        if (tomorrow.getDay() === 0) tomorrow.setDate(tomorrow.getDate() + 1);
+        if (tomorrow.getDay() =x== 0) tomorrow.setDate(tomorrow.getDate() + 1);
         dateInput.value = tomorrow.toISOString().split('T')[0];
+        dateInput.dispatchEvent(new Event('change'));
     </script>
+
+    <style>
+        .slot-btn {
+            min-height: 60px;
+            transition: all .2s;
+        }
+
+            .slot-btn:not(:disabled):hover {
+                transform: translateY(-2px);
+            }
+
+        .disabled-slot {
+            background: #e9ecef !important;
+            border-color: #dee2e6 !important;
+        }
+
+        .active-slot {
+            box-shadow: 0 0 0 3px rgba(74,74,138,.3);
+        }
+    </style>
 }

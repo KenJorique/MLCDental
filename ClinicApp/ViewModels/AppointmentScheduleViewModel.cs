@@ -319,7 +319,6 @@ namespace ClinicApp.ViewModels
                 var bookings = bookingsTask.Result;
                 var entries = entriesTask.Result;
 
-                // Booking entries
                 var bookingEntries = bookings.Select(b => new AppointmentEntry
                 {
                     SupabaseBookingId = b.Id,
@@ -328,8 +327,9 @@ namespace ClinicApp.ViewModels
                     Email = b.Email ?? "",
                     Service = b.Service ?? "",
                     Notes = b.Notes ?? "",
-                    AppointmentDateTime = b.AppointmentDate.ToLocalTime()
-                        .ToString("yyyy-MM-dd HH:mm:ss"),
+                    AppointmentDateTime = DateTime.SpecifyKind(
+                                    b.AppointmentDate, DateTimeKind.Utc)
+                                    .ToString("yyyy-MM-ddTHH:mm:ssZ"),
                     Status = b.Status
                 }).ToList();
 
