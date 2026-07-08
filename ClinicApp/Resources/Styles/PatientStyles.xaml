@@ -4,24 +4,19 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
 	<!-- ══════════════════════════════════════════
-         UNIFIED COLOR PALETTE (pastel pink theme)
-         Used across PatientListPage + PatientDetailsPage
+         MLC CLINIC — GREEN PALETTE
+         Used across all pages. Keep this file in sync with Colors.xaml.
     ══════════════════════════════════════════════ -->
 
-	<!-- Pink scale -->
-	<Color x:Key="PrimaryPink">#C4607A</Color>
-	<!-- main accent — medium rose -->
-	<Color x:Key="LightPink">#FAEDF1</Color>
-	<!-- button/card tint -->
-	<Color x:Key="MediumPink">#F0C4D0</Color>
-	<!-- folder tab, borders -->
-	<Color x:Key="HeaderPink">#D4768E</Color>
-	<!-- page header bar -->
+	<!-- Brand greens (mirrors Colors.xaml Primary) -->
+	<Color x:Key="PrimaryPink">#1A6B2F</Color>
+	<Color x:Key="LightPink">#EAF4EC</Color>
+	<Color x:Key="MediumPink">#B8DEC0</Color>
+	<Color x:Key="HeaderPink">#1A6B2F</Color>
 
 	<!-- Backgrounds -->
 	<Color x:Key="PageBg">#FFFFFF</Color>
-	<Color x:Key="SurfaceBg">#FBF4F7</Color>
-	<!-- input background -->
+	<Color x:Key="SurfaceBg">#F0F7F1</Color>
 	<Color x:Key="CardBg">#FFFFFF</Color>
 
 	<!-- Text -->
@@ -31,9 +26,9 @@
 	<Color x:Key="TextOnPrimary">#FFFFFF</Color>
 
 	<!-- Borders & Dividers -->
-	<Color x:Key="BorderColor">#F0E4EA</Color>
-	<Color x:Key="Divider">#F5EBF0</Color>
-	<Color x:Key="CardBorder">#F0C4D0</Color>
+	<Color x:Key="BorderColor">#C4DEC9</Color>
+	<Color x:Key="Divider">#DCF0E2</Color>
+	<Color x:Key="CardBorder">#C4DEC9</Color>
 
 	<!-- ══════════════════════════════════════════
          TYPOGRAPHY
@@ -127,10 +122,8 @@
 	</Style>
 
 	<!-- ══════════════════════════════════════════
-         PATIENT LIST PAGE
+         PATIENT LIST
     ══════════════════════════════════════════════ -->
-
-	<!-- Patient name label -->
 	<Style x:Key="PatientNameStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="15"/>
 		<Setter Property="FontAttributes" Value="Bold"/>
@@ -138,7 +131,6 @@
 		<Setter Property="LineBreakMode" Value="TailTruncation"/>
 	</Style>
 
-	<!-- PatientCardStyle kept for Frame-based cards -->
 	<Style x:Key="PatientCardStyle" TargetType="Frame">
 		<Setter Property="BackgroundColor" Value="{StaticResource CardBg}"/>
 		<Setter Property="BorderColor" Value="{StaticResource CardBorder}"/>
@@ -148,7 +140,6 @@
 		<Setter Property="Margin" Value="0"/>
 	</Style>
 
-	<!-- 2x2 section button (enabled) -->
 	<Style x:Key="SectionButtonStyle" TargetType="Frame">
 		<Setter Property="BackgroundColor" Value="{StaticResource LightPink}"/>
 		<Setter Property="BorderColor" Value="{StaticResource MediumPink}"/>
@@ -158,7 +149,6 @@
 		<Setter Property="HeightRequest" Value="52"/>
 	</Style>
 
-	<!-- 2x2 section button label -->
 	<Style x:Key="SectionButtonLabelStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="12"/>
 		<Setter Property="TextColor" Value="{StaticResource PrimaryPink}"/>

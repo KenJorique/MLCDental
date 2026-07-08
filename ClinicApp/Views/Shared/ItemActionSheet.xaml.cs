@@ -28,9 +28,8 @@ public partial class ItemActionSheet : BottomSheet
             ActionsContainer.Children.Add(BuildRow(option));
     }
 
-    private Frame BuildRow(ActionSheetOption option)
+    private Border BuildRow(ActionSheetOption option)
     {
-        // Icon — use MaterialSymbolsRounded font if Icon is a unicode string, else emoji
         var iconLabel = new Label
         {
             Text = option.Icon,
@@ -41,15 +40,13 @@ public partial class ItemActionSheet : BottomSheet
             VerticalOptions = LayoutOptions.Center,
         };
 
-        var iconFrame = new Frame
+        var iconContainer = new Border
         {
             BackgroundColor = option.IconBackgroundColor,
-            BorderColor = Colors.Transparent,
-            CornerRadius = 22,
-            Padding = new Thickness(0),
+            StrokeThickness = 0,
             WidthRequest = 44,
             HeightRequest = 44,
-            HasShadow = false,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 22 },
             Content = iconLabel,
         };
 
@@ -59,14 +56,16 @@ public partial class ItemActionSheet : BottomSheet
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
             TextColor = option.LabelColor,
+            VerticalOptions = LayoutOptions.Center,
         };
 
         var subtitleLabel = new Label
         {
             Text = option.Subtitle,
             FontSize = 12,
-            TextColor = Colors.Gray,
+            TextColor = Color.FromArgb("#9E9E9E"),
             IsVisible = !string.IsNullOrWhiteSpace(option.Subtitle),
+            VerticalOptions = LayoutOptions.Center,
         };
 
         var textStack = new VerticalStackLayout
@@ -79,10 +78,10 @@ public partial class ItemActionSheet : BottomSheet
 
         var chevron = new Label
         {
-            Text = "\ue5cc", // chevron_right in Material Symbols
+            Text = "\ue5cc",
             FontFamily = "MaterialSymbolsRounded",
-            FontSize = 22,
-            TextColor = Colors.Gray,
+            FontSize = 20,
+            TextColor = Color.FromArgb("#BDBDBD"),
             VerticalOptions = LayoutOptions.Center,
         };
 
@@ -94,19 +93,20 @@ public partial class ItemActionSheet : BottomSheet
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Auto },
             },
+            ColumnSpacing = 0,
         };
-        grid.Add(iconFrame, 0);
+        grid.Add(iconContainer, 0);
         grid.Add(textStack, 1);
         grid.Add(chevron, 2);
 
-        var frame = new Frame
+        var row = new Border
         {
             Margin = new Thickness(16, 0, 16, 10),
-            Padding = new Thickness(16, 14),
+            Padding = new Thickness(14, 12),
             BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            CornerRadius = 12,
-            HasShadow = false,
+            StrokeThickness = 1,
+            Stroke = Color.FromArgb("#EEEEEE"),
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 14 },
             Content = grid,
         };
 
@@ -117,8 +117,8 @@ public partial class ItemActionSheet : BottomSheet
             if (option.OnTapped is not null)
                 await option.OnTapped();
         };
-        frame.GestureRecognizers.Add(tap);
+        row.GestureRecognizers.Add(tap);
 
-        return frame;
+        return row;
     }
 }

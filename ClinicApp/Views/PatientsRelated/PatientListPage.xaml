@@ -1,84 +1,74 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:vm="clr-namespace:ClinicApp.ViewModels.PatientsRelatedVM"
-             x:Class="ClinicApp.Views.PatientsRelated.PatientListPage"
-             Title="Patients"
-             BackgroundColor="{StaticResource PageBg}"
-             Shell.TabBarIsVisible="True">
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels.PatientsRelatedVM"
+    x:Class="ClinicApp.Views.PatientsRelated.PatientListPage"
+    Title="Patients"
+    Shell.NavBarIsVisible="True"
+    Shell.BackgroundColor="{StaticResource PrimaryPink}"
+    Shell.TitleColor="White"
+    Shell.ForegroundColor="White"
+    Shell.TabBarIsVisible="True"
+    BackgroundColor="{StaticResource PageBg}">
 
 	<Grid RowDefinitions="Auto,*">
 
-		<!-- ── SEARCH + SORT BAR ── -->
-		<Grid Grid.Row="0"
-              ColumnDefinitions="*,Auto"
-              Padding="16,12,16,8"
-              ColumnSpacing="8"
-              BackgroundColor="{StaticResource PageBg}">
+		<!-- ── SEARCH + SORT BAR (sits directly under navbar) ── -->
+		<VerticalStackLayout Grid.Row="0"
+                             BackgroundColor="{StaticResource PrimaryPink}"
+                             Padding="16,0,16,14">
+			<Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
 
-			<Border Grid.Column="0"
-                    BackgroundColor="{StaticResource SurfaceBg}"
-                    Stroke="{StaticResource BorderColor}"
-                    StrokeThickness="1"
-                    Padding="12,0"
-                    HeightRequest="44">
-				<Border.StrokeShape>
-					<RoundRectangle CornerRadius="12"/>
-				</Border.StrokeShape>
-				<Grid ColumnDefinitions="Auto,*">
-					<Label Grid.Column="0"
-                           FontFamily="MaterialSymbolsRounded"
-                           Text="&#xe8b6;"
-                           FontSize="18"
-                           TextColor="{StaticResource TextMuted}"
-                           VerticalOptions="Center"
-                           Margin="0,0,8,0"/>
-					<Entry Grid.Column="1"
-                           Text="{Binding SearchText}"
-                           Placeholder="Search patients..."
-                           PlaceholderColor="{StaticResource TextMuted}"
-                           TextColor="{StaticResource TextPrimary}"
-                           FontSize="14"
-                           BackgroundColor="Transparent"
-                           VerticalOptions="Center"/>
-				</Grid>
-			</Border>
+				<Border Grid.Column="0"
+                        BackgroundColor="White"
+                        StrokeThickness="0"
+                        HeightRequest="40">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="20"/>
+					</Border.StrokeShape>
+					<Grid ColumnDefinitions="Auto,*" Padding="12,0" ColumnSpacing="8">
+						<Label Grid.Column="0"
+                               FontFamily="MaterialSymbolsRounded"
+                               Text="&#xe8b6;"
+                               FontSize="17"
+                               TextColor="{StaticResource TextMuted}"
+                               VerticalOptions="Center"/>
+						<Entry Grid.Column="1"
+                               Text="{Binding SearchText}"
+                               Placeholder="Search Name..."
+                               PlaceholderColor="{StaticResource TextMuted}"
+                               TextColor="{StaticResource TextPrimary}"
+                               FontSize="13"
+                               BackgroundColor="Transparent"
+                               VerticalOptions="Center"/>
+					</Grid>
+				</Border>
 
-			<Border Grid.Column="1"
-                    BackgroundColor="{StaticResource SurfaceBg}"
-                    Stroke="{StaticResource BorderColor}"
-                    StrokeThickness="1"
-                    HeightRequest="44"
-                    WidthRequest="90"
-                    Padding="0">
-				<Border.StrokeShape>
-					<RoundRectangle CornerRadius="12"/>
-				</Border.StrokeShape>
-				<Border.GestureRecognizers>
-					<TapGestureRecognizer Command="{Binding ShowSortOptionsCommand}"/>
-				</Border.GestureRecognizers>
-				<Grid ColumnDefinitions="Auto,*" Padding="10,0" ColumnSpacing="4">
-					<Label Grid.Column="0"
-                           FontFamily="MaterialSymbolsRounded"
-                           Text="&#xe164;"
-                           FontSize="18"
-                           TextColor="{StaticResource PrimaryPink}"
+				<Border Grid.Column="1"
+                        BackgroundColor="Transparent"
+                        StrokeThickness="0"
+                        HeightRequest="40"
+                        WidthRequest="40"
+                        VerticalOptions="Center">
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding ShowSortOptionsCommand}"/>
+					</Border.GestureRecognizers>
+					<Label FontFamily="MaterialSymbolsRounded"
+                           Text="&#xe152;"
+                           FontSize="24"
+                           TextColor="White"
+                           HorizontalOptions="Center"
                            VerticalOptions="Center"/>
-					<Label Grid.Column="1"
-                           Text="{Binding CurrentSort}"
-                           FontSize="12"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource PrimaryPink}"
-                           VerticalOptions="Center"/>
-				</Grid>
-			</Border>
+				</Border>
 
-		</Grid>
+			</Grid>
+		</VerticalStackLayout>
 
 		<!-- ── PATIENT LIST ── -->
 		<CollectionView Grid.Row="1"
                         ItemsSource="{Binding Patients}"
-                        Margin="16,0,16,88"
+                        Margin="16,14,16,88"
                         IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
 
 			<CollectionView.EmptyView>
@@ -90,8 +80,9 @@
                            FontSize="16" FontAttributes="Bold"
                            TextColor="{StaticResource TextSecondary}"
                            HorizontalTextAlignment="Center"/>
-					<Label Text="Add a new patient to get started"
-                           Style="{StaticResource CaptionStyle}"
+					<Label Text="Tap + Add Patient to get started"
+                           FontSize="13"
+                           TextColor="{StaticResource TextMuted}"
                            HorizontalTextAlignment="Center"/>
 				</VerticalStackLayout>
 			</CollectionView.EmptyView>
@@ -99,158 +90,113 @@
 			<CollectionView.ItemTemplate>
 				<DataTemplate x:DataType="vm:PatientCardViewModel">
 
-					<Grid Margin="0,8,0,0">
-						<Grid.RowDefinitions>
-							<RowDefinition Height="12"/>
-							<RowDefinition Height="Auto"/>
-						</Grid.RowDefinitions>
+					<Grid Margin="0,0,0,14" RowDefinitions="14,Auto" RowSpacing="0">
 
-						<!-- Folder tab — extends 2px into row 1 (negative bottom margin)
-                             so there's no visible gap between tab and card top edge -->
+						<!-- Folder tab strip -->
 						<Border Grid.Row="0"
-                                BackgroundColor="{StaticResource MediumPink}"
+                                BackgroundColor="#D4BC5A"
                                 StrokeThickness="0"
-                                WidthRequest="110"
+                                WidthRequest="100"
                                 HorizontalOptions="Start"
-                                Margin="14,0,0,-2">
+                                Margin="18,0,0,0">
 							<Border.StrokeShape>
-								<RoundRectangle CornerRadius="4"/>
+								<RoundRectangle CornerRadius="6,6,0,0"/>
 							</Border.StrokeShape>
 						</Border>
 
-						<!-- Card -->
+						<!-- Folder card body -->
 						<Border Grid.Row="1"
-                                BackgroundColor="{StaticResource CardBg}"
-                                Stroke="{StaticResource CardBorder}"
-                                StrokeThickness="1"
-                                Padding="16"
-                                Margin="0">
+                                BackgroundColor="#F5F0D0"
+                                StrokeThickness="0"
+                                Padding="16,18">
 							<Border.StrokeShape>
-								<RoundRectangle CornerRadius="10,10,10,10"/>
+								<RoundRectangle CornerRadius="12,12,12,12"/>
 							</Border.StrokeShape>
 							<Border.GestureRecognizers>
 								<TapGestureRecognizer
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                              Path=BindingContext.ToggleExpandCommand}"
+                                              Path=BindingContext.OpenActionSheetCommand}"
                                     CommandParameter="{Binding .}"/>
 							</Border.GestureRecognizers>
 
-							<VerticalStackLayout Spacing="12">
+							<!-- 3-col: ID | divider | Name+Phone+Call -->
+							<Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="0">
 
-								<Label Text="{Binding Patient.FullName}"
-                                       Style="{StaticResource PatientNameStyle}"/>
+								<!-- Patient ID — top aligned -->
+								<VerticalStackLayout Grid.Column="0"
+                                                     VerticalOptions="Start"
+                                                     Spacing="0"
+                                                     Margin="0,0,14,0">
+									<Label Text="Patient ID:"
+                                           FontSize="10"
+                                           TextColor="#777777"/>
+									<Label Text="{Binding Patient.PatientID, StringFormat='{0:D3}'}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}"/>
+								</VerticalStackLayout>
 
-								<Grid ColumnDefinitions="*,*"
-                                      RowDefinitions="Auto,Auto"
-                                      ColumnSpacing="8"
-                                      RowSpacing="8"
-                                      IsVisible="{Binding IsExpanded}">
+								<!-- Vertical divider -->
+								<BoxView Grid.Column="1"
+                                         WidthRequest="1"
+                                         BackgroundColor="#CCBA6A"
+                                         VerticalOptions="Fill"
+                                         Margin="0,2,14,2"/>
 
-									<!-- Patient Records
-                                         FIX 2: &#xe2fe; is correct XML entity for clinical_notes -->
-									<Frame Grid.Row="0" Grid.Column="0"
-                                           Style="{StaticResource SectionButtonStyle}">
-										<Frame.GestureRecognizers>
-											<TapGestureRecognizer
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                          Path=BindingContext.ViewPatientCommand}"
-                                                CommandParameter="{Binding .}"/>
-										</Frame.GestureRecognizers>
-										<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8"
-                                              VerticalOptions="Center">
-											<Label Grid.Column="0"
-                                                   FontFamily="MaterialSymbolsRounded"
-                                                   Text="&#xe09e;"
-                                                   FontSize="20"
-                                                   TextColor="{StaticResource PrimaryPink}"
+								<!-- Name + Phone + Call — top aligned -->
+								<VerticalStackLayout Grid.Column="2"
+                                                     Spacing="6"
+                                                     VerticalOptions="Start">
+
+									<Label Text="{Binding Patient.FullName}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           LineBreakMode="TailTruncation"/>
+
+									<Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+										<Label Grid.Column="0"
+                                               Text="{Binding Patient.MobileNo}"
+                                               FontSize="14"
+                                               TextColor="#555555"
+                                               VerticalOptions="Center"/>
+										<Border Grid.Column="1"
+                                                BackgroundColor="{StaticResource PrimaryPink}"
+                                                StrokeThickness="0"
+                                                HeightRequest="36"
+                                                WidthRequest="36"
+                                                VerticalOptions="Center">
+											<Border.StrokeShape>
+												<RoundRectangle CornerRadius="18"/>
+											</Border.StrokeShape>
+											<Border.GestureRecognizers>
+												<TapGestureRecognizer
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                              Path=BindingContext.CallPatientCommand}"
+                                                    CommandParameter="{Binding .}"/>
+											</Border.GestureRecognizers>
+											<Label FontFamily="MaterialSymbolsRounded"
+                                                   Text="&#xe0b0;"
+                                                   FontSize="17"
+                                                   TextColor="White"
+                                                   HorizontalOptions="Center"
                                                    VerticalOptions="Center"/>
-											<Label Grid.Column="1"
-                                                   Text="Patient Records"
-                                                   Style="{StaticResource SectionButtonLabelStyle}"/>
-										</Grid>
-									</Frame>
+										</Border>
+									</Grid>
 
-									<!-- Dental Chart
-                                         FIX 3: &#xef73; = dentistry codepoint -->
-									<Frame Grid.Row="0" Grid.Column="1"
-                                           Style="{StaticResource SectionButtonStyle}">
-										<Frame.GestureRecognizers>
-											<TapGestureRecognizer
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                          Path=BindingContext.ViewDentalChartCommand}"
-                                                CommandParameter="{Binding .}"/>
-										</Frame.GestureRecognizers>
-										<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8"
-                                              VerticalOptions="Center">
-											<Label Grid.Column="0"
-                                                   FontFamily="MaterialSymbolsRounded"
-                                                   Text="&#xe0a6;"
-                                                   FontSize="20"
-                                                   TextColor="{StaticResource PrimaryPink}"
-                                                   VerticalOptions="Center"/>
-											<Label Grid.Column="1"
-                                                   Text="Dental Chart"
-                                                   Style="{StaticResource SectionButtonLabelStyle}"/>
-										</Grid>
-									</Frame>
+								</VerticalStackLayout>
 
-									<!-- Treatment History -->
-									<Frame Grid.Row="1" Grid.Column="0"
-                                           Style="{StaticResource SectionButtonStyle}">
-										<Frame.GestureRecognizers>
-											<TapGestureRecognizer
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                          Path=BindingContext.ViewTreatmentHistoryCommand}"
-                                                CommandParameter="{Binding .}"/>
-										</Frame.GestureRecognizers>
-										<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8"
-                                              VerticalOptions="Center">
-											<Label Grid.Column="0"
-                                                   FontFamily="MaterialSymbolsRounded"
-                                                   Text="&#xe889;"
-                                                   FontSize="20"
-                                                   TextColor="{StaticResource PrimaryPink}"
-                                                   VerticalOptions="Center"/>
-											<Label Grid.Column="1"
-                                                   Text="Treatment History"
-                                                   Style="{StaticResource SectionButtonLabelStyle}"/>
-										</Grid>
-									</Frame>
-
-									<!-- Cephalometric: icon empty for now -->
-									<Frame Grid.Row="1" Grid.Column="1"
-                                           Style="{StaticResource SectionButtonStyle}">
-										<Frame.GestureRecognizers>
-											<TapGestureRecognizer
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                          Path=BindingContext.GoToCephalometricCommand}"
-                                                CommandParameter="{Binding .}"/>
-										</Frame.GestureRecognizers>
-										<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8"
-                                              VerticalOptions="Center">
-											<Label Grid.Column="0"
-                                                   FontFamily="MaterialSymbolsRounded"
-                                                   Text="&#xe0aa;"
-                                                   FontSize="20"
-                                                   TextColor="{StaticResource PrimaryPink}"
-                                                   VerticalOptions="Center"/>
-											<Label Grid.Column="1"
-                                                   Text="Cephalometric"
-                                                   Style="{StaticResource SectionButtonLabelStyle}"/>
-										</Grid>
-									</Frame>
-
-								</Grid>
-
-							</VerticalStackLayout>
+							</Grid>
 						</Border>
+
 					</Grid>
 
 				</DataTemplate>
 			</CollectionView.ItemTemplate>
+
 		</CollectionView>
 
-		<!-- Loading indicator — shown only while fetching patients -->
+		<!-- Loading -->
 		<VerticalStackLayout Grid.Row="1"
                              IsVisible="{Binding IsBusy}"
                              HorizontalOptions="Center"
@@ -258,10 +204,11 @@
                              Spacing="8">
 			<ActivityIndicator IsRunning="{Binding IsBusy}"
                                Color="{StaticResource PrimaryPink}"
-                               HeightRequest="36"
-                               WidthRequest="36"/>
+                               HeightRequest="36" WidthRequest="36"/>
 			<Label Text="Loading patients..."
-                   Style="{StaticResource CaptionStyle}"/>
+                   FontSize="12"
+                   TextColor="{StaticResource TextMuted}"
+                   HorizontalTextAlignment="Center"/>
 		</VerticalStackLayout>
 
 		<!-- FAB -->

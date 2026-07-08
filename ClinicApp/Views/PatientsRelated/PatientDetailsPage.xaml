@@ -24,7 +24,7 @@
 				<Label Text="{Binding FullName}"
                        FontSize="20" FontAttributes="Bold" TextColor="White"/>
 				<Label Text="{Binding DateRegistered, StringFormat='Registered {0}'}"
-                       FontSize="12" TextColor="#F9C0CB"/>
+                       FontSize="12" TextColor="WHITE"/>
 			</VerticalStackLayout>
 		</Border>
 

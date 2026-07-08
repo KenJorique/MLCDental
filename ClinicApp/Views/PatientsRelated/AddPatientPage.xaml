@@ -1,359 +1,329 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:vm="clr-namespace:ClinicApp.ViewModels.PatientsRelatedVM"
-             x:Class="ClinicApp.Views.PatientsRelated.AddPatientPage"
-             x:DataType="vm:AddPatientViewModel"
-             Title="{Binding PageTitle}"
-             BackgroundColor="{StaticResource PageBg}"
-             Shell.TabBarIsVisible="False">
-
-	<ContentPage.Resources>
-		<Style x:Key="FieldLabelStyle" TargetType="Label">
-			<Setter Property="FontSize" Value="12"/>
-			<Setter Property="TextColor" Value="{StaticResource TextMuted}"/>
-			<Setter Property="Margin" Value="0,12,0,0"/>
-		</Style>
-		<Style x:Key="RequiredStyle" TargetType="Label">
-			<Setter Property="FontSize" Value="12"/>
-			<Setter Property="TextColor" Value="{StaticResource PrimaryPink}"/>
-			<Setter Property="Margin" Value="0,12,0,0"/>
-		</Style>
-		<Style x:Key="CleanEntry" TargetType="Entry">
-			<Setter Property="FontSize" Value="14"/>
-			<Setter Property="TextColor" Value="{StaticResource TextPrimary}"/>
-			<Setter Property="BackgroundColor" Value="Transparent"/>
-			<Setter Property="MinimumHeightRequest" Value="36"/>
-		</Style>
-	</ContentPage.Resources>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels.PatientsRelatedVM"
+    x:Class="ClinicApp.Views.PatientsRelated.AddPatientPage"
+    x:DataType="vm:AddPatientViewModel"
+    Title="{Binding PageTitle}"
+    BackgroundColor="{StaticResource PageBg}"
+    Shell.TabBarIsVisible="False">
 
 	<Grid RowDefinitions="*,Auto">
 
 		<ScrollView Grid.Row="0">
-			<VerticalStackLayout Padding="20,16,20,8" Spacing="0">
+			<VerticalStackLayout Padding="20,4,20,8" Spacing="0">
 
-				<!-- ══ A. PERSONAL INFORMATION ══ -->
-				<Border Style="{StaticResource CardStyle}">
-					<Border.StrokeShape>
-						<RoundRectangle CornerRadius="14"/>
-					</Border.StrokeShape>
-					<VerticalStackLayout Spacing="0">
+				<!-- ══ PERSONAL INFORMATION ══ -->
+				<Label Text=" PERSONAL INFORMATION " Margin="0" Style="{StaticResource FormSectionHeader}"/>
 
-						<Label Text="PERSONAL INFORMATION" Style="{StaticResource SectionTitleStyle}"/>
-
-						<Grid ColumnDefinitions="*,*" ColumnSpacing="16">
-							<VerticalStackLayout Grid.Column="0" Spacing="0">
-								<HorizontalStackLayout Spacing="2">
-									<Label Text="First Name" Style="{StaticResource FieldLabelStyle}"/>
-									<Label Text="*" Style="{StaticResource RequiredStyle}"/>
-								</HorizontalStackLayout>
-								<Entry Text="{Binding FirstName}" Style="{StaticResource CleanEntry}"/>
-							</VerticalStackLayout>
-							<VerticalStackLayout Grid.Column="1" Spacing="0">
-								<HorizontalStackLayout Spacing="2">
-									<Label Text="Last Name" Style="{StaticResource FieldLabelStyle}"/>
-									<Label Text="*" Style="{StaticResource RequiredStyle}"/>
-								</HorizontalStackLayout>
-								<Entry Text="{Binding LastName}" Style="{StaticResource CleanEntry}"/>
-							</VerticalStackLayout>
-						</Grid>
-
-						<Label Text="Nickname" Style="{StaticResource FieldLabelStyle}"/>
-						<Entry Text="{Binding Nickname}" Style="{StaticResource CleanEntry}"/>
-
+				<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+					<VerticalStackLayout Grid.Column="0" Spacing="0">
 						<HorizontalStackLayout Spacing="2">
-							<Label Text="Gender" Style="{StaticResource FieldLabelStyle}"/>
-							<Label Text="*" Style="{StaticResource RequiredStyle}"/>
+							<Label Text="First Name" Style="{StaticResource FormFieldLabel}"/>
+							<Label Text="*" Style="{StaticResource FormRequiredStar}"/>
 						</HorizontalStackLayout>
-						<Picker ItemsSource="{Binding GenderOptions}"
-                                SelectedItem="{Binding SelectedGender}"
-                                FontSize="14" BackgroundColor="Transparent"/>
-
-						<HorizontalStackLayout Spacing="2">
-							<Label Text="Date of Birth" Style="{StaticResource FieldLabelStyle}"/>
-							<Label Text="*" Style="{StaticResource RequiredStyle}"/>
-						</HorizontalStackLayout>
-						<DatePicker Date="{Binding DateOfBirth}"
-                                    Format="M/dd/yyyy"
-                                    FontSize="14" BackgroundColor="Transparent"/>
-
-						<Grid ColumnDefinitions="*,*" ColumnSpacing="16">
-							<VerticalStackLayout Grid.Column="0" Spacing="0">
-								<Label Text="Nationality" Style="{StaticResource FieldLabelStyle}"/>
-								<Entry Text="{Binding Nationality}" Style="{StaticResource CleanEntry}"/>
-							</VerticalStackLayout>
-							<VerticalStackLayout Grid.Column="1" Spacing="0">
-								<Label Text="Religion" Style="{StaticResource FieldLabelStyle}"/>
-								<Entry Text="{Binding Religion}" Style="{StaticResource CleanEntry}"/>
-							</VerticalStackLayout>
-						</Grid>
-
-						<Label Text="Occupation" Style="{StaticResource FieldLabelStyle}"/>
-						<Entry Text="{Binding Occupation}" Style="{StaticResource CleanEntry}"/>
-
-						<HorizontalStackLayout Spacing="2">
-							<Label Text="Address" Style="{StaticResource FieldLabelStyle}"/>
-							<Label Text="*" Style="{StaticResource RequiredStyle}"/>
-						</HorizontalStackLayout>
-						<Editor Text="{Binding Address}"
-                                FontSize="14" BackgroundColor="Transparent"
-                                MinimumHeightRequest="56"/>
-
+						<Border Style="{StaticResource FormInputBox}">
+							<Entry Text="{Binding FirstName}" Style="{StaticResource FormEntry}"/>
+						</Border>
 					</VerticalStackLayout>
+					<VerticalStackLayout Grid.Column="1" Spacing="0">
+						<HorizontalStackLayout Spacing="2">
+							<Label Text="Last Name" Style="{StaticResource FormFieldLabel}"/>
+							<Label Text="*" Style="{StaticResource FormRequiredStar}"/>
+						</HorizontalStackLayout>
+						<Border Style="{StaticResource FormInputBox}">
+							<Entry Text="{Binding LastName}" Style="{StaticResource FormEntry}"/>
+						</Border>
+					</VerticalStackLayout>
+				</Grid>
+
+				<Label Text="Nickname" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding Nickname}" Style="{StaticResource FormEntry}"/>
 				</Border>
 
-				<!-- ══ B. CONTACT DETAILS ══ -->
-				<Border Style="{StaticResource CardStyle}">
-					<Border.StrokeShape>
-						<RoundRectangle CornerRadius="14"/>
-					</Border.StrokeShape>
-					<VerticalStackLayout Spacing="0">
-
-						<Label Text="CONTACT DETAILS" Style="{StaticResource SectionTitleStyle}"/>
-
-						<HorizontalStackLayout Spacing="2">
-							<Label Text="Mobile No." Style="{StaticResource FieldLabelStyle}"/>
-							<Label Text="*" Style="{StaticResource RequiredStyle}"/>
-						</HorizontalStackLayout>
-						<Entry Text="{Binding MobileNo}" Keyboard="Telephone"
-                               Style="{StaticResource CleanEntry}"/>
-
-						<!-- Email moved right after Mobile -->
-						<HorizontalStackLayout Spacing="2">
-							<Label Text="Email Address" Style="{StaticResource FieldLabelStyle}"/>
-							<Label Text="*" Style="{StaticResource RequiredStyle}"/>
-						</HorizontalStackLayout>
-						<Entry Text="{Binding Email}" Keyboard="Email"
-                               Style="{StaticResource CleanEntry}"/>
-
-						<Label Text="Home No." Style="{StaticResource FieldLabelStyle}"/>
-						<Entry Text="{Binding HomeNo}" Keyboard="Telephone"
-                               Style="{StaticResource CleanEntry}"/>
-
-						<Grid ColumnDefinitions="*,*" ColumnSpacing="16">
-							<VerticalStackLayout Grid.Column="0" Spacing="0">
-								<Label Text="Office No." Style="{StaticResource FieldLabelStyle}"/>
-								<Entry Text="{Binding OfficeNo}" Keyboard="Telephone"
-                                       Style="{StaticResource CleanEntry}"/>
-							</VerticalStackLayout>
-							<VerticalStackLayout Grid.Column="1" Spacing="0">
-								<Label Text="Fax No." Style="{StaticResource FieldLabelStyle}"/>
-								<Entry Text="{Binding FaxNo}" Keyboard="Telephone"
-                                       Style="{StaticResource CleanEntry}"/>
-							</VerticalStackLayout>
-						</Grid>
-
-					</VerticalStackLayout>
+				<HorizontalStackLayout Spacing="2">
+					<Label Text="Gender" Style="{StaticResource FormFieldLabel}"/>
+					<Label Text="*" Style="{StaticResource FormRequiredStar}"/>
+				</HorizontalStackLayout>
+				<Border Style="{StaticResource FormInputBox}">
+					<Picker ItemsSource="{Binding GenderOptions}"
+                            SelectedItem="{Binding SelectedGender}"
+                            FontSize="14" BackgroundColor="Transparent"
+                            VerticalOptions="Center"/>
 				</Border>
 
-				<!-- ══ C. GUARDIAN / EMERGENCY CONTACT ══ -->
-				<Border Style="{StaticResource CardStyle}">
-					<Border.StrokeShape>
-						<RoundRectangle CornerRadius="14"/>
-					</Border.StrokeShape>
-					<VerticalStackLayout Spacing="0">
-
-						<Label Text="GUARDIAN / EMERGENCY CONTACT" Style="{StaticResource SectionTitleStyle}"/>
-
-						<HorizontalStackLayout Spacing="2">
-							<Label Text="Guardian Name" Style="{StaticResource FieldLabelStyle}"/>
-							<Label Text="*" Style="{StaticResource RequiredStyle}"
-                                   IsVisible="{Binding IsMinor}"/>
-						</HorizontalStackLayout>
-						<Entry Text="{Binding GuardianName}" Style="{StaticResource CleanEntry}"/>
-
-						<Label Text="Relationship to Patient" Style="{StaticResource FieldLabelStyle}"/>
-						<Picker ItemsSource="{Binding RelationshipOptions}"
-                                SelectedItem="{Binding GuardianRelationship}"
-                                FontSize="14" BackgroundColor="Transparent"/>
-
-						<Label Text="Guardian Occupation" Style="{StaticResource FieldLabelStyle}"/>
-						<Entry Text="{Binding GuardianOccupation}" Style="{StaticResource CleanEntry}"/>
-
-						<HorizontalStackLayout Spacing="2">
-							<Label Text="Guardian Mobile No." Style="{StaticResource FieldLabelStyle}"/>
-							<Label Text="*" Style="{StaticResource RequiredStyle}"
-                                   IsVisible="{Binding IsMinor}"/>
-						</HorizontalStackLayout>
-						<Entry Text="{Binding GuardianMobileNo}" Keyboard="Telephone"
-                               Style="{StaticResource CleanEntry}"/>
-
-					</VerticalStackLayout>
+				<HorizontalStackLayout Spacing="2">
+					<Label Text="Date of Birth" Style="{StaticResource FormFieldLabel}"/>
+					<Label Text="*" Style="{StaticResource FormRequiredStar}"/>
+				</HorizontalStackLayout>
+				<Border Style="{StaticResource FormInputBox}">
+					<DatePicker Date="{Binding DateOfBirth}"
+                                Format="M/dd/yyyy"
+                                FontSize="14"
+                                TextColor="{StaticResource TextPrimary}"
+                                BackgroundColor="Transparent"
+                                VerticalOptions="Center"/>
 				</Border>
 
-				<!-- ══ D. MEDICAL HISTORY ══ -->
-				<Border Style="{StaticResource CardStyle}">
-					<Border.StrokeShape>
-						<RoundRectangle CornerRadius="14"/>
-					</Border.StrokeShape>
-					<VerticalStackLayout Spacing="0">
+				<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+					<VerticalStackLayout Grid.Column="0" Spacing="0">
+						<Label Text="Nationality" Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}">
+							<Entry Text="{Binding Nationality}" Style="{StaticResource FormEntry}"/>
+						</Border>
+					</VerticalStackLayout>
+					<VerticalStackLayout Grid.Column="1" Spacing="0">
+						<Label Text="Religion" Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}">
+							<Entry Text="{Binding Religion}" Style="{StaticResource FormEntry}"/>
+						</Border>
+					</VerticalStackLayout>
+				</Grid>
 
-						<Label Text="MEDICAL HISTORY" Style="{StaticResource SectionTitleStyle}"/>
+				<Label Text="Occupation" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding Occupation}" Style="{StaticResource FormEntry}"/>
+				</Border>
 
-						<Grid ColumnDefinitions="*,*" ColumnSpacing="16">
-							<VerticalStackLayout Grid.Column="0" Spacing="0">
-								<Label Text="Blood Type" Style="{StaticResource FieldLabelStyle}"/>
-								<Picker ItemsSource="{Binding BloodTypeOptions}"
-                                        SelectedItem="{Binding BloodType}"
-                                        FontSize="14" BackgroundColor="Transparent"/>
-							</VerticalStackLayout>
-							<VerticalStackLayout Grid.Column="1" Spacing="0">
-								<Label Text="Blood Pressure" Style="{StaticResource FieldLabelStyle}"/>
-								<Entry Text="{Binding BloodPressure}" Style="{StaticResource CleanEntry}"/>
-							</VerticalStackLayout>
-						</Grid>
+				<HorizontalStackLayout Spacing="2">
+					<Label Text="Address" Style="{StaticResource FormFieldLabel}"/>
+					<Label Text="*" Style="{StaticResource FormRequiredStar}"/>
+				</HorizontalStackLayout>
+				<Border Style="{StaticResource FormInputBoxTall}">
+					<Editor Text="{Binding Address}" Style="{StaticResource FormEditor}"/>
+				</Border>
 
-						<Label Text="Physician / Doctor Name" Style="{StaticResource FieldLabelStyle}"/>
-						<Entry Text="{Binding PhysicianName}" Style="{StaticResource CleanEntry}"/>
+				<!-- ══ CONTACT DETAILS ══ -->
+				<Label Text=" CONTACT DETAILS " Style="{StaticResource FormSectionHeader}"/>
 
-						<BoxView HeightRequest="1" Color="{StaticResource Divider}" Margin="0,16,0,12"/>
-						<Label Text="Check all that apply:"
-                               FontSize="12" TextColor="{StaticResource TextMuted}"
-                               Margin="0,0,0,8"/>
+				<HorizontalStackLayout Spacing="2">
+					<Label Text="Mobile No." Style="{StaticResource FormFieldLabel}"/>
+					<Label Text="*" Style="{StaticResource FormRequiredStar}"/>
+				</HorizontalStackLayout>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding MobileNo}" Keyboard="Telephone" Style="{StaticResource FormEntry}"/>
+				</Border>
 
-						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto"
-                              RowSpacing="0" ColumnSpacing="0" Margin="0,0,0,8">
-							<Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding IsGoodHealth}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Good Health" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-							<Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding HasBeenHospitalized}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Hospitalized" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-							<Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding IsPregnant}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Pregnant" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-							<Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding TakingMedications}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Taking Medications" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-							<Grid Grid.Row="2" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding UnderMedicalTreatment}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Under Treatment" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-							<Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding UsesAlcohol}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Uses Alcohol" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-							<Grid Grid.Row="3" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding UsesTobacco}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Uses Tobacco" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-						</Grid>
+				<HorizontalStackLayout Spacing="2">
+					<Label Text="Email Address" Style="{StaticResource FormFieldLabel}"/>
+					<Label Text="*" Style="{StaticResource FormRequiredStar}"/>
+				</HorizontalStackLayout>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding Email}" Keyboard="Email" Style="{StaticResource FormEntry}"/>
+				</Border>
 
-						<VerticalStackLayout IsVisible="{Binding TakingMedications}" Spacing="0">
-							<Label Text="List of Medications" Style="{StaticResource FieldLabelStyle}"/>
-							<Editor Text="{Binding MedicationDetails}"
+				<Label Text="Home No." Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding HomeNo}" Keyboard="Telephone" Style="{StaticResource FormEntry}"/>
+				</Border>
+
+				<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+					<VerticalStackLayout Grid.Column="0" Spacing="0">
+						<Label Text="Office No." Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}">
+							<Entry Text="{Binding OfficeNo}" Keyboard="Telephone" Style="{StaticResource FormEntry}"/>
+						</Border>
+					</VerticalStackLayout>
+					<VerticalStackLayout Grid.Column="1" Spacing="0">
+						<Label Text="Fax No." Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}">
+							<Entry Text="{Binding FaxNo}" Keyboard="Telephone" Style="{StaticResource FormEntry}"/>
+						</Border>
+					</VerticalStackLayout>
+				</Grid>
+
+				<!-- ══ GUARDIAN / EMERGENCY CONTACT ══ -->
+				<Label Text=" GUARDIAN / EMERGENCY CONTACT " Style="{StaticResource FormSectionHeader}"/>
+
+				<HorizontalStackLayout Spacing="2">
+					<Label Text="Guardian Name" Style="{StaticResource FormFieldLabel}"/>
+					<Label Text="*" Style="{StaticResource FormRequiredStar}"
+                           IsVisible="{Binding IsMinor}"/>
+				</HorizontalStackLayout>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding GuardianName}" Style="{StaticResource FormEntry}"/>
+				</Border>
+
+				<Label Text="Relationship to Patient" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Picker ItemsSource="{Binding RelationshipOptions}"
+                            SelectedItem="{Binding GuardianRelationship}"
+                            FontSize="14" BackgroundColor="Transparent"
+                            VerticalOptions="Center"/>
+				</Border>
+
+				<HorizontalStackLayout Spacing="2">
+					<Label Text="Guardian Mobile No." Style="{StaticResource FormFieldLabel}"/>
+					<Label Text="*" Style="{StaticResource FormRequiredStar}"
+                           IsVisible="{Binding IsMinor}"/>
+				</HorizontalStackLayout>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding GuardianMobileNo}" Keyboard="Telephone"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
+
+				<Label Text="Guardian Occupation" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding GuardianOccupation}" Style="{StaticResource FormEntry}"/>
+				</Border>
+
+				<!-- ══ MEDICAL HISTORY ══ -->
+				<Label Text=" MEDICAL HISTORY " Style="{StaticResource FormSectionHeader}"/>
+
+				<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+					<VerticalStackLayout Grid.Column="0" Spacing="0">
+						<Label Text="Blood Type" Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}">
+							<Picker ItemsSource="{Binding BloodTypeOptions}"
+                                    SelectedItem="{Binding BloodType}"
                                     FontSize="14" BackgroundColor="Transparent"
-                                    MinimumHeightRequest="56"/>
-						</VerticalStackLayout>
-
-						<VerticalStackLayout IsVisible="{Binding HasBeenHospitalized}" Spacing="0">
-							<Label Text="Hospitalization Details" Style="{StaticResource FieldLabelStyle}"/>
-							<Editor Text="{Binding HospitalizationDetails}"
-                                    FontSize="14" BackgroundColor="Transparent"
-                                    MinimumHeightRequest="56"/>
-						</VerticalStackLayout>
-
-						<Grid ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,4,0,0">
-							<VerticalStackLayout Grid.Column="0" Spacing="0">
-								<Label Text="Previous Dentist" Style="{StaticResource FieldLabelStyle}"/>
-								<Entry Text="{Binding PreviousDentist}" Style="{StaticResource CleanEntry}"/>
-							</VerticalStackLayout>
-							<VerticalStackLayout Grid.Column="1" Spacing="0">
-								<Label Text="Last Dental Visit" Style="{StaticResource FieldLabelStyle}"/>
-								<Entry Text="{Binding LastDentalVisit}" Style="{StaticResource CleanEntry}"/>
-							</VerticalStackLayout>
-						</Grid>
-
+                                    VerticalOptions="Center"/>
+						</Border>
 					</VerticalStackLayout>
+					<VerticalStackLayout Grid.Column="1" Spacing="0">
+						<Label Text="Blood Pressure" Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}">
+							<Entry Text="{Binding BloodPressure}" Style="{StaticResource FormEntry}"/>
+						</Border>
+					</VerticalStackLayout>
+				</Grid>
+
+				<Label Text="Physician / Doctor Name" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding PhysicianName}" Style="{StaticResource FormEntry}"/>
 				</Border>
 
-				<!-- ══ E. ALLERGIES — alphabetical ══ -->
-				<Border Style="{StaticResource CardStyle}">
-					<Border.StrokeShape>
-						<RoundRectangle CornerRadius="14"/>
-					</Border.StrokeShape>
-					<VerticalStackLayout Spacing="0">
+				<Label Text="Check all that apply:"
+                       FontSize="12" TextColor="{StaticResource TextMuted}"
+                       Margin="0,14,0,6"/>
 
-						<Label Text="ALLERGIES" Style="{StaticResource SectionTitleStyle}"/>
-						<Label Text="Check all that apply:"
-                               FontSize="12" TextColor="{StaticResource TextMuted}"
-                               Margin="0,0,0,8"/>
+				<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto"
+                      RowSpacing="0" ColumnSpacing="0">
+					<Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding IsGoodHealth}" Color="Black"/>
+						<Label Grid.Column="1" Text="Good Health" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasBeenHospitalized}" Color="Black"/>
+						<Label Grid.Column="1" Text="Hospitalized" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding IsPregnant}" Color="Black"/>
+						<Label Grid.Column="1" Text="Pregnant" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding TakingMedications}" Color="Black"/>
+						<Label Grid.Column="1" Text="On Medications" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="2" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding UnderMedicalTreatment}" Color="Black"/>
+						<Label Grid.Column="1" Text="Under Treatment" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding UsesAlcohol}" Color="Black"/>
+						<Label Grid.Column="1" Text="Uses Alcohol" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="3" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding UsesTobacco}" Color="Black"/>
+						<Label Grid.Column="1" Text="Uses Tobacco" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+				</Grid>
 
-						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto"
-                              RowSpacing="0" ColumnSpacing="0" Margin="0,0,0,8">
-							<Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding HasAspirinAllergy}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Aspirin" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-							<Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding HasLatexAllergy}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Latex" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-							<Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding HasLocalAnestheticAllergy}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Local Anesthetic" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-							<Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding HasPenicillinAllergy}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Penicillin" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-							<Grid Grid.Row="2" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-								<CheckBox Grid.Column="0" IsChecked="{Binding HasSulfaAllergy}" Color="{StaticResource PrimaryPink}"/>
-								<Label Grid.Column="1" Text="Sulfa" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
-							</Grid>
-						</Grid>
+				<VerticalStackLayout IsVisible="{Binding TakingMedications}" Spacing="0">
+					<Label Text="List of Medications" Style="{StaticResource FormFieldLabel}"/>
+					<Border Style="{StaticResource FormInputBoxTall}">
+						<Editor Text="{Binding MedicationDetails}" Style="{StaticResource FormEditor}"/>
+					</Border>
+				</VerticalStackLayout>
 
-						<Label Text="Other" Style="{StaticResource FieldLabelStyle}"/>
-						<Entry Text="{Binding OtherAllergy}" Style="{StaticResource CleanEntry}"/>
+				<VerticalStackLayout IsVisible="{Binding HasBeenHospitalized}" Spacing="0">
+					<Label Text="Hospitalization Details" Style="{StaticResource FormFieldLabel}"/>
+					<Border Style="{StaticResource FormInputBoxTall}">
+						<Editor Text="{Binding HospitalizationDetails}" Style="{StaticResource FormEditor}"/>
+					</Border>
+				</VerticalStackLayout>
 
+				<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+					<VerticalStackLayout Grid.Column="0" Spacing="0">
+						<Label Text="Previous Dentist" Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}">
+							<Entry Text="{Binding PreviousDentist}" Style="{StaticResource FormEntry}"/>
+						</Border>
 					</VerticalStackLayout>
+					<VerticalStackLayout Grid.Column="1" Spacing="0">
+						<Label Text="Last Dental Visit" Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}">
+							<Entry Text="{Binding LastDentalVisit}" Style="{StaticResource FormEntry}"/>
+						</Border>
+					</VerticalStackLayout>
+				</Grid>
+
+				<!-- ══ ALLERGIES ══ -->
+				<Label Text=" ALLERGIES " Style="{StaticResource FormSectionHeader}"/>
+				<Label Text="Check all that apply:"
+                       FontSize="12" TextColor="{StaticResource TextMuted}"
+                       Margin="0,0,0,6"/>
+
+				<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto"
+                      RowSpacing="0" ColumnSpacing="0">
+					<Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasAspirinAllergy}" Color="Black"/>
+						<Label Grid.Column="1" Text="Aspirin" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasLatexAllergy}" Color="Black"/>
+						<Label Grid.Column="1" Text="Latex" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasLocalAnestheticAllergy}" Color="Black"/>
+						<Label Grid.Column="1" Text="Local Anesthetic" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasPenicillinAllergy}" Color="Black"/>
+						<Label Grid.Column="1" Text="Penicillin" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="2" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasSulfaAllergy}" Color="Black"/>
+						<Label Grid.Column="1" Text="Sulfa" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+				</Grid>
+
+				<Label Text="Other" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding OtherAllergy}" Style="{StaticResource FormEntry}"/>
 				</Border>
 
-				<!-- ══ F. MEDICAL CONDITIONS — alphabetical, Other as text entry ══ -->
-				<Border Style="{StaticResource CardStyle}">
-					<Border.StrokeShape>
-						<RoundRectangle CornerRadius="14"/>
-					</Border.StrokeShape>
-					<VerticalStackLayout Spacing="0">
+				<!-- ══ MEDICAL CONDITIONS ══ -->
+				<Label Text=" MEDICAL CONDITIONS " Style="{StaticResource FormSectionHeader}"/>
+				<Label Text="Check all that apply:"
+                       FontSize="12" TextColor="{StaticResource TextMuted}"
+                       Margin="0,0,0,6"/>
 
-						<Label Text="MEDICAL CONDITIONS" Style="{StaticResource SectionTitleStyle}"/>
-						<Label Text="Check all that apply:"
-                               FontSize="12" TextColor="{StaticResource TextMuted}"
-                               Margin="0,0,0,8"/>
+				<CollectionView ItemsSource="{Binding Conditions}">
+					<CollectionView.ItemsLayout>
+						<GridItemsLayout Orientation="Vertical" Span="2"
+                                         HorizontalItemSpacing="4" VerticalItemSpacing="0"/>
+					</CollectionView.ItemsLayout>
+					<CollectionView.ItemTemplate>
+						<DataTemplate x:DataType="vm:ConditionCheckItem">
+							<Grid ColumnDefinitions="Auto,*" ColumnSpacing="4" Padding="0,2">
+								<CheckBox Grid.Column="0"
+                                          IsChecked="{Binding IsSelected}"
+                                          Color="Black"
+                                          VerticalOptions="Center"/>
+								<Label Grid.Column="1"
+                                       Text="{Binding ConditionName}"
+                                       Style="{StaticResource FormCheckLabel}"/>
+							</Grid>
+						</DataTemplate>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
 
-						<!-- "Other" is completely excluded from this list in the ViewModel -->
-						<CollectionView ItemsSource="{Binding Conditions}">
-							<CollectionView.ItemsLayout>
-								<GridItemsLayout Orientation="Vertical"
-                                                 Span="2"
-                                                 HorizontalItemSpacing="4"
-                                                 VerticalItemSpacing="0"/>
-							</CollectionView.ItemsLayout>
-							<CollectionView.ItemTemplate>
-								<DataTemplate x:DataType="vm:ConditionCheckItem">
-									<Grid ColumnDefinitions="Auto,*" ColumnSpacing="4" Padding="0,2">
-										<CheckBox Grid.Column="0"
-                                                  IsChecked="{Binding IsSelected}"
-                                                  Color="{StaticResource PrimaryPink}"
-                                                  VerticalOptions="Center"/>
-										<Label Grid.Column="1"
-                                               Text="{Binding ConditionName}"
-                                               FontSize="13"
-                                               TextColor="{StaticResource TextPrimary}"
-                                               VerticalOptions="Center"/>
-									</Grid>
-								</DataTemplate>
-							</CollectionView.ItemTemplate>
-						</CollectionView>
-
-						<Label Text="Other" Style="{StaticResource FieldLabelStyle}"/>
-						<Entry Text="{Binding OtherCondition}" Style="{StaticResource CleanEntry}"/>
-
-					</VerticalStackLayout>
+				<Label Text="Other" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding OtherCondition}" Style="{StaticResource FormEntry}"/>
 				</Border>
 
 				<BoxView HeightRequest="8" BackgroundColor="Transparent"/>
@@ -361,16 +331,13 @@
 			</VerticalStackLayout>
 		</ScrollView>
 
-		<!-- ══ STICKY SAVE BUTTON ══ -->
-		<Border Grid.Row="1"
-                BackgroundColor="{StaticResource PageBg}"
-                StrokeThickness="0"
-                Padding="16,0,16,16">
+		<!-- Sticky Save Button -->
+		<Grid Grid.Row="1" Padding="20,10,20,24" BackgroundColor="{StaticResource PageBg}">
 			<Button Text="Save Patient"
                     Command="{Binding SavePatientCommand}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                     Style="{StaticResource PrimaryButtonStyle}"/>
-		</Border>
+		</Grid>
 
 	</Grid>
 </ContentPage>

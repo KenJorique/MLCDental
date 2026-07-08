@@ -88,13 +88,22 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Resources\Styles\SupplyStyles.xaml.cs">
+	    <DependentUpon>SupplyStyles.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="Views\UsersRelated\AddUserPage.xaml.cs">
 	    <DependentUpon>AddUserPage.xaml</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="Resources\Styles\FormStyles.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Resources\Styles\PatientStyles.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Resources\Styles\SupplyStyles.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentPage.xaml">

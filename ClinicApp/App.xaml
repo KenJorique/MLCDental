@@ -9,14 +9,12 @@
 			<ResourceDictionary.MergedDictionaries>
 				<ResourceDictionary Source="Resources/Styles/Colors.xaml" />
 				<ResourceDictionary Source="Resources/Styles/Styles.xaml" />
-				<!-- Patient list page styles: cards, buttons, search, sort -->
 				<ResourceDictionary Source="Resources/Styles/PatientStyles.xaml" />
+				<ResourceDictionary Source="Resources/Styles/SupplyStyles.xaml" />
+				<ResourceDictionary Source="Resources/Styles/FormStyles.xaml" />
 			</ResourceDictionary.MergedDictionaries>
 
-			<!-- Tab button highlight -->
 			<converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
-
-			<!-- Teammate's converters -->
 			<converters:BoolToGenderConverter x:Key="BoolToGenderConverter" />
 			<converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
 			<converters:StringEmptyConverter x:Key="StringEmptyConverter" />
@@ -25,18 +23,12 @@
 			<converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
 			<converters:IntEqualZeroConverter x:Key="IntEqualZeroConverter" />
 			<converters:IntNotEqualZeroConverter x:Key="IntNotEqualZeroConverter" />
-
-			<!-- Our converters -->
 			<converters:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter" />
 			<converters:BoolToStatusTextConverter x:Key="BoolToStatusTextConverter" />
 			<converters:InverseBoolConverter x:Key="InverseBoolConverter" />
-
-			<!-- Tab folder converters (PatientDetailsPage) -->
 			<converters:BoolToTabBgConverter x:Key="BoolToTabBgConverter" />
 			<converters:BoolToTabTextConverter x:Key="BoolToTabTextConverter" />
 			<converters:BoolToFontAttrConverter x:Key="BoolToFontAttrConverter" />
-
-			<!-- Inline edit mode converters -->
 			<converters:BoolToYesNoConverter x:Key="BoolToYesNoConverter" />
 			<converters:BoolToEditLabelConverter x:Key="BoolToEditLabelConverter" />
 

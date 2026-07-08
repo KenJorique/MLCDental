@@ -19,6 +19,7 @@ public partial class SupplyListViewModel : ObservableObject
     [ObservableProperty] private string lowStockSummary = string.Empty;
     [ObservableProperty] private bool hasLowStock;
     [ObservableProperty] private string searchText = string.Empty;
+    [ObservableProperty] private string currentSort = "All";
 
     public ObservableCollection<SupplyCardViewModel> AllCards { get; } = new();
     public ObservableCollection<SupplyCardViewModel> FilteredCards { get; } = new();
@@ -26,6 +27,7 @@ public partial class SupplyListViewModel : ObservableObject
     public SupplyListViewModel(DatabaseService db) => _db = db;
 
     partial void OnSearchTextChanged(string value) => ApplyFilter();
+    partial void OnCurrentSortChanged(string value) => ApplyFilter();
 
     [RelayCommand]
     public async Task LoadSuppliesAsync()
@@ -55,12 +57,24 @@ public partial class SupplyListViewModel : ObservableObject
     {
         FilteredCards.Clear();
         var q = SearchText?.Trim().ToLowerInvariant() ?? string.Empty;
-        foreach (var card in AllCards)
+
+        var source = AllCards.AsEnumerable();
+
+        // Apply search
+        if (!string.IsNullOrEmpty(q))
+            source = source.Where(c => c.Supply.Name.ToLowerInvariant().Contains(q));
+
+        // Apply sort/filter
+        source = CurrentSort switch
         {
-            if (string.IsNullOrEmpty(q) ||
-                card.Supply.Name.ToLowerInvariant().Contains(q))
-                FilteredCards.Add(card);
-        }
+            "Low Stock" => source.Where(c => c.IsLowStock && !c.IsOutOfStock),
+            "Out of Stock" => source.Where(c => c.IsOutOfStock),
+            _ => source  // "All" — no extra filter
+        };
+
+        foreach (var card in source)
+            FilteredCards.Add(card);
+
         IsEmpty = FilteredCards.Count == 0;
     }
 
@@ -74,10 +88,22 @@ public partial class SupplyListViewModel : ObservableObject
     }
 
     [RelayCommand]
+    async Task ShowSortOptions()
+    {
+        var result = await Shell.Current.DisplayActionSheet(
+            "Filter by Stock Status",
+            "Cancel",
+            null,
+            "All", "Low Stock", "Out of Stock");
+
+        if (result is null || result == "Cancel") return;
+        CurrentSort = result;
+    }
+
+    [RelayCommand]
     async Task GoToAddSupply() =>
         await Shell.Current.GoToAsync(nameof(AddSupplyPage));
 
-    // Row tap → go directly to View Info
     [RelayCommand]
     async Task ViewSupplyInfo(SupplyCardViewModel card)
     {
@@ -85,7 +111,6 @@ public partial class SupplyListViewModel : ObservableObject
         await Shell.Current.GoToAsync($"{nameof(SupplyInfoPage)}?supplyId={card.Supply.Id}");
     }
 
-    // ⋮ button tap → open action sheet
     [RelayCommand]
     async Task ShowActionSheet(SupplyCardViewModel card)
     {

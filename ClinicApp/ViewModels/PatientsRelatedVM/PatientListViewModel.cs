@@ -3,6 +3,7 @@ using ClinicApp.Services;
 using ClinicApp.Views.CephalometricRelated;
 using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.PatientsRelated;
+using ClinicApp.Views.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -13,29 +14,16 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
     {
         readonly DatabaseService _db;
 
-        // Full unfiltered list — source for search and sort
         private List<PatientCardViewModel> _allPatients = new();
-
-        // Displayed list bound to the UI
         public ObservableCollection<PatientCardViewModel> Patients { get; set; } = new();
 
         [ObservableProperty] private bool isBusy;
         [ObservableProperty] private bool isRefreshing;
-
-        // Search text — filters by patient full name as user types
         [ObservableProperty] private string searchText = string.Empty;
-
-        // Label shown on the sort button
         [ObservableProperty] private string currentSort = "All";
 
-        public PatientListViewModel(DatabaseService db)
-        {
-            _db = db;
-            // NOTE: Do NOT call LoadPatients() here.
-            // PatientListPage.OnAppearing() handles the initial load.
-        }
+        public PatientListViewModel(DatabaseService db) => _db = db;
 
-        // Reloads from database then applies current filter/sort
         [RelayCommand]
         async Task LoadPatients()
         {
@@ -54,15 +42,12 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             }
         }
 
-        // Re-filter whenever search text changes
         partial void OnSearchTextChanged(string value) => ApplyFilterAndSort();
 
-        // Applies search filter + current sort and updates the Patients collection
         private void ApplyFilterAndSort()
         {
             var filtered = _allPatients.AsEnumerable();
 
-            // Filter by full name
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
                 var term = SearchText.Trim().ToLower();
@@ -70,13 +55,12 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                     c.Patient.FullName.ToLower().Contains(term));
             }
 
-            // Apply sort
             filtered = CurrentSort switch
             {
                 "A-Z" => filtered.OrderBy(c => c.Patient.LastName).ThenBy(c => c.Patient.FirstName),
                 "Z-A" => filtered.OrderByDescending(c => c.Patient.LastName).ThenByDescending(c => c.Patient.FirstName),
                 "Recently Added" => filtered.OrderByDescending(c => c.Patient.PatientID),
-                _ => filtered // "All" = original DB insert order
+                _ => filtered
             };
 
             Patients.Clear();
@@ -84,7 +68,6 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 Patients.Add(card);
         }
 
-        // Shows sort options and updates CurrentSort label
         [RelayCommand]
         async Task ShowSortOptions()
         {
@@ -99,49 +82,130 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             }
         }
 
-        // Toggles card expansion — only one open at a time
+        // Opens the bottom action sheet when a card is tapped
         [RelayCommand]
-        void ToggleExpand(PatientCardViewModel card)
+        async Task OpenActionSheet(PatientCardViewModel card)
         {
-            if (card == null) return;
-            bool wasExpanded = card.IsExpanded;
-            foreach (var c in Patients)
-                c.IsExpanded = false;
-            if (!wasExpanded)
-                card.IsExpanded = true;
+            if (card is null) return;
+
+            var sheet = new ItemActionSheet();
+            sheet.Configure(
+                title: card.Patient.FullName,
+                subtitle: $"Patient ID: {card.Patient.PatientID:D3}",
+                options: new[]
+                {
+                    new ActionSheetOption
+                    {
+                        Icon = "\ue09e",
+                        Label = "Patient Records",
+                        Subtitle = "View full patient details",
+                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                        IconColor = Color.FromArgb("#1A6B2F"),
+                        OnTapped = async () =>
+                            await Shell.Current.GoToAsync(
+                                $"{nameof(PatientDetailsPage)}?id={card.Patient.PatientID}"),
+                    },
+                    new ActionSheetOption
+                    {
+                        Icon = "\ue0a6",
+                        Label = "Dental Chart",
+                        Subtitle = "View dental chart",
+                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                        IconColor = Color.FromArgb("#1A6B2F"),
+                        OnTapped = async () =>
+                            await Shell.Current.GoToAsync(
+                                $"{nameof(DentalChartPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
+                    },
+                    new ActionSheetOption
+                    {
+                        Icon = "\ue0aa",
+                        Label = "Cephalometric",
+                        Subtitle = "View cephalometric analysis",
+                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                        IconColor = Color.FromArgb("#1A6B2F"),
+                        OnTapped = async () =>
+                            await Shell.Current.GoToAsync(
+                                $"{nameof(CephalometricPage)}?PatientId={card.Patient.PatientID}&PatientName={Uri.EscapeDataString(card.Patient.FullName)}"),
+                    },
+                    new ActionSheetOption
+                    {
+                        Icon = "\ue889",
+                        Label = "Treatment History",
+                        Subtitle = "View past treatments",
+                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                        IconColor = Color.FromArgb("#1A6B2F"),
+                        OnTapped = async () =>
+                            await Shell.Current.GoToAsync(
+                                $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
+                    },
+                    new ActionSheetOption
+                    {
+                        Icon = "\ue8f1",
+                        Label = "Transaction History",
+                        Subtitle = "Coming soon",
+                        IconBackgroundColor = Color.FromArgb("#F5F5F5"),
+                        IconColor = Color.FromArgb("#9E9E9E"),
+                        OnTapped = async () =>
+                            await Shell.Current.DisplayAlert("Coming Soon",
+                                "Transaction History is not available yet.", "OK"),
+                    },
+                    new ActionSheetOption
+                    {
+                        Icon = "\ue872",
+                        Label = "Delete Patient",
+                        Subtitle = "Remove from records",
+                        LabelColor = Colors.Crimson,
+                        IconBackgroundColor = Color.FromArgb("#FFEBEE"),
+                        IconColor = Colors.Crimson,
+                        OnTapped = async () => await DeletePatient(card),
+                    },
+                });
+
+            await sheet.ShowAsync();
         }
 
-        // Navigates to AddPatientPage for a new patient
+        // Call button — opens phone dialer
         [RelayCommand]
-        async Task GoToAddPatient()
+        async Task CallPatient(PatientCardViewModel card)
         {
+            if (card is null || string.IsNullOrWhiteSpace(card.Patient.MobileNo)) return;
+            try
+            {
+                if (PhoneDialer.Default.IsSupported)
+                    PhoneDialer.Default.Open(card.Patient.MobileNo);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Call] {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        async Task GoToAddPatient() =>
             await Shell.Current.GoToAsync(nameof(AddPatientPage));
-        }
 
-        // Navigates to PatientDetailsPage (Patient Records)
         [RelayCommand]
         async Task ViewPatient(PatientCardViewModel card)
         {
-            if (card == null) return;
+            if (card is null) return;
             await Shell.Current.GoToAsync($"{nameof(PatientDetailsPage)}?id={card.Patient.PatientID}");
         }
 
-        // Navigates to AddPatientPage pre-filled for editing
         [RelayCommand]
         async Task EditPatient(PatientCardViewModel card)
         {
-            if (card == null) return;
+            if (card is null) return;
             await Shell.Current.GoToAsync($"{nameof(AddPatientPage)}?PatientId={card.Patient.PatientID}");
         }
 
-        // Deletes a patient after confirmation
         [RelayCommand]
         async Task DeletePatient(PatientCardViewModel card)
         {
-            if (card == null) return;
+            if (card is null) return;
 
-            bool answer = await Shell.Current.DisplayAlert("Confirm Delete",
-                $"Are you sure you want to delete {card.Patient.FirstName} {card.Patient.LastName}?",
+            bool answer = await Shell.Current.DisplayAlert(
+                "Confirm Delete",
+                $"Are you sure you want to delete {card.Patient.FullName}?",
                 "Yes", "No");
 
             if (answer)
@@ -152,29 +216,26 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             }
         }
 
-        // Navigates to DentalChartPage
         [RelayCommand]
         async Task ViewDentalChart(PatientCardViewModel card)
         {
-            if (card == null) return;
+            if (card is null) return;
             await Shell.Current.GoToAsync(
                 $"{nameof(DentalChartPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}");
         }
 
-        // Navigates to CephalometricPage
         [RelayCommand]
         async Task GoToCephalometric(PatientCardViewModel card)
         {
-            if (card == null) return;
+            if (card is null) return;
             await Shell.Current.GoToAsync(
                 $"{nameof(CephalometricPage)}?PatientId={card.Patient.PatientID}&PatientName={Uri.EscapeDataString(card.Patient.FullName)}");
         }
 
-        // Navigates to TreatmentHistoryPage
         [RelayCommand]
         async Task ViewTreatmentHistory(PatientCardViewModel card)
         {
-            if (card == null) return;
+            if (card is null) return;
             await Shell.Current.GoToAsync(
                 $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}");
         }

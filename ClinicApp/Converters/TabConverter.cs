@@ -21,7 +21,7 @@ public class BoolToTabTextConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is bool isActive)
-            return isActive ? Color.FromArgb("#D4547A") : Color.FromArgb("#6B7280");
+            return isActive ? Color.FromArgb("#1A6B2F") : Color.FromArgb("#6B7280");
         return Color.FromArgb("#6B7280");
     }
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
