@@ -3,6 +3,7 @@ using ClinicApp.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using ClinicApp.Views.AppointmentRelated;
 
 namespace ClinicApp.ViewModels
 {
@@ -263,32 +264,18 @@ namespace ClinicApp.ViewModels
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[Reschedule] Starting for {booking.FullName}, Id={booking.Id}");
+            // 1. (Optional) Remove the status update alert if you want it to navigate instantly,
+            // or keep it if you want them to confirm they are changing it right now.
+            var currentDt = booking.AppointmentDate != DateTime.MinValue
+                ? booking.AppointmentDate.ToString("MMM dd, yyyy h:mm tt")
+                : "Unknown";
 
-            bool confirm = await Shell.Current.DisplayAlert(
-                "Reschedule Booking",
-                $"Mark {booking.FullName}'s booking for rescheduling?\n" +
-                $"The dentist will contact the patient to set a new date.",
-                "Reschedule", "Cancel");
-
-            if (!confirm) return;
-
-            IsLoading = true;
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"[Reschedule] Updating status to rescheduled...");
-                await _supabaseData.UpdateBookingStatusAsync(booking.Id, "rescheduled");
-                System.Diagnostics.Debug.WriteLine($"[Reschedule] Status updated successfully.");
-
-                await FetchAndPopulate();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Reschedule] FAILED: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[Reschedule] Stack: {ex.StackTrace}");
-                await Shell.Current.DisplayAlert("Error", $"Failed: {ex.Message}", "OK");
-            }
-            finally { IsLoading = false; }
+            // 2. Navigate straight to the ReschedulePage, passing the required query parameters
+            await Shell.Current.GoToAsync(
+                $"{nameof(ReschedulePage)}" +
+                $"?bookingId={Uri.EscapeDataString(booking.Id)}" +
+                $"&patientName={Uri.EscapeDataString(booking.FullName ?? "")}" +
+                $"&currentDateTime={Uri.EscapeDataString(currentDt)}");
         }
 
         [RelayCommand]

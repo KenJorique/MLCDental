@@ -1,7 +1,7 @@
 using ClinicApp.Services;
 using ClinicApp.ViewModels;
 
-namespace ClinicApp.Views
+namespace ClinicApp.Views.AppointmentRelated
 {
     public partial class AppointmentSchedulePage : ContentPage
     {

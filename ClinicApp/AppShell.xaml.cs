@@ -5,6 +5,7 @@ using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.UsersRelated;
 using ClinicApp.Views.SupplyRelated;
+using ClinicApp.Views.AppointmentRelated;
 
 namespace ClinicApp
 {
@@ -34,6 +35,7 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(StockHistoryPage), typeof(StockHistoryPage));
 
             Routing.RegisterRoute(nameof(AppointmentPage), typeof(AppointmentPage));
+            Routing.RegisterRoute(nameof(ReschedulePage), typeof(ReschedulePage));
 
             Routing.RegisterRoute(nameof(GoogleSignInPage), typeof(GoogleSignInPage));
 

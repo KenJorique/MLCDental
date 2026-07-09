@@ -20,6 +20,8 @@ public class StringEqualConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
+
+
 }
 
 /// <summary>Returns true when the string does NOT equal the ConverterParameter.</summary>
@@ -110,3 +112,4 @@ public class IntToBoolConverter : IValueConverter
                               object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+

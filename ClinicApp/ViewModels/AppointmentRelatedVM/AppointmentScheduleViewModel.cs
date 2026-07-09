@@ -1,11 +1,11 @@
 ﻿
 using ClinicApp.Models;
 using ClinicApp.Services;
-using ClinicApp.Views;
 using ClinicApp.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using ClinicApp.Views.AppointmentRelated;
 
 namespace ClinicApp.ViewModels
 {
@@ -40,6 +40,23 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private bool hasPendingBookings;
         [ObservableProperty] private string todayLabel = "Today";
         [ObservableProperty]  private string weekLabel = "This week";
+        // Add these properties
+        public bool IsSelectedApproved =>
+       SelectedAppointment?.Status == "approved";
+
+        public bool CanChangeDate =>
+    SelectedAppointment?.Status == "approved" ||
+    SelectedAppointment?.Status == "rescheduled";
+        public bool IsSelectedPending =>
+            SelectedAppointment?.Status == "pending";
+
+        // Update OnSelectedAppointmentChanged to notify them
+        partial void OnSelectedAppointmentChanged(AppointmentEntry? value)
+        {
+            OnPropertyChanged(nameof(IsSelectedApproved));
+            OnPropertyChanged(nameof(CanChangeDate)); 
+            OnPropertyChanged(nameof(IsSelectedPending));
+        }
 
         [RelayCommand]
         async Task GoToPending()
@@ -285,10 +302,22 @@ namespace ClinicApp.ViewModels
         async Task RescheduleAppointment()
         {
             if (SelectedAppointment == null) return;
-            await _db.UpdateAppointmentStatus(SelectedAppointment.Id, "rescheduled");
+
             ShowDetail = false;
-            await LoadAppointments();
+
+            var currentDt = SelectedAppointment.AppointmentDateTimeParsed
+                != DateTime.MinValue
+                ? SelectedAppointment.AppointmentDateTimeParsed
+                      .ToString("MMM dd, yyyy h:mm tt")
+                : "Unknown";
+
+            await Shell.Current.GoToAsync(
+                $"{nameof(ReschedulePage)}" +
+                $"?bookingId={Uri.EscapeDataString(SelectedAppointment.SupabaseBookingId)}" +
+                $"&patientName={Uri.EscapeDataString(SelectedAppointment.PatientName)}" +
+                $"&currentDateTime={Uri.EscapeDataString(currentDt)}");
         }
+
 
         [RelayCommand]
         async Task Refresh()
@@ -511,6 +540,8 @@ namespace ClinicApp.ViewModels
                 await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
             }
         }
+
+
     }
 
     public class CalendarDayColumn

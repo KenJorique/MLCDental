@@ -2,7 +2,7 @@
 using ClinicApp.Models;
 using ClinicApp.ViewModels;
 
-namespace ClinicApp.Views
+namespace ClinicApp.Views.AppointmentRelated
 {
     public class CalendarDrawable : IDrawable
     {

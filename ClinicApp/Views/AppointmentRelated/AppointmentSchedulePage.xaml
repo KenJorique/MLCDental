@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ClinicApp.ViewModels"
              xmlns:models="clr-namespace:ClinicApp.Models"
-             x:Class="ClinicApp.Views.AppointmentSchedulePage"
+             x:Class="ClinicApp.Views.AppointmentRelated.AppointmentSchedulePage"
              Title="Appointments"
              BackgroundColor="#F5F5F5">
 
@@ -340,26 +340,39 @@
                         </ScrollView>
 
                         <VerticalStackLayout Grid.Row="2" Padding="14,10" Spacing="8">
-                            <Button Text="Mark as completed"
-                                    BackgroundColor="#2E7D32" TextColor="White"
-                                    CornerRadius="10" HeightRequest="44" FontSize="13"
+
+                            <!-- Mark Complete — approved only -->
+                            <Button Text="✓  Mark as completed"
+                                    BackgroundColor="#2E7D32"
+                                    TextColor="White"
+                                    CornerRadius="10"
+                                    HeightRequest="44"
+                                    FontSize="13"
+                                    IsVisible="{Binding IsSelectedApproved}"
                                     Command="{Binding MarkCompletedCommand}"/>
-                            <Button Text="Reschedule booking"
-                                    BackgroundColor="#4A4A8A" TextColor="White"
-                                    CornerRadius="10" HeightRequest="44" FontSize="13"
+
+                            <!-- Reschedule — pending/rescheduled only -->
+                            <Button Text="↺  Change schedule"
+                                    BackgroundColor="#1565C0"
+                                    TextColor="White"
+                                    CornerRadius="10"
+                                    HeightRequest="44"
+                                    FontSize="13"
+                                    IsVisible="{Binding CanChangeDate}"
                                     Command="{Binding RescheduleAppointmentCommand}"/>
-                            <Button Text="Cancel appointment"
+
+                            <!-- Cancel — pending/rescheduled only -->
+                            <Button Text="✕  Cancel appointment"
                                     BackgroundColor="Transparent"
-                                    BorderColor="#DDDDDD" BorderWidth="1"
-                                    TextColor="#888" CornerRadius="10"
-                                    HeightRequest="44" FontSize="13"
+                                    BorderColor="#DDDDDD"
+                                    BorderWidth="1"
+                                    TextColor="#888"
+                                    CornerRadius="10"
+                                    HeightRequest="44"
+                                    FontSize="13"
+                                    IsVisible="{Binding IsSelectedPending}"
                                     Command="{Binding CancelAppointmentCommand}"/>
-                            <Button Text="Delete appointment"
-                                    BackgroundColor="Transparent"
-                                    BorderColor="#FFCDD2" BorderWidth="1"
-                                    TextColor="#C62828" CornerRadius="10"
-                                    HeightRequest="44" FontSize="13"
-                                    Command="{Binding DeleteAppointmentCommand}"/>
+
                         </VerticalStackLayout>
                     </Grid>
                 </Frame>

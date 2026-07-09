@@ -1,6 +1,6 @@
 using ClinicApp.ViewModels;
 
-namespace ClinicApp.Views
+namespace ClinicApp.Views.AppointmentRelated
 {
     public partial class AppointmentPage : ContentPage
     {

@@ -13,6 +13,7 @@ using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.SupplyRelated;
 using ClinicApp.Views.UsersRelated;
+using ClinicApp.Views.AppointmentRelated;
 using Microsoft.Extensions.Logging;
 using The49.Maui.BottomSheet;
 
@@ -73,6 +74,12 @@ namespace ClinicApp
                                 sp.GetRequiredService<AppointmentScheduleViewModel>(),
                                 sp.GetRequiredService<SupabaseRealtimeService>()
                             ));
+
+            builder.Services.AddTransient<RescheduleViewModel>(sp =>
+                            new RescheduleViewModel(
+                                sp.GetRequiredService<SupabaseDataService>()
+                            ));
+            builder.Services.AddTransient<ReschedulePage>();
 
             // ── Patients ──────────────────────────────────────────
             builder.Services.AddSingleton<PatientListViewModel>(sp =>

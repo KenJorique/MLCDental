@@ -7,6 +7,7 @@
     xmlns:patients="clr-namespace:ClinicApp.Views.PatientsRelated"
     xmlns:services="clr-namespace:ClinicApp.Views.ServicesRelated"
     xmlns:users="clr-namespace:ClinicApp.Views.UsersRelated"
+    xmlns:appt="clr-namespace:ClinicApp.Views.AppointmentRelated"
     xmlns:views="clr-namespace:ClinicApp.Views"
     Shell.FlyoutBehavior="Disabled">
 
@@ -20,7 +21,7 @@
 
         <Tab Title="Appointment">
             <ShellContent
-        ContentTemplate="{DataTemplate views:AppointmentSchedulePage}"
+        ContentTemplate="{DataTemplate appt:AppointmentSchedulePage}"
         Route="AppointmentSchedulePage" />
         </Tab>
 

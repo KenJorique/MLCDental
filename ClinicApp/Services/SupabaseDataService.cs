@@ -726,5 +726,74 @@ namespace ClinicApp.Services
                 return false;
             }
         }
+
+        public async Task<List<DateTime>> GetBookedTimeSlotsForDateAsync(DateTime date)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseBooking>().Get();
+
+                var startUtc = date.Date.ToUniversalTime();
+                var endUtc = startUtc.AddDays(1);
+
+                return result.Models
+                    .Where(b =>
+                        b.AppointmentDate >= startUtc &&
+                        b.AppointmentDate < endUtc &&
+                        b.Status != "rejected" &&
+                        b.Status != "cancelled")
+                    .Select(b => b.AppointmentDate)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetBookedSlots: {ex.Message}");
+                return new List<DateTime>();
+            }
+        }
+
+        public async Task RescheduleBookingAsync(string bookingId, DateTime newUtcTime)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBooking>()
+                    .Where(b => b.Id == bookingId)
+                    .Single();
+
+                if (result == null) return;
+
+                result.AppointmentDate = newUtcTime;
+                result.Status = "rescheduled";
+
+                await _client!.From<SupabaseBooking>().Update(result);
+
+                // Also update appointment_entries if exists
+                var entries = await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Where(e => e.SupabaseBookingId == bookingId)
+                    .Get();
+
+                var entry = entries.Models.FirstOrDefault();
+                if (entry != null)
+                {
+                    entry.AppointmentDateTime = newUtcTime;
+                    entry.Status = "rescheduled";
+                    await _client!.From<SupabaseAppointmentEntry>().Update(entry);
+                }
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] Rescheduled {bookingId} to {newUtcTime:yyyy-MM-dd HH:mm} UTC");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] RescheduleBooking: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

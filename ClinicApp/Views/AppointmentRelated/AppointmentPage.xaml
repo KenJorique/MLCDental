@@ -2,8 +2,8 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ClinicApp.ViewModels"
-             x:Class="ClinicApp.Views.AppointmentPage"
              Title="Appointments"
+             x:Class="ClinicApp.Views.AppointmentRelated.AppointmentPage"
              BackgroundColor="#F5F5F5">
 
     <RefreshView Command="{Binding RefreshCommand}"
@@ -229,16 +229,26 @@
                                                FontAttributes="Italic"/>
 
                                         <!-- Move back to pending if needed -->
-                                        <Button Text="↩  Move to Pending"
-                                                BackgroundColor="#E65100"
+                                        <Button Text="Approve"
+                                                BackgroundColor="#1565C0"
                                                 TextColor="White"
                                                 CornerRadius="8"
                                                 FontSize="13"
                                                 HeightRequest="38"
                                                 HorizontalOptions="Start"
                                                 Margin="0,8,0,0"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AppointmentViewModel}}, Path=MoveToPendingCommand}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AppointmentViewModel}}, Path=ApproveCommand}"
                                                 CommandParameter="{Binding .}"/>
+                                        
+                                        <Button Text="Change Appointment"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AppointmentViewModel}}, Path=RescheduleCommand}"
+                                                CommandParameter="{Binding .}"
+                                                BackgroundColor="#4A4A8A"
+                                                TextColor="White"
+                                                CornerRadius="8"
+                                                HorizontalOptions="End"
+                                                HeightRequest="38" 
+                                                 Margin="0,8,0,0"/>
 
                                     </VerticalStackLayout>
                                 </Frame>
