@@ -82,24 +82,28 @@ public partial class AddServiceViewModel : ObservableObject
 
     // ─── Edit mode: pre-fill Service fields ─────────────────
 
-    partial void OnServiceIdChanged(int value)
+ partial void OnServiceIdChanged(int value)
+{
+    if (value > 0)
     {
-        if (value > 0)
-        {
-            PageTitle = "Edit Service";
-            LoadServiceData(value);
-        }
+        PageTitle = "Edit Service";
+        // Safe fire-and-forget background processing
+        Task.Run(async () => await LoadServiceDataAsync(value));
     }
+}
 
-    private async void LoadServiceData(int id)
+    private async Task LoadServiceDataAsync(int id)
     {
         var list = await _db.GetServices();
         var service = list.FirstOrDefault(s => s.ServiceID == id);
         if (service != null)
         {
-            ServiceName = service.ServiceName;
-            ServicePrice = service.Price;
-            ServiceDescription = service.Description;
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                ServiceName = service.ServiceName;
+                ServicePrice = service.Price;
+                ServiceDescription = service.Description;
+            });
         }
     }
 
@@ -110,29 +114,31 @@ public partial class AddServiceViewModel : ObservableObject
         if (value > 0)
         {
             PageTitle = "Edit Package";
-            // Switch to package tab automatically when editing a package
             IsServiceTabSelected = false;
             IsPackageTabSelected = true;
-            LoadPackageData(value);
+            Task.Run(async () => await LoadPackageDataAsync(value));
         }
     }
 
-    private async void LoadPackageData(int id)
+    private async Task LoadPackageDataAsync(int id)
     {
         var list = await _db.GetServicePackages();
         var package = list.FirstOrDefault(p => p.PackageID == id);
         if (package != null)
         {
-            PackageName = package.PackageName;
-            PackagePrice = package.Price;
-            PackageDescription = package.Description;
+            // Ensure properties bound to UI controls change on the UI thread
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                PackageName = package.PackageName;
+                PackagePrice = package.Price;
+                PackageDescription = package.Description;
 
-            // Pre-tick the checkboxes for included services
-            await LoadAvailableServicesAsync();
-            var included = (package.IncludedServices ?? "")
-                .Split(',', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var item in AvailableServices)
-                item.IsSelected = included.Contains(item.Service.ServiceName);
+                await LoadAvailableServicesAsync();
+                var included = (package.IncludedServices ?? "")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var item in AvailableServices)
+                    item.IsSelected = included.Contains(item.Service.ServiceName);
+            });
         }
     }
 

@@ -35,7 +35,7 @@ public partial class ServiceViewModel : ObservableObject
 
     // Loads both services and packages, wraps them in card ViewModels
     [RelayCommand]
-    async Task LoadServices()
+    public async Task LoadServices()
     {
         try
         {
