@@ -24,6 +24,9 @@ public partial class SupplyInfoViewModel : ObservableObject
     public bool IsOutOfStock => Supply?.IsOutOfStock ?? false;
     public string StockStatus => IsOutOfStock ? "Out of Stock" : IsLowStock ? "Low Stock" : "In Stock";
     public string StockStatusColor => IsOutOfStock ? "#D32F2F" : IsLowStock ? "#F57C00" : "#388E3C";
+    /// Strips "Per " prefix — shows "Piece", "Box", "Pack", "Kit"
+    public string UnitDisplay => Supply?.Unit?.Replace("Per ", string.Empty) ?? "—";
+
     public string ExpirationDisplay => Supply is null ? "—"
         : Supply.HasExpiration && !string.IsNullOrWhiteSpace(Supply.ExpirationDate)
             ? Supply.ExpirationDate : "—";
@@ -71,6 +74,7 @@ public partial class SupplyInfoViewModel : ObservableObject
         OnPropertyChanged(nameof(IsOutOfStock));
         OnPropertyChanged(nameof(StockStatus));
         OnPropertyChanged(nameof(StockStatusColor));
+        OnPropertyChanged(nameof(UnitDisplay));
         OnPropertyChanged(nameof(ExpirationDisplay));
     }
 

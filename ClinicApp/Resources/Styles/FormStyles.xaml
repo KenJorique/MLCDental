@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+	<!-- ══════════════════════════════════════════
+         FORM STYLES — MLC Clinic
+         Shared across ALL form pages:
+         AddPatientPage, AddSupplyPage, AddStockPage,
+         ReduceStockPage, AddServicePage, AddUserPage, etc.
+         Theme: green accent, yellowish inputs, underline style.
+    ══════════════════════════════════════════════ -->
+
+	<!-- Warm yellow tint used for all input backgrounds -->
+	<Color x:Key="InputBg">#FBF8E8</Color>
+
+	<!-- ── SECTION HEADERS ────────────────────────────── -->
+	<Style x:Key="FormSectionHeader" TargetType="Label">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="FontAttributes" Value="Bold"/>
+		<Setter Property="TextColor" Value="{StaticResource PrimaryPink}"/>
+		<Setter Property="Margin" Value="0,24,0,6"/>
+	</Style>
+
+	<!-- ── FIELD LABELS ──────────────────────────────── -->
+	<Style x:Key="FormFieldLabel" TargetType="Label">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="FontAttributes" Value="Bold"/>
+		<Setter Property="TextColor" Value="{StaticResource TextPrimary}"/>
+		<Setter Property="Margin" Value="0,14,0,2"/>
+	</Style>
+
+	<Style x:Key="FormRequiredStar" TargetType="Label">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="FontAttributes" Value="Bold"/>
+		<Setter Property="TextColor" Value="{StaticResource PrimaryPink}"/>
+		<Setter Property="Margin" Value="0,14,0,2"/>
+	</Style>
+
+	<Style x:Key="FormHintLabel" TargetType="Label">
+		<Setter Property="FontSize" Value="12"/>
+		<Setter Property="TextColor" Value="{StaticResource TextMuted}"/>
+		<Setter Property="Margin" Value="2,2,0,0"/>
+	</Style>
+
+	<Style x:Key="FormErrorLabel" TargetType="Label">
+		<Setter Property="FontSize" Value="12"/>
+		<Setter Property="TextColor" Value="#D32F2F"/>
+		<Setter Property="Margin" Value="2,2,0,0"/>
+	</Style>
+
+	<!-- ── INPUT CONTAINER (yellowish rounded box) ────── -->
+	<Style x:Key="FormInputBox" TargetType="Border">
+		<Setter Property="BackgroundColor" Value="{StaticResource InputBg}"/>
+		<Setter Property="StrokeThickness" Value="0"/>
+		<Setter Property="StrokeShape" Value="RoundRectangle 10"/>
+		<Setter Property="Padding" Value="14,0"/>
+		<Setter Property="HeightRequest" Value="46"/>
+	</Style>
+
+	<!-- Taller version for Editor / multiline -->
+	<Style x:Key="FormInputBoxTall" TargetType="Border">
+		<Setter Property="BackgroundColor" Value="{StaticResource InputBg}"/>
+		<Setter Property="StrokeThickness" Value="0"/>
+		<Setter Property="StrokeShape" Value="RoundRectangle 10"/>
+		<Setter Property="Padding" Value="14,10"/>
+		<Setter Property="MinimumHeightRequest" Value="80"/>
+	</Style>
+
+	<!-- ── ENTRY inside InputBox ─────────────────────── -->
+	<Style x:Key="FormEntry" TargetType="Entry">
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="TextColor" Value="{StaticResource TextPrimary}"/>
+		<Setter Property="PlaceholderColor" Value="{StaticResource TextMuted}"/>
+		<Setter Property="BackgroundColor" Value="Transparent"/>
+		<Setter Property="VerticalOptions" Value="Center"/>
+	</Style>
+
+	<!-- ── EDITOR inside InputBoxTall ────────────────── -->
+	<Style x:Key="FormEditor" TargetType="Editor">
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="TextColor" Value="{StaticResource TextPrimary}"/>
+		<Setter Property="BackgroundColor" Value="Transparent"/>
+		<Setter Property="MinimumHeightRequest" Value="60"/>
+	</Style>
+
+	<!-- ── CHECKBOX ──────────────────────────────────── -->
+	<Style x:Key="FormCheckLabel" TargetType="Label">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="TextColor" Value="{StaticResource TextPrimary}"/>
+		<Setter Property="VerticalOptions" Value="Center"/>
+	</Style>
+
+</ResourceDictionary>

@@ -7,70 +7,107 @@
     x:Class="ClinicApp.Views.SupplyRelated.AddSupplyPage"
     x:DataType="vm:AddSupplyViewModel"
     Title="{Binding PageTitle}"
+    BackgroundColor="{StaticResource PageBg}"
     Shell.TabBarIsVisible="False">
 
 	<Grid RowDefinitions="*,Auto">
 
 		<ScrollView Grid.Row="0">
-			<VerticalStackLayout Padding="16" Spacing="14">
+			<VerticalStackLayout Padding="20,4,20,8" Spacing="0">
 
-				<!-- Item Name -->
-				<Label Text="Item Name" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
-				<Entry Placeholder="e.g. Disposable Gloves"
-                       Text="{Binding ItemName}"
-                       ClearButtonVisibility="WhileEditing"/>
+				<!-- ══ ITEM DETAILS ══ -->
+				<HorizontalStackLayout Spacing="2">
+					<Label Text="Item Name" Style="{StaticResource FormFieldLabel}"/>
+					<Label Text="*" Style="{StaticResource FormRequiredStar}"/>
+				</HorizontalStackLayout>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding ItemName}"
+                           Placeholder="e.g. Disposable Gloves"
+                           ClearButtonVisibility="WhileEditing"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
 				<Label Text="{Binding NameError}"
-                       FontSize="12" TextColor="Crimson"
+                       Style="{StaticResource FormErrorLabel}"
                        IsVisible="{Binding NameError, Converter={StaticResource StringNotEmptyConverter}}"/>
 
-				<!-- Quantity -->
-				<Label Text="Quantity (pcs)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
-				<Entry Placeholder="e.g. 50" Keyboard="Numeric"
-                       Text="{Binding Quantity}"/>
+				<Label Text="Unit" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Picker ItemsSource="{Binding UnitOptions}"
+                            SelectedItem="{Binding SelectedUnit}"
+                            FontSize="14" BackgroundColor="Transparent"
+                            VerticalOptions="Center"/>
+				</Border>
 
-				<!-- Size / Variant -->
-				<Label Text="Size / Variant (optional)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
-				<Entry Placeholder="e.g. Small, Medium, 250mg"
-                       Text="{Binding SizeVariant}"/>
-
-				<!-- Has Expiration -->
-				<Grid ColumnDefinitions="*,Auto">
-					<Label Grid.Column="0" Text="Has Expiration?" FontAttributes="Bold" FontSize="14"
-                           TextColor="Black" VerticalTextAlignment="Center"/>
-					<HorizontalStackLayout Grid.Column="1" Spacing="16">
-						<RadioButton Content="Yes" Value="True" TextColor="Black"
-                                     IsChecked="{Binding HasExpiration}"/>
-						<RadioButton Content="No" Value="False" TextColor="Black"
-                                     IsChecked="{Binding HasExpiration, Converter={StaticResource InvertedBoolConverter}}"/>
-					</HorizontalStackLayout>
-				</Grid>
-
-				<!-- Expiration Date -->
-				<VerticalStackLayout IsVisible="{Binding HasExpiration}" Spacing="6">
-					<Label Text="Expiration Date" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
-					<DatePicker Date="{Binding ExpirationDate}" Format="MMMM dd, yyyy"
-                                MinimumDate="{x:Static sys:DateTime.Today}"/>
+				<VerticalStackLayout IsVisible="{Binding ShowPiecesPerUnit}" Spacing="0">
+					<Label Text="Pieces per Unit" Style="{StaticResource FormFieldLabel}"/>
+					<Border Style="{StaticResource FormInputBox}">
+						<Entry Text="{Binding PiecesPerUnit}" Keyboard="Numeric"
+                               Placeholder="e.g. 100"
+                               Style="{StaticResource FormEntry}"/>
+					</Border>
+					<Label Text="No. of pieces in one unit (e.g. 1 box = 100 pcs)."
+                           Style="{StaticResource FormHintLabel}"/>
 				</VerticalStackLayout>
 
-				<!-- Minimum Stock -->
-				<Label Text="Minimum Stock (pcs)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
-				<Entry Placeholder="e.g. 10" Keyboard="Numeric"
-                       Text="{Binding MinimumStock}"/>
-				<Label Text="You will be alerted when stock is at or below this level."
-                       FontSize="12" TextColor="Gray"/>
+				<VerticalStackLayout IsVisible="{Binding IsEditMode, Converter={StaticResource InvertedBoolConverter}}"
+                                     Spacing="0">
+					<Label Text="Quantity" Style="{StaticResource FormFieldLabel}"/>
+					<Border Style="{StaticResource FormInputBox}">
+						<Entry Text="{Binding UnitQuantity}" Keyboard="Numeric"
+                               Placeholder="e.g. 5"
+                               Style="{StaticResource FormEntry}"/>
+					</Border>
+					<Label Text="Number of units being added (e.g. 3 boxes)."
+                           Style="{StaticResource FormHintLabel}"
+                           IsVisible="{Binding ShowPiecesPerUnit}"/>
+				</VerticalStackLayout>
+
+				<Label Text="Minimum Stock (pcs)" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding MinimumStock}" Keyboard="Numeric"
+                           Placeholder="e.g. 10"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
+				<Label Text="Alert shows when stock reaches this level."
+                       Style="{StaticResource FormHintLabel}"/>
+
+				<Label Text="Has Expiration Date?" Style="{StaticResource FormFieldLabel}"/>
+				<HorizontalStackLayout Spacing="16" Margin="0,4,0,0">
+					<RadioButton Content="Yes" TextColor="{StaticResource TextPrimary}"
+                                 FontSize="14" IsChecked="{Binding HasExpiration}"/>
+					<RadioButton Content="No" TextColor="{StaticResource TextPrimary}"
+                                 FontSize="14"
+                                 IsChecked="{Binding HasExpiration, Converter={StaticResource InvertedBoolConverter}}"/>
+				</HorizontalStackLayout>
+
+				<VerticalStackLayout IsVisible="{Binding HasExpiration}" Spacing="0">
+					<Label Text="Expiration Date" Style="{StaticResource FormFieldLabel}"/>
+					<Border Style="{StaticResource FormInputBox}">
+						<DatePicker Date="{Binding ExpirationDate}"
+                                    Format="MMMM dd, yyyy"
+                                    MinimumDate="{x:Static sys:DateTime.Today}"
+                                    FontSize="14"
+                                    TextColor="{StaticResource TextPrimary}"
+                                    BackgroundColor="Transparent"
+                                    VerticalOptions="Center"/>
+					</Border>
+				</VerticalStackLayout>
+
+				<BoxView HeightRequest="8" BackgroundColor="Transparent"/>
 
 			</VerticalStackLayout>
 		</ScrollView>
 
-		<!-- Action buttons -->
-		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,10" ColumnSpacing="12"
-              BackgroundColor="White">
+		<!-- Sticky buttons -->
+		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="20,10,20,24"
+              ColumnSpacing="12" BackgroundColor="{StaticResource PageBg}">
 			<Button Grid.Column="0" Text="Cancel"
                     Command="{Binding CancelCommand}"
-                    BackgroundColor="LightGray" TextColor="Black"/>
+                    Style="{StaticResource SupplySecondaryButtonStyle}"/>
 			<Button Grid.Column="1" Text="Save"
                     Command="{Binding SaveCommand}"
-                    IsEnabled="{Binding CanSave}"/>
+                    IsEnabled="{Binding CanSave}"
+                    Style="{StaticResource SupplyPrimaryButtonStyle}"/>
 		</Grid>
 
 	</Grid>

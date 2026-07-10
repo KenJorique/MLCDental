@@ -34,4 +34,5 @@ public class MedicalHistory
     public string LastDentalVisit { get; set; } = string.Empty;
 
     public string LastUpdated { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
+    // Timestamp of the last manual update from the Medical Record tab
 }

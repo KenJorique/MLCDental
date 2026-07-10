@@ -1,5 +1,4 @@
-﻿
-using ClinicApp.Models;
+﻿using ClinicApp.Models;
 using ClinicApp.Services;
 using ClinicApp.Views.PatientsRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,63 +15,105 @@ public partial class PatientDetailsViewModel : ObservableObject
 
     [ObservableProperty] int patientId;
     [ObservableProperty] bool isBusy;
+    [ObservableProperty] bool isSavingPersonal;
+    [ObservableProperty] bool isSavingMedical;
 
-    // Personal
+    // ── Tab state ─────────────────────────────────────────────
+    [ObservableProperty] bool isPersonalTabActive = true;
+    [ObservableProperty] bool isMedicalTabActive = false;
+
+    [RelayCommand]
+    void SelectPersonalTab()
+    {
+        IsPersonalTabActive = true;
+        IsMedicalTabActive = false;
+        IsPersonalEditMode = false;
+        IsMedicalEditMode = false;
+    }
+
+    [RelayCommand]
+    void SelectMedicalTab()
+    {
+        IsPersonalTabActive = false;
+        IsMedicalTabActive = true;
+        IsPersonalEditMode = false;
+        IsMedicalEditMode = false;
+    }
+
+    // ── Edit mode ─────────────────────────────────────────────
+    [ObservableProperty] bool isPersonalEditMode = false;
+    [ObservableProperty] bool isMedicalEditMode = false;
+
+    [RelayCommand]
+    void TogglePersonalEdit() => IsPersonalEditMode = !IsPersonalEditMode;
+
+    [RelayCommand]
+    void ToggleMedicalEdit()
+    {
+        IsMedicalEditMode = !IsMedicalEditMode;
+        if (IsMedicalEditMode && Conditions.Count == 0)
+            MainThread.BeginInvokeOnMainThread(async () => await LoadConditionsAsync());
+    }
+
+    // ── Timestamps ────────────────────────────────────────────
+    [ObservableProperty] string personalLastUpdated = string.Empty;
+    [ObservableProperty] string medicalLastUpdated = string.Empty;
+
+    // ── Personal Info ─────────────────────────────────────────
     [ObservableProperty] string fullName = string.Empty;
+    [ObservableProperty] string firstName = string.Empty;
+    [ObservableProperty] string lastName = string.Empty;
     [ObservableProperty] string nickname = string.Empty;
+
+    public List<string> GenderOptions { get; } = new() { "Male", "Female", "Other" };
     [ObservableProperty] string gender = string.Empty;
-    [ObservableProperty] string dateOfBirth = string.Empty;
+
+    [ObservableProperty] DateTime dateOfBirthDate = new DateTime(2000, 1, 1);
+    [ObservableProperty] string dateOfBirthDisplay = string.Empty;
     [ObservableProperty] int age;
+
+    partial void OnDateOfBirthDateChanged(DateTime value)
+    {
+        var today = DateTime.Today;
+        var a = today.Year - value.Year;
+        if (value.Date > today.AddYears(-a)) a--;
+        Age = a;
+        DateOfBirthDisplay = value.ToString("MMMM dd, yyyy");
+    }
+
     [ObservableProperty] string nationality = string.Empty;
     [ObservableProperty] string religion = string.Empty;
     [ObservableProperty] string occupation = string.Empty;
     [ObservableProperty] string address = string.Empty;
+    [ObservableProperty] string dateRegistered = string.Empty;
 
-    // Contact
+    // ── Contact ───────────────────────────────────────────────
     [ObservableProperty] string mobileNo = string.Empty;
     [ObservableProperty] string homeNo = string.Empty;
     [ObservableProperty] string faxNo = string.Empty;
     [ObservableProperty] string officeNo = string.Empty;
     [ObservableProperty] string email = string.Empty;
 
-    // Referral / Insurance
-    [ObservableProperty] string referredBy = string.Empty;
-    [ObservableProperty] string reasonForConsultation = string.Empty;
-    [ObservableProperty] string dentalInsurance = string.Empty;
-    [ObservableProperty] string insuranceEffectiveDate = string.Empty;
-    [ObservableProperty] bool hasInsurance;
-
-    // Guardian
+    // ── Guardian ──────────────────────────────────────────────
     [ObservableProperty] string guardianName = string.Empty;
     [ObservableProperty] string guardianRelationship = string.Empty;
     [ObservableProperty] string guardianOccupation = string.Empty;
     [ObservableProperty] string guardianMobile = string.Empty;
-    [ObservableProperty] bool hasGuardian;
 
-    // Medical History
+    // ── Medical (Blood Type only) ─────────────────────────────
     [ObservableProperty] string bloodType = string.Empty;
-    [ObservableProperty] string physicianName = string.Empty;
-    [ObservableProperty] bool isGoodHealth;
-    [ObservableProperty] bool isPregnant;
-    [ObservableProperty] bool underMedicalTreatment;
-    [ObservableProperty] string medicationDetails = string.Empty;
-    [ObservableProperty] bool hasBeenHospitalized;
-    [ObservableProperty] string hospitalizationDetails = string.Empty;
-    [ObservableProperty] string bloodPressure = string.Empty;
-    [ObservableProperty] string bleedingTime = string.Empty;
-    [ObservableProperty] bool usesTobacco;
-    [ObservableProperty] bool usesAlcohol;
-    [ObservableProperty] bool takingMedications;
-    [ObservableProperty] string previousDentist = string.Empty;
-    [ObservableProperty] string lastDentalVisit = string.Empty;
 
-    // Allergies
-    [ObservableProperty] string allergyText = "None reported";
+    // ── Allergies ─────────────────────────────────────────────
+    [ObservableProperty] bool hasLatexAllergy;
+    [ObservableProperty] bool hasAspirinAllergy;
+    [ObservableProperty] bool hasPenicillinAllergy;
+    [ObservableProperty] bool hasSulfaAllergy;
+    [ObservableProperty] bool hasLocalAnestheticAllergy;
+    [ObservableProperty] string otherAllergy = string.Empty;
 
-    // Conditions
+    // ── Medical Conditions ────────────────────────────────────
+    public ObservableCollection<ConditionCheckItem> Conditions { get; } = new();
     [ObservableProperty] string conditionsText = "None reported";
-
-    [ObservableProperty] string dateRegistered = string.Empty;
 
     partial void OnPatientIdChanged(int value)
     {
@@ -83,7 +124,6 @@ public partial class PatientDetailsViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadPatient()
     {
-        // Reset IsBusy in case a previous load left it stuck true
         IsBusy = false;
         if (PatientId > 0)
             await LoadPatientAsync(PatientId);
@@ -98,11 +138,10 @@ public partial class PatientDetailsViewModel : ObservableObject
             if (p is null) return;
 
             FullName = p.FullName;
+            FirstName = p.FirstName;
+            LastName = p.LastName;
             Nickname = p.Nickname;
             Gender = p.Gender;
-            DateOfBirth = DateTime.TryParse(p.DateOfBirth, out var dob)
-                          ? dob.ToString("MMMM dd, yyyy") : p.DateOfBirth;
-            Age = p.Age;
             Nationality = p.Nationality;
             Religion = p.Religion;
             Occupation = p.Occupation;
@@ -112,19 +151,20 @@ public partial class PatientDetailsViewModel : ObservableObject
             FaxNo = p.FaxNo;
             OfficeNo = p.OfficeNo;
             Email = p.Email;
-            ReferredBy = p.ReferredBy;
-            ReasonForConsultation = p.ReasonForConsultation;
-            DentalInsurance = p.DentalInsurance;
-            HasInsurance = !string.IsNullOrEmpty(p.DentalInsurance);
-            InsuranceEffectiveDate = DateTime.TryParse(p.InsuranceEffectiveDate, out var ins)
-                                     ? ins.ToString("MMMM dd, yyyy") : string.Empty;
             DateRegistered = DateTime.TryParse(p.DateRegistered, out var reg)
                              ? reg.ToString("MMMM dd, yyyy") : p.DateRegistered;
 
-            // Guardian
+            if (DateTime.TryParse(p.DateOfBirth, out var dob))
+                DateOfBirthDate = dob;
+            else
+                DateOfBirthDate = new DateTime(2000, 1, 1);
+
+            PersonalLastUpdated = !string.IsNullOrWhiteSpace(p.LastUpdated)
+                ? $"Last updated: {p.LastUpdated}"
+                : "Not yet updated";
+
             var g = await _db.GetGuardianByPatient(id);
-            HasGuardian = g is not null && !string.IsNullOrWhiteSpace(g.GuardianName);
-            if (HasGuardian && g is not null)
+            if (g is not null)
             {
                 GuardianName = g.GuardianName;
                 GuardianRelationship = g.RelationshipToPatient;
@@ -132,50 +172,33 @@ public partial class PatientDetailsViewModel : ObservableObject
                 GuardianMobile = g.MobileNo;
             }
 
-            // Medical History
             var m = await _db.GetMedicalHistory(id);
             if (m is not null)
             {
                 BloodType = m.BloodType;
-                PhysicianName = m.PhysicianName;
-                IsGoodHealth = m.IsGoodHealth;
-                IsPregnant = m.IsPregnant;
-                UnderMedicalTreatment = m.UnderMedicalTreatment;
-                MedicationDetails = m.MedicationDetails;
-                HasBeenHospitalized = m.HasBeenHospitalized;
-                HospitalizationDetails = m.HospitalizationDetails;
-                BloodPressure = m.BloodPressure;
-                BleedingTime = m.BleedingTime;
-                UsesTobacco = m.UsesTobacco;
-                UsesAlcohol = m.UsesAlcohol;
-                TakingMedications = m.TakingMedications;
-                PreviousDentist = m.PreviousDentist;
-                LastDentalVisit = m.LastDentalVisit;
+                MedicalLastUpdated = !string.IsNullOrWhiteSpace(m.LastUpdated)
+                    ? (DateTime.TryParse(m.LastUpdated, out var parsedDate)
+                        ? $"Last updated: {parsedDate:MMMM dd, yyyy h:mm tt}"
+                        : $"Last updated: {m.LastUpdated}")
+                    : "Not yet updated";
+            }
+            else
+            {
+                MedicalLastUpdated = "Not yet updated";
             }
 
-            // Allergies — build a readable summary
             var a = await _db.GetAllergy(id);
             if (a is not null)
             {
-                var list = new List<string>();
-                if (a.HasLatexAllergy) list.Add("Latex");
-                if (a.HasAspirinAllergy) list.Add("Aspirin");
-                if (a.HasPenicillinAllergy) list.Add("Penicillin");
-                if (a.HasSulfaAllergy) list.Add("Sulfa");
-                if (a.HasLocalAnestheticAllergy) list.Add("Local Anesthetic");
-                if (!string.IsNullOrWhiteSpace(a.OtherAllergy)) list.Add(a.OtherAllergy);
-                AllergyText = list.Count > 0 ? string.Join(", ", list) : "None reported";
+                HasLatexAllergy = a.HasLatexAllergy;
+                HasAspirinAllergy = a.HasAspirinAllergy;
+                HasPenicillinAllergy = a.HasPenicillinAllergy;
+                HasSulfaAllergy = a.HasSulfaAllergy;
+                HasLocalAnestheticAllergy = a.HasLocalAnestheticAllergy;
+                OtherAllergy = a.OtherAllergy;
             }
 
-            // Conditions
-            var patientConds = await _db.GetPatientConditions(id);
-            if (patientConds.Count > 0)
-            {
-                var allConds = await _db.GetAllConditions();
-                var matched = allConds.Where(c => patientConds.Any(pc => pc.ConditionID == c.ConditionID))
-                                       .Select(c => c.ConditionName).ToList();
-                ConditionsText = matched.Count > 0 ? string.Join(", ", matched) : "None reported";
-            }
+            await BuildConditionsSummaryAsync(id);
         }
         catch (Exception ex)
         {
@@ -184,22 +207,123 @@ public partial class PatientDetailsViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
-    [RelayCommand]
-    async Task ShowMenu()
+    private async Task BuildConditionsSummaryAsync(int patientId)
     {
-        string action = await Shell.Current.DisplayActionSheet(
-            "Options", "Cancel", null, "Edit", "Delete");
-
-        if (action == "Edit")
-            await Shell.Current.GoToAsync($"{nameof(AddPatientPage)}?PatientId={PatientId}");
-        else if (action == "Delete")
+        var patientConds = await _db.GetPatientConditions(patientId);
+        if (patientConds.Count > 0)
         {
-            bool ok = await Shell.Current.DisplayAlert("Confirm Delete",
-                $"Delete {FullName} and all their records?", "Yes, Delete", "Cancel");
-            if (!ok) return;
-            var p = await _db.GetPatientById(PatientId);
-            if (p is not null) await _db.DeletePatient(p);
-            await Shell.Current.GoToAsync("..");
+            var allConds = await _db.GetAllConditions();
+            var matched = allConds
+                .Where(c => patientConds.Any(pc => pc.ConditionID == c.ConditionID))
+                .Select(c => c.ConditionName).ToList();
+            ConditionsText = matched.Count > 0 ? string.Join(", ", matched) : "None reported";
         }
+        else ConditionsText = "None reported";
+    }
+
+    private async Task LoadConditionsAsync()
+    {
+        await _db.EnsureDefaultConditions();
+        var allConds = await _db.GetAllConditions();
+        var patientConds = await _db.GetPatientConditions(PatientId);
+        var selectedIds = patientConds.Select(pc => pc.ConditionID).ToHashSet();
+
+        Conditions.Clear();
+        foreach (var c in allConds)
+            Conditions.Add(new ConditionCheckItem
+            {
+                ConditionID = c.ConditionID,
+                ConditionName = c.ConditionName,
+                IsSelected = selectedIds.Contains(c.ConditionID)
+            });
+    }
+
+    [RelayCommand]
+    async Task SavePersonalRecord()
+    {
+        IsSavingPersonal = true;
+        try
+        {
+            var p = await _db.GetPatientById(PatientId);
+            if (p is null) return;
+
+            p.FirstName = FirstName.Trim();
+            p.LastName = LastName.Trim();
+            p.Nickname = Nickname.Trim();
+            p.Gender = Gender;
+            p.DateOfBirth = DateOfBirthDate.ToString("yyyy-MM-dd");
+            p.Nationality = Nationality.Trim();
+            p.Religion = Religion.Trim();
+            p.Occupation = Occupation.Trim();
+            p.Address = Address.Trim();
+            p.MobileNo = MobileNo.Trim();
+            p.HomeNo = HomeNo.Trim();
+            p.FaxNo = FaxNo.Trim();
+            p.OfficeNo = OfficeNo.Trim();
+            p.Email = Email.Trim();
+
+            string today = DateTime.Now.ToString("MMMM dd, yyyy h:mm tt");
+            p.LastUpdated = today;
+
+            await _db.UpdatePatient(p);
+
+            await _db.SaveGuardian(new Guardian
+            {
+                PatientID = PatientId,
+                GuardianName = GuardianName.Trim(),
+                RelationshipToPatient = GuardianRelationship,
+                Occupation = GuardianOccupation.Trim(),
+                MobileNo = GuardianMobile.Trim(),
+            });
+
+            FullName = p.FullName;
+            PersonalLastUpdated = $"Last updated: {today}";
+            IsPersonalEditMode = false;
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+        }
+        finally { IsSavingPersonal = false; }
+    }
+
+    [RelayCommand]
+    async Task UpdateMedicalRecord()
+    {
+        IsSavingMedical = true;
+        try
+        {
+            string today = DateTime.Now.ToString("MMMM dd, yyyy h:mm tt");
+
+            await _db.SaveMedicalHistory(new MedicalHistory
+            {
+                PatientID = PatientId,
+                BloodType = BloodType,
+                LastUpdated = today,
+            });
+
+            await _db.SaveAllergy(new Allergy
+            {
+                PatientID = PatientId,
+                HasLatexAllergy = HasLatexAllergy,
+                HasAspirinAllergy = HasAspirinAllergy,
+                HasPenicillinAllergy = HasPenicillinAllergy,
+                HasSulfaAllergy = HasSulfaAllergy,
+                HasLocalAnestheticAllergy = HasLocalAnestheticAllergy,
+                OtherAllergy = OtherAllergy,
+            });
+
+            var selectedIds = Conditions.Where(c => c.IsSelected).Select(c => c.ConditionID).ToList();
+            await _db.SavePatientConditions(PatientId, selectedIds);
+
+            MedicalLastUpdated = $"Last updated: {today}";
+            await BuildConditionsSummaryAsync(PatientId);
+            IsMedicalEditMode = false;
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+        }
+        finally { IsSavingMedical = false; }
     }
 }

@@ -16,6 +16,7 @@ using ClinicApp.Views.UsersRelated;
 using ClinicApp.Views.AppointmentRelated;
 using Microsoft.Extensions.Logging;
 using The49.Maui.BottomSheet;
+using CommunityToolkit.Maui;
 
 namespace ClinicApp
 {
@@ -141,16 +142,36 @@ namespace ClinicApp
             builder
                 .UseMauiApp<App>()
                 .UseBottomSheet()
+                .UseMauiCommunityToolkit()
+                .UseBottomSheet()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                    fonts.AddFont("MaterialSymbolsRounded.ttf", "MaterialSymbolsRounded");
+                    fonts.AddFont("MaterialSymbolsRoundedFilled.ttf", "MaterialSymbolsRoundedFilled");
+                })
+                .ConfigureMauiHandlers(handlers =>
+                {
+#if ANDROID
+                    // Remove underline from Entry and Editor globally
+                    Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+                    {
+                        handler.PlatformView.BackgroundTintList =
+                            Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+                    });
+
+                    Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+                    {
+                        handler.PlatformView.BackgroundTintList =
+                            Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+                    });
+#endif
                 });
 
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
-
             return builder.Build();
         }
     }

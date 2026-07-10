@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+	<!-- ══════════════════════════════════════════
+         SUPPLY MODULE STYLES
+         Built on top of Colors.xaml (Primary/Secondary/Gray scale) —
+         no separate color palette, reuses the app's existing brand colors.
+         Used across SupplyListPage + SupplyInfoPage + Add/Reduce Stock pages.
+    ══════════════════════════════════════════════ -->
+
+	<!-- Status colors (stock level badges) -->
+	<Color x:Key="StatusGood">#388E3C</Color>
+	<Color x:Key="StatusLow">#F57C00</Color>
+	<Color x:Key="StatusOut">#D32F2F</Color>
+
+	<!-- ══════════════════════════════════════════
+         TYPOGRAPHY
+    ══════════════════════════════════════════════ -->
+	<Style x:Key="SupplySectionTitleStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="FontAttributes" Value="Bold"/>
+		<Setter Property="TextColor" Value="{StaticResource Gray900}"/>
+	</Style>
+
+	<Style x:Key="SupplyRowLabelStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="TextColor" Value="{StaticResource Gray500}"/>
+		<Setter Property="VerticalOptions" Value="Center"/>
+	</Style>
+
+	<Style x:Key="SupplyRowValueStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="TextColor" Value="{StaticResource Gray900}"/>
+		<Setter Property="FontAttributes" Value="Bold"/>
+		<Setter Property="VerticalOptions" Value="Center"/>
+		<Setter Property="HorizontalTextAlignment" Value="End"/>
+	</Style>
+
+	<Style x:Key="SupplyCaptionStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="12"/>
+		<Setter Property="TextColor" Value="{StaticResource Gray400}"/>
+	</Style>
+
+	<Style x:Key="SupplyLinkStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="FontAttributes" Value="Bold"/>
+		<Setter Property="TextColor" Value="{StaticResource Primary}"/>
+	</Style>
+
+	<!-- ══════════════════════════════════════════
+         CARDS (Border-based, per clean-code checklist)
+    ══════════════════════════════════════════════ -->
+	<Style x:Key="SupplyCardStyle" TargetType="Border">
+		<Setter Property="BackgroundColor" Value="{StaticResource White}"/>
+		<Setter Property="Stroke" Value="{StaticResource Gray100}"/>
+		<Setter Property="StrokeThickness" Value="1"/>
+		<Setter Property="StrokeShape" Value="RoundRectangle 14"/>
+		<Setter Property="Padding" Value="16,14"/>
+		<Setter Property="Shadow">
+			<Shadow Brush="{StaticResource Gray300Brush}" Opacity="0.15" Radius="10" Offset="0,3"/>
+		</Setter>
+	</Style>
+
+	<!-- List-row card: same as SupplyCardStyle, tighter padding -->
+	<Style x:Key="SupplyListRowCardStyle" TargetType="Border" BasedOn="{StaticResource SupplyCardStyle}">
+		<Setter Property="Padding" Value="14,12"/>
+		<Setter Property="Margin" Value="0,0,0,8"/>
+	</Style>
+
+	<!-- Status badge pill (background color set dynamically via binding) -->
+	<Style x:Key="SupplyStatusBadgeStyle" TargetType="Border">
+		<Setter Property="StrokeShape" Value="RoundRectangle 8"/>
+		<Setter Property="StrokeThickness" Value="0"/>
+		<Setter Property="Padding" Value="8,3"/>
+	</Style>
+
+	<Style x:Key="SupplyStatusBadgeLabelStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="11"/>
+		<Setter Property="FontAttributes" Value="Bold"/>
+		<Setter Property="TextColor" Value="{StaticResource White}"/>
+	</Style>
+
+	<!-- ══════════════════════════════════════════
+         BUTTONS
+    ══════════════════════════════════════════════ -->
+	<Style x:Key="SupplyPrimaryButtonStyle" TargetType="Button">
+		<Setter Property="BackgroundColor" Value="{StaticResource Primary}"/>
+		<Setter Property="TextColor" Value="{StaticResource White}"/>
+		<Setter Property="FontSize" Value="15"/>
+		<Setter Property="FontAttributes" Value="Bold"/>
+		<Setter Property="CornerRadius" Value="14"/>
+		<Setter Property="HeightRequest" Value="52"/>
+		<Setter Property="HorizontalOptions" Value="Fill"/>
+	</Style>
+
+	<Style x:Key="SupplyFabStyle" TargetType="Button">
+		<Setter Property="BackgroundColor" Value="{StaticResource Primary}"/>
+		<Setter Property="TextColor" Value="{StaticResource White}"/>
+		<Setter Property="CornerRadius" Value="28"/>
+		<Setter Property="Padding" Value="20,12"/>
+		<Setter Property="FontAttributes" Value="Bold"/>
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="Shadow">
+			<Shadow Brush="{StaticResource PrimaryBrush}" Opacity="0.35" Radius="12" Offset="0,4"/>
+		</Setter>
+	</Style>
+
+	<!-- ══════════════════════════════════════════
+         SEARCH + SORT BAR (matches PatientListPage pattern)
+    ══════════════════════════════════════════════ -->
+	<Style x:Key="SupplySearchBarStyle" TargetType="Border">
+		<Setter Property="BackgroundColor" Value="{StaticResource SurfaceBg}"/>
+		<Setter Property="Stroke" Value="{StaticResource BorderColor}"/>
+		<Setter Property="StrokeThickness" Value="1"/>
+		<Setter Property="StrokeShape" Value="RoundRectangle 12"/>
+		<Setter Property="Padding" Value="12,0"/>
+		<Setter Property="HeightRequest" Value="44"/>
+	</Style>
+
+	<Style x:Key="SupplySortButtonStyle" TargetType="Border">
+		<Setter Property="BackgroundColor" Value="{StaticResource SurfaceBg}"/>
+		<Setter Property="Stroke" Value="{StaticResource BorderColor}"/>
+		<Setter Property="StrokeThickness" Value="1"/>
+		<Setter Property="StrokeShape" Value="RoundRectangle 12"/>
+		<Setter Property="HeightRequest" Value="44"/>
+		<Setter Property="WidthRequest" Value="90"/>
+		<Setter Property="Padding" Value="0"/>
+	</Style>
+
+	<!-- ══════════════════════════════════════════
+         FORM FIELDS
+    ══════════════════════════════════════════════ -->
+	<Style x:Key="SupplyFieldLabelStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="TextColor" Value="{StaticResource TextMuted}"/>
+		<Setter Property="Margin" Value="0,4,0,0"/>
+	</Style>
+
+	<Style x:Key="SupplyFieldHintStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="12"/>
+		<Setter Property="TextColor" Value="{StaticResource Gray400}"/>
+	</Style>
+
+	<Style x:Key="SupplyFieldErrorStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="12"/>
+		<Setter Property="TextColor" Value="{StaticResource StatusOut}"/>
+	</Style>
+
+	<Style x:Key="SupplyEntryStyle" TargetType="Entry">
+		<Setter Property="FontSize" Value="15"/>
+		<Setter Property="TextColor" Value="{StaticResource Gray900}"/>
+		<Setter Property="PlaceholderColor" Value="{StaticResource Gray300}"/>
+		<Setter Property="BackgroundColor" Value="{StaticResource Secondary}"/>
+		<Setter Property="MinimumHeightRequest" Value="48"/>
+	</Style>
+
+	<!-- Wraps an Entry/Picker/DatePicker so the tinted background gets rounded corners -->
+	<Style x:Key="SupplyInputContainerStyle" TargetType="Border">
+		<Setter Property="BackgroundColor" Value="{StaticResource Secondary}"/>
+		<Setter Property="Stroke" Value="{StaticResource Gray100}"/>
+		<Setter Property="StrokeThickness" Value="1"/>
+		<Setter Property="StrokeShape" Value="RoundRectangle 12"/>
+		<Setter Property="Padding" Value="12,0"/>
+	</Style>
+
+	<!-- ══════════════════════════════════════════
+         SECONDARY / DESTRUCTIVE BUTTONS
+    ══════════════════════════════════════════════ -->
+	<Style x:Key="SupplySecondaryButtonStyle" TargetType="Button">
+		<Setter Property="BackgroundColor" Value="{StaticResource Secondary}"/>
+		<Setter Property="TextColor" Value="{StaticResource Primary}"/>
+		<Setter Property="FontSize" Value="15"/>
+		<Setter Property="FontAttributes" Value="Bold"/>
+		<Setter Property="CornerRadius" Value="14"/>
+		<Setter Property="HeightRequest" Value="52"/>
+		<Setter Property="HorizontalOptions" Value="Fill"/>
+	</Style>
+
+	<!-- ══════════════════════════════════════════
+         EMPTY STATE
+    ══════════════════════════════════════════════ -->
+	<Style x:Key="SupplyEmptyTitleStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="16"/>
+		<Setter Property="TextColor" Value="{StaticResource Gray500}"/>
+		<Setter Property="HorizontalTextAlignment" Value="Center"/>
+	</Style>
+
+	<Style x:Key="SupplyEmptySubtitleStyle" TargetType="Label">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="TextColor" Value="{StaticResource Gray300}"/>
+		<Setter Property="HorizontalTextAlignment" Value="Center"/>
+	</Style>
+
+</ResourceDictionary>

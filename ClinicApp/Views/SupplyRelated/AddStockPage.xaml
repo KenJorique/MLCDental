@@ -7,44 +7,49 @@
     x:Class="ClinicApp.Views.SupplyRelated.AddStockPage"
     x:DataType="vm:AddStockViewModel"
     Title="Add Stock"
+    BackgroundColor="{StaticResource PageBg}"
     Shell.TabBarIsVisible="False">
 
 	<Grid RowDefinitions="*,Auto">
-
 		<ScrollView Grid.Row="0">
-			<VerticalStackLayout Padding="16" Spacing="14">
+			<VerticalStackLayout Padding="20,4,20,8" Spacing="0">
 
-				<!-- Quantity to Add -->
-				<Label Text="Quantity to Add (pcs)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
-				<Entry Placeholder="e.g. 50" Keyboard="Numeric"
-                       Text="{Binding AddQty}"/>
+				<Label Text="Quantity to Add (pcs)" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding AddQty}" Keyboard="Numeric"
+                           Placeholder="e.g. 50"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
 				<Label Text="{Binding QtyError}"
-                       FontSize="12" TextColor="Crimson"
+                       Style="{StaticResource FormErrorLabel}"
                        IsVisible="{Binding QtyError, Converter={StaticResource StringNotEmptyConverter}}"/>
 
-				<!-- Expiration Date — always visible, disabled when item has no expiration -->
-				<Label Text="Expiration Date" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
-				<DatePicker Date="{Binding ExpirationDate}"
-                            Format="MMMM dd, yyyy"
-                            MinimumDate="{x:Static sys:DateTime.Today}"
-                            IsEnabled="{Binding HasExpirationParam}"/>
-				<Label IsVisible="{Binding HasExpirationParam, Converter={StaticResource InvertedBoolConverter}}"
-                       Text="This item does not track an expiration date."
-                       FontSize="12" TextColor="Gray"/>
+				<Label Text="Expiration Date" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<DatePicker Date="{Binding ExpirationDate}"
+                                Format="MMMM dd, yyyy"
+                                MinimumDate="{x:Static sys:DateTime.Today}"
+                                IsEnabled="{Binding HasExpirationParam}"
+                                FontSize="14"
+                                TextColor="{StaticResource TextPrimary}"
+                                BackgroundColor="Transparent"
+                                VerticalOptions="Center"/>
+				</Border>
+				<Label Text="This item does not track an expiration date."
+                       Style="{StaticResource FormHintLabel}"
+                       IsVisible="{Binding HasExpirationParam, Converter={StaticResource InvertedBoolConverter}}"/>
 
 			</VerticalStackLayout>
 		</ScrollView>
 
-		<!-- Action buttons -->
-		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,10" ColumnSpacing="12"
-              BackgroundColor="White">
+		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="20,10,20,24"
+              ColumnSpacing="12" BackgroundColor="{StaticResource PageBg}">
 			<Button Grid.Column="0" Text="Cancel"
                     Command="{Binding CancelCommand}"
-                    BackgroundColor="LightGray" TextColor="Black"/>
+                    Style="{StaticResource SupplySecondaryButtonStyle}"/>
 			<Button Grid.Column="1" Text="Save"
                     Command="{Binding SaveCommand}"
-                    BackgroundColor="#2196F3" TextColor="White"/>
+                    Style="{StaticResource SupplyPrimaryButtonStyle}"/>
 		</Grid>
-
 	</Grid>
 </ContentPage>

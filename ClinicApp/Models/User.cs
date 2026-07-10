@@ -19,6 +19,9 @@ public class User
 
     public string? Email { get; set; }
 
-    // True = Active, False = Inactive. Defaults to true for new users.
+    // True = Active, False = Inactive (account status)
     public bool IsActive { get; set; } = true;
+
+    // True = hidden from list (soft deleted), but still in DB
+    public bool IsDeleted { get; set; } = false;
 }
