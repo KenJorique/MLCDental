@@ -4,13 +4,33 @@
              xmlns:local="clr-namespace:ClinicApp"
              xmlns:converters="clr-namespace:ClinicApp.Converters"
              x:Class="ClinicApp.App">
-    <Application.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
-                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
-            </ResourceDictionary.MergedDictionaries>
+	<Application.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+				<ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+				<ResourceDictionary Source="Resources/Styles/PatientStyles.xaml" />
+				<ResourceDictionary Source="Resources/Styles/SupplyStyles.xaml" />
+				<ResourceDictionary Source="Resources/Styles/FormStyles.xaml" />
+			</ResourceDictionary.MergedDictionaries>
 
+			<converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
+			<converters:BoolToGenderConverter x:Key="BoolToGenderConverter" />
+			<converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
+			<converters:StringEmptyConverter x:Key="StringEmptyConverter" />
+			<converters:StringEqualConverter x:Key="StringEqualConverter" />
+			<converters:StringNotEqualConverter x:Key="StringNotEqualConverter" />
+			<converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+			<converters:IntEqualZeroConverter x:Key="IntEqualZeroConverter" />
+			<converters:IntNotEqualZeroConverter x:Key="IntNotEqualZeroConverter" />
+			<converters:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter" />
+			<converters:BoolToStatusTextConverter x:Key="BoolToStatusTextConverter" />
+			<converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+			<converters:BoolToTabBgConverter x:Key="BoolToTabBgConverter" />
+			<converters:BoolToTabTextConverter x:Key="BoolToTabTextConverter" />
+			<converters:BoolToFontAttrConverter x:Key="BoolToFontAttrConverter" />
+			<converters:BoolToYesNoConverter x:Key="BoolToYesNoConverter" />
+			<converters:BoolToEditLabelConverter x:Key="BoolToEditLabelConverter" />
                 <!-- Converter: highlights the active tab button -->
                 <converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
                 <converters:BoolToGenderConverter x:Key="BoolToGenderConverter" />
@@ -32,6 +52,6 @@
             <!-- Converter: inverts bool for upload placeholder visibility -->
             <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
 
-        </ResourceDictionary>
-    </Application.Resources>
+		</ResourceDictionary>
+	</Application.Resources>
 </Application>

@@ -8,92 +8,93 @@
     Title=" "
     Shell.TabBarIsVisible="False">
 
-	<Grid RowDefinitions="*,Auto">
+	<Grid RowDefinitions="*,Auto" BackgroundColor="{StaticResource White}">
 
 		<ScrollView Grid.Row="0">
-			<VerticalStackLayout Padding="14" Spacing="12">
+			<VerticalStackLayout Padding="16" Spacing="12">
 
 				<!-- Supply Header: Name | Status badge | Qty -->
-				<Frame Padding="16,14" HasShadow="True" BackgroundColor="White">
+				<Border Style="{StaticResource SupplyCardStyle}">
 					<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
 						<Label Grid.Column="0"
                                Text="{Binding Supply.Name}"
-                               FontSize="18" FontAttributes="Bold" TextColor="Black"
+                               FontSize="18" FontAttributes="Bold"
+                               TextColor="{StaticResource Gray900}"
+                               LineBreakMode="TailTruncation"
                                VerticalOptions="Center"/>
-						<Frame Grid.Column="1"
-                               Padding="8,3" CornerRadius="8"
-                               HasShadow="False" BorderColor="Transparent"
-                               BackgroundColor="{Binding StockStatusColor}"
-                               VerticalOptions="Center">
+						<Border Grid.Column="1"
+                                Style="{StaticResource SupplyStatusBadgeStyle}"
+                                BackgroundColor="{Binding StockStatusColor}"
+                                VerticalOptions="Center">
 							<Label Text="{Binding StockStatus}"
-                                   FontSize="11" FontAttributes="Bold"
-                                   TextColor="White"/>
-						</Frame>
+                                   Style="{StaticResource SupplyStatusBadgeLabelStyle}"/>
+						</Border>
 						<Label Grid.Column="2"
                                Text="{Binding StockDisplay}"
                                FontSize="16" FontAttributes="Bold"
-                               TextColor="Black" VerticalOptions="Center"/>
+                               TextColor="{StaticResource Gray900}"
+                               VerticalOptions="Center"/>
 					</Grid>
-				</Frame>
+				</Border>
 
 				<!-- Item Details -->
-				<Frame Padding="16" HasShadow="True" BackgroundColor="White">
+				<Border Style="{StaticResource SupplyCardStyle}">
 					<VerticalStackLayout Spacing="10">
-						<Label Text="Item Details" FontAttributes="Bold" FontSize="15" TextColor="Black"/>
-						<BoxView HeightRequest="1" Color="LightGray"/>
-						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+						<Label Text="Item Details" Style="{StaticResource SupplySectionTitleStyle}"/>
+						<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+						<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
 
 							<Label Grid.Row="0" Grid.Column="0" Text="Unit"
-                                   TextColor="Gray" FontSize="13"/>
+                                   Style="{StaticResource SupplyRowLabelStyle}"/>
 							<Label Grid.Row="0" Grid.Column="1"
                                    Text="{Binding UnitDisplay}"
-                                   FontAttributes="Bold" FontSize="13" TextColor="Black"
-                                   HorizontalTextAlignment="End"/>
+                                   Style="{StaticResource SupplyRowValueStyle}"/>
 
 							<Label Grid.Row="1" Grid.Column="0" Text="Expiration"
-                                   TextColor="Gray" FontSize="13"/>
+                                   Style="{StaticResource SupplyRowLabelStyle}"/>
 							<Label Grid.Row="1" Grid.Column="1"
                                    Text="{Binding ExpirationDisplay}"
-                                   FontAttributes="Bold" FontSize="13" TextColor="Black"
-                                   HorizontalTextAlignment="End"/>
+                                   Style="{StaticResource SupplyRowValueStyle}"/>
 
 							<Label Grid.Row="2" Grid.Column="0" Text="Minimum Stock"
-                                   TextColor="Gray" FontSize="13"/>
+                                   Style="{StaticResource SupplyRowLabelStyle}"/>
 							<Label Grid.Row="2" Grid.Column="1"
                                    Text="{Binding Supply.MinimumStockPieces, StringFormat='{0} pcs'}"
-                                   FontAttributes="Bold" FontSize="13" TextColor="Black"
-                                   HorizontalTextAlignment="End"/>
+                                   Style="{StaticResource SupplyRowValueStyle}"/>
 
 						</Grid>
 					</VerticalStackLayout>
-				</Frame>
+				</Border>
 
 				<!-- Stock History (recent 4) -->
-				<Frame Padding="16" HasShadow="True" BackgroundColor="White">
+				<Border Style="{StaticResource SupplyCardStyle}">
 					<VerticalStackLayout Spacing="10">
 						<Grid ColumnDefinitions="*,Auto">
 							<Label Grid.Column="0" Text="Stock History"
-                                   FontAttributes="Bold" FontSize="15" TextColor="Black"/>
+                                   Style="{StaticResource SupplySectionTitleStyle}"/>
 							<Label Grid.Column="1" Text="View All ›"
-                                   FontSize="13" TextColor="#2196F3"
+                                   Style="{StaticResource SupplyLinkStyle}"
                                    VerticalOptions="Center">
 								<Label.GestureRecognizers>
 									<TapGestureRecognizer Command="{Binding ViewAllLogsCommand}"/>
 								</Label.GestureRecognizers>
 							</Label>
 						</Grid>
-						<BoxView HeightRequest="1" Color="LightGray"/>
+						<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
 						<!-- Header -->
 						<Grid ColumnDefinitions="*,*,*">
 							<Label Grid.Column="0" Text="Change"
-                                   FontAttributes="Bold" FontSize="12" TextColor="Gray"
+                                   Style="{StaticResource SupplyCaptionStyle}"
+                                   FontAttributes="Bold"
                                    HorizontalTextAlignment="Center"/>
 							<Label Grid.Column="1" Text="Type"
-                                   FontAttributes="Bold" FontSize="12" TextColor="Gray"
+                                   Style="{StaticResource SupplyCaptionStyle}"
+                                   FontAttributes="Bold"
                                    HorizontalTextAlignment="Center"/>
 							<Label Grid.Column="2" Text="Date"
-                                   FontAttributes="Bold" FontSize="12" TextColor="Gray"
+                                   Style="{StaticResource SupplyCaptionStyle}"
+                                   FontAttributes="Bold"
                                    HorizontalTextAlignment="Center"/>
 						</Grid>
 
@@ -101,25 +102,25 @@
 						<CollectionView ItemsSource="{Binding RecentLogs}" SelectionMode="None">
 							<CollectionView.ItemTemplate>
 								<DataTemplate x:DataType="vm:StockLogRowViewModel">
-									<Grid ColumnDefinitions="*,*,*" Padding="0,5">
+									<Grid ColumnDefinitions="*,*,*" Padding="0,6">
 										<Label Grid.Column="0"
                                                IsVisible="{Binding IsIncrease}"
                                                Text="{Binding ChangeDisplay}"
                                                FontAttributes="Bold" FontSize="13"
-                                               TextColor="SeaGreen"
+                                               TextColor="{StaticResource StatusGood}"
                                                HorizontalTextAlignment="Center"/>
 										<Label Grid.Column="0"
                                                IsVisible="{Binding IsIncrease, Converter={StaticResource InvertedBoolConverter}}"
                                                Text="{Binding ChangeDisplay}"
                                                FontAttributes="Bold" FontSize="13"
-                                               TextColor="Crimson"
+                                               TextColor="{StaticResource StatusOut}"
                                                HorizontalTextAlignment="Center"/>
 										<Label Grid.Column="1" Text="{Binding TypeDisplay}"
-                                               FontSize="13" TextColor="Gray"
+                                               Style="{StaticResource SupplyCaptionStyle}"
                                                HorizontalTextAlignment="Center"
                                                VerticalTextAlignment="Center"/>
 										<Label Grid.Column="2" Text="{Binding DateDisplay}"
-                                               FontSize="13" TextColor="Gray"
+                                               Style="{StaticResource SupplyCaptionStyle}"
                                                HorizontalTextAlignment="Center"
                                                VerticalTextAlignment="Center"/>
 									</Grid>
@@ -129,21 +130,19 @@
 
 						<Label IsVisible="{Binding Logs.Count, Converter={StaticResource IntEqualZeroConverter}}"
                                Text="No stock history yet."
-                               TextColor="Gray" FontSize="13"
+                               Style="{StaticResource SupplyCaptionStyle}"
                                HorizontalTextAlignment="Center" Margin="0,8"/>
 					</VerticalStackLayout>
-				</Frame>
+				</Border>
 
 			</VerticalStackLayout>
 		</ScrollView>
 
 		<!-- Bottom bar -->
-		<Grid Grid.Row="1" Padding="14,10" BackgroundColor="White">
+		<Grid Grid.Row="1" Padding="16,12" BackgroundColor="{StaticResource White}">
 			<Button Text="Adjust Stock"
                     Clicked="OnAdjustStockClicked"
-                    BackgroundColor="#2196F3"
-                    TextColor="White"
-                    CornerRadius="8"/>
+                    Style="{StaticResource SupplyPrimaryButtonStyle}"/>
 		</Grid>
 
 	</Grid>

@@ -3,186 +3,43 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ClinicApp.ViewModels.ServicesRelatedVM"
              x:Class="ClinicApp.Views.ServicesRelated.ServiceListPage"
-             Title="Service &amp; Pricing"
+             Title="Services"
              Shell.TabBarIsVisible="False">
 
-    <Grid>
+	<Grid>
 
-        <ScrollView>
-            <VerticalStackLayout Padding="10" Spacing="5">
+		<CollectionView ItemsSource="{Binding ServiceCards}" Margin="10">
+			<CollectionView.ItemTemplate>
+				<DataTemplate x:DataType="vm:ServiceCardViewModel">
 
-                <!-- ── SERVICES SECTION ── -->
-                <Label Text="Services"
-                       FontAttributes="Bold"
-                       FontSize="18"
-                       Margin="5,10,5,5" />
+					<Frame Margin="5" Padding="15" HasShadow="True">
+						<Frame.GestureRecognizers>
+							<TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                          Path=BindingContext.ShowActionSheetCommand}"
+                                CommandParameter="{Binding .}"/>
+						</Frame.GestureRecognizers>
 
-                <CollectionView ItemsSource="{Binding ServiceCards}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ServiceCardViewModel">
+						<Grid ColumnDefinitions="*,Auto">
+							<Label Grid.Column="0"
+                                   Text="{Binding Service.ServiceName}"
+                                   FontAttributes="Bold"
+                                   FontSize="16"
+                                   VerticalOptions="Center"/>
+							<Label Grid.Column="1"
+                                   Text="{Binding Service.Price, StringFormat='₱{0:N2}'}"
+                                   FontAttributes="Bold"
+                                   FontSize="16"
+                                   TextColor="MediumPurple"
+                                   VerticalOptions="Center"/>
+						</Grid>
+					</Frame>
 
-                            <!-- SwipeView: swipe left to reveal Edit then Delete -->
-                            <SwipeView SwipeStarted="OnSwipeStarted">
-                                <SwipeView.RightItems>
-                                    <SwipeItems>
+				</DataTemplate>
+			</CollectionView.ItemTemplate>
+		</CollectionView>
 
-                                        <!-- Edit is first (left side of swipe reveal) -->
-                                        <SwipeItem Text="Edit"
-                                                   BackgroundColor="RoyalBlue"
-                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                             Path=BindingContext.EditServiceCommand}"
-                                                   CommandParameter="{Binding .}" />
-
-                                        <!-- Delete is second (right side of swipe reveal) -->
-                                        <SwipeItem Text="Delete"
-                                                   BackgroundColor="Crimson"
-                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                             Path=BindingContext.DeleteServiceCommand}"
-                                                   CommandParameter="{Binding .}" />
-
-                                    </SwipeItems>
-                                </SwipeView.RightItems>
-
-                                <!-- Card content -->
-                                <Frame Margin="5" Padding="15">
-                                    <Frame.GestureRecognizers>
-                                        <TapGestureRecognizer
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                      Path=BindingContext.ToggleServiceCardCommand}"
-                                            CommandParameter="{Binding .}" />
-                                    </Frame.GestureRecognizers>
-
-                                    <VerticalStackLayout Spacing="8">
-
-                                        <!-- Always visible: name (bold, large) and price (same size, accent color) -->
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <Label Grid.Column="0"
-                                                   Text="{Binding Service.ServiceName}"
-                                                   FontAttributes="Bold"
-                                                   FontSize="16"
-                                                   VerticalOptions="Center"/>
-                                            <Label Grid.Column="1"
-                                                   Text="{Binding Service.Price, StringFormat='₱{0:N2}'}"
-                                                   FontAttributes="Bold"
-                                                   FontSize="16"
-                                                   TextColor="MediumPurple"
-                                                   VerticalOptions="Center"/>
-                                        </Grid>
-
-                                        <!-- Expanded: description -->
-                                        <VerticalStackLayout IsVisible="{Binding IsExpanded}" Spacing="6">
-                                            <BoxView HeightRequest="1" Color="LightGray" Margin="0,2"/>
-                                            <Label Text="Description:"
-                                                   FontAttributes="Bold"
-                                                   FontSize="14"
-                                                   TextColor="Gray"/>
-                                            <Label Text="{Binding Service.Description}"
-                                                   FontSize="15"/>
-                                        </VerticalStackLayout>
-
-                                    </VerticalStackLayout>
-                                </Frame>
-
-                            </SwipeView>
-
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-
-                <!-- ── SERVICE PACKAGES SECTION (hidden if no packages exist) ── -->
-                <VerticalStackLayout IsVisible="{Binding HasPackages}" Spacing="5">
-
-                    <Label Text="Service Packages"
-                           FontAttributes="Bold"
-                           FontSize="18"
-                           Margin="5,15,5,5" />
-
-                    <CollectionView ItemsSource="{Binding PackageCards}">
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="vm:PackageCardViewModel">
-
-                                <!-- SwipeView: swipe left to reveal Edit then Delete -->
-                                <SwipeView SwipeStarted="OnSwipeStarted">
-                                    <SwipeView.RightItems>
-                                        <SwipeItems>
-
-                                            <!-- Edit is first -->
-                                            <SwipeItem Text="Edit"
-                                                       BackgroundColor="RoyalBlue"
-                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                                 Path=BindingContext.EditPackageCommand}"
-                                                       CommandParameter="{Binding .}" />
-
-                                            <!-- Delete is second -->
-                                            <SwipeItem Text="Delete"
-                                                       BackgroundColor="Crimson"
-                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                                 Path=BindingContext.DeletePackageCommand}"
-                                                       CommandParameter="{Binding .}" />
-
-                                        </SwipeItems>
-                                    </SwipeView.RightItems>
-
-                                    <!-- Card content -->
-                                    <Frame Margin="5" Padding="15">
-                                        <Frame.GestureRecognizers>
-                                            <TapGestureRecognizer
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                          Path=BindingContext.TogglePackageCardCommand}"
-                                                CommandParameter="{Binding .}" />
-                                        </Frame.GestureRecognizers>
-
-                                        <VerticalStackLayout Spacing="8">
-
-                                            <!-- Always visible: package name and price -->
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <Label Grid.Column="0"
-                                                       Text="{Binding Package.PackageName}"
-                                                       FontAttributes="Bold"
-                                                       FontSize="16"
-                                                       VerticalOptions="Center"/>
-                                                <Label Grid.Column="1"
-                                                       Text="{Binding Package.Price, StringFormat='₱{0:N2}'}"
-                                                       FontAttributes="Bold"
-                                                       FontSize="16"
-                                                       TextColor="MediumPurple"
-                                                       VerticalOptions="Center"/>
-                                            </Grid>
-
-                                            <!-- Expanded: included services and description -->
-                                            <VerticalStackLayout IsVisible="{Binding IsExpanded}" Spacing="6">
-                                                <BoxView HeightRequest="1" Color="LightGray" Margin="0,2"/>
-                                                <Label Text="Included Services:"
-                                                       FontAttributes="Bold"
-                                                       FontSize="14"
-                                                       TextColor="Gray"/>
-                                                <Label Text="{Binding Package.IncludedServices}"
-                                                       FontSize="15"/>
-                                                <Label Text="Description:"
-                                                       FontAttributes="Bold"
-                                                       FontSize="14"
-                                                       TextColor="Gray"
-                                                       Margin="0,4,0,0"/>
-                                                <Label Text="{Binding Package.Description}"
-                                                       FontSize="15"/>
-                                            </VerticalStackLayout>
-
-                                        </VerticalStackLayout>
-                                    </Frame>
-
-                                </SwipeView>
-
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-
-                </VerticalStackLayout>
-
-            </VerticalStackLayout>
-        </ScrollView>
-
-        <!-- Floating Add button (bottom right) -->
-        <Button Text="+ Add Service"
+		<Button Text="+ Add Service"
                 Command="{Binding GoToAddServiceCommand}"
                 VerticalOptions="End"
                 HorizontalOptions="End"
@@ -190,5 +47,5 @@
                 CornerRadius="30"
                 Padding="20,12" />
 
-    </Grid>
+	</Grid>
 </ContentPage>

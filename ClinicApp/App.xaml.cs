@@ -1,5 +1,23 @@
-﻿using ClinicApp.Services;
+﻿//using ClinicApp.Views;
 
+//namespace ClinicApp
+//{
+//    public partial class App : Application
+//    {
+//        public App()
+//        {
+//            InitializeComponent();
+
+//            UserAppTheme = AppTheme.Light;
+
+//            MainPage = new AppShell();
+//        }
+//    }
+//}
+
+
+using ClinicApp.Views;
+using ClinicApp.Services;
 namespace ClinicApp
 {
 
@@ -11,6 +29,22 @@ namespace ClinicApp
 
         public App(SupabaseDataService supabaseData, DatabaseService db)
         {
+            try
+            {
+                InitializeComponent();
+            }
+            catch (Exception ex)
+            {
+                // Keep expanding InnerException until Message is meaningful
+                var inner = ex;
+                while (inner.InnerException != null)
+                    inner = inner.InnerException;
+
+                System.Diagnostics.Debug.WriteLine("=== CRASH CAUSE ===");
+                System.Diagnostics.Debug.WriteLine(inner.Message);
+                System.Diagnostics.Debug.WriteLine(inner.StackTrace);
+                throw;
+            }
             MauiExceptions.Initialize();
             // ── Global crash handler — catches silent crashes ──────────
             AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
@@ -58,6 +92,8 @@ namespace ClinicApp
                 // Clean local SQLite first (instant)
                 await _db.CleanupPastLocalAppointmentsAsync();
 
+            UserAppTheme = AppTheme.Light;
+            MainPage = new AppShell();
                 // Then clean Supabase (network call)
                 await _supabaseData.CleanupPastAppointmentsAsync();
 
