@@ -34,37 +34,16 @@ public partial class AddPatientViewModel : ObservableObject
     [ObservableProperty] string officeNo = string.Empty;
     [ObservableProperty] string email = string.Empty;
 
-    // ── Section C: Referral / Insurance ──────────────────────────
-    [ObservableProperty] string referredBy = string.Empty;
-    [ObservableProperty] string reasonForConsultation = string.Empty;
-    [ObservableProperty] string dentalInsurance = string.Empty;
-    [ObservableProperty] DateTime insuranceEffectiveDate = DateTime.Today;
-    [ObservableProperty] bool hasInsurance;
-
-    // ── Section D: Guardian ───────────────────────────────────────
+    // ── Section C: Guardian ───────────────────────────────────────
     [ObservableProperty] string guardianName = string.Empty;
     [ObservableProperty] string guardianRelationship = string.Empty;
     [ObservableProperty] string guardianOccupation = string.Empty;
     [ObservableProperty] string guardianMobileNo = string.Empty;
 
-    // ── Section E: Medical History ────────────────────────────────
+    // ── Section D: Medical (Blood Type only) ──────────────────────
     [ObservableProperty] string bloodType = string.Empty;
-    [ObservableProperty] string physicianName = string.Empty;
-    [ObservableProperty] bool isGoodHealth = true;
-    [ObservableProperty] bool isPregnant;
-    [ObservableProperty] bool underMedicalTreatment;
-    [ObservableProperty] string medicationDetails = string.Empty;
-    [ObservableProperty] bool hasBeenHospitalized;
-    [ObservableProperty] string hospitalizationDetails = string.Empty;
-    [ObservableProperty] string bloodPressure = string.Empty;
-    [ObservableProperty] string bleedingTime = string.Empty;
-    [ObservableProperty] bool usesTobacco;
-    [ObservableProperty] bool usesAlcohol;
-    [ObservableProperty] bool takingMedications;
-    [ObservableProperty] string previousDentist = string.Empty;
-    [ObservableProperty] string lastDentalVisit = string.Empty;
 
-    // ── Section F: Allergies ──────────────────────────────────────
+    // ── Section E: Allergies ──────────────────────────────────────
     [ObservableProperty] bool hasLatexAllergy;
     [ObservableProperty] bool hasAspirinAllergy;
     [ObservableProperty] bool hasPenicillinAllergy;
@@ -72,18 +51,14 @@ public partial class AddPatientViewModel : ObservableObject
     [ObservableProperty] bool hasLocalAnestheticAllergy;
     [ObservableProperty] string otherAllergy = string.Empty;
 
-    // ── Section G: Medical Conditions ─────────────────────────
+    // ── Section F: Medical Conditions ─────────────────────────────
     public ObservableCollection<ConditionCheckItem> Conditions { get; } = new();
-
-    // Free-text "Other" condition — shown as Entry below the checklist
     [ObservableProperty] string otherCondition = string.Empty;
 
     public List<string> GenderOptions { get; } = new() { "Male", "Female", "Other" };
     public List<string> BloodTypeOptions { get; } = new() { "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown" };
     public List<string> RelationshipOptions { get; } = new() { "Parent", "Spouse", "Sibling", "Child", "Grandparent", "Guardian", "Other" };
 
-    // ── Computed: is the patient a minor (under 18)? ──────────────
-    // Recalculated whenever DateOfBirth changes
     public bool IsMinor
     {
         get
@@ -95,12 +70,9 @@ public partial class AddPatientViewModel : ObservableObject
         }
     }
 
-    // Notify IsMinor whenever DateOfBirth changes
     partial void OnDateOfBirthChanged(DateTime value) =>
         OnPropertyChanged(nameof(IsMinor));
 
-    // Called by AddPatientPage.OnAppearing() — conditions always load for new patients.
-    // OnPatientIdChanged never fires for value=0 because 0 is the field default.
     public async Task InitializeAsync()
     {
         if (PatientId <= 0)
@@ -118,7 +90,6 @@ public partial class AddPatientViewModel : ObservableObject
         await _db.EnsureDefaultConditions();
         var all = await _db.GetAllConditions();
         Conditions.Clear();
-        // Sort alphabetically, excluding "Other" (shown as text entry instead)
         foreach (var c in all.Where(c => c.ConditionName != "Other")
                              .OrderBy(c => c.ConditionName))
             Conditions.Add(new ConditionCheckItem { ConditionID = c.ConditionID, ConditionName = c.ConditionName });
@@ -147,11 +118,6 @@ public partial class AddPatientViewModel : ObservableObject
             FaxNo = p.FaxNo;
             OfficeNo = p.OfficeNo;
             Email = p.Email;
-            ReferredBy = p.ReferredBy;
-            ReasonForConsultation = p.ReasonForConsultation;
-            DentalInsurance = p.DentalInsurance;
-            HasInsurance = !string.IsNullOrEmpty(p.DentalInsurance);
-            if (DateTime.TryParse(p.InsuranceEffectiveDate, out var ins)) InsuranceEffectiveDate = ins;
 
             var g = await _db.GetGuardianByPatient(id);
             if (g is not null)
@@ -164,23 +130,7 @@ public partial class AddPatientViewModel : ObservableObject
 
             var m = await _db.GetMedicalHistory(id);
             if (m is not null)
-            {
                 BloodType = m.BloodType;
-                PhysicianName = m.PhysicianName;
-                IsGoodHealth = m.IsGoodHealth;
-                IsPregnant = m.IsPregnant;
-                UnderMedicalTreatment = m.UnderMedicalTreatment;
-                MedicationDetails = m.MedicationDetails;
-                HasBeenHospitalized = m.HasBeenHospitalized;
-                HospitalizationDetails = m.HospitalizationDetails;
-                BloodPressure = m.BloodPressure;
-                BleedingTime = m.BleedingTime;
-                UsesTobacco = m.UsesTobacco;
-                UsesAlcohol = m.UsesAlcohol;
-                TakingMedications = m.TakingMedications;
-                PreviousDentist = m.PreviousDentist;
-                LastDentalVisit = m.LastDentalVisit;
-            }
 
             var a = await _db.GetAllergy(id);
             if (a is not null)
@@ -205,7 +155,6 @@ public partial class AddPatientViewModel : ObservableObject
     [RelayCommand]
     async Task SavePatient()
     {
-        // ── Validate required fields ──────────────────────────────
         var errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
@@ -216,8 +165,6 @@ public partial class AddPatientViewModel : ObservableObject
             errors.Add("• Address is required.");
         if (string.IsNullOrWhiteSpace(MobileNo))
             errors.Add("• Mobile number is required.");
-        if (string.IsNullOrWhiteSpace(Email))
-            errors.Add("• Email address is required.");
         if (IsMinor)
         {
             if (string.IsNullOrWhiteSpace(GuardianName))
@@ -256,10 +203,6 @@ public partial class AddPatientViewModel : ObservableObject
             p.FaxNo = FaxNo.Trim();
             p.OfficeNo = OfficeNo.Trim();
             p.Email = Email.Trim();
-            p.ReferredBy = ReferredBy.Trim();
-            p.ReasonForConsultation = ReasonForConsultation.Trim();
-            p.DentalInsurance = HasInsurance ? DentalInsurance.Trim() : string.Empty;
-            p.InsuranceEffectiveDate = HasInsurance ? InsuranceEffectiveDate.ToString("yyyy-MM-dd") : string.Empty;
 
             int pid;
             if (PatientId > 0)
@@ -287,20 +230,6 @@ public partial class AddPatientViewModel : ObservableObject
             {
                 PatientID = pid,
                 BloodType = BloodType,
-                PhysicianName = PhysicianName.Trim(),
-                IsGoodHealth = IsGoodHealth,
-                IsPregnant = IsPregnant,
-                UnderMedicalTreatment = UnderMedicalTreatment,
-                MedicationDetails = MedicationDetails.Trim(),
-                HasBeenHospitalized = HasBeenHospitalized,
-                HospitalizationDetails = HospitalizationDetails.Trim(),
-                BloodPressure = BloodPressure.Trim(),
-                BleedingTime = BleedingTime.Trim(),
-                UsesTobacco = UsesTobacco,
-                UsesAlcohol = UsesAlcohol,
-                TakingMedications = TakingMedications,
-                PreviousDentist = PreviousDentist.Trim(),
-                LastDentalVisit = LastDentalVisit.Trim(),
             });
 
             await _db.SaveAllergy(new Allergy
@@ -328,13 +257,10 @@ public partial class AddPatientViewModel : ObservableObject
     }
 }
 
-/// <summary>UI helper for the conditions checklist.</summary>
 public partial class ConditionCheckItem : ObservableObject
 {
     public int ConditionID { get; set; }
     public string ConditionName { get; set; } = string.Empty;
     [ObservableProperty] bool isSelected;
-
-    // Hides "Other" from checkbox list — shown as a text Entry instead
     public bool IsNotOther => ConditionName != "Other";
 }
