@@ -10,6 +10,7 @@ public class SupplyItem
 
     public string Name { get; set; } = string.Empty;
 
+    public string Unit { get; set; } = "Per Piece";
     /// <summary>Per Piece | Per Pack | Per Box | Per Kit</summary>
     public string Unit { get; set; } = "Per Piece";
 
@@ -18,10 +19,10 @@ public class SupplyItem
 
     public int QuantityInPieces { get; set; } = 0;
 
-    /// Optional: size or variant label (e.g. "Small", "Large", "250mg")
-    public string SizeVariant { get; set; } = string.Empty;
+    public int PiecesPerUnit { get; set; } = 1;
 
-    /// <summary>Whether the item has an expiration date to track.
+    public int QuantityInPieces { get; set; } = 0;
+
     public bool HasExpiration { get; set; } = false;
 
     public string ExpirationDate { get; set; } = string.Empty;
@@ -29,6 +30,9 @@ public class SupplyItem
     public int MinimumStockPieces { get; set; } = 10;
 
     public string AddedDate { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
+
+    // True = hidden from list but kept in DB (soft delete)
+    public bool IsDeleted { get; set; } = false;
 
     // ── Computed (not stored) ─────────────────────────────────────
     [Ignore]

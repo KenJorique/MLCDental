@@ -15,11 +15,19 @@ public partial class ServiceListPage : ContentPage
         BindingContext = _viewModel = vm;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
-        // Reload the list every time the page is shown
-        _viewModel.LoadServicesCommand.Execute(null);
+
+        // Give the navigation animation 100ms to finish completely
+        await Task.Delay(100);
+
+        if (BindingContext is ServiceViewModel vm)
+        {
+            // Call the asynchronous method directly on a background thread task 
+            // to prevent UI deadlock
+            _ = Task.Run(async () => await vm.LoadServices());
+        }
     }
 
     // Called when any SwipeView starts being swiped

@@ -8,80 +8,80 @@
 
     <Grid>
 
-        <!-- Patient list with expandable cards -->
-        <CollectionView ItemsSource="{Binding Patients}" Margin="10">
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="vm:PatientCardViewModel">
+        <RefreshView Command="{Binding RefreshCommand}"
+                     IsRefreshing="{Binding IsRefreshing}">
 
-                    <Frame Margin="5" Padding="12">
-                        <Frame.GestureRecognizers>
-                            <!-- Tapping anywhere on the card toggles expand/collapse -->
-                            <TapGestureRecognizer
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                          Path=BindingContext.ToggleExpandCommand}"
-                                CommandParameter="{Binding .}" />
-                        </Frame.GestureRecognizers>
+            <CollectionView ItemsSource="{Binding Patients}" Margin="10">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PatientCardViewModel">
 
-                        <VerticalStackLayout Spacing="10">
+                        <Frame Margin="5" Padding="12">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                              Path=BindingContext.ToggleExpandCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Frame.GestureRecognizers>
 
-                            <!-- Collapsed view: patient name always visible -->
-                            <Label FontSize="16" FontAttributes="Bold">
-                                <Label.FormattedText>
-                                    <FormattedString>
-                                        <Span Text="{Binding Patient.FirstName}" />
-                                        <Span Text=" " />
-                                        <Span Text="{Binding Patient.LastName}" />
-                                    </FormattedString>
-                                </Label.FormattedText>
-                            </Label>
+                            <VerticalStackLayout Spacing="10">
 
-                            <!-- Expanded section: visible only when IsExpanded = true -->
-                            <Grid ColumnDefinitions="*,*,*,*"
-                                  ColumnSpacing="8"
-                                  IsVisible="{Binding IsExpanded}">
+                                <Label FontSize="16" FontAttributes="Bold">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="{Binding Patient.FirstName}" />
+                                            <Span Text=" " />
+                                            <Span Text="{Binding Patient.LastName}" />
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
 
-                                <Button Grid.Column="0"
-                                        Text="📄"
-                                        HeightRequest="80"
-                                        FontSize="28"
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                  Path=BindingContext.ViewPatientCommand}"
-                                        CommandParameter="{Binding .}" />
+                                <Grid ColumnDefinitions="*,*,*,*,*"
+                                      ColumnSpacing="8"
+                                      IsVisible="{Binding IsExpanded}">
 
-                                <Button Grid.Column="1"
-                                        Text="🦷"
-                                        HeightRequest="80"
-                                        FontSize="28"
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                  Path=BindingContext.ViewDentalChartCommand}"
-                                        CommandParameter="{Binding .}" />
+                                    <Button Grid.Column="0" Text="📄"
+                                            HeightRequest="80" FontSize="28"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.ViewPatientCommand}"
+                                            CommandParameter="{Binding .}" />
 
-                                <Button Grid.Column="2"
-                                        Text="📋"
-                                        HeightRequest="80"
-                                        FontSize="28"
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                        Path=BindingContext.ViewTreatmentHistoryCommand}"
-                                        CommandParameter="{Binding .}" />
+                                    <Button Grid.Column="1" Text="🦷"
+                                            HeightRequest="80" FontSize="28"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.ViewDentalChartCommand}"
+                                            CommandParameter="{Binding .}" />
 
-                                <Button Grid.Column="3"
-                                        Text="💀"
-                                        HeightRequest="80"
-                                        FontSize="28"
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                  Path=BindingContext.GoToCephalometricCommand}"
-                                        CommandParameter="{Binding .}" />
+                                    <Button Grid.Column="2" Text="📋"
+                                            HeightRequest="80" FontSize="28"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.ViewTreatmentHistoryCommand}"
+                                            CommandParameter="{Binding .}" />
 
-                            </Grid>
+                                    <Button Grid.Column="3" Text="💀"
+                                            HeightRequest="80" FontSize="28"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.GoToCephalometricCommand}"
+                                            CommandParameter="{Binding .}" />
 
-                        </VerticalStackLayout>
-                    </Frame>
+                                    <!-- Add as Grid.Column="4" or in a new row -->
+                                    <Button Grid.Column="4"
+                                            Text="💳"
+                                            HeightRequest="80"
+                                            FontSize="28"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.ViewTransactionsCommand}"
+                                            CommandParameter="{Binding .}"/>
 
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Frame>
 
-        <!-- Floating Add Patient button (bottom right) -->
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </RefreshView>
+
         <Button Text="+ Add Patient"
                 Command="{Binding GoToAddPatientCommand}"
                 VerticalOptions="End"

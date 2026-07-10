@@ -11,6 +11,12 @@ public partial class AddSupplyViewModel : ObservableObject
     private readonly DatabaseService _db;
     private SupplyItem? _editing;
 
+    // ── Unit options ──────────────────────────────────────────────
+    public List<string> UnitOptions { get; } = new()
+    {
+        "Per Piece", "Per Pack", "Per Box", "Per Kit"
+    };
+
     [ObservableProperty] private int supplyId;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isEditMode;
@@ -18,17 +24,27 @@ public partial class AddSupplyViewModel : ObservableObject
 
     // Form fields
     [ObservableProperty] private string itemName = string.Empty;
-    [ObservableProperty] private int quantity;
-    [ObservableProperty] private string sizeVariant = string.Empty;
+    [ObservableProperty] private string selectedUnit = "Per Piece";
+    [ObservableProperty] private int piecesPerUnit = 1;
+    [ObservableProperty] private int unitQuantity = 0;
     [ObservableProperty] private bool hasExpiration;
     [ObservableProperty] private DateTime expirationDate = DateTime.Today.AddYears(1);
     [ObservableProperty] private int minimumStock = 10;
+
+    // Computed display
+    [ObservableProperty] private bool showPiecesPerUnit;
+    [ObservableProperty] private int totalPieces;
 
     // Validation
     [ObservableProperty] private string nameError = string.Empty;
     [ObservableProperty] private bool canSave;
 
-    public AddSupplyViewModel(DatabaseService db) => _db = db;
+    public AddSupplyViewModel(DatabaseService db)
+    {
+        _db = db;
+        selectedUnit = "Per Piece";
+        showPiecesPerUnit = false;
+    }
 
     partial void OnSupplyIdChanged(int value)
     {
@@ -37,8 +53,35 @@ public partial class AddSupplyViewModel : ObservableObject
     }
 
     partial void OnItemNameChanged(string value) => ValidateForm();
-    partial void OnQuantityChanged(int value) => ValidateForm();
     partial void OnMinimumStockChanged(int value) => ValidateForm();
+
+    partial void OnSelectedUnitChanged(string value)
+    {
+        ShowPiecesPerUnit = value != "Per Piece";
+        if (!ShowPiecesPerUnit)
+            PiecesPerUnit = 1;
+        RecalculateTotal();
+        ValidateForm();
+    }
+
+    partial void OnPiecesPerUnitChanged(int value)
+    {
+        RecalculateTotal();
+        ValidateForm();
+    }
+
+    partial void OnUnitQuantityChanged(int value)
+    {
+        RecalculateTotal();
+        ValidateForm();
+    }
+
+    private void RecalculateTotal()
+    {
+        TotalPieces = ShowPiecesPerUnit
+            ? PiecesPerUnit * UnitQuantity
+            : UnitQuantity;
+    }
 
     private async Task LoadForEditAsync(int id)
     {
@@ -51,13 +94,15 @@ public partial class AddSupplyViewModel : ObservableObject
             PageTitle = "Edit Item";
 
             ItemName = item.Name;
-            Quantity = item.QuantityInPieces;
-            SizeVariant = item.SizeVariant;
+            SelectedUnit = item.Unit;
+            PiecesPerUnit = item.PiecesPerUnit;
             HasExpiration = item.HasExpiration;
             MinimumStock = item.MinimumStockPieces;
 
             if (item.HasExpiration && DateTime.TryParse(item.ExpirationDate, out var exp))
                 ExpirationDate = exp;
+
+            // Quantity fields are hidden in edit mode
         }
         catch (Exception ex)
         {
@@ -82,8 +127,8 @@ public partial class AddSupplyViewModel : ObservableObject
             if (IsEditMode && _editing is not null)
             {
                 _editing.Name = ItemName.Trim();
-                _editing.QuantityInPieces = Quantity;
-                _editing.SizeVariant = SizeVariant.Trim();
+                _editing.Unit = SelectedUnit;
+                _editing.PiecesPerUnit = SelectedUnit == "Per Piece" ? 1 : PiecesPerUnit;
                 _editing.HasExpiration = HasExpiration;
                 _editing.ExpirationDate = HasExpiration
                     ? ExpirationDate.ToString("yyyy-MM-dd") : string.Empty;
@@ -93,14 +138,14 @@ public partial class AddSupplyViewModel : ObservableObject
             }
             else
             {
-                // FIX: Save item with QuantityInPieces = 0 first, then apply the
-                // stock change separately. This prevents the quantity being doubled
-                // (once from the item row, once from ApplyStockChange).
+                int pieces = SelectedUnit == "Per Piece" ? 1 : PiecesPerUnit;
+
                 var item = new SupplyItem
                 {
                     Name = ItemName.Trim(),
-                    QuantityInPieces = 0,   // always start at 0; stock log sets the real value
-                    SizeVariant = SizeVariant.Trim(),
+                    Unit = SelectedUnit,
+                    PiecesPerUnit = pieces,
+                    QuantityInPieces = 0,
                     HasExpiration = HasExpiration,
                     ExpirationDate = HasExpiration
                         ? ExpirationDate.ToString("yyyy-MM-dd") : string.Empty,
@@ -116,10 +161,9 @@ public partial class AddSupplyViewModel : ObservableObject
                     return;
                 }
 
-                // ApplyStockChange both logs the transaction AND updates
-                // QuantityInPieces on the item row — so only call it once.
-                if (Quantity > 0)
-                    await _db.ApplyStockChange(newId, Quantity, "Restocked",
+                // TotalPieces = UnitQuantity × PiecesPerUnit (or just UnitQuantity for Per Piece)
+                if (TotalPieces > 0)
+                    await _db.ApplyStockChange(newId, TotalPieces, "Restocked",
                         "Initial stock on creation");
             }
 

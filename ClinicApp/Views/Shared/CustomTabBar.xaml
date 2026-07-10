@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ClinicApp.Views.Shared.CustomTabBar"
+             x:Name="TabBarRoot">
+
+	<!-- Top border line -->
+	<Border StrokeThickness="0"
+            BackgroundColor="{StaticResource PageBg}">
+		<Border.Shadow>
+			<Shadow Brush="#18000000" Offset="0,-2" Radius="8"/>
+		</Border.Shadow>
+
+		<Grid ColumnDefinitions="*,*,*,*"
+              Padding="0,10,0,16"
+              ColumnSpacing="0">
+
+			<!-- HOME -->
+			<VerticalStackLayout Grid.Column="0"
+                                 Spacing="3"
+                                 HorizontalOptions="Center"
+                                 Padding="12,0">
+				<VerticalStackLayout.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnHomeTapped"/>
+				</VerticalStackLayout.GestureRecognizers>
+				<Label x:Name="IconHome"
+                       FontFamily="MaterialSymbolsRoundedFilled"
+                       Text="&#xe88a;"
+                       FontSize="28"
+                       HorizontalTextAlignment="Center"
+                       VerticalOptions="Center"/>
+				<Label x:Name="LabelHome"
+                       Text="Home"
+                       FontSize="10"
+                       HorizontalTextAlignment="Center"/>
+			</VerticalStackLayout>
+
+			<!-- APPOINTMENT -->
+			<VerticalStackLayout Grid.Column="1"
+                                 Spacing="3"
+                                 HorizontalOptions="Center"
+                                 Padding="12,0">
+				<VerticalStackLayout.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnAppointmentTapped"/>
+				</VerticalStackLayout.GestureRecognizers>
+				<Label x:Name="IconAppointment"
+                       FontFamily="MaterialSymbolsRoundedFilled"
+                       Text="&#xe935;"
+                       FontSize="28"
+                       HorizontalTextAlignment="Center"
+                       VerticalOptions="Center"/>
+				<Label x:Name="LabelAppointment"
+                       Text="Appointment"
+                       FontSize="10"
+                       HorizontalTextAlignment="Center"/>
+			</VerticalStackLayout>
+
+			<!-- PATIENT -->
+			<VerticalStackLayout Grid.Column="2"
+                                 Spacing="3"
+                                 HorizontalOptions="Center"
+                                 Padding="12,0">
+				<VerticalStackLayout.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnPatientTapped"/>
+				</VerticalStackLayout.GestureRecognizers>
+				<Label x:Name="IconPatient"
+                       FontFamily="MaterialSymbolsRoundedFilled"
+                       Text="&#xf233;"
+                       FontSize="28"
+                       HorizontalTextAlignment="Center"
+                       VerticalOptions="Center"/>
+				<Label x:Name="LabelPatient"
+                       Text="Patient"
+                       FontSize="10"
+                       HorizontalTextAlignment="Center"/>
+			</VerticalStackLayout>
+
+			<!-- MENU -->
+			<VerticalStackLayout Grid.Column="3"
+                                 Spacing="3"
+                                 HorizontalOptions="Center"
+                                 Padding="12,0">
+				<VerticalStackLayout.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnMenuTapped"/>
+				</VerticalStackLayout.GestureRecognizers>
+				<Label x:Name="IconMenu"
+                       FontFamily="MaterialSymbolsRoundedFilled"
+                       Text="&#xe5d2;"
+                       FontSize="28"
+                       HorizontalTextAlignment="Center"
+                       VerticalOptions="Center"/>
+				<Label x:Name="LabelMenu"
+                       Text="Menu"
+                       FontSize="10"
+                       HorizontalTextAlignment="Center"/>
+			</VerticalStackLayout>
+
+		</Grid>
+	</Border>
+
+</ContentView>

@@ -13,6 +13,7 @@ public partial class SupplyCardViewModel : ObservableObject
     public string StockDisplay => Supply.QuantityDisplay;
     public bool IsLowStock => Supply.IsLowStock;
     public bool IsOutOfStock => Supply.IsOutOfStock;
+    public string UnitDisplay => Supply.Unit ?? "Per Piece";
     public string StockStatusLabel => Supply.IsOutOfStock ? "Out of Stock"
                                     : Supply.IsLowStock ? "Low Stock"
                                     : "In Stock";
@@ -27,6 +28,7 @@ public partial class SupplyCardViewModel : ObservableObject
         OnPropertyChanged(nameof(StockDisplay));
         OnPropertyChanged(nameof(IsLowStock));
         OnPropertyChanged(nameof(IsOutOfStock));
+        OnPropertyChanged(nameof(UnitDisplay));
         OnPropertyChanged(nameof(StockStatusLabel));
         OnPropertyChanged(nameof(StockStatusColor));
         OnPropertyChanged(nameof(ExpirationDisplay));
