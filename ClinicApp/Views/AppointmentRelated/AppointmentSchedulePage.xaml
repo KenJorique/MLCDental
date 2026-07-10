@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClinicApp.ViewModels"
+             xmlns:models="clr-namespace:ClinicApp.Models"
+             x:Class="ClinicApp.Views.AppointmentRelated.AppointmentSchedulePage"
+             Title="Appointments"
+             BackgroundColor="#F5F5F5">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+
+        <!-- Row 0: Tab bar -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,*" BackgroundColor="White"
+              HeightRequest="44">
+            <Button Grid.Column="0" Text="List view" FontSize="13"
+                    HeightRequest="44" CornerRadius="0"
+                    BackgroundColor="{Binding IsListView,
+                        Converter={StaticResource BoolToColorConverter},
+                        ConverterParameter='#4A4A8A|White'}"
+                    TextColor="{Binding IsListView,
+                        Converter={StaticResource BoolToColorConverter},
+                        ConverterParameter='White|#4A4A8A'}"
+                    Command="{Binding ShowListCommand}"/>
+            <Button Grid.Column="1" Text="Calendar" FontSize="13"
+                    HeightRequest="44" CornerRadius="0"
+                    BackgroundColor="{Binding IsCalendarView,
+                        Converter={StaticResource BoolToColorConverter},
+                        ConverterParameter='#4A4A8A|White'}"
+                    TextColor="{Binding IsCalendarView,
+                        Converter={StaticResource BoolToColorConverter},
+                        ConverterParameter='White|#4A4A8A'}"
+                    Command="{Binding ShowCalendarCommand}"/>
+        </Grid>
+
+        <!-- Row 1: Pending approvals banner -->
+        <Border Grid.Row="1"
+                BackgroundColor="#E65100"
+                IsVisible="{Binding HasPendingBookings}"
+                Padding="12,8">
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding GoToPendingCommand}"/>
+            </Border.GestureRecognizers>
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0"
+                       TextColor="White" FontSize="13"
+                       VerticalOptions="Center">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="⚠  "/>
+                            <Span Text="{Binding PendingBookingsCount}"/>
+                            <Span Text=" booking(s) waiting for approval"/>
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+                <Label Grid.Column="1"
+                       Text="Review →"
+                       TextColor="White"
+                       FontSize="13" FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Row 2: Week navigation -->
+        <Grid Grid.Row="2" ColumnDefinitions="36,*,Auto,36"
+              BackgroundColor="#EFEFEF" Padding="4,4" HeightRequest="38">
+            <Button Grid.Column="0" Text="‹" FontSize="18"
+                    BackgroundColor="Transparent" TextColor="#4A4A8A"
+                    HeightRequest="30" Padding="0"
+                    Command="{Binding PreviousWeekCommand}"
+                    IsEnabled="{Binding CanGoPrevious}"/>
+            <Label Grid.Column="1"
+                   Text="{Binding DateRangeLabel}"
+                   FontSize="12" FontAttributes="Bold"
+                   HorizontalOptions="Center" VerticalOptions="Center"
+                   TextColor="#333"/>
+            <Button Grid.Column="2" Text="Today" FontSize="11"
+                    BackgroundColor="Transparent" TextColor="#4A4A8A"
+                    HeightRequest="30" Padding="8,0"
+                    Command="{Binding GoToTodayCommand}"/>
+            <Button Grid.Column="3" Text="›" FontSize="18"
+                    BackgroundColor="Transparent" TextColor="#4A4A8A"
+                    HeightRequest="30" Padding="0"
+                    Command="{Binding NextWeekCommand}"/>
+        </Grid>
+
+        <!-- Row 3: Main content -->
+        <Grid Grid.Row="3">
+
+            <!-- LIST VIEW -->
+            <RefreshView Command="{Binding RefreshCommand}"
+                         IsRefreshing="{Binding IsRefreshing}"
+                         IsVisible="{Binding IsListView}">
+                <ScrollView>
+                    <VerticalStackLayout Padding="12" Spacing="0">
+
+                        <Label Text="{Binding TodayLabel}" FontSize="13" FontAttributes="Bold"
+                               TextColor="#4A4A8A" Margin="4,0,0,6"/>
+
+                        <Label Text="No appointments today"
+                               FontSize="12" TextColor="#999" Margin="4,0,0,8"
+                               IsVisible="{Binding TodayCount,
+                                   Converter={StaticResource IntToBoolConverter},
+                                   ConverterParameter=invert}"/>
+
+                        <CollectionView ItemsSource="{Binding TodayAppointments}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:AppointmentEntry">
+                                    <Grid ColumnDefinitions="46,*" Margin="0,0,0,8">
+                                        <VerticalStackLayout Grid.Column="0"
+                                            HorizontalOptions="End"
+                                            VerticalOptions="Start"
+                                            Margin="0,8,8,0" Spacing="0">
+                                            <Label Text="{Binding TimeDisplay}"
+                                                   FontSize="12" FontAttributes="Bold"
+                                                   TextColor="#333" HorizontalOptions="End"/>
+                                            <Label Text="{Binding AmPm}"
+                                                   FontSize="9" TextColor="#888"
+                                                   HorizontalOptions="End"/>
+                                        </VerticalStackLayout>
+                                        <Frame Grid.Column="1" Padding="10,8"
+                                               CornerRadius="10" HasShadow="False"
+                                               BackgroundColor="{Binding StatusBgColor}"
+                                               BorderColor="{Binding StatusColor}">
+                                            <Frame.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                              Path=BindingContext.SelectAppointmentCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                            </Frame.GestureRecognizers>
+                                            <Grid ColumnDefinitions="*,Auto"
+                                                  RowDefinitions="Auto,Auto">
+                                                <Label Grid.Row="0" Grid.Column="0"
+                                                       Text="{Binding PatientName}"
+                                                       FontSize="13" FontAttributes="Bold"
+                                                       TextColor="#222"/>
+                                                <Border Grid.Row="0" Grid.Column="1"
+                                                        BackgroundColor="{Binding StatusColor}"
+                                                        StrokeShape="RoundRectangle 5"
+                                                        Padding="5,2">
+                                                    <Label Text="{Binding StatusLabel}"
+                                                           FontSize="9" FontAttributes="Bold"
+                                                           TextColor="White"/>
+                                                </Border>
+                                                <Label Grid.Row="1" Grid.Column="0"
+                                                       Grid.ColumnSpan="2"
+                                                       Text="{Binding Service}"
+                                                       FontSize="11" TextColor="#666"
+                                                       Margin="0,2,0,0"/>
+                                            </Grid>
+                                        </Frame>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Label Text="{Binding WeekLabel}" FontSize="13" FontAttributes="Bold"
+                               TextColor="#4A4A8A" Margin="4,12,0,6"/>
+
+                        <Label Text="No other appointments this week"
+                               FontSize="12" TextColor="#999" Margin="4,0,0,8"
+                               IsVisible="{Binding WeekCount,
+                                   Converter={StaticResource IntToBoolConverter},
+                                   ConverterParameter=invert}"/>
+
+                        <CollectionView ItemsSource="{Binding WeekAppointments}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:AppointmentEntry">
+                                    <Grid ColumnDefinitions="46,*" Margin="0,0,0,8">
+                                        <VerticalStackLayout Grid.Column="0"
+                                            HorizontalOptions="End"
+                                            VerticalOptions="Start"
+                                            Margin="0,8,8,0" Spacing="0">
+                                            <Label Text="{Binding TimeDisplay}"
+                                                   FontSize="12" FontAttributes="Bold"
+                                                   TextColor="#333" HorizontalOptions="End"/>
+                                            <Label Text="{Binding AmPm}"
+                                                   FontSize="9" TextColor="#888"
+                                                   HorizontalOptions="End"/>
+                                        </VerticalStackLayout>
+                                        <Frame Grid.Column="1" Padding="10,8"
+                                               CornerRadius="10" HasShadow="False"
+                                               BackgroundColor="{Binding StatusBgColor}"
+                                               BorderColor="{Binding StatusColor}">
+                                            <Frame.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                              Path=BindingContext.SelectAppointmentCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                            </Frame.GestureRecognizers>
+                                            <Grid ColumnDefinitions="*,Auto"
+                                                  RowDefinitions="Auto,Auto,Auto">
+                                                <Label Grid.Row="0" Grid.Column="0"
+                                                       Text="{Binding PatientName}"
+                                                       FontSize="13" FontAttributes="Bold"
+                                                       TextColor="#222"/>
+                                                <Border Grid.Row="0" Grid.Column="1"
+                                                        BackgroundColor="{Binding StatusColor}"
+                                                        StrokeShape="RoundRectangle 5"
+                                                        Padding="5,2">
+                                                    <Label Text="{Binding StatusLabel}"
+                                                           FontSize="9" FontAttributes="Bold"
+                                                           TextColor="White"/>
+                                                </Border>
+                                                <Label Grid.Row="1" Grid.Column="0"
+                                                       Grid.ColumnSpan="2"
+                                                       Text="{Binding Service}"
+                                                       FontSize="11" TextColor="#666"
+                                                       Margin="0,2,0,0"/>
+                                                <Label Grid.Row="2" Grid.Column="0"
+                                                       Grid.ColumnSpan="2"
+                                                       Text="{Binding DateDisplay}"
+                                                       FontSize="10" TextColor="#888"
+                                                       Margin="0,2,0,0"/>
+                                            </Grid>
+                                        </Frame>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <BoxView HeightRequest="80" Color="Transparent"/>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </RefreshView>
+            <!-- CALENDAR VIEW -->
+            <Grid IsVisible="{Binding IsCalendarView}" BackgroundColor="#F5F5F5">
+                <GraphicsView x:Name="CalendarGraphics"
+                  HeightRequest="620"
+                  WidthRequest="460"
+                  Drawable="{Binding CalendarDrawable}"
+                  BackgroundColor="#F5F5F5"
+                  VerticalOptions="Fill"
+                  HorizontalOptions="Fill" />
+            </Grid>
+
+            <!-- DETAIL OVERLAY -->
+            <Grid IsVisible="{Binding ShowDetail}"
+                  BackgroundColor="#80000000" ZIndex="10">
+                <Frame Margin="12,50,12,50" CornerRadius="16"
+                       Padding="0" HasShadow="False" BackgroundColor="White">
+                    <Grid RowDefinitions="Auto,*,Auto">
+
+                        <Grid Grid.Row="0" BackgroundColor="#4A4A8A"
+                              Padding="14,10" ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0"
+                                   Text="Appointment details"
+                                   FontSize="14" FontAttributes="Bold"
+                                   TextColor="White" VerticalOptions="Center"/>
+                            <Button Grid.Column="1" Text="✕"
+                                    BackgroundColor="Transparent"
+                                    TextColor="White" FontSize="16"
+                                    WidthRequest="36" HeightRequest="36" Padding="0"
+                                    Command="{Binding CloseDetailCommand}"/>
+                        </Grid>
+
+                        <ScrollView Grid.Row="1"
+                                    BindingContext="{Binding SelectedAppointment}">
+                            <VerticalStackLayout Spacing="0">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      Padding="14,12" ColumnSpacing="12">
+                                    <Border Grid.Column="0"
+                                            WidthRequest="44" HeightRequest="44"
+                                            BackgroundColor="#E3F2FD"
+                                            StrokeShape="RoundRectangle 22"
+                                            Stroke="Transparent">
+                                        <Label Text="{Binding Initials}"
+                                               FontSize="14" FontAttributes="Bold"
+                                               TextColor="#0D47A1"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1"
+                                        VerticalOptions="Center" Spacing="4">
+                                        <Label Text="{Binding PatientName}"
+                                               FontSize="15" FontAttributes="Bold"
+                                               TextColor="#222"/>
+                                        <Border BackgroundColor="{Binding StatusColor}"
+                                                StrokeShape="RoundRectangle 6"
+                                                Stroke="Transparent" Padding="7,2"
+                                                HorizontalOptions="Start">
+                                            <Label Text="{Binding StatusLabel}"
+                                                   FontSize="10" FontAttributes="Bold"
+                                                   TextColor="White"/>
+                                        </Border>
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                                <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
+
+                                <Grid Padding="14,10" RowDefinitions="Auto,Auto"
+                                      ColumnDefinitions="*,*" RowSpacing="10">
+                                    <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2">
+                                        <Label Text="Contact no." FontSize="10" TextColor="#888"/>
+                                        <Label Text="{Binding Phone}" FontSize="13"
+                                               FontAttributes="Bold" TextColor="#222"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="2">
+                                        <Label Text="Email" FontSize="10" TextColor="#888"/>
+                                        <Label Text="{Binding Email}" FontSize="11"
+                                               TextColor="#555" LineBreakMode="TailTruncation"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="2">
+                                        <Label Text="Date" FontSize="10" TextColor="#888"/>
+                                        <Label Text="{Binding DateDisplay}" FontSize="12"
+                                               FontAttributes="Bold" TextColor="#222"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="2">
+                                        <Label Text="Time" FontSize="10" TextColor="#888"/>
+                                        <Label FontSize="12" FontAttributes="Bold" TextColor="#222">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="{Binding TimeDisplay}"/>
+                                                    <Span Text=" "/>
+                                                    <Span Text="{Binding AmPm}"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                                <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
+
+                                <VerticalStackLayout Padding="14,10" Spacing="2">
+                                    <Label Text="Service" FontSize="10" TextColor="#888"/>
+                                    <Label Text="{Binding Service}" FontSize="13"
+                                           FontAttributes="Bold" TextColor="#222"/>
+                                </VerticalStackLayout>
+
+                                <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
+
+                                <VerticalStackLayout Padding="14,10" Spacing="2">
+                                    <Label Text="Notes" FontSize="10" TextColor="#888"/>
+                                    <Label Text="{Binding Notes}" FontSize="12"
+                                           TextColor="#555" LineHeight="1.4"/>
+                                    <Label Text="No notes added" FontSize="12" TextColor="#BBB"
+                                           IsVisible="{Binding Notes,
+                                               Converter={StaticResource StringEmptyConverter}}"/>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </ScrollView>
+
+                        <VerticalStackLayout Grid.Row="2" Padding="14,10" Spacing="8">
+
+                            <!-- Mark Complete — approved only -->
+                            <Button Text="✓  Mark as completed"
+                                    BackgroundColor="#2E7D32"
+                                    TextColor="White"
+                                    CornerRadius="10"
+                                    HeightRequest="44"
+                                    FontSize="13"
+                                    IsVisible="{Binding IsSelectedApproved}"
+                                    Command="{Binding MarkCompletedCommand}"/>
+
+                            <!-- Reschedule — pending/rescheduled only -->
+                            <Button Text="↺  Change schedule"
+                                    BackgroundColor="#1565C0"
+                                    TextColor="White"
+                                    CornerRadius="10"
+                                    HeightRequest="44"
+                                    FontSize="13"
+                                    IsVisible="{Binding CanChangeDate}"
+                                    Command="{Binding RescheduleAppointmentCommand}"/>
+
+                            <!-- Cancel — pending/rescheduled only -->
+                            <Button Text="✕  Cancel appointment"
+                                    BackgroundColor="Transparent"
+                                    BorderColor="#DDDDDD"
+                                    BorderWidth="1"
+                                    TextColor="#888"
+                                    CornerRadius="10"
+                                    HeightRequest="44"
+                                    FontSize="13"
+                                    IsVisible="{Binding IsSelectedPending}"
+                                    Command="{Binding CancelAppointmentCommand}"/>
+
+                        </VerticalStackLayout>
+                    </Grid>
+                </Frame>
+            </Grid>
+
+        </Grid>
+    </Grid>
+</ContentPage>

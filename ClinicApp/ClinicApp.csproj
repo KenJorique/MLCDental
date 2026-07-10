@@ -36,10 +36,14 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
-		<Configurations>Debug;Release</Configurations>
+		<Configurations>Debug;Release;Debugg;11</Configurations>
+		<Platforms>AnyCPU;ARM32</Platforms>
 	</PropertyGroup>
 
 	<ItemGroup>
+
+		<MauiAsset Include="appsettings.json" LogicalName="appsettings.json" />
+		
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
 
@@ -59,17 +63,11 @@
 
 	<ItemGroup>
 	  <AndroidResource Remove="NewFolder1\**" />
-	  <AndroidResource Remove="NewFolder\**" />
 	  <Compile Remove="NewFolder1\**" />
-	  <Compile Remove="NewFolder\**" />
 	  <EmbeddedResource Remove="NewFolder1\**" />
-	  <EmbeddedResource Remove="NewFolder\**" />
 	  <MauiCss Remove="NewFolder1\**" />
-	  <MauiCss Remove="NewFolder\**" />
 	  <MauiXaml Remove="NewFolder1\**" />
-	  <MauiXaml Remove="NewFolder\**" />
 	  <None Remove="NewFolder1\**" />
-	  <None Remove="NewFolder\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -78,21 +76,34 @@
 
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+		<PackageReference Include="Google.Apis.Auth" Version="1.75.0" />
+		<PackageReference Include="Google.Apis.Tasks.v1" Version="1.74.0.3958" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.100" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.100" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+		<PackageReference Include="Supabase" Version="1.1.0" />
+		<PackageReference Include="Supabase.Postgrest" Version="4.0.3" />
 		<PackageReference Include="The49.Maui.BottomSheet" Version="8.0.3" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Views\GoogleSignInPage.xaml.cs">
+	    <DependentUpon>GoogleSignInPage.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="Views\UsersRelated\AddUserPage.xaml.cs">
 	    <DependentUpon>AddUserPage.xaml</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiXaml Update="Views\AppointmentPage.xaml">
+	  <MauiXaml Update="Views\AppointmentRelated\AppointmentPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\AppointmentRelated\ReschedulePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\AppointmentRelated\AppointmentSchedulePage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\CephalometricRelated\CephalometricPage.xaml">
@@ -105,6 +116,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\MenuPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\GoogleSignInPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\PatientsRelated\PatientPage.xaml">
@@ -150,6 +164,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\SupplyRelated\SupplyListPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\TransactionPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\UsersRelated\AddUserPage.xaml">

@@ -10,11 +10,15 @@ public partial class SupplyListPage : ContentPage
         BindingContext = vm;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        await Task.Delay(100);
+
         if (BindingContext is SupplyListViewModel vm)
-            MainThread.BeginInvokeOnMainThread(async () =>
-                await vm.LoadSuppliesCommand.ExecuteAsync(null));
+        {
+            _ = Task.Run(async () => await vm.LoadSuppliesAsync());
+        }
     }
 }

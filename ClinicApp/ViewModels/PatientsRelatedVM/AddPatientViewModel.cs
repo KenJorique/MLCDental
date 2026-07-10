@@ -10,7 +10,16 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM;
 public partial class AddPatientViewModel : ObservableObject
 {
     readonly DatabaseService _db;
-    public AddPatientViewModel(DatabaseService db) => _db = db;
+    readonly SupabaseDataService _supabase;
+
+    // Tracks the Supabase UUID when editing an existing patient
+    private string _supabaseId = string.Empty;
+
+    public AddPatientViewModel(DatabaseService db, SupabaseDataService supabase)
+    {
+        _db = db;
+        _supabase = supabase;
+    }
 
     [ObservableProperty] int patientId;
     [ObservableProperty] string pageTitle = "Add New Patient";
@@ -26,6 +35,7 @@ public partial class AddPatientViewModel : ObservableObject
     [ObservableProperty] string religion = string.Empty;
     [ObservableProperty] string occupation = string.Empty;
     [ObservableProperty] string address = string.Empty;
+    [ObservableProperty] DateTime dateRegistered = DateTime.Today;
 
     // ── Section B: Contact ────────────────────────────────────────
     [ObservableProperty] string mobileNo = string.Empty;
@@ -79,8 +89,6 @@ public partial class AddPatientViewModel : ObservableObject
     public List<string> BloodTypeOptions { get; } = new() { "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown" };
     public List<string> RelationshipOptions { get; } = new() { "Parent", "Spouse", "Sibling", "Child", "Grandparent", "Guardian", "Other" };
 
-    // ── Computed: is the patient a minor (under 18)? ──────────────
-    // Recalculated whenever DateOfBirth changes
     public bool IsMinor
     {
         get
@@ -92,12 +100,9 @@ public partial class AddPatientViewModel : ObservableObject
         }
     }
 
-    // Notify IsMinor whenever DateOfBirth changes
     partial void OnDateOfBirthChanged(DateTime value) =>
         OnPropertyChanged(nameof(IsMinor));
 
-    // Called by AddPatientPage.OnAppearing() — conditions always load for new patients.
-    // OnPatientIdChanged never fires for value=0 because 0 is the field default.
     public async Task InitializeAsync()
     {
         if (PatientId <= 0)
@@ -116,7 +121,11 @@ public partial class AddPatientViewModel : ObservableObject
         var all = await _db.GetAllConditions();
         Conditions.Clear();
         foreach (var c in all)
-            Conditions.Add(new ConditionCheckItem { ConditionID = c.ConditionID, ConditionName = c.ConditionName });
+            Conditions.Add(new ConditionCheckItem
+            {
+                ConditionID = c.ConditionID,
+                ConditionName = c.ConditionName
+            });
     }
 
     private async Task LoadForEditAsync(int id)
@@ -127,6 +136,11 @@ public partial class AddPatientViewModel : ObservableObject
             PageTitle = "Edit Patient";
             var p = await _db.GetPatientById(id);
             if (p is null) return;
+
+            // Store Supabase ID for update later
+            _supabaseId = p.SupabaseId ?? string.Empty;
+            System.Diagnostics.Debug.WriteLine(
+                $"[Edit] Loaded patient {id}, SupabaseId={_supabaseId}");
 
             FirstName = p.FirstName;
             LastName = p.LastName;
@@ -146,7 +160,8 @@ public partial class AddPatientViewModel : ObservableObject
             ReasonForConsultation = p.ReasonForConsultation;
             DentalInsurance = p.DentalInsurance;
             HasInsurance = !string.IsNullOrEmpty(p.DentalInsurance);
-            if (DateTime.TryParse(p.InsuranceEffectiveDate, out var ins)) InsuranceEffectiveDate = ins;
+            if (DateTime.TryParse(p.InsuranceEffectiveDate, out var ins))
+                InsuranceEffectiveDate = ins;
 
             var g = await _db.GetGuardianByPatient(id);
             if (g is not null)
@@ -197,12 +212,81 @@ public partial class AddPatientViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    // ── Builds the SupabasePatient from current form state ────────
+    private SupabasePatient BuildSupabasePatient()
+    {
+        var conditionNames = string.Join(",",
+            Conditions.Where(c => c.IsSelected).Select(c => c.ConditionName));
+
+        return new SupabasePatient
+        {
+            // Personal
+            FirstName = FirstName.Trim(),
+            LastName = LastName.Trim(),
+            Nickname = Nickname.Trim(),
+            Gender = SelectedGender,
+            DateOfBirth = DateOfBirth,
+            Nationality = Nationality.Trim(),
+            Religion = Religion.Trim(),
+            Occupation = Occupation.Trim(),
+            Address = Address.Trim(),
+
+            // Contact
+            Phone = MobileNo.Trim(),
+            HomeNo = HomeNo.Trim(),
+            OfficeNo = OfficeNo.Trim(),
+            FaxNo = FaxNo.Trim(),
+            Email = Email.Trim(),
+
+            // Referral & Insurance
+            ReferredBy = ReferredBy.Trim(),
+            ReasonForConsultation = ReasonForConsultation.Trim(),
+            DentalInsurance = HasInsurance ? DentalInsurance.Trim() : null,
+            InsuranceEffectiveDate = HasInsurance ? InsuranceEffectiveDate : null,
+            HasInsurance = HasInsurance,
+
+            // Guardian
+            GuardianName = GuardianName.Trim(),
+            GuardianRelationship = GuardianRelationship,
+            GuardianOccupation = GuardianOccupation.Trim(),
+            GuardianMobile = GuardianMobileNo.Trim(),
+
+            // Medical History
+            BloodType = BloodType,
+            BloodPressure = BloodPressure.Trim(),
+            BleedingTime = BleedingTime.Trim(),
+            PhysicianName = PhysicianName.Trim(),
+            GoodHealth = IsGoodHealth,
+            Pregnant = IsPregnant,
+            UnderTreatment = UnderMedicalTreatment,
+            MedicationDetails = MedicationDetails.Trim(),
+            Hospitalized = HasBeenHospitalized,
+            HospitalizationDetails = HospitalizationDetails.Trim(),
+            UsesTobacco = UsesTobacco,
+            UsesAlcohol = UsesAlcohol,
+            TakingMedications = TakingMedications,
+            PreviousDentist = PreviousDentist.Trim(),
+            LastDentalVisit = LastDentalVisit.Trim(),
+
+            // Allergies
+            LatexAllergy = HasLatexAllergy,
+            AspirinAllergy = HasAspirinAllergy,
+            PenicillinAllergy = HasPenicillinAllergy,
+            SulfaAllergy = HasSulfaAllergy,
+            LocalAnestheticAllergy = HasLocalAnestheticAllergy,
+            OtherAllergy = OtherAllergy.Trim(),
+
+            // Conditions as comma-separated string
+            Conditions = conditionNames,
+
+            DateRegistered = DateTime.Now
+        };
+    }
+
     [RelayCommand]
     async Task SavePatient()
     {
-        // ── Validate required fields ──────────────────────────────
         var errors = new List<string>();
-
         if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
             errors.Add("• First and last name are required.");
         if (string.IsNullOrWhiteSpace(SelectedGender))
@@ -220,7 +304,6 @@ public partial class AddPatientViewModel : ObservableObject
             if (string.IsNullOrWhiteSpace(GuardianMobileNo))
                 errors.Add("• Guardian mobile number is required for patients under 18.");
         }
-
         if (errors.Count > 0)
         {
             await Shell.Current.DisplayAlert("Required Fields Missing",
@@ -231,6 +314,7 @@ public partial class AddPatientViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            // ── 1. Save to local SQLite ───────────────────────────────
             Patient p;
             if (PatientId > 0)
                 p = await _db.GetPatientById(PatientId) ?? new Patient();
@@ -254,7 +338,8 @@ public partial class AddPatientViewModel : ObservableObject
             p.ReferredBy = ReferredBy.Trim();
             p.ReasonForConsultation = ReasonForConsultation.Trim();
             p.DentalInsurance = HasInsurance ? DentalInsurance.Trim() : string.Empty;
-            p.InsuranceEffectiveDate = HasInsurance ? InsuranceEffectiveDate.ToString("yyyy-MM-dd") : string.Empty;
+            p.InsuranceEffectiveDate = HasInsurance
+                ? InsuranceEffectiveDate.ToString("yyyy-MM-dd") : string.Empty;
 
             int pid;
             if (PatientId > 0)
@@ -309,8 +394,14 @@ public partial class AddPatientViewModel : ObservableObject
                 OtherAllergy = OtherAllergy.Trim(),
             });
 
-            var selectedIds = Conditions.Where(c => c.IsSelected).Select(c => c.ConditionID).ToList();
+            var selectedIds = Conditions
+                .Where(c => c.IsSelected)
+                .Select(c => c.ConditionID)
+                .ToList();
             await _db.SavePatientConditions(pid, selectedIds);
+
+            // ── 2. Sync to Supabase — errors shown to user ────────────
+            await SyncToSupabaseAsync(pid);
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
                 await Shell.Current.GoToAsync(".."));
@@ -321,9 +412,127 @@ public partial class AddPatientViewModel : ObservableObject
         }
         finally { IsBusy = false; }
     }
+
+    private async Task SyncToSupabaseAsync(int localPid)
+    {
+        // Read fresh from SQLite — never use ViewModel fields directly
+        var saved = await _db.GetPatientById(localPid);
+        if (saved == null)
+        {
+            System.Diagnostics.Debug.WriteLine("[Sync] Patient not found in SQLite");
+            return;
+        }
+
+        // Use SupabaseId from local record if _supabaseId is empty
+        if (string.IsNullOrEmpty(_supabaseId))
+            _supabaseId = saved.SupabaseId ?? string.Empty;
+
+        System.Diagnostics.Debug.WriteLine(
+            $"[Sync] pid={localPid} supabaseId='{_supabaseId}' name={saved.FirstName} {saved.LastName}");
+
+        // Read related tables
+        var g = await _db.GetGuardianByPatient(localPid);
+        var m = await _db.GetMedicalHistory(localPid);
+        var a = await _db.GetAllergy(localPid);
+        var conds = await _db.GetPatientConditions(localPid);
+        var allConds = await _db.GetAllConditions();
+        var condNames = string.Join(",", conds
+            .Select(pc => allConds.FirstOrDefault(c => c.ConditionID == pc.ConditionID)?.ConditionName)
+            .Where(n => n != null));
+
+        // Build from SQLite data — guaranteed to have the saved values
+        var sp = new SupabasePatient
+        {
+            FirstName = saved.FirstName,
+            LastName = saved.LastName,
+            Nickname = saved.Nickname,
+            Gender = saved.Gender,
+            DateOfBirth = DateTime.TryParse(saved.DateOfBirth, out var dob) ? dob : null,
+            Nationality = saved.Nationality,
+            Religion = saved.Religion,
+            Occupation = saved.Occupation,
+            Address = saved.Address,
+            Phone = saved.MobileNo,
+            HomeNo = saved.HomeNo,
+            OfficeNo = saved.OfficeNo,
+            FaxNo = saved.FaxNo,
+            Email = saved.Email,
+            ReferredBy = saved.ReferredBy,
+            ReasonForConsultation = saved.ReasonForConsultation,
+            DentalInsurance = saved.DentalInsurance,
+            InsuranceEffectiveDate = DateTime.TryParse(saved.InsuranceEffectiveDate, out var ins) ? ins : null,
+            HasInsurance = !string.IsNullOrEmpty(saved.DentalInsurance),
+            HasDentalInsurance = !string.IsNullOrEmpty(saved.DentalInsurance),
+            DateRegistered = DateTime.TryParse(saved.DateRegistered, out var reg)
+                     ? reg.ToUniversalTime()  // ← Supabase needs UTC
+                     : DateTime.UtcNow,
+            GuardianName = g?.GuardianName,
+            GuardianRelationship = g?.RelationshipToPatient,
+            GuardianOccupation = g?.Occupation,
+            GuardianMobile = g?.MobileNo,
+            BloodType = m?.BloodType,
+            BloodPressure = m?.BloodPressure,
+            BleedingTime = m?.BleedingTime,
+            PhysicianName = m?.PhysicianName,
+            GoodHealth = m?.IsGoodHealth ?? true,
+            Pregnant = m?.IsPregnant ?? false,
+            UnderTreatment = m?.UnderMedicalTreatment ?? false,
+            MedicationDetails = m?.MedicationDetails,
+            Hospitalized = m?.HasBeenHospitalized ?? false,
+            HospitalizationDetails = m?.HospitalizationDetails,
+            UsesTobacco = m?.UsesTobacco ?? false,
+            UsesAlcohol = m?.UsesAlcohol ?? false,
+            TakingMedications = m?.TakingMedications ?? false,
+            PreviousDentist = m?.PreviousDentist,
+            LastDentalVisit = m?.LastDentalVisit,
+            LatexAllergy = a?.HasLatexAllergy ?? false,
+            AspirinAllergy = a?.HasAspirinAllergy ?? false,
+            PenicillinAllergy = a?.HasPenicillinAllergy ?? false,
+            SulfaAllergy = a?.HasSulfaAllergy ?? false,
+            LocalAnestheticAllergy = a?.HasLocalAnestheticAllergy ?? false,
+            OtherAllergy = a?.OtherAllergy,
+            Conditions = condNames
+        };
+
+        if (!string.IsNullOrEmpty(_supabaseId))
+        {
+            // UPDATE — throws on failure so user sees the error
+            sp.Id = _supabaseId;
+            System.Diagnostics.Debug.WriteLine($"[Sync] Updating {_supabaseId}");
+            var ok = await _supabase.UpdatePatientAsync(sp);
+            System.Diagnostics.Debug.WriteLine($"[Sync] Update result: {ok}");
+
+            if (!ok)
+                await Shell.Current.DisplayAlert("Sync Warning",
+                    "Patient saved locally but could not update cloud. Check your internet connection.",
+                    "OK");
+        }
+        else
+        {
+            // INSERT — throws on failure so user sees the error
+            System.Diagnostics.Debug.WriteLine("[Sync] Inserting new patient to Supabase");
+            var inserted = await _supabase.AddPatientAsync(sp);
+
+            if (inserted != null && !string.IsNullOrEmpty(inserted.Id))
+            {
+                _supabaseId = inserted.Id;
+                saved.SupabaseId = inserted.Id;
+                await _db.UpdatePatient(saved);
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Sync] Success. SupabaseId={inserted.Id} saved locally");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[Sync] Insert returned null");
+                await Shell.Current.DisplayAlert("Sync Warning",
+                    "Patient saved locally but could not sync to cloud.\n" +
+                    "Check internet connection and Supabase RLS policies.",
+                    "OK");
+            }
+        }
+    }
 }
 
-/// <summary>UI helper for the conditions checklist.</summary>
 public partial class ConditionCheckItem : ObservableObject
 {
     public int ConditionID { get; set; }
