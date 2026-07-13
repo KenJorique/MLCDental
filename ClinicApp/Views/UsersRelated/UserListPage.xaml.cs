@@ -12,9 +12,15 @@ public partial class UserListPage : ContentPage
         BindingContext = _viewModel = vm;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
-        _viewModel.LoadUsersCommand.Execute(null);
+
+        await Task.Delay(100);
+
+        if (BindingContext is UserViewModel vm)
+        {
+            _ = Task.Run(async () => await vm.LoadUsers());
+        }
     }
 }

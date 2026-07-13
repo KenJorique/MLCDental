@@ -100,8 +100,22 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] string guardianOccupation = string.Empty;
     [ObservableProperty] string guardianMobile = string.Empty;
 
-    // ── Medical (Blood Type only) ─────────────────────────────
+    // ── Medical History (full) ────────────────────────────────
     [ObservableProperty] string bloodType = string.Empty;
+    [ObservableProperty] bool isGoodHealth;
+    [ObservableProperty] bool isPregnant;
+    [ObservableProperty] bool underMedicalTreatment;
+    [ObservableProperty] string medicationDetails = string.Empty;
+    [ObservableProperty] bool hasBeenHospitalized;
+    [ObservableProperty] string hospitalizationDetails = string.Empty;
+    [ObservableProperty] bool usesTobacco;
+    [ObservableProperty] bool takingMedications;
+
+    // Computed — drives IsVisible of Pregnant field
+    public bool IsFemale => Gender?.Equals("Female", StringComparison.OrdinalIgnoreCase) ?? false;
+
+    // Notify IsFemale when Gender changes
+    partial void OnGenderChanged(string value) => OnPropertyChanged(nameof(IsFemale));
 
     // ── Allergies ─────────────────────────────────────────────
     [ObservableProperty] bool hasLatexAllergy;
@@ -176,6 +190,14 @@ public partial class PatientDetailsViewModel : ObservableObject
             if (m is not null)
             {
                 BloodType = m.BloodType;
+                IsGoodHealth = m.IsGoodHealth;
+                IsPregnant = m.IsPregnant;
+                UnderMedicalTreatment = m.UnderMedicalTreatment;
+                MedicationDetails = m.MedicationDetails;
+                HasBeenHospitalized = m.HasBeenHospitalized;
+                HospitalizationDetails = m.HospitalizationDetails;
+                UsesTobacco = m.UsesTobacco;
+                TakingMedications = m.TakingMedications;
                 MedicalLastUpdated = !string.IsNullOrWhiteSpace(m.LastUpdated)
                     ? (DateTime.TryParse(m.LastUpdated, out var parsedDate)
                         ? $"Last updated: {parsedDate:MMMM dd, yyyy h:mm tt}"
@@ -229,7 +251,10 @@ public partial class PatientDetailsViewModel : ObservableObject
         var selectedIds = patientConds.Select(pc => pc.ConditionID).ToHashSet();
 
         Conditions.Clear();
-        foreach (var c in allConds)
+        // Alphabetical, "Other" always last
+        var sorted = allConds
+            .OrderBy(c => c.ConditionName == "Other" ? "ZZZ" : c.ConditionName);
+        foreach (var c in sorted)
             Conditions.Add(new ConditionCheckItem
             {
                 ConditionID = c.ConditionID,
@@ -299,6 +324,14 @@ public partial class PatientDetailsViewModel : ObservableObject
             {
                 PatientID = PatientId,
                 BloodType = BloodType,
+                IsGoodHealth = IsGoodHealth,
+                IsPregnant = IsPregnant,
+                UnderMedicalTreatment = UnderMedicalTreatment,
+                MedicationDetails = MedicationDetails,
+                HasBeenHospitalized = HasBeenHospitalized,
+                HospitalizationDetails = HospitalizationDetails,
+                UsesTobacco = UsesTobacco,
+                TakingMedications = TakingMedications,
                 LastUpdated = today,
             });
 

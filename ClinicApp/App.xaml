@@ -23,15 +23,19 @@
 			<converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
 			<converters:IntEqualZeroConverter x:Key="IntEqualZeroConverter" />
 			<converters:IntNotEqualZeroConverter x:Key="IntNotEqualZeroConverter" />
+			<converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+
 			<converters:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter" />
 			<converters:BoolToStatusTextConverter x:Key="BoolToStatusTextConverter" />
-			<converters:InverseBoolConverter x:Key="InverseBoolConverter" />
 			<converters:BoolToTabBgConverter x:Key="BoolToTabBgConverter" />
 			<converters:BoolToTabTextConverter x:Key="BoolToTabTextConverter" />
 			<converters:BoolToFontAttrConverter x:Key="BoolToFontAttrConverter" />
 			<converters:BoolToYesNoConverter x:Key="BoolToYesNoConverter" />
 			<converters:BoolToEditLabelConverter x:Key="BoolToEditLabelConverter" />
 
+			<converters:BoolToColorConverter x:Key="BoolToColorConverter" />
+			<converters:IntToBoolConverter x:Key="IntToBoolConverter" />
+			<converters:StringToBoolConverter x:Key="StringToBoolConverter" />
 		</ResourceDictionary>
 	</Application.Resources>
 </Application>

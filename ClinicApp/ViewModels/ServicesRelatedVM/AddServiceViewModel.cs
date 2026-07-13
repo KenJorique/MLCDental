@@ -18,26 +18,31 @@ public partial class AddServiceViewModel : ObservableObject
     [ObservableProperty] double servicePrice;
     [ObservableProperty] string? serviceDescription;
 
-    partial void OnServiceIdChanged(int value)
-    {
-        if (value > 0)
-        {
-            PageTitle = "Edit Service";
-            LoadServiceData(value);
-        }
-    }
+    //partial void OnServiceIdChanged(int value)
+    //{
+    //    if (value > 0)
+    //    {
+    //        PageTitle = "Edit Service";
+    //        LoadServiceData(value);
+    //    }
+    //}
 
-    private async void LoadServiceData(int id)
+    private async Task LoadServiceDataAsync(int id)
     {
         var list = await _db.GetServices();
         var service = list.FirstOrDefault(s => s.ServiceID == id);
         if (service != null)
         {
-            ServiceName = service.ServiceName;
-            ServicePrice = service.Price;
-            ServiceDescription = service.Description;
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                ServiceName = service.ServiceName;
+                ServicePrice = service.Price;
+                ServiceDescription = service.Description;
+            });
         }
     }
+
+    // ─── Save command ────────────────────────────────────────
 
     [RelayCommand]
     async Task Save()

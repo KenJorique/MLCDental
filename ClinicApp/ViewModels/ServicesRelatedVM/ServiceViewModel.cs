@@ -21,7 +21,7 @@ public partial class ServiceViewModel : ObservableObject
     public ServiceViewModel(DatabaseService db) => _db = db;
 
     [RelayCommand]
-    async Task LoadServices()
+    public async Task LoadServices()
     {
         try
         {

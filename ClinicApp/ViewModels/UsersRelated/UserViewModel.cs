@@ -21,19 +21,23 @@ public partial class UserViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadUsers()
     {
-        if (isBusy) return;
-        isBusy = true;
+        if (IsBusy) return; // Note: Toolkit generates uppercase 'IsBusy'
+        IsBusy = true;
         try
         {
-            Users.Clear();
             var list = await _db.GetUsers();
-            foreach (var user in list)
-                Users.Add(new UserCardViewModel(user));
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                Users.Clear();
+                foreach (var user in list)
+                    Users.Add(new UserCardViewModel(user));
+            });
         }
         finally
         {
-            isBusy = false;
-            isRefreshing = false;
+            IsBusy = false;
+            IsRefreshing = false;
         }
     }
 

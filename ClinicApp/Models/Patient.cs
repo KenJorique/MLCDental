@@ -45,6 +45,9 @@ public class Patient
     public string MedicalHistory { get; set; } = string.Empty;
     public bool HasNoMedicalHistory { get; set; } = false;
 
+    // supabase_id is the UUID from Supabase, used to link local patient record with remote one
+    public string SupabaseId { get; set; } = string.Empty;
+
     // ── Computed (not stored) ─────────────────────────────────────
     [Ignore]
     public string FullName => $"{FirstName} {LastName}".Trim();
