@@ -7707,11 +7707,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Kenny\\source\\repos\\KenJorique\\MLCDental\\DentalClinicBooking\\DentalClinicBooking.csproj",
+      "projectUniqueName": "C:\\Users\\Kenny\\source\\repos\\MLCDental\\cliniccc\\DentalClinicBooking\\DentalClinicBooking.csproj",
       "projectName": "DentalClinicBooking",
-      "projectPath": "C:\\Users\\Kenny\\source\\repos\\KenJorique\\MLCDental\\DentalClinicBooking\\DentalClinicBooking.csproj",
+      "projectPath": "C:\\Users\\Kenny\\source\\repos\\MLCDental\\cliniccc\\DentalClinicBooking\\DentalClinicBooking.csproj",
       "packagesPath": "C:\\Users\\Kenny\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Kenny\\source\\repos\\KenJorique\\MLCDental\\DentalClinicBooking\\obj\\",
+      "outputPath": "C:\\Users\\Kenny\\source\\repos\\MLCDental\\cliniccc\\DentalClinicBooking\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

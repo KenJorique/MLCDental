@@ -347,43 +347,58 @@ namespace ClinicApp.ViewModels
 
                 var bookings = bookingsTask.Result;
                 var entries = entriesTask.Result;
-
-                var bookingEntries = bookings.Select(b => new AppointmentEntry
+                // Fix bookingEntries conversion — always convert UTC to Philippine local time
+                var bookingEntries = bookings.Select(b =>
                 {
-                    SupabaseBookingId = b.Id,
-                    PatientName = b.FullName ?? "",
-                    Phone = b.Phone ?? "",
-                    Email = b.Email ?? "",
-                    Service = b.Service ?? "",
-                    Notes = b.Notes ?? "",
-                    AppointmentDateTime = DateTime.SpecifyKind(
-                                    b.AppointmentDate, DateTimeKind.Utc)
-                                    .ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                    Status = b.Status
+                    // Ensure UTC kind is set before converting
+                    var utcDate = b.AppointmentDate.Kind == DateTimeKind.Utc
+                        ? b.AppointmentDate
+                        : DateTime.SpecifyKind(b.AppointmentDate, DateTimeKind.Utc);
+
+                    var localDate = utcDate.ToLocalTime();
+
+                    return new AppointmentEntry
+                    {
+                        SupabaseBookingId = b.Id,
+                        PatientName = b.FullName ?? "",
+                        Phone = b.Phone ?? "",
+                        Email = b.Email ?? "",
+                        Service = b.Service ?? "",
+                        Notes = b.Notes ?? "",
+                        // Store as local time string so AppointmentDateTimeParsed works correctly
+                        AppointmentDateTime = localDate.ToString("yyyy-MM-dd HH:mm:ss"),
+                        Status = b.Status
+                    };
                 }).ToList();
 
-                // ── Convert approved AppointmentEntries ───────────────────
+                // Fix approvedEntries conversion too
                 var approvedEntries = entries
                     .Where(e =>
                     {
-                        if (string.IsNullOrEmpty(e.AppointmentDateTime.ToString()))
-                            return false;
-                        if (!DateTime.TryParse(e.AppointmentDateTime.ToString(), out var dt))
-                            return false;
-                        var localDt = dt.ToLocalTime();
-                        return localDt >= WeekStart && localDt < weekEnd;
+                        var dt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
+                            ? e.AppointmentDateTime.ToLocalTime()
+                            : e.AppointmentDateTime;
+                        return dt.Date >= WeekStart.Date &&
+                               dt.Date < WeekStart.AddDays(7).Date;
                     })
-                    .Select(e => new AppointmentEntry
+                    .Select(e =>
                     {
-                        SupabaseBookingId = e.SupabaseBookingId,
-                        PatientName = e.PatientName,
-                        Phone = e.Phone ?? "",
-                        Email = e.Email ?? "",
-                        Service = e.Service ?? "",
-                        Notes = e.Notes ?? "",
-                        AppointmentDateTime = e.AppointmentDateTime.ToLocalTime()
-        .ToString("yyyy-MM-dd HH:mm:ss"),
-                        Status = e.Status
+                        var localDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
+                            ? e.AppointmentDateTime.ToLocalTime()
+                            : e.AppointmentDateTime;
+
+                        return new AppointmentEntry
+                        {
+                            SupabaseBookingId = e.SupabaseBookingId,
+                            PatientName = e.PatientName,
+                            Phone = e.Phone ?? "",
+                            Email = e.Email ?? "",
+                            Service = e.Service ?? "",
+                            Notes = e.Notes ?? "",
+                            AppointmentDateTime = localDt.ToString("yyyy-MM-dd HH:mm:ss"),
+                            Status = e.Status,
+                            GoogleTaskId = e.GoogleTaskId ?? ""
+                        };
                     }).ToList();
 
                 // ── Merge

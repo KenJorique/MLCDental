@@ -29,17 +29,25 @@ namespace ClinicApp.Models
         {
             get
             {
-                if (!DateTime.TryParse(AppointmentDateTime, out var dt))
+                if (string.IsNullOrEmpty(AppointmentDateTime))
                     return DateTime.MinValue;
 
-                // Always convert to Philippine local time for display
-                return dt.Kind switch
+                // Try parsing with UTC indicator first
+                if (DateTime.TryParse(AppointmentDateTime,
+                    null,
+                    System.Globalization.DateTimeStyles.RoundtripKind,
+                    out var dtRoundtrip))
                 {
-                    DateTimeKind.Utc => dt.ToLocalTime(),
-                    DateTimeKind.Local => dt,
-                    _ => DateTime.SpecifyKind(dt, DateTimeKind.Utc)
-                                                  .ToLocalTime()
-                };
+                    return dtRoundtrip.Kind == DateTimeKind.Utc
+                        ? dtRoundtrip.ToLocalTime()
+                        : dtRoundtrip;
+                }
+
+                // Fallback — parse as local
+                if (DateTime.TryParse(AppointmentDateTime, out var dt))
+                    return dt;
+
+                return DateTime.MinValue;
             }
         }
 

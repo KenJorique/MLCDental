@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "v7lzR5GhGaQ=",
+  "dgSpecHash": "VvwE4t6E8gg=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Kenny\\source\\repos\\KenJorique\\MLCDental\\DentalClinicBooking\\DentalClinicBooking.csproj",
+  "projectFilePath": "C:\\Users\\Kenny\\source\\repos\\MLCDental\\cliniccc\\DentalClinicBooking\\DentalClinicBooking.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Kenny\\.nuget\\packages\\azure.core\\1.25.0\\azure.core.1.25.0.nupkg.sha512",
     "C:\\Users\\Kenny\\.nuget\\packages\\azure.identity\\1.7.0\\azure.identity.1.7.0.nupkg.sha512",

@@ -35,5 +35,8 @@ namespace ClinicApp.Models
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; }
+
+        [Column("google_task_id")]
+        public string? GoogleTaskId { get; set; }
     }
 }
