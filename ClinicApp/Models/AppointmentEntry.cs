@@ -24,7 +24,8 @@ namespace ClinicApp.Models
 
         public string CreatedAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-        [Ignore]
+
+        [SQLite.Ignore]
         public DateTime AppointmentDateTimeParsed
         {
             get
@@ -32,20 +33,15 @@ namespace ClinicApp.Models
                 if (string.IsNullOrEmpty(AppointmentDateTime))
                     return DateTime.MinValue;
 
-                // Try parsing with UTC indicator first
                 if (DateTime.TryParse(AppointmentDateTime,
-                    null,
-                    System.Globalization.DateTimeStyles.RoundtripKind,
-                    out var dtRoundtrip))
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var dt))
                 {
-                    return dtRoundtrip.Kind == DateTimeKind.Utc
-                        ? dtRoundtrip.ToLocalTime()
-                        : dtRoundtrip;
-                }
-
-                // Fallback — parse as local
-                if (DateTime.TryParse(AppointmentDateTime, out var dt))
+                    // We always store local time strings now
+                    // so just return as-is — no conversion needed
                     return dt;
+                }
 
                 return DateTime.MinValue;
             }

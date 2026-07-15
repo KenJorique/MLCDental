@@ -38,5 +38,11 @@ namespace DentalClinicBooking.Models
 
         [Column("date_of_birth")]
         public DateTime? DateOfBirth { get; set; }
+
+        [Column("is_existing_patient")]
+        public bool IsExistingPatient { get; set; } = false;
+
+        [Column("existing_patient_id")]
+        public string? ExistingPatientId { get; set; }
     }
 }

@@ -159,7 +159,7 @@
                         <Label Text="No other appointments this week"
                                FontSize="12" TextColor="#999" Margin="4,0,0,8"
                                IsVisible="{Binding WeekCount,
-                                   Converter={StaticResource IntToBoolConverter},
+                                   Converter={StaticResource IntToBoolConverter}, 
                                    ConverterParameter=invert}"/>
 
                         <CollectionView ItemsSource="{Binding WeekAppointments}">
@@ -351,7 +351,7 @@
                                     IsVisible="{Binding IsSelectedApproved}"
                                     Command="{Binding MarkCompletedCommand}"/>
 
-                            <!-- Reschedule — pending/rescheduled only -->
+                            <!-- Reschedule — pending/rescheduled only --><!--
                             <Button Text="↺  Change schedule"
                                     BackgroundColor="#1565C0"
                                     TextColor="White"
@@ -359,7 +359,7 @@
                                     HeightRequest="44"
                                     FontSize="13"
                                     IsVisible="{Binding CanChangeDate}"
-                                    Command="{Binding RescheduleAppointmentCommand}"/>
+                                    Command="{Binding RescheduleAppointmentCommand}"/>-->
 
                             <!-- Cancel — pending/rescheduled only -->
                             <Button Text="✕  Cancel appointment"

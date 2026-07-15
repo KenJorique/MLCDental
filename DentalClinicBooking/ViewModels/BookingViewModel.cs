@@ -21,7 +21,7 @@ namespace DentalClinicBooking.ViewModels
         //[Required(ErrorMessage = "Date of birth is required")]
         //[Display(Name = "Date of Birth")]
         //[DataType(DataType.Date)]
-        public DateTime? DateOfBirth { get; set; }
+        //public DateTime? DateOfBirth { get; set; }
 
         // In BookingViewModel.cs, update AppointmentDate property:
         [Required(ErrorMessage = "Please choose an appointment date")]
@@ -33,9 +33,9 @@ namespace DentalClinicBooking.ViewModels
         public string MinTime => "10:00";
         public string MaxTime => "15:00"; // 3:30 PM is last slot (30 min before 4PM closing)
 
-        [Required(ErrorMessage = "Please select a service")]
-        [Display(Name = "Service")]
-        public string Service { get; set; } = string.Empty;
+        //[Required(ErrorMessage = "Please select a service")]
+        //[Display(Name = "Service")]
+        //public string Service { get; set; } = string.Empty;
 
         [Display(Name = "Additional Notes")]
         [StringLength(500)]

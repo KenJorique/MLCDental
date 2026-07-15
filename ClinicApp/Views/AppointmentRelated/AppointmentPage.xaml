@@ -71,22 +71,35 @@
                                                FontSize="12" TextColor="Gray"
                                                IsVisible="{Binding Notes, Converter={StaticResource StringToBoolConverter}}"/>
 
+                                        <!-- PENDING cards — add Cancel button -->
                                         <HorizontalStackLayout Spacing="8" Margin="0,8,0,0">
-                                            <Button Text="✓  Approve"
+                                            <Button Text="✓ Approve"
                                                     BackgroundColor="#2E7D32"
                                                     TextColor="White"
                                                     CornerRadius="8"
                                                     FontSize="13"
                                                     HeightRequest="38"
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AppointmentViewModel}}, Path=ApproveCommand}"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AppointmentViewModel}},
+                                                              Path=ApproveCommand}"
                                                     CommandParameter="{Binding .}"/>
-                                            <Button Text="↺  Reschedule"
+                                            
+                                            <Button Text="↺ Reschedule"
                                                     BackgroundColor="#1565C0"
                                                     TextColor="White"
                                                     CornerRadius="8"
                                                     FontSize="13"
                                                     HeightRequest="38"
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AppointmentViewModel}}, Path=RescheduleCommand}"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AppointmentViewModel}},
+                                                              Path=RescheduleCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                            <Button Text="✕ Cancel"
+                                                    BackgroundColor="#C62828"
+                                                    TextColor="White"
+                                                    CornerRadius="8"
+                                                    FontSize="13"
+                                                    HeightRequest="38"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AppointmentViewModel}},
+                                                              Path=CancelBookingCommand}"
                                                     CommandParameter="{Binding .}"/>
                                         </HorizontalStackLayout>
 

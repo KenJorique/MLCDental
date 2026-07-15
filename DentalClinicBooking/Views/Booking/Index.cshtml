@@ -52,20 +52,54 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Phone"
-                                   class="form-label fw-semibold"></label>
-                            <input asp-for="Phone" class="form-control"
-                                   placeholder="09XXXXXXXXX"
-                                   maxlength="11"
-                                   id="phoneInput" />
+                            <label asp-for="Phone" class="form-label fw-semibold"></label>
+                            <div class="input-group">
+                                <input asp-for="Phone" class="form-control"
+                                       placeholder="09XXXXXXXXX"
+                                       maxlength="11"
+                                       id="phoneInput"
+                                       autocomplete="off" />
+                                <span class="input-group-text" id="phoneLookupSpinner"
+                                      style="display:none">
+                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                                </span>
+                            </div>
                             <div class="form-text text-muted">
                                 Must start with 09, 11 digits
                             </div>
-                            <span asp-validation-for="Phone"
-                                  class="text-danger small"></span>
-                            <div id="phoneError"
-                                 class="text-danger small d-none">
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                            <div id="phoneError" class="text-danger small d-none">
                                 Phone must start with 09 and be 11 digits.
+                            </div>
+
+                            <!-- Returning patient found banner -->
+                            <div id="existingPatientBanner"
+                                 class="alert alert-success mt-2 d-none p-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-person-check-fill"></i>
+                                    <div>
+                                        <div class="fw-semibold small" id="existingPatientName">
+                                        </div>
+                                        <div class="text-muted" style="font-size:11px">
+                                            Existing patient — details filled automatically
+                                        </div>
+                                    </div>
+                                    <button type="button"
+                                            class="btn-close btn-sm ms-auto"
+                                            onclick="clearExistingPatient()"
+                                            aria-label="Clear"></button>
+                                </div>
+                            </div>
+
+                            <!-- New patient badge -->
+                            <div id="newPatientBanner"
+                                 class="alert alert-info mt-2 d-none p-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-person-plus-fill"></i>
+                                    <div class="small">
+                                        New patient — please fill in your details below
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -95,7 +129,7 @@
                         Appointment Details
                     </h6>
 
-                    <div class="mb-3">
+         @*            <div class="mb-3">
                         <label asp-for="Service"
                                class="form-label fw-semibold"></label>
                         <select asp-for="Service" class="form-select">
@@ -107,7 +141,7 @@
                         </select>
                         <span asp-validation-for="Service"
                               class="text-danger small"></span>
-                    </div>
+                    </div> *@
 
                     <!-- Date picker -->
                     <div class="mb-3">
@@ -416,6 +450,119 @@
         if (tomorrow.getDay() =x== 0) tomorrow.setDate(tomorrow.getDate() + 1);
         dateInput.value = tomorrow.toISOString().split('T')[0];
         dateInput.dispatchEvent(new Event('change'));
+
+                // ── Patient lookup by phone ───────────────────────────────────
+        const phoneLookupSpinner  = document.getElementById('phoneLookupSpinner');
+        const existingBanner      = document.getElementById('existingPatientBanner');
+        const existingPatientName = document.getElementById('existingPatientName');
+        const newPatientBanner    = document.getElementById('newPatientBanner');
+        const fullNameInput       = document.getElementById('FullName');
+        const emailInput          = document.getElementById('Email');
+        const dobInput            = document.querySelector('[name="DateOfBirth"]');
+
+        let lookupTimeout = null;
+        let isExistingPatient = false;
+
+        phoneInput.addEventListener('input', function () {
+            // Allow digits only
+            this.value = this.value.replace(/\D/g, '');
+
+            // Validate format
+            if (this.value.length > 0 && !this.value.startsWith('09')) {
+                phoneError.classList.remove('d-none');
+                phoneError.textContent = 'Phone must start with 09';
+                resetPatientBanners();
+                return;
+            } else if (this.value.length > 0 && this.value.length !== 11) {
+                phoneError.classList.remove('d-none');
+                phoneError.textContent =
+                    `Phone must be 11 digits (${this.value.length}/11)`;
+                resetPatientBanners();
+                return;
+            } else {
+                phoneError.classList.add('d-none');
+            }
+
+            // Trigger lookup when 11 digits entered
+            if (this.value.length === 11 && this.value.startsWith('09')) {
+                clearTimeout(lookupTimeout);
+                lookupTimeout = setTimeout(() => lookupPatient(this.value), 400);
+            } else {
+                resetPatientBanners();
+            }
+        });
+
+        async function lookupPatient(phone) {
+            try {
+                phoneLookupSpinner.style.display = 'flex';
+                resetPatientBanners();
+
+                const res  = await fetch(`/Booking/LookupPatient?phone=${phone}`);
+                const data = await res.json();
+
+                if (data.found && data.isExisting) {
+                    // Existing patient — auto-fill fields
+                    isExistingPatient = true;
+
+                    if (fullNameInput) fullNameInput.value = data.fullName ?? '';
+                    if (emailInput)    emailInput.value    = data.email ?? '';
+
+                    // Show existing patient banner
+                    existingPatientName.textContent = data.fullName;
+                    existingBanner.classList.remove('d-none');
+                    newPatientBanner.classList.add('d-none');
+
+                    // Make name field read-only for existing patients
+                    if (fullNameInput) {
+                        fullNameInput.readOnly = true;
+                        fullNameInput.classList.add('bg-light');
+                    }
+                    if (emailInput) {
+                        emailInput.readOnly = true;
+                        emailInput.classList.add('bg-light');
+                    }
+                } else {
+                    // New patient
+                    isExistingPatient = false;
+                    newPatientBanner.classList.remove('d-none');
+                    existingBanner.classList.add('d-none');
+
+                    // Make sure fields are editable
+                    enableFields();
+                }
+            } catch (err) {
+                console.error('Lookup error:', err);
+                resetPatientBanners();
+            } finally {
+                phoneLookupSpinner.style.display = 'none';
+            }
+        }
+
+        function clearExistingPatient() {
+            isExistingPatient = false;
+            if (fullNameInput) fullNameInput.value = '';
+            if (emailInput)    emailInput.value    = '';
+            resetPatientBanners();
+            enableFields();
+        }
+
+        function enableFields() {
+            if (fullNameInput) {
+                fullNameInput.readOnly = false;
+                fullNameInput.classList.remove('bg-light');
+            }
+            if (emailInput) {
+                emailInput.readOnly = false;
+                emailInput.classList.remove('bg-light');
+            }
+        }
+
+        function resetPatientBanners() {
+            existingBanner.classList.add('d-none');
+            newPatientBanner.classList.add('d-none');
+            isExistingPatient = false;
+            enableFields();
+        }
     </script>
 
     <style>

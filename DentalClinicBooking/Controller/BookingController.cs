@@ -24,34 +24,45 @@ namespace DentalClinicBooking.Controller
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(BookingViewModel model)
         {
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid)
+                return View(model);
 
             try
             {
+                // Check if patient already exists
+                var existingResult = await _supabase.Client
+                    .From<DentalClinicBooking.Models.Patient>()
+                    .Where(p => p.Phone == model.Phone)
+                    .Get();
+
+                var existingPatient = existingResult.Models.FirstOrDefault();
+
+                // Insert booking only — patient created on approval if new
                 var booking = new Booking
                 {
                     FullName = model.FullName,
                     Phone = model.Phone,
                     Email = model.Email ?? "",
-                    DateOfBirth = model.DateOfBirth,
-                    AppointmentDate = model.AppointmentDate, // Convert to UTC
-                    Service = model.Service,
+                    AppointmentDate =  model.AppointmentDate,
                     Notes = model.Notes,
                     Status = "pending",
-                     CreatedAt = DateTime.UtcNow
+                    // Tag as existing or new patient
+                    IsExistingPatient = existingPatient != null,
+                    ExistingPatientId = existingPatient?.Id ?? ""
                 };
 
                 await _supabase.Client.From<Booking>().Insert(booking);
 
                 TempData["PatientName"] = model.FullName;
                 TempData["AppointmentDate"] = model.AppointmentDate.ToLocalTime().ToString("MMMM dd, yyyy h:mm tt");
-                TempData["Service"] = model.Service;
+                TempData["IsExisting"] = existingPatient != null;
 
                 return RedirectToAction("Confirmation");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", "Booking failed: " + ex.Message);
+                ModelState.AddModelError("",
+                    "Booking failed. Please try again. " + ex.Message);
                 return View(model);
             }
         }
@@ -92,6 +103,44 @@ namespace DentalClinicBooking.Controller
             var dayFull = dayCount >= 6;
 
             return Json(new { dayCount, dayFull, slots });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> LookupPatient(string phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone) || phone.Length < 11)
+                return Json(new { found = false });
+
+            try
+            {
+                // Check bookings table first for returning patients
+                var result = await _supabase.Client
+                    .From<DentalClinicBooking.Models.Patient>()
+                    .Where(p => p.Phone == phone)
+                    .Get();
+
+                var patient = result.Models.FirstOrDefault();
+
+                if (patient != null)
+                {
+                    return Json(new
+                    {
+                        found = true,
+                        fullName = patient.FullName,
+                        email = patient.Email ?? "",
+                        phone = patient.Phone ?? "",
+                        isExisting = true
+                    });
+                }
+
+                return Json(new { found = false });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[LookupPatient] {ex.Message}");
+                return Json(new { found = false });
+            }
         }
     }
 }

@@ -102,63 +102,84 @@ namespace ClinicApp.ViewModels
             }
 
         }
-
         [RelayCommand]
         async Task Approve(SupabaseBooking booking)
         {
-            Console.WriteLine("[Approve] ===== APPROVE STARTED =====");
-
-            if (booking == null)
-            {
-                Console.WriteLine("[Approve] booking is NULL — returning");
-                return;
-            }
-
-            Console.WriteLine($"[Approve] Patient: {booking.FullName}");
+            if (booking == null) return;
 
             bool confirm = await Shell.Current.DisplayAlert(
                 "Approve Booking",
                 $"Approve booking for {booking.FullName}?\nService: {booking.Service}",
                 "Approve", "Cancel");
 
-            Console.WriteLine($"[Approve] Confirmed: {confirm}");
             if (!confirm) return;
 
             IsLoading = true;
             try
             {
-                Console.WriteLine("[Approve] Step 1: Adding patient to SQLite...");
-                var parts = (booking.FullName ?? "").Trim().Split(' ', 2);
-                var patient = new Patient
-                {
-                    FirstName = parts.Length > 0 ? parts[0] : "",
-                    LastName = parts.Length > 1 ? parts[1] : "",
-                    MobileNo = booking.Phone ?? "",
-                    Email = booking.Email ?? "",
-                    DateOfBirth = booking.DateOfBirth.HasValue
-                                                ? booking.DateOfBirth.Value.ToString("yyyy-MM-dd") : "",
-                    ReasonForConsultation = booking.Service ?? "",
-                    ReferredBy = "Online Booking",
-                    DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
-                };
-                await _db.AddPatient(patient);
-                Console.WriteLine($"[Approve] Step 1 done. PatientID={patient.PatientID}");
+                // Only create new patient if not existing
+                // Replace the existing patient check section with this:
 
-                Console.WriteLine("[Approve] Step 2: Adding patient to Supabase...");
-                var supPatient = new SupabasePatient
-                {
-                    FirstName = patient.FirstName,
-                    LastName = patient.LastName,
-                    Phone = patient.MobileNo,
-                    Email = patient.Email,
-                    ReasonForConsultation = patient.ReasonForConsultation,
-                    ReferredBy = "Online Booking",
-                    DateRegistered = DateTime.UtcNow
-                };
-                await _supabaseData.AddPatientAsync(supPatient);
-                Console.WriteLine("[Approve] Step 2 done.");
+                // Always check by phone first — prevents duplicates regardless of flag
+                bool patientExists = false;
 
-                Console.WriteLine("[Approve] Step 3: Adding local appointment entry...");
+                if (!string.IsNullOrEmpty(booking.Phone))
+                {
+                    var existingPatients = await _supabaseData
+                        .GetPatientByPhoneAsync(booking.Phone);
+                    patientExists = existingPatients != null;
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] Patient exists check: {patientExists} " +
+                        $"for phone {booking.Phone}");
+                }
+
+                if (!patientExists)
+                {
+                    // Create new patient — only if truly doesn't exist
+                    var parts = (booking.FullName ?? "").Trim().Split(' ', 2);
+                    var patient = new Patient
+                    {
+                        FirstName = parts.Length > 0 ? parts[0] : "",
+                        LastName = parts.Length > 1 ? parts[1] : "",
+                        MobileNo = booking.Phone ?? "",
+                        Email = booking.Email ?? "",
+                        ReasonForConsultation = booking.Service ?? "",
+                        ReferredBy = "Online Booking",
+                        DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
+                    };
+                    await _db.AddPatient(patient);
+
+                    var supPatient = new SupabasePatient
+                    {
+                        FirstName = patient.FirstName,
+                        LastName = patient.LastName,
+                        Phone = patient.MobileNo,
+                        Email = patient.Email,
+                        ReasonForConsultation = patient.ReasonForConsultation,
+                        ReferredBy = "Online Booking",
+                        DateRegistered = DateTime.UtcNow
+                    };
+                    await _supabaseData.AddPatientAsync(supPatient);
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] New patient created: {patient.FirstName}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] Patient already exists — skipping creation");
+                }
+
+                // Rest of approve flow stays the same...
+                // 1. Treat the booking's appointment date as Local time (Philippine Time)
+                var localDate = booking.AppointmentDate.Kind == DateTimeKind.Utc
+                    ? booking.AppointmentDate.ToLocalTime()
+                    : DateTime.SpecifyKind(booking.AppointmentDate, DateTimeKind.Local);
+
+                // 2. Derive the true UTC equivalent for Supabase storage (subtracts 8 hours)
+                var utcDate = localDate.ToUniversalTime();
+
                 var localEntry = new AppointmentEntry
                 {
                     SupabaseBookingId = booking.Id,
@@ -167,17 +188,11 @@ namespace ClinicApp.ViewModels
                     Email = booking.Email ?? "",
                     Service = booking.Service ?? "",
                     Notes = booking.Notes ?? "",
-                    AppointmentDateTime = booking.AppointmentDate.Kind == DateTimeKind.Utc
-                                              ? booking.AppointmentDate.ToLocalTime()
-                                                    .ToString("yyyy-MM-dd HH:mm:ss")
-                                              : booking.AppointmentDate
-                                                    .ToString("yyyy-MM-dd HH:mm:ss"),
+                    AppointmentDateTime = localDate.ToString("yyyy-MM-dd HH:mm:ss"),
                     Status = "approved"
                 };
                 await _db.AddAppointmentEntry(localEntry);
-                Console.WriteLine("[Approve] Step 3 done.");
 
-                Console.WriteLine("[Approve] Step 4: Adding Supabase appointment entry...");
                 var supEntry = new SupabaseAppointmentEntry
                 {
                     SupabaseBookingId = booking.Id,
@@ -186,64 +201,45 @@ namespace ClinicApp.ViewModels
                     Email = booking.Email ?? "",
                     Service = booking.Service ?? "",
                     Notes = booking.Notes ?? "",
-                    AppointmentDateTime = booking.AppointmentDate.ToUniversalTime(),
+                    AppointmentDateTime = utcDate,
                     Status = "approved"
                 };
                 await _supabaseData.AddAppointmentEntryAsync(supEntry);
-                Console.WriteLine("[Approve] Step 4 done.");
 
-                Console.WriteLine("[Approve] Step 5: Updating booking status...");
                 await _supabaseData.UpdateBookingStatusAsync(booking.Id, "approved");
-                Console.WriteLine("[Approve] Step 5 done.");
 
-                // ── Step 6: Google Tasks ──────────────────────────────────
+                // Google Tasks
                 try
                 {
                     var taskId = await _supabaseData.SyncToGoogleTasksAsync(
-                        "",  // pass empty — auto-fetches fresh token
+                        "",
                         booking.FullName ?? "",
                         booking.Service ?? "",
                         booking.AppointmentDate,
                         booking.Phone ?? "",
                         booking.Notes ?? "");
 
-                    if (!string.IsNullOrEmpty(taskId))
-                    {
-                        System.Diagnostics.Debug.WriteLine(
-                            $"[Approve] Google Task created: {taskId}");
-
-                        // Save taskId to local entry for later complete/delete
-                        var entries = await _db.GetAppointmentsForWeek(
-                            WeekStart(booking.AppointmentDate));
-                        var entry = entries.FirstOrDefault(
-                            e => e.SupabaseBookingId == booking.Id);
-                        if (entry != null)
-                        {
-                            entry.GoogleTaskId = taskId;
-                            await _db.UpdateAppointmentEntry(entry);
-                        }
-                    }
-                }
-                catch (Exception googleEx)
-                {
-                    // Never block approve if Google Tasks fails
                     System.Diagnostics.Debug.WriteLine(
-                        $"[Approve] Google Tasks error: {googleEx.Message}");
+                        $"[Approve] Task: {taskId ?? "null"}");
                 }
-
-                Console.WriteLine("[Approve] Step 6 done.");
+                catch (Exception gEx)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] Google: {gEx.Message}");
+                }
 
                 await Shell.Current.DisplayAlert("Approved",
-                    $"{booking.FullName} added to patient list and schedule.", "OK");
+                    booking.IsExistingPatient
+                        ? $"{booking.FullName}'s appointment approved. (Existing patient)"
+                        : $"{booking.FullName} added to patient list and approved.",
+                    "OK");
 
-                Console.WriteLine("[Approve] ===== APPROVE COMPLETE =====");
                 await FetchAndPopulate();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Approve] MAIN EXCEPTION: {ex.Message}");
-                Console.WriteLine($"[Approve] STACK: {ex.StackTrace}");
-                await Shell.Current.DisplayAlert("Error", $"Failed: {ex.Message}", "OK");
+                System.Diagnostics.Debug.WriteLine($"[Approve] {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
             }
             finally { IsLoading = false; }
         }
@@ -300,6 +296,103 @@ namespace ClinicApp.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"[MoveToPending] FAILED: {ex.Message}");
                 await Shell.Current.DisplayAlert("Error", $"Failed: {ex.Message}", "OK");
+            }
+            finally { IsLoading = false; }
+        }
+
+        // Cancel a pending booking
+        [RelayCommand]
+        async Task CancelBooking(SupabaseBooking booking)
+        {
+            if (booking == null) return;
+
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Cancel Booking",
+                $"Cancel {booking.FullName}'s booking?\nThis cannot be undone.",
+                "Yes, cancel", "Keep");
+
+            if (!confirm) return;
+
+            IsLoading = true;
+            try
+            {
+                await _supabaseData.UpdateBookingStatusAsync(booking.Id, "cancelled");
+                await FetchAndPopulate();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CancelBooking] {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+            }
+            finally { IsLoading = false; }
+        }
+
+        [RelayCommand]
+        async Task MarkComplete(SupabaseBooking booking)
+        {
+            if (booking == null) return;
+
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Mark as Complete",
+                $"Mark {booking.FullName}'s appointment as completed?\n" +
+                "It will be removed from the appointment list.",
+                "Yes", "Cancel");
+
+            if (!confirm) return;
+
+            IsLoading = true;
+            try
+            {
+                // 1. Get the appointment entry before deleting
+                var entries = await _supabaseData.GetAppointmentEntriesAsync();
+                var entry = entries.FirstOrDefault(
+                    e => e.SupabaseBookingId == booking.Id);
+
+                // 2. Complete Google Task if exists
+                try
+                {
+                    var accessToken = await _supabaseData.GetFreshAccessTokenAsync();
+                    if (!string.IsNullOrEmpty(accessToken)
+                        && entry != null
+                        && !string.IsNullOrEmpty(entry.GoogleTaskId))
+                    {
+                        await _supabaseData.CompleteGoogleTaskAsync(
+                            accessToken, entry.GoogleTaskId);
+                    }
+                }
+                catch (Exception googleEx)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[MarkComplete] Google Tasks: {googleEx.Message}");
+                }
+
+                // 3. Delete from Supabase appointment_entries immediately
+                if (entry != null && !string.IsNullOrEmpty(entry.Id))
+                    await _supabaseData.DeleteAppointmentEntryAsync(entry.Id);
+
+                // 4. Delete from Supabase bookings immediately
+                await _supabaseData.DeleteBookingAsync(booking.Id);
+
+                // 5. Delete from local SQLite immediately
+                await _db.ExecuteAsync(
+                    "DELETE FROM AppointmentEntry WHERE SupabaseBookingId = ?",
+                    booking.Id);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MarkComplete] {booking.FullName} removed from all lists");
+
+                // 6. Refresh the list — booking gone immediately
+                await FetchAndPopulate();
+
+                await Shell.Current.DisplayAlert("Completed",
+                    $"{booking.FullName}'s appointment has been completed " +
+                    "and removed from the list.", "OK");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MarkComplete] {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
             }
             finally { IsLoading = false; }
         }

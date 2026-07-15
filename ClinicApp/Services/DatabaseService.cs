@@ -15,23 +15,20 @@ public class DatabaseService
 
         try
         {
-            // this saves in windows
-            //string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
-            
-            // This saves it to the "Downloads" folder on the Android Emulator
-            string dbPath = Path.Combine("/storage/emulated/0/Download", "clinic.db3");
+            var dbPath = Path.Combine(
+        FileSystem.AppDataDirectory,  // ← correct path
+        "clinic.db3");
+
             System.Diagnostics.Debug.WriteLine($"[DB] Path: {dbPath}");
-            // this saves in windows
 
-            //MESSAGE FOR FINDING THE DATABASE PATH
-            //  await Shell.Current.DisplayAlert(
-            //"DB PATH",
-            //dbPath,
-            //"OK");
+            _database = new SQLiteAsyncConnection(dbPath,
+                SQLiteOpenFlags.ReadWrite |
+                SQLiteOpenFlags.Create |
+                SQLiteOpenFlags.SharedCache);
 
-            _database = new SQLiteAsyncConnection(
-                dbPath,
-                SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
+            try { await _database.CreateTableAsync<Patient>(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Patient: {ex.Message}"); }
+
 
             // Clear synced booking cache so missed bookings get re-synced
             try
@@ -160,16 +157,37 @@ public class DatabaseService
 
     public async Task AddPatient(Patient patient)
     {
+        await Init();
         try
         {
+            // Check if patient with same phone already exists locally
+            if (!string.IsNullOrEmpty(patient.MobileNo))
+            {
+                var existing = await _database!.Table<Patient>()
+                    .Where(p => p.MobileNo == patient.MobileNo)
+                    .FirstOrDefaultAsync();
 
-            await Init();
-            int result = await _database!.InsertAsync(patient);
-            System.Diagnostics.Debug.WriteLine($"Inserted: {result}");
+                if (existing != null)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[DB] Patient with phone {patient.MobileNo} " +
+                        $"already exists (ID={existing.PatientID}) — skipping");
+                    // Copy the existing ID so callers can reference it
+                    patient.PatientID = existing.PatientID;
+                    return;
+                }
+            }
+
+            await _database!.InsertAsync(patient);
+            System.Diagnostics.Debug.WriteLine(
+                $"[DB] Patient added: {patient.FullName} " +
+                $"ID={patient.PatientID}");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine(ex.ToString());
+            System.Diagnostics.Debug.WriteLine(
+                $"[DB] AddPatient: {ex.Message}");
+            throw;
         }
     }
 
@@ -977,6 +995,20 @@ public class DatabaseService
         {
             System.Diagnostics.Debug.WriteLine(
                 $"[LocalCleanup] Error: {ex.Message}");
+        }
+    }
+
+    public async Task ExecuteAsync(string query, params object[] args)
+    {
+        await Init();
+        try
+        {
+            await _database!.ExecuteAsync(query, args);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DB] ExecuteAsync: {ex.Message}");
         }
     }
 }

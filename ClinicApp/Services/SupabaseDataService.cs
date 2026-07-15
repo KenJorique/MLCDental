@@ -795,5 +795,24 @@ namespace ClinicApp.Services
                 throw;
             }
         }
+
+        public async Task<SupabasePatient?> GetPatientByPhoneAsync(string phone)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabasePatient>()
+                    .Where(p => p.Phone == phone)
+                    .Get();
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetPatientByPhone: {ex.Message}");
+                return null;
+            }
+        }
     }
 }
