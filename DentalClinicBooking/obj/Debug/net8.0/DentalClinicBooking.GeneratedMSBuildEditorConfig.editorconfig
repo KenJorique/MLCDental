@@ -17,41 +17,41 @@ build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = DentalClinicBooking
 build_property.RootNamespace = DentalClinicBooking
-build_property.ProjectDir = C:\Users\Leah Marie Bolasco\OneDrive\Desktop\MLC\DentalClinicBooking\
+build_property.ProjectDir = C:\Users\Kenny\source\repos\MLCDental\cliniccc\DentalClinicBooking\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 8.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Users\Leah Marie Bolasco\OneDrive\Desktop\MLC\DentalClinicBooking
+build_property.MSBuildProjectDirectory = C:\Users\Kenny\source\repos\MLCDental\cliniccc\DentalClinicBooking
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 8.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/Users/Leah Marie Bolasco/OneDrive/Desktop/MLC/DentalClinicBooking/Views/Booking/Confirmation.cshtml]
+[C:/Users/Kenny/source/repos/MLCDental/cliniccc/DentalClinicBooking/Views/Booking/Confirmation.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQm9va2luZ1xDb25maXJtYXRpb24uY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Leah Marie Bolasco/OneDrive/Desktop/MLC/DentalClinicBooking/Views/Booking/Index.cshtml]
+[C:/Users/Kenny/source/repos/MLCDental/cliniccc/DentalClinicBooking/Views/Booking/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQm9va2luZ1xJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Leah Marie Bolasco/OneDrive/Desktop/MLC/DentalClinicBooking/Views/Home/Index.cshtml]
+[C:/Users/Kenny/source/repos/MLCDental/cliniccc/DentalClinicBooking/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Leah Marie Bolasco/OneDrive/Desktop/MLC/DentalClinicBooking/Views/Shared/_Layout.cshtml]
+[C:/Users/Kenny/source/repos/MLCDental/cliniccc/DentalClinicBooking/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Leah Marie Bolasco/OneDrive/Desktop/MLC/DentalClinicBooking/Views/Shared/_ValidationScripts.cshtml]
+[C:/Users/Kenny/source/repos/MLCDental/cliniccc/DentalClinicBooking/Views/Shared/_ValidationScripts.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0cy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Leah Marie Bolasco/OneDrive/Desktop/MLC/DentalClinicBooking/Views/_ViewImports.cshtml]
+[C:/Users/Kenny/source/repos/MLCDental/cliniccc/DentalClinicBooking/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Leah Marie Bolasco/OneDrive/Desktop/MLC/DentalClinicBooking/Views/_ViewStart.cshtml]
+[C:/Users/Kenny/source/repos/MLCDental/cliniccc/DentalClinicBooking/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
