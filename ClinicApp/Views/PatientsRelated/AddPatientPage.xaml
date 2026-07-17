@@ -11,7 +11,7 @@
 
 	<Grid RowDefinitions="*,Auto">
 		<ScrollView Grid.Row="0">
-			<VerticalStackLayout Padding="20,4,20,8" Spacing="0">
+			<VerticalStackLayout Padding="20,-15,20,8" Spacing="0">
 
 				<!-- ══ PERSONAL INFORMATION ══ -->
 				<Label Text="PERSONAL INFORMATION" Style="{StaticResource FormSectionHeader}"/>
@@ -185,6 +185,57 @@
                            Style="{StaticResource FormEntry}"/>
 				</Border>
 
+				<!-- ══ HEALTH & MEDICAL STATUS ══ -->
+				<Label Text="HEALTH STATUS" Style="{StaticResource FormSectionHeader}"/>
+				<Label Text="Check all that apply:" FontSize="12"
+                       TextColor="{StaticResource TextMuted}" Margin="0,0,0,6"/>
+
+				<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto"
+                      RowSpacing="0" ColumnSpacing="0" Margin="0,0,0,4">
+					<Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding IsGoodHealth}" Color="{StaticResource PrimaryPink}"/>
+						<Label Grid.Column="1" Text="Good Health" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasBeenHospitalized}" Color="{StaticResource PrimaryPink}"/>
+						<Label Grid.Column="1" Text="Hospitalized" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding TakingMedications}" Color="{StaticResource PrimaryPink}"/>
+						<Label Grid.Column="1" Text="On Medications" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding UnderMedicalTreatment}" Color="{StaticResource PrimaryPink}"/>
+						<Label Grid.Column="1" Text="Under Treatment" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="2" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding UsesTobacco}" Color="{StaticResource PrimaryPink}"/>
+						<Label Grid.Column="1" Text="Uses Tobacco" Style="{StaticResource FormCheckLabel}"/>
+					</Grid>
+					<Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+						<CheckBox Grid.Column="0" IsChecked="{Binding IsPregnant}" Color="{StaticResource PrimaryPink}"
+                                  IsVisible="{Binding IsFemale}"/>
+						<Label Grid.Column="1" Text="Pregnant" Style="{StaticResource FormCheckLabel}"
+                               IsVisible="{Binding IsFemale}"/>
+					</Grid>
+				</Grid>
+
+				<!-- Medication details — shown when checked -->
+				<VerticalStackLayout IsVisible="{Binding TakingMedications}" Spacing="0">
+					<Label Text="Medication details" Style="{StaticResource FormFieldLabel}"/>
+					<Border Style="{StaticResource FormInputBoxTall}">
+						<Editor Text="{Binding MedicationDetails}" Style="{StaticResource FormEditor}"/>
+					</Border>
+				</VerticalStackLayout>
+
+				<!-- Hospitalization details — shown when checked -->
+				<VerticalStackLayout IsVisible="{Binding HasBeenHospitalized}" Spacing="0">
+					<Label Text="Hospitalization details" Style="{StaticResource FormFieldLabel}"/>
+					<Border Style="{StaticResource FormInputBoxTall}">
+						<Editor Text="{Binding HospitalizationDetails}" Style="{StaticResource FormEditor}"/>
+					</Border>
+				</VerticalStackLayout>
+
 				<!-- ══ ALLERGIES ══ -->
 				<Label Text="ALLERGIES" Style="{StaticResource FormSectionHeader}"/>
 				<Label Text="Check all that apply:" FontSize="12"
@@ -193,23 +244,23 @@
 				<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto"
                       RowSpacing="0" ColumnSpacing="0">
 					<Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasAspirinAllergy}" Color="Black"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasAspirinAllergy}" Color="{StaticResource PrimaryPink}"/>
 						<Label Grid.Column="1" Text="Aspirin" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasLatexAllergy}" Color="Black"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasLatexAllergy}" Color="{StaticResource PrimaryPink}"/>
 						<Label Grid.Column="1" Text="Latex" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasLocalAnestheticAllergy}" Color="Black"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasLocalAnestheticAllergy}" Color="{StaticResource PrimaryPink}"/>
 						<Label Grid.Column="1" Text="Local Anesthetic" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasPenicillinAllergy}" Color="Black"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasPenicillinAllergy}" Color="{StaticResource PrimaryPink}"/>
 						<Label Grid.Column="1" Text="Penicillin" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="2" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasSulfaAllergy}" Color="Black"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasSulfaAllergy}" Color="{StaticResource PrimaryPink}"/>
 						<Label Grid.Column="1" Text="Sulfa" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 				</Grid>
@@ -233,7 +284,7 @@
 						<DataTemplate x:DataType="vm:ConditionCheckItem">
 							<Grid ColumnDefinitions="Auto,*" ColumnSpacing="4" Padding="0,2">
 								<CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}"
-                                          Color="Black" VerticalOptions="Center"/>
+                                          Color="{StaticResource PrimaryPink}" VerticalOptions="Center"/>
 								<Label Grid.Column="1" Text="{Binding ConditionName}"
                                        Style="{StaticResource FormCheckLabel}"/>
 							</Grid>

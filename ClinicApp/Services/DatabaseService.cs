@@ -61,6 +61,10 @@ public class DatabaseService
             try { await _database!.ExecuteAsync("ALTER TABLE Patient ADD COLUMN LastUpdated TEXT DEFAULT ''"); }
             catch { /* already exists */ }
 
+            // OtherCondition — free-text "Other" field added to MedicalHistory
+            try { await _database!.ExecuteAsync("ALTER TABLE MedicalHistory ADD COLUMN OtherCondition TEXT DEFAULT ''"); }
+            catch { /* already exists */ }
+
             try { await _database.CreateTableAsync<ServiceModel>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ServiceModel table: {ex.Message}"); }
             try { await _database.ExecuteAsync("ALTER TABLE ServiceModel ADD COLUMN IsDeleted INTEGER DEFAULT 0"); }
@@ -888,8 +892,6 @@ public class DatabaseService
                 UsesTobacco = sp.UsesTobacco,
                 UsesAlcohol = sp.UsesAlcohol,
                 TakingMedications = sp.TakingMedications,
-                PreviousDentist = sp.PreviousDentist ?? "",
-                LastDentalVisit = sp.LastDentalVisit ?? ""
             });
 
             await SaveAllergy(new Allergy

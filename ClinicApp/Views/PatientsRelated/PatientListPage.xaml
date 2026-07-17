@@ -53,10 +53,20 @@
 		</VerticalStackLayout>
 
 		<!-- ── PATIENT LIST ── -->
+		<!-- Bottom padding ensures last card scrolls fully above the floating FAB -->
 		<CollectionView Grid.Row="1"
                         ItemsSource="{Binding Patients}"
-                        Margin="16,14,16,88"
+                        Margin="16,14,16,0"
                         IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
+
+			<CollectionView.Header>
+				<BoxView HeightRequest="0"/>
+			</CollectionView.Header>
+
+			<CollectionView.Footer>
+				<!-- Transparent spacer so last card scrolls above the FAB -->
+				<BoxView HeightRequest="80" Color="Transparent" BackgroundColor="Transparent"/>
+			</CollectionView.Footer>
 
 			<CollectionView.EmptyView>
 				<VerticalStackLayout Spacing="8" HorizontalOptions="Center"
@@ -169,13 +179,14 @@
                    HorizontalTextAlignment="Center"/>
 		</VerticalStackLayout>
 
-		<!-- FAB -->
+		<!-- FAB — floats over the list, bottom-right -->
 		<Button Grid.Row="1"
                 Text="+ Add Patient"
                 Command="{Binding GoToAddPatientCommand}"
                 Style="{StaticResource FabStyle}"
-                VerticalOptions="End" HorizontalOptions="End"
-                Margin="0,0,20,24"/>
+                VerticalOptions="End"
+                HorizontalOptions="End"
+                Margin="0,0,20,20"/>
 
 	</Grid>
 </ContentPage>

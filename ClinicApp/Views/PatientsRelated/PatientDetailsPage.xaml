@@ -317,13 +317,13 @@
 						</Label>
 					</Grid>
 
-					<!-- ── MEDICAL & HEALTH INFORMATION (combined) ── -->
+					<!-- ── GENERAL HEALTH ── -->
 					<Border Style="{StaticResource CardStyle}">
 						<Border.StrokeShape>
 							<RoundRectangle CornerRadius="14"/>
 						</Border.StrokeShape>
 						<VerticalStackLayout Spacing="0">
-							<Label Text="MEDICAL &amp; HEALTH INFORMATION" Style="{StaticResource SectionTitleStyle}"/>
+							<Label Text="GENERAL HEALTH" Style="{StaticResource SectionTitleStyle}"/>
 
 							<!-- VIEW MODE -->
 							<VerticalStackLayout IsVisible="{Binding IsMedicalEditMode, Converter={StaticResource InvertedBoolConverter}}" Spacing="0">
@@ -397,9 +397,12 @@
 								<!-- Blood Type -->
 								<Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
 									<Label Grid.Column="0" Text="Blood Type" Style="{StaticResource RowLabelStyle}" VerticalOptions="Center"/>
-									<Entry Grid.Column="1" Text="{Binding BloodType}"
-										   HorizontalTextAlignment="End" FontSize="14"
-										   MinimumHeightRequest="44" BackgroundColor="Transparent"/>
+									<Picker Grid.Column="1"
+											ItemsSource="{Binding BloodTypeOptions}"
+											SelectedItem="{Binding BloodType}"
+											HorizontalOptions="End"
+											FontSize="14"
+											BackgroundColor="Transparent"/>
 								</Grid>
 								<BoxView HeightRequest="1" Color="{StaticResource Divider}" Margin="0,0,0,12"/>
 
@@ -545,7 +548,7 @@
                                    Style="{StaticResource BodyStyle}"
                                    IsVisible="{Binding IsMedicalEditMode, Converter={StaticResource InvertedBoolConverter}}"/>
 
-							<!-- EDIT MODE: 2-col checklist, alphabetical, Other last -->
+							<!-- EDIT MODE: 2-col checklist (Other excluded — shown as text entry below) -->
 							<CollectionView ItemsSource="{Binding Conditions}"
                                             IsVisible="{Binding IsMedicalEditMode}">
 								<CollectionView.ItemsLayout>
@@ -566,6 +569,13 @@
 									</DataTemplate>
 								</CollectionView.ItemTemplate>
 							</CollectionView>
+
+							<!-- Other — text entry in edit mode only -->
+							<VerticalStackLayout IsVisible="{Binding IsMedicalEditMode}" Spacing="0" Margin="0,8,0,0">
+								<Label Text="Other" FontSize="12" TextColor="{StaticResource TextMuted}"/>
+								<Entry Text="{Binding OtherCondition}" FontSize="14" BackgroundColor="Transparent"/>
+							</VerticalStackLayout>
+
 						</VerticalStackLayout>
 					</Border>
 
@@ -599,3 +609,4 @@
 
 	</Grid>
 </ContentPage>
+	
