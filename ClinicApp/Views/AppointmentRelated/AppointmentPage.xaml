@@ -61,8 +61,7 @@
                                             </Border>
                                         </Grid>
 
-                                        <Label Text="{Binding Service}"
-                                               FontSize="13" TextColor="#1565C0"/>
+                                   
                                         <Label Text="{Binding AppointmentDate, StringFormat='{0:MMM dd, yyyy  h:mm tt}'}"
                                                FontSize="12" TextColor="Gray"/>
                                         <Label Text="{Binding Phone}"
@@ -163,8 +162,7 @@
                                             </Border>
                                         </Grid>
 
-                                        <Label Text="{Binding Service}"
-                                               FontSize="13" TextColor="#1565C0"/>
+                                     
                                         <Label Text="{Binding AppointmentDate, StringFormat='{0:MMM dd, yyyy  h:mm tt}'}"
                                                FontSize="12" TextColor="Gray"/>
                                         <Label Text="{Binding Phone}"
@@ -231,8 +229,7 @@
                                             </Border>
                                         </Grid>
 
-                                        <Label Text="{Binding Service}"
-                                               FontSize="13" TextColor="#1565C0"/>
+                                       
                                         <Label Text="{Binding AppointmentDate, StringFormat='Original: {0:MMM dd, yyyy  h:mm tt}'}"
                                                FontSize="12" TextColor="Gray"/>
                                         <Label Text="{Binding Phone}"

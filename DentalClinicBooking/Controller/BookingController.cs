@@ -46,7 +46,6 @@ namespace DentalClinicBooking.Controller
                     AppointmentDate =  model.AppointmentDate,
                     Notes = model.Notes,
                     Status = "pending",
-                    // Tag as existing or new patient
                     IsExistingPatient = existingPatient != null,
                     ExistingPatientId = existingPatient?.Id ?? ""
                 };

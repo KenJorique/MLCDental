@@ -36,6 +36,7 @@ namespace ClinicApp
 
             Routing.RegisterRoute(nameof(AppointmentPage), typeof(AppointmentPage));
             Routing.RegisterRoute(nameof(ReschedulePage), typeof(ReschedulePage));
+            Routing.RegisterRoute(nameof(WalkInBookingPage),  typeof(WalkInBookingPage));
 
             Routing.RegisterRoute(nameof(GoogleSignInPage), typeof(GoogleSignInPage));
 

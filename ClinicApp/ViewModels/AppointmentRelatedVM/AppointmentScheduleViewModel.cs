@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using ClinicApp.Views.AppointmentRelated;
+using ClinicApp.Views;
 
 namespace ClinicApp.ViewModels
 {
@@ -43,13 +44,18 @@ namespace ClinicApp.ViewModels
         [ObservableProperty]  private string weekLabel = "This week";
         // Add these properties
         public bool IsSelectedApproved =>
-       SelectedAppointment?.Status == "approved";
+        SelectedAppointment?.Status == "approved";
 
         public bool CanChangeDate =>
-    SelectedAppointment?.Status == "approved" ||
-    SelectedAppointment?.Status == "rescheduled";
+        SelectedAppointment?.Status == "approved" ||
+        SelectedAppointment?.Status == "rescheduled";
         public bool IsSelectedPending =>
             SelectedAppointment?.Status == "pending";
+
+        public bool CanCancel =>
+        SelectedAppointment?.Status == "approved" ||
+        SelectedAppointment?.Status == "pending" ||
+        SelectedAppointment?.Status == "rescheduled";
 
         // Update OnSelectedAppointmentChanged to notify them
         partial void OnSelectedAppointmentChanged(AppointmentEntry? value)
@@ -57,6 +63,7 @@ namespace ClinicApp.ViewModels
             OnPropertyChanged(nameof(IsSelectedApproved));
             OnPropertyChanged(nameof(CanChangeDate)); 
             OnPropertyChanged(nameof(IsSelectedPending));
+            OnPropertyChanged(nameof(CanCancel));
         }
 
         [RelayCommand]
@@ -72,6 +79,12 @@ namespace ClinicApp.ViewModels
                 var diff = (7 + (CurrentDate.DayOfWeek - DayOfWeek.Sunday)) % 7;
                 return CurrentDate.AddDays(-diff).Date;
             }
+        }
+
+        [RelayCommand]
+        async Task GoToWalkIn()
+        {
+            await Shell.Current.GoToAsync(nameof(WalkInBookingPage));
         }
 
 
@@ -696,6 +709,33 @@ namespace ClinicApp.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"[DeleteAppointment] {ex.Message}");
                 await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+            }
+        }
+
+        [RelayCommand]
+        async Task CallPatient(string phoneNumber)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                await Shell.Current.DisplayAlert("Error", "No phone number available for this patient.", "OK");
+                return;
+            }
+
+            try
+            {
+                if (PhoneDialer.Default.IsSupported)
+                {
+                    PhoneDialer.Default.Open(phoneNumber);
+                }
+                else
+                {
+                    await Shell.Current.DisplayAlert("Not Supported", "Phone dialing is not supported on this device.", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CallPatient] Error: {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", "Unable to open phone dialer.", "OK");
             }
         }
 

@@ -111,15 +111,6 @@
                                   class="text-danger small"></span>
                         </div>
                     </div>
-@* 
-                    <div class="mb-4">
-                        <label asp-for="DateOfBirth"
-                               class="form-label fw-semibold"></label>
-                        <input asp-for="DateOfBirth" class="form-control"
-                               type="date" />
-                        <span asp-validation-for="DateOfBirth"
-                              class="text-danger small"></span>
-                    </div> *@
 
                     <hr class="my-4" />
 
@@ -129,19 +120,7 @@
                         Appointment Details
                     </h6>
 
-         @*            <div class="mb-3">
-                        <label asp-for="Service"
-                               class="form-label fw-semibold"></label>
-                        <select asp-for="Service" class="form-select">
-                            <option value="">— Select a service —</option>
-                            @foreach (var s in Model.AvailableServices)
-                            {
-                                <option value="@s">@s</option>
-                            }
-                        </select>
-                        <span asp-validation-for="Service"
-                              class="text-danger small"></span>
-                    </div> *@
+         
 
                     <!-- Date picker -->
                     <div class="mb-3">
@@ -343,15 +322,16 @@
             }
         }
 
-              function renderSlots(dateStr, slots) {
-            slotGrid.innerHTML = '';
+                 function renderSlots(dateStr, slots) {
+        slotGrid.innerHTML = '';
 
-            slots.forEach(slot => {
-                const col = document.createElement('div');
-                col.className = 'col-4 col-md-3';
+        slots.forEach(slot => {
+            const col = document.createElement('div');
+            // Change this line from 'col-4 col-md-3' to 'col-4'
+            col.className = 'col-4';
 
-                const btn = document.createElement('button');
-                btn.type      = 'button';
+            const btn = document.createElement('button');
+            btn.type      = 'button';
 
                 if (slot.full) {
                     // Fully booked slot — show as unavailable, not clickable

@@ -141,11 +141,7 @@
                                                            FontSize="9" FontAttributes="Bold"
                                                            TextColor="White"/>
                                                 </Border>
-                                                <Label Grid.Row="1" Grid.Column="0"
-                                                       Grid.ColumnSpan="2"
-                                                       Text="{Binding Service}"
-                                                       FontSize="11" TextColor="#666"
-                                                       Margin="0,2,0,0"/>
+                                            
                                             </Grid>
                                         </Frame>
                                     </Grid>
@@ -201,12 +197,8 @@
                                                            FontSize="9" FontAttributes="Bold"
                                                            TextColor="White"/>
                                                 </Border>
+                                              
                                                 <Label Grid.Row="1" Grid.Column="0"
-                                                       Grid.ColumnSpan="2"
-                                                       Text="{Binding Service}"
-                                                       FontSize="11" TextColor="#666"
-                                                       Margin="0,2,0,0"/>
-                                                <Label Grid.Row="2" Grid.Column="0"
                                                        Grid.ColumnSpan="2"
                                                        Text="{Binding DateDisplay}"
                                                        FontSize="10" TextColor="#888"
@@ -253,11 +245,16 @@
                                     Command="{Binding CloseDetailCommand}"/>
                         </Grid>
 
+
                         <ScrollView Grid.Row="1"
                                     BindingContext="{Binding SelectedAppointment}">
                             <VerticalStackLayout Spacing="0">
-                                <Grid ColumnDefinitions="Auto,*"
+
+                                <!-- ROW 1: Name Section (3-Column Grid with Call Button on the right) -->
+                                <Grid ColumnDefinitions="Auto,*,Auto"
                                       Padding="14,12" ColumnSpacing="12">
+
+                                    <!-- Avatar Initials -->
                                     <Border Grid.Column="0"
                                             WidthRequest="44" HeightRequest="44"
                                             BackgroundColor="#E3F2FD"
@@ -269,8 +266,10 @@
                                                HorizontalOptions="Center"
                                                VerticalOptions="Center"/>
                                     </Border>
+
+                                    <!-- Name & Status -->
                                     <VerticalStackLayout Grid.Column="1"
-                                        VerticalOptions="Center" Spacing="4">
+                                                         VerticalOptions="Center" Spacing="4">
                                         <Label Text="{Binding PatientName}"
                                                FontSize="15" FontAttributes="Bold"
                                                TextColor="#222"/>
@@ -283,27 +282,47 @@
                                                    TextColor="White"/>
                                         </Border>
                                     </VerticalStackLayout>
+
+                                    <!-- Aligned Call Button (Far Right) -->
+                                    <Button Grid.Column="2" 
+                                            Text="📞" 
+                                            FontSize="16"
+                                            TextColor="#1565C0"
+                                            BackgroundColor="#E3F2FD"
+                                            HeightRequest="40" 
+                                            WidthRequest="40"
+                                            CornerRadius="20"
+                                            Padding="0"
+                                            VerticalOptions="Center"
+                                            HorizontalOptions="End"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.CallPatientCommand}"
+                                            CommandParameter="{Binding Phone}"/>
                                 </Grid>
 
                                 <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
 
+                                <!-- ROW 2: Clean Details Section (No floating overlaps) -->
                                 <Grid Padding="14,10" RowDefinitions="Auto,Auto"
                                       ColumnDefinitions="*,*" RowSpacing="10">
+
                                     <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2">
                                         <Label Text="Contact no." FontSize="10" TextColor="#888"/>
                                         <Label Text="{Binding Phone}" FontSize="13"
                                                FontAttributes="Bold" TextColor="#222"/>
                                     </VerticalStackLayout>
+
                                     <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="2">
                                         <Label Text="Email" FontSize="10" TextColor="#888"/>
                                         <Label Text="{Binding Email}" FontSize="11"
                                                TextColor="#555" LineBreakMode="TailTruncation"/>
                                     </VerticalStackLayout>
+
                                     <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="2">
                                         <Label Text="Date" FontSize="10" TextColor="#888"/>
                                         <Label Text="{Binding DateDisplay}" FontSize="12"
                                                FontAttributes="Bold" TextColor="#222"/>
                                     </VerticalStackLayout>
+
                                     <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="2">
                                         <Label Text="Time" FontSize="10" TextColor="#888"/>
                                         <Label FontSize="12" FontAttributes="Bold" TextColor="#222">
@@ -320,12 +339,7 @@
 
                                 <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
 
-                                <VerticalStackLayout Padding="14,10" Spacing="2">
-                                    <Label Text="Service" FontSize="10" TextColor="#888"/>
-                                    <Label Text="{Binding Service}" FontSize="13"
-                                           FontAttributes="Bold" TextColor="#222"/>
-                                </VerticalStackLayout>
-
+                                <!-- Notes follow below as normal... -->
                                 <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
 
                                 <VerticalStackLayout Padding="14,10" Spacing="2">
@@ -339,6 +353,7 @@
                             </VerticalStackLayout>
                         </ScrollView>
 
+
                         <VerticalStackLayout Grid.Row="2" Padding="14,10" Spacing="8">
 
                             <!-- Mark Complete — approved only -->
@@ -351,7 +366,7 @@
                                     IsVisible="{Binding IsSelectedApproved}"
                                     Command="{Binding MarkCompletedCommand}"/>
 
-                            <!-- Reschedule — pending/rescheduled only --><!--
+                            <!-- Reschedule — approved/rescheduled only (UNCOMMENTED) -->
                             <Button Text="↺  Change schedule"
                                     BackgroundColor="#1565C0"
                                     TextColor="White"
@@ -359,9 +374,9 @@
                                     HeightRequest="44"
                                     FontSize="13"
                                     IsVisible="{Binding CanChangeDate}"
-                                    Command="{Binding RescheduleAppointmentCommand}"/>-->
+                                    Command="{Binding RescheduleAppointmentCommand}"/>
 
-                            <!-- Cancel — pending/rescheduled only -->
+                            <!-- Cancel — approved/pending/rescheduled (CHANGED BINDING TO CanCancel) -->
                             <Button Text="✕  Cancel appointment"
                                     BackgroundColor="Transparent"
                                     BorderColor="#DDDDDD"
@@ -370,7 +385,7 @@
                                     CornerRadius="10"
                                     HeightRequest="44"
                                     FontSize="13"
-                                    IsVisible="{Binding IsSelectedPending}"
+                                    IsVisible="{Binding CanCancel}"
                                     Command="{Binding CancelAppointmentCommand}"/>
 
                         </VerticalStackLayout>
@@ -378,6 +393,23 @@
                 </Frame>
             </Grid>
 
+            <!-- Add inside the main Grid, after the RefreshView and detail overlay -->
+            <Button Text=" Book Appointment"
+         BackgroundColor="#4A4A8A"
+         TextColor="White"
+         CornerRadius="24"
+         HeightRequest="48"
+         Padding="16,0"
+         FontSize="13"
+         FontAttributes="Bold"
+         VerticalOptions="End"
+         HorizontalOptions="End"
+         Margin="0,0,16,24"
+         ZIndex="5"
+         Command="{Binding GoToWalkInCommand}"
+         IsVisible="{Binding ShowDetail,
+             Converter={StaticResource InvertedBoolConverter}}"/>
         </Grid>
+        
     </Grid>
-</ContentPage>
+</ContentPage> 

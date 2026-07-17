@@ -179,29 +179,40 @@ namespace ClinicApp.ViewModels
         public string Display { get; set; } = string.Empty;
         public bool IsTaken { get; set; }
 
-        [ObservableProperty] private bool isSelected;
+        [ObservableProperty] bool isSelected;
+
+        // Call this after changing IsSelected to refresh bindings
+        public void RefreshColors()
+        {
+            OnPropertyChanged(nameof(BackgroundColor));
+            OnPropertyChanged(nameof(BorderColor));
+            OnPropertyChanged(nameof(TextColor));
+            OnPropertyChanged(nameof(StatusColor));
+            OnPropertyChanged(nameof(StatusText));
+        }
 
         public string StatusText =>
-            IsTaken ? "Unavailable" : IsSelected ? "Selected" : "Available";
+            IsTaken ? "Unavailable" :
+            IsSelected ? "Selected ✓" : "Available";
 
         public Color BackgroundColor =>
             IsTaken ? Color.FromArgb("#F5F5F5") :
-            IsSelected ? Color.FromArgb("#E3F2FD") :
+            IsSelected ? Color.FromArgb("#4A4A8A") :
                          Colors.White;
 
         public Color BorderColor =>
             IsTaken ? Color.FromArgb("#E0E0E0") :
-            IsSelected ? Color.FromArgb("#1565C0") :
+            IsSelected ? Color.FromArgb("#4A4A8A") :
                          Color.FromArgb("#BBDEFB");
 
         public Color TextColor =>
             IsTaken ? Color.FromArgb("#BDBDBD") :
-            IsSelected ? Color.FromArgb("#1565C0") :
+            IsSelected ? Colors.White :
                          Color.FromArgb("#333333");
 
         public Color StatusColor =>
             IsTaken ? Color.FromArgb("#BDBDBD") :
-            IsSelected ? Color.FromArgb("#1565C0") :
+            IsSelected ? Colors.White :
                          Color.FromArgb("#2E7D32");
     }
 }

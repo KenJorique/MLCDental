@@ -81,6 +81,13 @@ namespace ClinicApp
                             ));
             builder.Services.AddTransient<ReschedulePage>();
 
+            builder.Services.AddTransient<WalkInBookingViewModel>(sp =>
+    new WalkInBookingViewModel(
+        sp.GetRequiredService<DatabaseService>(),
+        sp.GetRequiredService<SupabaseDataService>()
+    ));
+            builder.Services.AddTransient<WalkInBookingPage>();
+
             // ── Patients ──────────────────────────────────────────
             builder.Services.AddSingleton<PatientListViewModel>(sp =>
                 new PatientListViewModel(
