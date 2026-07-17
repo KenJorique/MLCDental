@@ -1,0 +1,567 @@
+﻿@model DentalClinicBooking.ViewModels.BookingViewModel
+@{
+    ViewData["Title"] = "Book an Appointment";
+    var tomorrow = DateTime.Now.AddDays(1).ToString("yyyy-MM-dd");
+    var maxDate = DateTime.Now.AddDays(30).ToString("yyyy-MM-dd");
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+
+            <div class="text-center mb-4">
+                <i class="bi bi-calendar-plus text-primary"
+                   style="font-size:2.5rem;"></i>
+                <h2 class="fw-bold mt-2">Book an Appointment</h2>
+                <p class="text-muted">
+                    Fill in your details and we'll confirm your schedule.
+                </p>
+            </div>
+
+            <div class="card border-0 shadow-sm p-4">
+                <form asp-action="Index" method="post" id="bookingForm">
+                    @Html.AntiForgeryToken()
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach (var error in ViewData.ModelState.Values
+                                                            .SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <!-- Patient Information -->
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3"
+                        style="font-size:.75rem;letter-spacing:1px">
+                        Patient Information
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="FullName"
+                               class="form-label fw-semibold"></label>
+                        <input asp-for="FullName" class="form-control"
+                               placeholder="e.g. Juan dela Cruz" />
+                        <span asp-validation-for="FullName"
+                              class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Phone" class="form-label fw-semibold"></label>
+                            <div class="input-group">
+                                <input asp-for="Phone" class="form-control"
+                                       placeholder="09XXXXXXXXX"
+                                       maxlength="11"
+                                       id="phoneInput"
+                                       autocomplete="off" />
+                                <span class="input-group-text" id="phoneLookupSpinner"
+                                      style="display:none">
+                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                                </span>
+                            </div>
+                            <div class="form-text text-muted">
+                                Must start with 09, 11 digits
+                            </div>
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                            <div id="phoneError" class="text-danger small d-none">
+                                Phone must start with 09 and be 11 digits.
+                            </div>
+
+                            <!-- Returning patient found banner -->
+                            <div id="existingPatientBanner"
+                                 class="alert alert-success mt-2 d-none p-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-person-check-fill"></i>
+                                    <div>
+                                        <div class="fw-semibold small" id="existingPatientName">
+                                        </div>
+                                        <div class="text-muted" style="font-size:11px">
+                                            Existing patient — details filled automatically
+                                        </div>
+                                    </div>
+                                    <button type="button"
+                                            class="btn-close btn-sm ms-auto"
+                                            onclick="clearExistingPatient()"
+                                            aria-label="Clear"></button>
+                                </div>
+                            </div>
+
+                            <!-- New patient badge -->
+                            <div id="newPatientBanner"
+                                 class="alert alert-info mt-2 d-none p-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-person-plus-fill"></i>
+                                    <div class="small">
+                                        New patient — please fill in your details below
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Email"
+                                   class="form-label fw-semibold"></label>
+                            <input asp-for="Email" class="form-control"
+                                   placeholder="optional" />
+                            <span asp-validation-for="Email"
+                                  class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Appointment Details -->
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3"
+                        style="font-size:.75rem;letter-spacing:1px">
+                        Appointment Details
+                    </h6>
+
+         
+
+                    <!-- Date picker -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Preferred Appointment Date
+                        </label>
+                        <input id="apptDate" name="apptDate" type="date"
+                               class="form-control"
+                               min="@tomorrow" max="@maxDate" />
+                        <small class="text-muted">
+                            Clinic is open Monday – Saturday.
+                            Maximum 6 patients per day.
+                        </small>
+                        <!-- Day capacity indicator -->
+                        <div id="dayCapacity" class="mt-2 d-none">
+                            <div class="progress" style="height:8px">
+                                <div id="dayProgress"
+                                     class="progress-bar"
+                                     role="progressbar"
+                                     style="width:0%">
+                                </div>
+                            </div>
+                            <small id="dayCapacityText"
+                                   class="text-muted mt-1 d-block">
+                            </small>
+                        </div>
+                        <div id="dayFullAlert"
+                             class="alert alert-danger mt-2 d-none">
+                            <i class="bi bi-x-circle me-2"></i>
+                            This day is fully booked. Please choose
+                            another date.
+                        </div>
+                    </div>
+
+                    <!-- Time slots -->
+                    <div class="mb-4" id="timeSlotSection">
+                        <label class="form-label fw-semibold">
+                            Preferred Time Slot
+                        </label>
+                        <div id="timeSlotLoading" class="d-none">
+                            <div class="spinner-border spinner-border-sm
+                                        text-primary me-2"></div>
+                            Checking availability...
+                        </div>
+                        <div id="timeSlotGrid"
+                             class="row g-2 mt-1">
+                            <!-- Slots rendered by JS -->
+                        </div>
+                        <div id="noDateSelected"
+                             class="text-muted small">
+                            Please select a date first to see
+                            available time slots.
+                        </div>
+                        <div id="timeSlotError"
+                             class="text-danger small d-none">
+                            Please select a time slot.
+                        </div>
+                    </div>
+
+                    <!-- Hidden fields -->
+                    <input type="hidden" asp-for="AppointmentDate"
+                           id="AppointmentDate" />
+
+                    <div class="mb-4">
+                        <label asp-for="Notes"
+                               class="form-label fw-semibold"></label>
+                        <textarea asp-for="Notes" class="form-control"
+                                  rows="3"
+                                  placeholder="Any concerns or requests...">
+                        </textarea>
+                        <span asp-validation-for="Notes"
+                              class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" id="submitBtn"
+                                class="btn btn-clinic btn-lg">
+                            <i class="bi bi-send me-2"></i>Submit Booking
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- Clinic info -->
+            <div class="card border-0 bg-light mt-3 p-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-clock text-primary"></i>
+                    <div>
+                        <div class="fw-semibold small">Clinic Hours</div>
+                        <div class="text-muted small">
+                            Mon – Sat: 10:00 AM – 4:00 PM
+                        </div>
+                        <div class="text-muted small">Sunday: Closed</div>
+                        <div class="text-muted small">
+                            Maximum 6 patients per day /
+                            6 patients per time slot
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScripts")
+
+    <script>
+        const dateInput    = document.getElementById('apptDate');
+        const hiddenDt     = document.getElementById('AppointmentDate');
+        const dayCapacity  = document.getElementById('dayCapacity');
+        const dayProgress  = document.getElementById('dayProgress');
+        const dayCapText   = document.getElementById('dayCapacityText');
+        const dayFullAlert = document.getElementById('dayFullAlert');
+        const slotGrid     = document.getElementById('timeSlotGrid');
+        const slotLoading  = document.getElementById('timeSlotLoading');
+        const noDateSel    = document.getElementById('noDateSelected');
+        const slotError    = document.getElementById('timeSlotError');
+        const submitBtn    = document.getElementById('submitBtn');
+        const phoneInput   = document.getElementById('phoneInput');
+        const phoneError   = document.getElementById('phoneError');
+
+        let selectedTime   = null;
+        let isDayFull      = false;
+
+        // ── Phone validation ─────────────────────────────────────────
+        phoneInput.addEventListener('input', function () {
+            // Allow only digits
+            this.value = this.value.replace(/\D/g, '');
+
+            if (this.value.length > 0 && !this.value.startsWith('09')) {
+                phoneError.classList.remove('d-none');
+            } else if (this.value.length > 0 && this.value.length !== 11) {
+                phoneError.classList.remove('d-none');
+                phoneError.textContent =
+                    `Phone must be 11 digits (currently ${this.value.length})`;
+            } else {
+                phoneError.classList.add('d-none');
+            }
+        });
+
+        // ── Date selection ────────────────────────────────────────────
+        dateInput.addEventListener('change', async function () {
+            const val = this.value;
+            if (!val) return;
+
+            // Block Sundays
+            const d = new Date(val + 'T00:00:00');
+            if (d.getDay() === 0) {
+                alert('The clinic is closed on Sundays. Please pick another day.');
+                this.value = '';
+                resetSlots();
+                return;
+            }
+
+            await loadAvailability(val);
+        });
+
+        async function loadAvailability(dateStr) {
+            // Show loading
+            slotLoading.classList.remove('d-none');
+            slotGrid.innerHTML = '';
+            noDateSel.classList.add('d-none');
+            dayCapacity.classList.add('d-none');
+            dayFullAlert.classList.add('d-none');
+            selectedTime = null;
+            hiddenDt.value = '';
+
+            try {
+                const res  = await fetch(`/Booking/GetAvailability?date=${dateStr}`);
+                const data = await res.json();
+
+                // Day capacity bar
+                       // In loadAvailability(), replace the capacity text line:
+        const availableSlots = data.slots.filter(s => !s.full).length;
+        dayCapText.textContent =
+            `${availableSlots} of 6 time slots still available`;
+        dayProgress.style.width =
+            Math.round(((6 - availableSlots) / 6) * 100) + '%';
+
+                if (data.dayFull) {
+                    dayFullAlert.classList.remove('d-none');
+                    slotGrid.innerHTML = '';
+                    submitBtn.disabled = true;
+                    isDayFull = true;
+                } else {
+                    dayFullAlert.classList.add('d-none');
+                    isDayFull = false;
+                    submitBtn.disabled = false;
+                    renderSlots(dateStr, data.slots);
+                }
+            } catch (err) {
+                slotGrid.innerHTML =
+                    '<p class="text-danger small">Failed to load availability.</p>';
+            } finally {
+                slotLoading.classList.add('d-none');
+            }
+        }
+
+                 function renderSlots(dateStr, slots) {
+        slotGrid.innerHTML = '';
+
+        slots.forEach(slot => {
+            const col = document.createElement('div');
+            // Change this line from 'col-4 col-md-3' to 'col-4'
+            col.className = 'col-4';
+
+            const btn = document.createElement('button');
+            btn.type      = 'button';
+
+                if (slot.full) {
+                    // Fully booked slot — show as unavailable, not clickable
+                    btn.className = 'btn w-100 slot-btn btn-secondary disabled-slot';
+                    btn.disabled  = true;
+                    btn.innerHTML = `
+                        <div class="fw-semibold">${slot.display}</div>
+                        <div class="small text-white-50">Unavailable</div>`;
+                    btn.style.opacity = '0.45';
+                    btn.style.cursor  = 'not-allowed';
+                } else {
+                    // Available slot — no count shown
+                    btn.className = 'btn w-100 slot-btn btn-outline-primary';
+                    btn.innerHTML = `
+                        <div class="fw-semibold">${slot.display}</div>
+                        <div class="small text-muted">Available</div>`;
+
+                    btn.addEventListener('click', () => {
+                        // Deselect all
+                        document.querySelectorAll('.slot-btn').forEach(b => {
+                            if (!b.disabled) {
+                                b.classList.remove('btn-primary', 'active-slot');
+                                b.classList.add('btn-outline-primary');
+                            }
+                        });
+
+                        // Select this slot
+                        btn.classList.remove('btn-outline-primary');
+                        btn.classList.add('btn-primary', 'active-slot');
+
+                        selectedTime = slot.time;
+                        slotError.classList.add('d-none');
+
+                     
+                         // Creates a date object parsing the explicit local matrix parameters
+                        const [hours, minutes] = slot.time.split(':');
+                        const [year, month, day] = dateStr.split('-');
+
+                        // Note: month index is 0-based in JS Date constructor
+                        const localDate = new Date(year, month - 1, day, hours, minutes, 0);
+
+                        // .toISOString() automatically outputs true UTC variant regardless of local settings!
+                        hiddenDt.value = localDate.toISOString();
+                    });
+                }
+
+                col.appendChild(btn);
+                slotGrid.appendChild(col);
+            });
+        }
+
+        function resetSlots() {
+            slotGrid.innerHTML   = '';
+            selectedTime         = null;
+            hiddenDt.value       = '';
+            isDayFull            = false;
+            submitBtn.disabled   = false;
+            dayCapacity.classList.add('d-none');
+            dayFullAlert.classList.add('d-none');
+            noDateSel.classList.remove('d-none');
+        }
+
+        // ── Form submit validation ────────────────────────────────────
+        document.getElementById('bookingForm')
+            .addEventListener('submit', function (e) {
+
+            let valid = true;
+
+            // Phone check
+            const phone = phoneInput.value;
+            if (!phone.startsWith('09') || phone.length !== 11) {
+                phoneError.classList.remove('d-none');
+          
+                valid = false;
+            }
+
+            // Time slot check
+            if (!selectedTime && !isDayFull) {
+                slotError.classList.remove('d-none');
+                valid = false;
+            }
+
+            // Day full check
+            if (isDayFull) {
+                e.preventDefault();
+                alert('This day is fully booked. Please select another date.');
+                return;
+            }
+
+            if (!valid) e.preventDefault();
+        });
+
+        // Set default date to tomorrow, skip Sunday
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        if (tomorrow.getDay() =x== 0) tomorrow.setDate(tomorrow.getDate() + 1);
+        dateInput.value = tomorrow.toISOString().split('T')[0];
+        dateInput.dispatchEvent(new Event('change'));
+
+                // ── Patient lookup by phone ───────────────────────────────────
+        const phoneLookupSpinner  = document.getElementById('phoneLookupSpinner');
+        const existingBanner      = document.getElementById('existingPatientBanner');
+        const existingPatientName = document.getElementById('existingPatientName');
+        const newPatientBanner    = document.getElementById('newPatientBanner');
+        const fullNameInput       = document.getElementById('FullName');
+        const emailInput          = document.getElementById('Email');
+        const dobInput            = document.querySelector('[name="DateOfBirth"]');
+
+        let lookupTimeout = null;
+        let isExistingPatient = false;
+
+        phoneInput.addEventListener('input', function () {
+            // Allow digits only
+            this.value = this.value.replace(/\D/g, '');
+
+            // Validate format
+            if (this.value.length > 0 && !this.value.startsWith('09')) {
+                phoneError.classList.remove('d-none');
+                phoneError.textContent = 'Phone must start with 09';
+                resetPatientBanners();
+                return;
+            } else if (this.value.length > 0 && this.value.length !== 11) {
+                phoneError.classList.remove('d-none');
+                phoneError.textContent =
+                    `Phone must be 11 digits (${this.value.length}/11)`;
+                resetPatientBanners();
+                return;
+            } else {
+                phoneError.classList.add('d-none');
+            }
+
+            // Trigger lookup when 11 digits entered
+            if (this.value.length === 11 && this.value.startsWith('09')) {
+                clearTimeout(lookupTimeout);
+                lookupTimeout = setTimeout(() => lookupPatient(this.value), 400);
+            } else {
+                resetPatientBanners();
+            }
+        });
+
+        async function lookupPatient(phone) {
+            try {
+                phoneLookupSpinner.style.display = 'flex';
+                resetPatientBanners();
+
+                const res  = await fetch(`/Booking/LookupPatient?phone=${phone}`);
+                const data = await res.json();
+
+                if (data.found && data.isExisting) {
+                    // Existing patient — auto-fill fields
+                    isExistingPatient = true;
+
+                    if (fullNameInput) fullNameInput.value = data.fullName ?? '';
+                    if (emailInput)    emailInput.value    = data.email ?? '';
+
+                    // Show existing patient banner
+                    existingPatientName.textContent = data.fullName;
+                    existingBanner.classList.remove('d-none');
+                    newPatientBanner.classList.add('d-none');
+
+                    // Make name field read-only for existing patients
+                    if (fullNameInput) {
+                        fullNameInput.readOnly = true;
+                        fullNameInput.classList.add('bg-light');
+                    }
+                    if (emailInput) {
+                        emailInput.readOnly = true;
+                        emailInput.classList.add('bg-light');
+                    }
+                } else {
+                    // New patient
+                    isExistingPatient = false;
+                    newPatientBanner.classList.remove('d-none');
+                    existingBanner.classList.add('d-none');
+
+                    // Make sure fields are editable
+                    enableFields();
+                }
+            } catch (err) {
+                console.error('Lookup error:', err);
+                resetPatientBanners();
+            } finally {
+                phoneLookupSpinner.style.display = 'none';
+            }
+        }
+
+        function clearExistingPatient() {
+            isExistingPatient = false;
+            if (fullNameInput) fullNameInput.value = '';
+            if (emailInput)    emailInput.value    = '';
+            resetPatientBanners();
+            enableFields();
+        }
+
+        function enableFields() {
+            if (fullNameInput) {
+                fullNameInput.readOnly = false;
+                fullNameInput.classList.remove('bg-light');
+            }
+            if (emailInput) {
+                emailInput.readOnly = false;
+                emailInput.classList.remove('bg-light');
+            }
+        }
+
+        function resetPatientBanners() {
+            existingBanner.classList.add('d-none');
+            newPatientBanner.classList.add('d-none');
+            isExistingPatient = false;
+            enableFields();
+        }
+    </script>
+
+    <style>
+        .slot-btn {
+            min-height: 60px;
+            transition: all .2s;
+        }
+
+            .slot-btn:not(:disabled):hover {
+                transform: translateY(-2px);
+            }
+
+        .disabled-slot {
+            background: #e9ecef !important;
+            border-color: #dee2e6 !important;
+        }
+
+        .active-slot {
+            box-shadow: 0 0 0 3px rgba(74,74,138,.3);
+        }
+    </style>
+}

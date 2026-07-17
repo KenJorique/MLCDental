@@ -1,0 +1,55 @@
+﻿@{
+    ViewData["Title"] = "Welcome";
+}
+
+<section style="background: linear-gradient(135deg, #1a6fc4, #0d4a8a); color: white; padding: 80px 0;">
+    <div class="container text-center">
+        <i class="bi bi-heart-pulse" style="font-size: 3rem;"></i>
+        <h1 class="fw-bold mt-3">Welcome to MLC Dental Clinic</h1>
+        <p class="lead mt-3 mb-4">Professional dental care you can trust. Book your appointment online in minutes.</p>
+        <a href="/Booking" class="btn btn-light btn-lg px-5 fw-semibold">
+            <i class="bi bi-calendar-plus me-2"></i>Book an Appointment
+        </a>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center fw-bold mb-5">Our Services</h2>
+        <div class="row g-4">
+            @foreach (var service in new[] {
+                        ("bi-search", "General Checkup", "Comprehensive oral examination and diagnosis."),
+                        ("bi-stars", "Teeth Cleaning", "Professional cleaning to remove plaque and tartar."),
+                        ("bi-bandaid", "Tooth Extraction", "Safe and painless tooth removal procedures."),
+                        ("bi-circle", "Dental Filling", "Restore damaged teeth with quality materials."),
+                        ("bi-clipboard-pulse", "Root Canal", "Relieve pain and save infected teeth."),
+                        ("bi-gem", "Teeth Whitening", "Brighten your smile professionally.")
+                        })
+            {
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm text-center p-4">
+                        <i class="bi @service.Item1 text-primary mb-3" style="font-size: 2rem;"></i>
+                        <h5 class="fw-semibold">@service.Item2</h5>
+                        <p class="text-muted small">@service.Item3</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section style="background: var(--clinic-light, #e8f4fd);" class="py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h3 class="fw-bold">Ready to book your appointment?</h3>
+                <p class="text-muted">Fill out a quick form and we'll confirm your schedule shortly.</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="/Booking" class="btn btn-clinic btn-lg px-4">
+                    <i class="bi bi-calendar-check me-2"></i>Book Now
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
