@@ -6,6 +6,9 @@ using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.UsersRelated;
 using ClinicApp.Views.SupplyRelated;
 using ClinicApp.Views.AppointmentRelated;
+using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Core.Platform;
+using Microsoft.Maui.Graphics;
 
 namespace ClinicApp
 {
@@ -41,6 +44,16 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(GoogleSignInPage), typeof(GoogleSignInPage));
 
             Routing.RegisterRoute(nameof(TransactionPage), typeof(TransactionPage));
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+
+        #if ANDROID
+                StatusBar.SetColor(Colors.White);
+                StatusBar.SetStyle(CommunityToolkit.Maui.Core.StatusBarStyle.DarkContent);
+        #endif
         }
     }
 }

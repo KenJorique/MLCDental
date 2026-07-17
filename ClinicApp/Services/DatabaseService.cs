@@ -15,6 +15,11 @@ public class DatabaseService
 
         try
         {
+            // this saves in windows
+            //string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
+
+            // This saves it to the "Downloads" folder on the Android Emulator
+            string dbPath = Path.Combine("/storage/emulated/0/Download", "clinic.db3");
             var dbPath = Path.Combine(
         FileSystem.AppDataDirectory,  // ← correct path
         "clinic.db3");
@@ -49,7 +54,6 @@ public class DatabaseService
             try { await _database!.CreateTableAsync<Patient>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Patient table: {ex.Message}"); }
 
-            // Inside Init(), after CreateTableAsync<Patient>()
             try
             {
                 await _database!.ExecuteAsync("ALTER TABLE Patient ADD COLUMN SupabaseId TEXT DEFAULT ''");
@@ -57,15 +61,28 @@ public class DatabaseService
             }
             catch { /* already exists — ignore */ }
 
+            try { await _database!.ExecuteAsync("ALTER TABLE Patient ADD COLUMN LastUpdated TEXT DEFAULT ''"); }
+            catch { /* already exists */ }
+
+            // OtherCondition — free-text "Other" field added to MedicalHistory
+            try { await _database!.ExecuteAsync("ALTER TABLE MedicalHistory ADD COLUMN OtherCondition TEXT DEFAULT ''"); }
+            catch { /* already exists */ }
 
             try { await _database.CreateTableAsync<ServiceModel>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ServiceModel table: {ex.Message}"); }
-
-            try { await _database.CreateTableAsync<ServicePackage>(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ServicePackage table: {ex.Message}"); }
+            try { await _database.ExecuteAsync("ALTER TABLE ServiceModel ADD COLUMN IsDeleted INTEGER DEFAULT 0"); }
+            catch { /* already exists */ }
 
             try { await _database.CreateTableAsync<User>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] User table: {ex.Message}"); }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsDeleted INTEGER DEFAULT 0"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN ContactNo TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN Email TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsActive INTEGER DEFAULT 1"); }
+            catch { /* already exists */ }
 
             try { await _database.CreateTableAsync<ToothRecord>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ToothRecord table: {ex.Message}"); }
@@ -81,6 +98,12 @@ public class DatabaseService
 
             try { await _database.CreateTableAsync<SupplyItem>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] SupplyItem table: {ex.Message}"); }
+            try { await _database.ExecuteAsync("ALTER TABLE SupplyItem ADD COLUMN IsDeleted INTEGER DEFAULT 0"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE SupplyItem ADD COLUMN Unit TEXT DEFAULT 'Per Piece'"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE SupplyItem ADD COLUMN PiecesPerUnit INTEGER DEFAULT 1"); }
+            catch { /* already exists */ }
 
             try { await _database.CreateTableAsync<Guardian>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Guardian table: {ex.Message}"); }
@@ -107,8 +130,10 @@ public class DatabaseService
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] AppointmentEntry: {ex.Message}"); }
 
             try
-            { await _database!.ExecuteAsync(
-                    "ALTER TABLE AppointmentEntry ADD COLUMN GoogleTaskId TEXT DEFAULT ''"); }
+            {
+                await _database!.ExecuteAsync(
+                    "ALTER TABLE AppointmentEntry ADD COLUMN GoogleTaskId TEXT DEFAULT ''");
+            }
             catch { /* already exists */ }
 
             System.Diagnostics.Debug.WriteLine("[DB] Init complete.");
@@ -137,9 +162,8 @@ public class DatabaseService
         }
     }
 
-    //for google tasks
-    public async System.Threading.Tasks.Task UpdateAppointmentEntry(
-    AppointmentEntry entry)
+    // for google tasks
+    public async System.Threading.Tasks.Task UpdateAppointmentEntry(AppointmentEntry entry)
     {
         await Init();
         await _database!.UpdateAsync(entry);
@@ -160,6 +184,9 @@ public class DatabaseService
         await Init();
         try
         {
+            await Init();
+            int result = await _database!.InsertAsync(patient);
+            System.Diagnostics.Debug.WriteLine($"Inserted: {result}");
             // Check if patient with same phone already exists locally
             if (!string.IsNullOrEmpty(patient.MobileNo))
             {
@@ -210,7 +237,6 @@ public class DatabaseService
             .Where(h => h.PatientId == patient.PatientID).ToListAsync();
         foreach (var h in histories) await _database!.DeleteAsync(h);
 
-        // Cascade delete new related tables
         var guardians = await _database!.Table<Guardian>()
             .Where(g => g.PatientID == patient.PatientID).ToListAsync();
         foreach (var g in guardians) await _database!.DeleteAsync(g);
@@ -229,8 +255,7 @@ public class DatabaseService
 
         var images = await _database!.Table<CephalometricImage>()
             .Where(c => c.PatientId == patient.PatientID).ToListAsync();
-        foreach (var img in images)
-            await _database!.DeleteAsync(img);
+        foreach (var img in images) await _database!.DeleteAsync(img);
 
         // Now safe to delete the patient
         await _database!.DeleteAsync(patient);
@@ -303,6 +328,7 @@ public class DatabaseService
 
         return patient.PatientID;
     }
+
     // ══════════════════════════════════════════
     // GUARDIAN
     // ══════════════════════════════════════════
@@ -382,14 +408,60 @@ public class DatabaseService
     {
         await Init();
         if (await _database!.Table<MedicalCondition>().CountAsync() > 0) return;
+        // Complete list from the patient medical history form, alphabetical, Other last
         var defaults = new[]
         {
-            "Diabetes","Hypertension","Heart Disease","Asthma","Epilepsy / Seizures",
-            "Thyroid Disorder","Kidney Disease","Liver Disease","Blood Disorder",
-            "Arthritis","Osteoporosis","Stroke","Cancer","Tuberculosis",
-            "Hepatitis","HIV / AIDS","Psychiatric Disorder","Other"
+            "AIDS / HIV Infection",
+            "Anemia",
+            "Angina",
+            "Arthritis / Rheumatism",
+            "Asthma",
+            "Bleeding Problems",
+            "Blood Diseases",
+            "Cancer / Tumors",
+            "Chest Pain",
+            "Diabetes",
+            "Emphysema",
+            "Epilepsy / Convulsions",
+            "Fainting / Seizure",
+            "Hay Fever / Allergies",
+            "Head Injuries",
+            "Heart Attack",
+            "Heart Disease",
+            "Heart Murmur",
+            "Heart Surgery",
+            "Hepatitis / Jaundice",
+            "Hepatitis / Liver Disease",
+            "High Blood Pressure",
+            "Joint Replacement / Implant",
+            "Kidney Disease",
+            "Low Blood Pressure",
+            "Radiation Therapy",
+            "Rapid Weight Loss",
+            "Respiratory Problems",
+            "Rheumatic Fever",
+            "Sexually Transmitted Disease",
+            "Stomach Troubles / Ulcers",
+            "Stroke",
+            "Swollen Ankles",
+            "Thyroid Problem",
+            "Tuberculosis",
+            "Other"
         };
         await _database!.InsertAllAsync(defaults.Select(n => new MedicalCondition { ConditionName = n }));
+    }
+
+    // Replaces the conditions list with the updated complete list.
+    // Call this once if the app already has an old/incomplete conditions list in DB.
+    public async Task ResetConditionsToDefault()
+    {
+        await Init();
+        // Clear existing conditions (PatientConditions links are preserved by ConditionID,
+        // so we only reset if truly needed — call from a migration/settings screen)
+        var existing = await _database!.Table<MedicalCondition>().ToListAsync();
+        foreach (var c in existing) await _database!.DeleteAsync(c);
+        // Re-seed with the full list
+        await EnsureDefaultConditions();
     }
 
     // =========================
@@ -399,7 +471,9 @@ public class DatabaseService
     public async Task<List<ServiceModel>> GetServices()
     {
         await Init();
-        return await _database!.Table<ServiceModel>().ToListAsync();
+        return await _database!.Table<ServiceModel>()
+                               .Where(s => !s.IsDeleted)
+                               .ToListAsync();
     }
 
     public async Task AddService(ServiceModel service)
@@ -411,7 +485,8 @@ public class DatabaseService
     public async Task DeleteService(ServiceModel service)
     {
         await Init();
-        await _database!.DeleteAsync(service);
+        service.IsDeleted = true;
+        await _database!.UpdateAsync(service);
     }
 
     public async Task UpdateService(ServiceModel service)
@@ -421,41 +496,15 @@ public class DatabaseService
     }
 
     // =========================
-    // SERVICE PACKAGE CRUD
-    // =========================
-
-    public async Task<List<ServicePackage>> GetServicePackages()
-    {
-        await Init();
-        return await _database!.Table<ServicePackage>().ToListAsync();
-    }
-
-    public async Task AddServicePackage(ServicePackage package)
-    {
-        await Init();
-        await _database!.InsertAsync(package);
-    }
-
-    public async Task UpdateServicePackage(ServicePackage package)
-    {
-        await Init();
-        await _database!.UpdateAsync(package);
-    }
-
-    public async Task DeleteServicePackage(ServicePackage package)
-    {
-        await Init();
-        await _database!.DeleteAsync(package);
-    }
-
-    // =========================
     // USER CRUD
     // =========================
 
     public async Task<List<User>> GetUsers()
     {
         await Init();
-        return await _database!.Table<User>().ToListAsync();
+        return await _database!.Table<User>()
+                               .Where(u => !u.IsDeleted)
+                               .ToListAsync();
     }
 
     public async Task AddUser(User user)
@@ -467,7 +516,8 @@ public class DatabaseService
     public async Task<int> DeleteUser(User user)
     {
         await Init();
-        return await _database!.DeleteAsync(user);
+        user.IsDeleted = true;
+        return await _database!.UpdateAsync(user);
     }
 
     public async Task UpdateUser(User user)
@@ -514,7 +564,6 @@ public class DatabaseService
         if (existing is not null)
             await _database!.DeleteAsync(existing);
     }
-
 
     // =========================
     // TREATMENT HISTORY CRUD
@@ -589,7 +638,9 @@ public class DatabaseService
     public async Task<List<SupplyItem>> GetSupplyItems()
     {
         await Init();
-        return await _database!.Table<SupplyItem>().ToListAsync();
+        return await _database!.Table<SupplyItem>()
+                               .Where(s => !s.IsDeleted)
+                               .ToListAsync();
     }
 
     public async Task<SupplyItem?> GetSupplyItemById(int id)
@@ -615,18 +666,15 @@ public class DatabaseService
     public async Task DeleteSupplyItem(SupplyItem item)
     {
         await Init();
-        var logs = await _database!.Table<SupplyStockLog>()
-                                   .Where(l => l.SupplyItemId == item.Id)
-                                   .ToListAsync();
-        foreach (var l in logs) await _database!.DeleteAsync(l);
-        await _database!.DeleteAsync(item);
+        item.IsDeleted = true;
+        await _database!.UpdateAsync(item);
     }
 
-    /// <summary>Returns all supply items that are at or below their minimum stock level.</summary>
+    /// <summary>Returns all non-deleted supply items that are at or below their minimum stock level.</summary>
     public async Task<List<SupplyItem>> GetLowStockItems()
     {
         await Init();
-        var all = await _database!.Table<SupplyItem>().ToListAsync();
+        var all = await _database!.Table<SupplyItem>().Where(s => !s.IsDeleted).ToListAsync();
         return all.Where(s => s.QuantityInPieces <= s.MinimumStockPieces).ToList();
     }
 
@@ -663,11 +711,10 @@ public class DatabaseService
             SupplyItemId = supplyItemId,
             ChangeInPieces = changeInPieces,
             ChangeType = changeType,
-            Note = note,    
+            Note = note,
             PatientId = patientId,
             PatientName = patientName,
             StockAfterChange = item.QuantityInPieces,
-            
             Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
         };
         await _database!.InsertAsync(log);
@@ -873,8 +920,6 @@ public class DatabaseService
                 UsesTobacco = sp.UsesTobacco,
                 UsesAlcohol = sp.UsesAlcohol,
                 TakingMedications = sp.TakingMedications,
-                PreviousDentist = sp.PreviousDentist ?? "",
-                LastDentalVisit = sp.LastDentalVisit ?? ""
             });
 
             await SaveAllergy(new Allergy

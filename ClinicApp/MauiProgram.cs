@@ -16,6 +16,7 @@ using ClinicApp.Views.UsersRelated;
 using ClinicApp.Views.AppointmentRelated;
 using Microsoft.Extensions.Logging;
 using The49.Maui.BottomSheet;
+using CommunityToolkit.Maui;
 
 namespace ClinicApp
 {
@@ -54,7 +55,7 @@ namespace ClinicApp
             builder.Services.AddSingleton<MenuPage>();
 
             // ── Google Sign-In ────────────────────────────────────
-            builder.Services.AddTransient<GoogleSignInPage>(); 
+            builder.Services.AddTransient<GoogleSignInPage>();
 
             // ── Appointments ──────────────────────────────────────
             builder.Services.AddSingleton<AppointmentViewModel>(sp =>
@@ -68,7 +69,7 @@ namespace ClinicApp
                     sp.GetRequiredService<DatabaseService>(),
                     sp.GetRequiredService<SupabaseDataService>()
                 ));
-           
+
             builder.Services.AddSingleton<AppointmentSchedulePage>(sp =>
                             new AppointmentSchedulePage(
                                 sp.GetRequiredService<AppointmentScheduleViewModel>(),
@@ -148,16 +149,17 @@ namespace ClinicApp
             builder
                 .UseMauiApp<App>()
                 .UseBottomSheet()
+                .UseMauiCommunityToolkit()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                    fonts.AddFont("MaterialSymbolsRounded.ttf", "MaterialSymbolsRounded");
+                    fonts.AddFont("MaterialSymbolsRoundedFilled.ttf", "MaterialSymbolsRoundedFilled");
                 });
-
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
-
             return builder.Build();
         }
     }

@@ -6,43 +6,44 @@
     x:Class="ClinicApp.Views.SupplyRelated.ReduceStockPage"
     x:DataType="vm:ReduceStockViewModel"
     Title="Reduce Stock"
+    BackgroundColor="{StaticResource PageBg}"
     Shell.TabBarIsVisible="False">
 
 	<Grid RowDefinitions="*,Auto">
-
 		<ScrollView Grid.Row="0">
-			<VerticalStackLayout Padding="16" Spacing="14">
+			<VerticalStackLayout Padding="20,4,20,8" Spacing="0">
 
-				<!-- Quantity to Reduce -->
-				<Label Text="Quantity to Reduce (pcs)" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
-				<Entry Placeholder="e.g. 10" Keyboard="Numeric"
-                       Text="{Binding ReduceQty}"/>
-				<Label Text="{Binding MaxAvailableText}"
-                       FontSize="12" TextColor="Gray"/>
+				<Label Text="Quantity to Reduce (pcs)" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding ReduceQty}" Keyboard="Numeric"
+                           Placeholder="e.g. 10"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
+				<Label Text="{Binding MaxAvailableText}" Style="{StaticResource FormHintLabel}"/>
 				<Label Text="{Binding QtyError}"
-                       FontSize="12" TextColor="Crimson"
+                       Style="{StaticResource FormErrorLabel}"
                        IsVisible="{Binding QtyError, Converter={StaticResource StringNotEmptyConverter}}"/>
 
-				<!-- Type dropdown -->
-				<Label Text="Type" FontAttributes="Bold" FontSize="14" TextColor="Black"/>
-				<Picker ItemsSource="{Binding TypeOptions}"
-                        SelectedItem="{Binding SelectedType}"
-                        Title="Select type"
-                        TextColor="Black"/>
+				<Label Text="Reduction Type" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Picker ItemsSource="{Binding TypeOptions}"
+                            SelectedItem="{Binding SelectedType}"
+                            Title="Select type"
+                            FontSize="14" BackgroundColor="Transparent"
+                            VerticalOptions="Center"/>
+				</Border>
 
 			</VerticalStackLayout>
 		</ScrollView>
 
-		<!-- Action buttons -->
-		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,10" ColumnSpacing="12"
-              BackgroundColor="White">
+		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="20,10,20,24"
+              ColumnSpacing="12" BackgroundColor="{StaticResource PageBg}">
 			<Button Grid.Column="0" Text="Cancel"
                     Command="{Binding CancelCommand}"
-                    BackgroundColor="LightGray" TextColor="Black"/>
+                    Style="{StaticResource SupplySecondaryButtonStyle}"/>
 			<Button Grid.Column="1" Text="Save"
                     Command="{Binding SaveCommand}"
-                    BackgroundColor="#2196F3" TextColor="White"/>
+                    Style="{StaticResource SupplyPrimaryButtonStyle}"/>
 		</Grid>
-
 	</Grid>
 </ContentPage>

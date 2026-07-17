@@ -9,8 +9,8 @@
          All AppThemeBinding Light values are always active.
          Dark values kept for completeness but won't be used.
     ═══════════════════════════════════════════════════════════ -->
-	
-	
+
+
 
 	<Style TargetType="ActivityIndicator">
 		<Setter Property="Color" Value="{StaticResource Primary}" />
@@ -439,5 +439,16 @@
 		<Setter Property="UnselectedTabColor" Value="{StaticResource Gray300}" />
 		<Setter Property="SelectedTabColor" Value="{StaticResource Primary}" />
 	</Style>
+
+	<!-- ── Remove underline from all Entry/Editor/SearchBar globally ── 
+	<Style TargetType="Entry" ApplyToDerivedTypes="True">
+		<Setter Property="BackgroundColor" Value="Transparent"/>
+	</Style>
+	<Style TargetType="Editor" ApplyToDerivedTypes="True">
+		<Setter Property="BackgroundColor" Value="Transparent"/>
+	</Style>
+	<Style TargetType="SearchBar" ApplyToDerivedTypes="True">
+		<Setter Property="BackgroundColor" Value="Transparent"/>
+	</Style>   -->
 
 </ResourceDictionary>
