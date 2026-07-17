@@ -50,8 +50,18 @@ public partial class AddPatientViewModel : ObservableObject
     [ObservableProperty] string guardianOccupation = string.Empty;
     [ObservableProperty] string guardianMobileNo = string.Empty;
 
-    // ── Section D: Medical (Blood Type only) ──────────────────────
+    // ── Section D: Medical History ────────────────────────────
     [ObservableProperty] string bloodType = string.Empty;
+
+    // Health status flags
+    [ObservableProperty] bool isGoodHealth = true;
+    [ObservableProperty] bool isPregnant;
+    [ObservableProperty] bool underMedicalTreatment;
+    [ObservableProperty] string medicationDetails = string.Empty;
+    [ObservableProperty] bool hasBeenHospitalized;
+    [ObservableProperty] string hospitalizationDetails = string.Empty;
+    [ObservableProperty] bool usesTobacco;
+    [ObservableProperty] bool takingMedications;
 
     // ── Section E: Allergies ──────────────────────────────────────
     [ObservableProperty] bool hasLatexAllergy;
@@ -82,6 +92,12 @@ public partial class AddPatientViewModel : ObservableObject
 
     partial void OnDateOfBirthChanged(DateTime value) =>
         OnPropertyChanged(nameof(IsMinor));
+
+    // Shows Pregnant checkbox only for Female patients
+    public bool IsFemale => SelectedGender?.Equals("Female", StringComparison.OrdinalIgnoreCase) ?? false;
+
+    partial void OnSelectedGenderChanged(string value) =>
+        OnPropertyChanged(nameof(IsFemale));
 
     public async Task InitializeAsync()
     {
@@ -149,7 +165,17 @@ public partial class AddPatientViewModel : ObservableObject
 
             var m = await _db.GetMedicalHistory(id);
             if (m is not null)
+            {
                 BloodType = m.BloodType;
+                IsGoodHealth = m.IsGoodHealth;
+                IsPregnant = m.IsPregnant;
+                UnderMedicalTreatment = m.UnderMedicalTreatment;
+                MedicationDetails = m.MedicationDetails;
+                HasBeenHospitalized = m.HasBeenHospitalized;
+                HospitalizationDetails = m.HospitalizationDetails;
+                UsesTobacco = m.UsesTobacco;
+                TakingMedications = m.TakingMedications;
+            }
 
             var a = await _db.GetAllergy(id);
             if (a is not null)
@@ -248,6 +274,14 @@ public partial class AddPatientViewModel : ObservableObject
             {
                 PatientID = pid,
                 BloodType = BloodType,
+                IsGoodHealth = IsGoodHealth,
+                IsPregnant = IsPregnant,
+                UnderMedicalTreatment = UnderMedicalTreatment,
+                MedicationDetails = MedicationDetails.Trim(),
+                HasBeenHospitalized = HasBeenHospitalized,
+                HospitalizationDetails = HospitalizationDetails.Trim(),
+                UsesTobacco = UsesTobacco,
+                TakingMedications = TakingMedications,
             });
 
             await _db.SaveAllergy(new Allergy

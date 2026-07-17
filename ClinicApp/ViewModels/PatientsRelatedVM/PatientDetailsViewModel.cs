@@ -66,6 +66,7 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] string nickname = string.Empty;
 
     public List<string> GenderOptions { get; } = new() { "Male", "Female", "Other" };
+    public List<string> BloodTypeOptions { get; } = new() { "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown" };
     [ObservableProperty] string gender = string.Empty;
 
     [ObservableProperty] DateTime dateOfBirthDate = new DateTime(2000, 1, 1);
@@ -128,6 +129,12 @@ public partial class PatientDetailsViewModel : ObservableObject
     // ── Medical Conditions ────────────────────────────────────
     public ObservableCollection<ConditionCheckItem> Conditions { get; } = new();
     [ObservableProperty] string conditionsText = "None reported";
+    [ObservableProperty] string otherCondition = string.Empty;
+
+    // Shows "Other" in view mode only when it has content
+    public bool HasOtherCondition => !string.IsNullOrWhiteSpace(OtherCondition);
+    partial void OnOtherConditionChanged(string value) =>
+        OnPropertyChanged(nameof(HasOtherCondition));
 
     partial void OnPatientIdChanged(int value)
     {
@@ -198,6 +205,7 @@ public partial class PatientDetailsViewModel : ObservableObject
                 HospitalizationDetails = m.HospitalizationDetails;
                 UsesTobacco = m.UsesTobacco;
                 TakingMedications = m.TakingMedications;
+                OtherCondition = m.OtherCondition;
                 MedicalLastUpdated = !string.IsNullOrWhiteSpace(m.LastUpdated)
                     ? (DateTime.TryParse(m.LastUpdated, out var parsedDate)
                         ? $"Last updated: {parsedDate:MMMM dd, yyyy h:mm tt}"
@@ -206,6 +214,7 @@ public partial class PatientDetailsViewModel : ObservableObject
             }
             else
             {
+                OtherCondition = string.Empty;
                 MedicalLastUpdated = "Not yet updated";
             }
 
@@ -232,15 +241,22 @@ public partial class PatientDetailsViewModel : ObservableObject
     private async Task BuildConditionsSummaryAsync(int patientId)
     {
         var patientConds = await _db.GetPatientConditions(patientId);
+        var parts = new List<string>();
+
         if (patientConds.Count > 0)
         {
             var allConds = await _db.GetAllConditions();
             var matched = allConds
                 .Where(c => patientConds.Any(pc => pc.ConditionID == c.ConditionID))
                 .Select(c => c.ConditionName).ToList();
-            ConditionsText = matched.Count > 0 ? string.Join(", ", matched) : "None reported";
+            parts.AddRange(matched);
         }
-        else ConditionsText = "None reported";
+
+        // Include free-text Other condition in the summary
+        if (!string.IsNullOrWhiteSpace(OtherCondition))
+            parts.Add(OtherCondition.Trim());
+
+        ConditionsText = parts.Count > 0 ? string.Join(", ", parts) : "None reported";
     }
 
     private async Task LoadConditionsAsync()
@@ -251,9 +267,10 @@ public partial class PatientDetailsViewModel : ObservableObject
         var selectedIds = patientConds.Select(pc => pc.ConditionID).ToHashSet();
 
         Conditions.Clear();
-        // Alphabetical, "Other" always last
+        // Alphabetical, "Other" excluded from checklist (shown as text entry instead)
         var sorted = allConds
-            .OrderBy(c => c.ConditionName == "Other" ? "ZZZ" : c.ConditionName);
+            .Where(c => c.ConditionName != "Other")
+            .OrderBy(c => c.ConditionName);
         foreach (var c in sorted)
             Conditions.Add(new ConditionCheckItem
             {
@@ -332,6 +349,7 @@ public partial class PatientDetailsViewModel : ObservableObject
                 HospitalizationDetails = HospitalizationDetails,
                 UsesTobacco = UsesTobacco,
                 TakingMedications = TakingMedications,
+                OtherCondition = OtherCondition.Trim(),
                 LastUpdated = today,
             });
 

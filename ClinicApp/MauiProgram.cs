@@ -149,25 +149,7 @@ namespace ClinicApp
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                     fonts.AddFont("MaterialSymbolsRounded.ttf", "MaterialSymbolsRounded");
                     fonts.AddFont("MaterialSymbolsRoundedFilled.ttf", "MaterialSymbolsRoundedFilled");
-                })
-                .ConfigureMauiHandlers(handlers =>
-                {
-#if ANDROID
-                    // Remove underline from Entry and Editor globally
-                    Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
-                    {
-                        handler.PlatformView.BackgroundTintList =
-                            Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
-                    });
-
-                    Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
-                    {
-                        handler.PlatformView.BackgroundTintList =
-                            Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
-                    });
-#endif
                 });
-
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
