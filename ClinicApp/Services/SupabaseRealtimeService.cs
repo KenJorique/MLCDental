@@ -50,7 +50,6 @@ namespace ClinicApp.Services
                             FullName = booking.FullName ?? "",
                             Phone = booking.Phone ?? "",
                             Email = booking.Email ?? "",
-                            Service = booking.Service ?? "",
                             AppointmentDate = booking.AppointmentDate.ToString("yyyy-MM-dd HH:mm:ss"),
                             Notes = booking.Notes ?? "",
                             Status = "pending"
@@ -139,7 +138,6 @@ namespace ClinicApp.Services
                         FullName = booking.FullName ?? "",
                         Phone = booking.Phone ?? "",
                         Email = booking.Email ?? "",
-                        Service = booking.Service ?? "",
                         AppointmentDate = booking.AppointmentDate.ToString("yyyy-MM-dd HH:mm:ss"),
                         Notes = booking.Notes ?? "",
                         Status = "pending"

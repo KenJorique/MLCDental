@@ -109,7 +109,7 @@ namespace ClinicApp.ViewModels
 
             bool confirm = await Shell.Current.DisplayAlert(
                 "Approve Booking",
-                $"Approve booking for {booking.FullName}?\nService: {booking.Service}",
+                $"Approve booking for {booking.FullName}",
                 "Approve", "Cancel");
 
             if (!confirm) return;
@@ -144,7 +144,6 @@ namespace ClinicApp.ViewModels
                         LastName = parts.Length > 1 ? parts[1] : "",
                         MobileNo = booking.Phone ?? "",
                         Email = booking.Email ?? "",
-                        ReasonForConsultation = booking.Service ?? "",
                         ReferredBy = "Online Booking",
                         DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
                     };
@@ -186,7 +185,6 @@ namespace ClinicApp.ViewModels
                     PatientName = booking.FullName ?? "",
                     Phone = booking.Phone ?? "",
                     Email = booking.Email ?? "",
-                    Service = booking.Service ?? "",
                     Notes = booking.Notes ?? "",
                     AppointmentDateTime = localDate.ToString("yyyy-MM-dd HH:mm:ss"),
                     Status = "approved"
@@ -199,7 +197,6 @@ namespace ClinicApp.ViewModels
                     PatientName = booking.FullName ?? "",
                     Phone = booking.Phone ?? "",
                     Email = booking.Email ?? "",
-                    Service = booking.Service ?? "",
                     Notes = booking.Notes ?? "",
                     AppointmentDateTime = utcDate,
                     Status = "approved"
@@ -214,7 +211,7 @@ namespace ClinicApp.ViewModels
                     var taskId = await _supabaseData.SyncToGoogleTasksAsync(
                         "",
                         booking.FullName ?? "",
-                        booking.Service ?? "",
+                        " ",
                         booking.AppointmentDate,
                         booking.Phone ?? "",
                         booking.Notes ?? "");

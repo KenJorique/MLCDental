@@ -15,8 +15,6 @@ namespace DentalClinicBooking.Models
         [Column("appointment_date")]
         public DateTime AppointmentDate { get; set; }
 
-        [Column("service")]
-        public string? Service { get; set; }
 
         [Column("notes")]
         public string? Notes { get; set; }
@@ -36,8 +34,6 @@ namespace DentalClinicBooking.Models
         [Column("email")]
         public string? Email { get; set; }
 
-        [Column("date_of_birth")]
-        public DateTime? DateOfBirth { get; set; }
 
         [Column("is_existing_patient")]
         public bool IsExistingPatient { get; set; } = false;

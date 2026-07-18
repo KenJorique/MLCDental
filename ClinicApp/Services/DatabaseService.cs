@@ -19,7 +19,7 @@ public class DatabaseService
             //string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
 
             // This saves it to the "Downloads" folder on the Android Emulator
-            string dbPath = Path.Combine("/storage/emulated/0/Download", "clinic.db3");
+            //string dbPath = Path.Combine("/storage/emulated/0/Download", "clinic.db3");
             var dbPath = Path.Combine(
         FileSystem.AppDataDirectory,  // ← correct path
         "clinic.db3");
@@ -307,10 +307,6 @@ public class DatabaseService
             LastName = lastName,
             MobileNo = booking.Phone ?? string.Empty,
             Email = booking.Email ?? string.Empty,
-            DateOfBirth = booking.DateOfBirth.HasValue
-                                        ? booking.DateOfBirth.Value.ToString("yyyy-MM-dd")
-                                        : string.Empty,
-            ReasonForConsultation = booking.Service ?? string.Empty,
             DateRegistered = DateTime.Now.ToString("yyyy-MM-dd"),
             ReferredBy = "Online Booking"
         };

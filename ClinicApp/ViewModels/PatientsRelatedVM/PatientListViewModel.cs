@@ -7,7 +7,6 @@ using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using IntelliJ.Lang.Annotations;
 using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels.PatientsRelatedVM

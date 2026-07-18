@@ -21,8 +21,6 @@ namespace ClinicApp.Models
         [Column("email")]
         public string? Email { get; set; }
 
-        [Column("service")]
-        public string? Service { get; set; }
 
         [Column("notes")]
         public string? Notes { get; set; }

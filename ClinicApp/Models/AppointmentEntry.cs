@@ -12,7 +12,7 @@ namespace ClinicApp.Models
         public string PatientName { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public string Service { get; set; } = string.Empty;
+        
         public string Notes { get; set; } = string.Empty;
         public string GoogleTaskId { get; set; } = string.Empty;
 

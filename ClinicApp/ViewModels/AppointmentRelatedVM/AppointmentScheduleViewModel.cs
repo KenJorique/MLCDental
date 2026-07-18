@@ -398,7 +398,6 @@ namespace ClinicApp.ViewModels
                         PatientName = b.FullName ?? "",
                         Phone = b.Phone ?? "",
                         Email = b.Email ?? "",
-                        Service = b.Service ?? "",
                         Notes = b.Notes ?? "",
                         // Store as LOCAL time string with no timezone info
                         // AppointmentDateTimeParsed treats unspecified as local
@@ -422,7 +421,6 @@ namespace ClinicApp.ViewModels
                             PatientName = e.PatientName,
                             Phone = e.Phone ?? "",
                             Email = e.Email ?? "",
-                            Service = e.Service ?? "",
                             Notes = e.Notes ?? "",
                             AppointmentDateTime = local.ToString("yyyy-MM-dd HH:mm:ss"),
                             Status = e.Status,
@@ -519,7 +517,6 @@ namespace ClinicApp.ViewModels
                         PatientName = b.FullName ?? "",
                         Phone = b.Phone ?? "",
                         Email = b.Email ?? "",
-                        Service = b.Service ?? "",
                         Notes = b.Notes ?? "",
                         // Store as local time string so AppointmentDateTimeParsed works correctly
                         AppointmentDateTime = localDate.ToString("yyyy-MM-dd HH:mm:ss"),
@@ -549,7 +546,6 @@ namespace ClinicApp.ViewModels
                             PatientName = e.PatientName,
                             Phone = e.Phone ?? "",
                             Email = e.Email ?? "",
-                            Service = e.Service ?? "",
                             Notes = e.Notes ?? "",
                             AppointmentDateTime = localDt.ToString("yyyy-MM-dd HH:mm:ss"),
                             Status = e.Status,
