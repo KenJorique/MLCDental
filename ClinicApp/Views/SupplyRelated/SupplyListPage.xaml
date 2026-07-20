@@ -7,7 +7,7 @@
     x:DataType="vm:SupplyListViewModel"
     Title="Medical Supply"
     Shell.NavBarIsVisible="True"
-    Shell.BackgroundColor="{StaticResource PrimaryPink}"
+    Shell.BackgroundColor="{StaticResource PrimaryGreen}"
     Shell.TitleColor="White"
     Shell.ForegroundColor="White"
     Shell.TabBarIsVisible="False"
@@ -17,7 +17,7 @@
 
 		<!-- ── SEARCH + FILTER BAR ── -->
 		<VerticalStackLayout Grid.Row="0"
-                             BackgroundColor="{StaticResource PrimaryPink}"
+                             BackgroundColor="{StaticResource PrimaryGreen}"
                              Padding="16,0,16,14">
 			<Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
 				<Border Grid.Column="0"
@@ -152,7 +152,7 @@
                              VerticalOptions="Center"
                              Spacing="8">
 			<ActivityIndicator IsRunning="{Binding IsBusy}"
-                               Color="{StaticResource PrimaryPink}"
+                               Color="{StaticResource PrimaryGreen}"
                                HeightRequest="36" WidthRequest="36"/>
 			<Label Text="Loading supplies..."
                    Style="{StaticResource SupplyCaptionStyle}"

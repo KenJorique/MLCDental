@@ -4,311 +4,444 @@
              xmlns:vm="clr-namespace:ClinicApp.ViewModels"
              x:Class="ClinicApp.Views.WalkInBookingPage"
              Title="Walk-in Booking"
-             BackgroundColor="#F5F5F5">
+             Shell.NavBarIsVisible="True"
+             Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+             Shell.TitleColor="White"
+             Shell.ForegroundColor="White"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource PageBg}">
 
-    <ContentPage.Content>
-        <Grid>
-            <ScrollView>
-                <VerticalStackLayout Padding="16" Spacing="14">
+	<Grid>
+		<ScrollView>
+			<VerticalStackLayout Padding="16" Spacing="0">
 
-                    <!-- Header -->
-                    <Frame BackgroundColor="#4A4A8A"
-                           BorderColor="#4A4A8A"
-                           CornerRadius="12" Padding="14"
-                           HasShadow="False">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="🚶 Walk-in Booking"
-                                   FontSize="16" FontAttributes="Bold"
-                                   TextColor="White"/>
-                            <Label Text="Auto-approved — skips pending queue"
-                                   FontSize="11" TextColor="#B0B0D0"/>
-                        </VerticalStackLayout>
-                    </Frame>
+				<!-- ── Header banner ── -->
+				<Border BackgroundColor="{StaticResource PrimaryGreen}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 12"
+                        Padding="14,12"
+                        Margin="0,0,0,16">
+					<VerticalStackLayout Spacing="2">
+						<Label Text="Walk-in Booking"
+                               FontSize="15" FontAttributes="Bold"
+                               TextColor="White"/>
+						<Label Text="Auto-approved — skips pending queue"
+                               FontSize="11" TextColor="{StaticResource MediumGreen}"/>
+					</VerticalStackLayout>
+				</Border>
 
-                    <!-- Patient lookup -->
-                    <Frame BackgroundColor="White"
-                           BorderColor="#E0E0E0"
-                           CornerRadius="12" Padding="14"
-                           HasShadow="False">
-                        <VerticalStackLayout Spacing="12">
+				<!-- ═══════════════════════════════
+                     PATIENT INFORMATION
+                ═══════════════════════════════════ -->
+				<Border BackgroundColor="White"
+                        Stroke="{StaticResource BorderColor}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 12"
+                        Padding="16"
+                        Margin="0,0,0,14">
+					<VerticalStackLayout Spacing="0">
 
-                            <Label Text="Patient Information"
-                                   FontSize="14" FontAttributes="Bold"
-                                   TextColor="#222"/>
+						<Label Text="Patient Information"
+                               Style="{StaticResource FormSectionHeader}"
+                               Margin="0,0,0,12"/>
 
-                            <!-- Phone + search -->
-                            <Label Text="Mobile Number"
-                                   FontSize="12" TextColor="#666"/>
-                            <Grid ColumnDefinitions="*,80"
-                                  ColumnSpacing="8">
-                                <Entry Grid.Column="0"
-                                       Text="{Binding Phone}"
-                                       Placeholder="09XXXXXXXXX"
-                                       Keyboard="Telephone"
-                                       MaxLength="11"
-                                       TextColor="#222"
-                                       PlaceholderColor="#AAAAAA"
-                                       ReturnType="Search"
-                                       ReturnCommand="{Binding LookupPatientCommand}"/>
-                                <Button Grid.Column="1"
-                                        Text="Search"
-                                        BackgroundColor="#4A4A8A"
-                                        TextColor="White"
-                                        CornerRadius="8"
-                                        FontSize="12"
-                                        HeightRequest="44"
-                                        Command="{Binding LookupPatientCommand}"/>
-                            </Grid>
+						<!-- Full Name with live dropdown -->
+						<Label Text="Full Name" Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}" Margin="0,6,0,0">
+							<Entry Style="{StaticResource FormEntry}"
+                                   Text="{Binding SearchName}"
+                                   Placeholder="Type patient name..."/>
+						</Border>
 
-                            <Label Text="{Binding PhoneErrorMsg}"
-                                   FontSize="11" TextColor="#C62828"
-                                   IsVisible="{Binding HasPhoneError}"/>
+						<!-- Live dropdown results -->
+						<Border IsVisible="{Binding HasSearchResults}"
+                                BackgroundColor="White"
+                                Stroke="{StaticResource BorderColor}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 10"
+                                Padding="0"
+                                Margin="0,2,0,0">
+							<CollectionView ItemsSource="{Binding SearchResults}"
+                                            SelectionMode="None"
+                                            MaximumHeightRequest="200">
+								<CollectionView.ItemTemplate>
+									<DataTemplate x:DataType="vm:PatientSearchResult">
+										<Grid Padding="14,10"
+                                              ColumnDefinitions="*,Auto">
+											<Grid.GestureRecognizers>
+												<TapGestureRecognizer
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                              Path=BindingContext.SelectPatientCommand}"
+                                                    CommandParameter="{Binding .}"/>
+											</Grid.GestureRecognizers>
+											<VerticalStackLayout Grid.Column="0" Spacing="2">
+												<Label Text="{Binding DisplayName}"
+                                                       FontSize="14" FontAttributes="Bold"
+                                                       TextColor="{StaticResource TextPrimary}"/>
+												<Label Text="{Binding ContactNo}"
+                                                       FontSize="12"
+                                                       TextColor="{StaticResource TextMuted}"/>
+											</VerticalStackLayout>
+											<Label Grid.Column="1"
+                                                   Text="Existing"
+                                                   FontSize="11"
+                                                   TextColor="{StaticResource PrimaryGreen}"
+                                                   FontAttributes="Bold"
+                                                   VerticalOptions="Center"/>
+										</Grid>
+									</DataTemplate>
+								</CollectionView.ItemTemplate>
+							</CollectionView>
+						</Border>
 
-                            <!-- Existing patient banner -->
-                            <Frame BackgroundColor="#E8F5E9"
-                                   BorderColor="#A5D6A7"
-                                   CornerRadius="8" Padding="10"
-                                   HasShadow="False"
-                                   IsVisible="{Binding IsExistingPatient}">
-                                <HorizontalStackLayout Spacing="10">
-                                    <Label Text="✓"
-                                           FontSize="18"
-                                           TextColor="#2E7D32"
-                                           VerticalOptions="Center"/>
-                                    <VerticalStackLayout
-                                        VerticalOptions="Center"
-                                        Spacing="2">
-                                        <Label Text="Existing patient found"
-                                               FontSize="11"
-                                               TextColor="#388E3C"
-                                               FontAttributes="Bold"/>
-                                        <Label Text="{Binding FullName}"
-                                               FontSize="14"
-                                               TextColor="#1B5E20"
-                                               FontAttributes="Bold"/>
-                                    </VerticalStackLayout>
-                                </HorizontalStackLayout>
-                            </Frame>
+						<!-- Existing patient banner -->
+						<Border BackgroundColor="#E8F5E9"
+                                Stroke="#A5D6A7"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8"
+                                Padding="12,10"
+                                Margin="0,10,0,0"
+                                IsVisible="{Binding IsExistingPatient}">
+							<HorizontalStackLayout Spacing="10">
+								<Label Text="✓" FontSize="18"
+                                       TextColor="#2E7D32"
+                                       VerticalOptions="Center"/>
+								<VerticalStackLayout VerticalOptions="Center" Spacing="2">
+									<Label Text="Existing patient found"
+                                           FontSize="11" TextColor="#388E3C"
+                                           FontAttributes="Bold"/>
+									<Label Text="{Binding FullName}"
+                                           FontSize="14" TextColor="#1B5E20"
+                                           FontAttributes="Bold"/>
+								</VerticalStackLayout>
+							</HorizontalStackLayout>
+						</Border>
 
-                            <!-- New patient banner -->
-                            <Frame BackgroundColor="#E3F2FD"
-                                   BorderColor="#90CAF9"
-                                   CornerRadius="8" Padding="10"
-                                   HasShadow="False"
-                                   IsVisible="{Binding IsNewPatient}">
-                                <Label Text="🆕  New patient — fill in details below"
-                                       FontSize="12"
-                                       TextColor="#1565C0"/>
-                            </Frame>
+						<!-- New patient banner -->
+						<Border BackgroundColor="#E3F2FD"
+                                Stroke="#90CAF9"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8"
+                                Padding="12,10"
+                                Margin="0,10,0,0"
+                                IsVisible="{Binding IsNewPatient}">
+							<Label Text="New patient — fill in details below"
+                                   FontSize="12" TextColor="#1565C0"/>
+						</Border>
 
-                            <!-- Full name -->
-                            <Label Text="Full Name"
-                                   FontSize="12" TextColor="#666"/>
-                            <Entry Text="{Binding FullName}"
-                                   Placeholder="e.g. Juan dela Cruz"
-                                   TextColor="#222"
-                                   PlaceholderColor="#AAAAAA"
-                                   IsReadOnly="{Binding IsExistingPatient}"/>
+						<!-- Contact No -->
+						<Label Text="Contact No." Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}" Margin="0,6,0,0">
+							<Entry Style="{StaticResource FormEntry}"
+                                   Text="{Binding Phone}"
+                                   Placeholder="09XXXXXXXXX"
+                                   Keyboard="Telephone"
+                                   MaxLength="11"/>
+						</Border>
+						<Label Style="{StaticResource FormErrorLabel}"
+                               Text="{Binding PhoneErrorMsg}"
+                               IsVisible="{Binding HasPhoneError}"
+                               Margin="0,4,0,0"/>
 
-                            <!-- Email -->
-                            <Label Text="Email (optional)"
-                                   FontSize="12" TextColor="#666"/>
-                            <Entry Text="{Binding Email}"
+						<!-- Email -->
+						<Label Text="Email (optional)" Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}" Margin="0,6,0,0">
+							<Entry Style="{StaticResource FormEntry}"
+                                   Text="{Binding Email}"
                                    Placeholder="email@example.com"
-                                   Keyboard="Email"
-                                   TextColor="#222"
-                                   PlaceholderColor="#AAAAAA"
-                                   IsReadOnly="{Binding IsExistingPatient}"/>
+                                   Keyboard="Email"/>
+						</Border>
 
-                        </VerticalStackLayout>
-                    </Frame>
+					</VerticalStackLayout>
+				</Border>
 
-                    <!-- Appointment details -->
-                    <Frame BackgroundColor="White"
-                           BorderColor="#E0E0E0"
-                           CornerRadius="12" Padding="14"
-                           HasShadow="False">
-                        <VerticalStackLayout Spacing="12">
+				<!-- ═══════════════════════════════
+                     APPOINTMENT DETAILS
+                ═══════════════════════════════════ -->
+				<Border BackgroundColor="White"
+                        Stroke="{StaticResource BorderColor}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 12"
+                        Padding="16"
+                        Margin="0,0,0,14">
+					<VerticalStackLayout Spacing="0">
 
-                            <Label Text="Appointment Details"
-                                   FontSize="14" FontAttributes="Bold"
-                                   TextColor="#222"/>
+						<Label Text="Appointment Details"
+                               Style="{StaticResource FormSectionHeader}"
+                               Margin="0,0,0,12"/>
 
-                      
-
-                            <!-- Date -->
-                            <Label Text="Appointment Date"
-                                   FontSize="12" TextColor="#666"/>
-                            <DatePicker Date="{Binding AppointmentDate}"
+						<!-- Date -->
+						<Label Text="Appointment Date" Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBox}" Margin="0,6,0,0">
+							<DatePicker Date="{Binding AppointmentDate}"
                                         MinimumDate="{Binding MinDate}"
                                         MaximumDate="{Binding MaxDate}"
                                         Format="MMMM dd, yyyy"
-                                        TextColor="#222"/>
+                                        TextColor="{StaticResource TextPrimary}"/>
+						</Border>
 
-                            <Frame BackgroundColor="#FCEAEA"
-                                   BorderColor="#FFCDD2"
-                                   CornerRadius="8" Padding="8"
-                                   HasShadow="False"
-                                   IsVisible="{Binding IsSunday}">
-                                <Label Text="⚠ Clinic is closed on Sundays."
-                                       FontSize="12" TextColor="#C62828"/>
-                            </Frame>
+						<!-- Sunday warning -->
+						<Border BackgroundColor="#FCEAEA"
+                                Stroke="#FFCDD2"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8"
+                                Padding="10,8"
+                                Margin="0,8,0,0"
+                                IsVisible="{Binding IsSunday}">
+							<Label Text="⚠ Clinic is closed on Sundays."
+                                   FontSize="12" TextColor="#C62828"/>
+						</Border>
 
-                            <!-- Time slots -->
-                            <Label Text="Select Time Slot"
-                                   FontSize="12" TextColor="#666"/>
+						<!-- Time slots header -->
+						<Label Text="Select Time Slot" Style="{StaticResource FormFieldLabel}"/>
 
-                            <ActivityIndicator
-                                IsRunning="{Binding IsLoadingSlots}"
-                                IsVisible="{Binding IsLoadingSlots}"
-                                Color="#4A4A8A"
-                                HeightRequest="30"/>
+						<ActivityIndicator IsRunning="{Binding IsLoadingSlots}"
+                                           IsVisible="{Binding IsLoadingSlots}"
+                                           Color="{StaticResource PrimaryGreen}"
+                                           HeightRequest="30"
+                                           Margin="0,8,0,0"/>
 
-                            <Label Text="No available slots for this date"
-                                   FontSize="12" TextColor="#888"
-                                   IsVisible="{Binding HasNoSlots}"/>
+						<Label Text="No available slots for this date"
+                               FontSize="12" TextColor="{StaticResource TextMuted}"
+                               IsVisible="{Binding HasNoSlots}"
+                               Margin="0,8,0,0"/>
 
-                            <!-- Slot grid using BindableLayout -->
-                            <FlexLayout
-                                BindableLayout.ItemsSource="{Binding TimeSlots}"
-                                Wrap="Wrap"
-                                JustifyContent="Start"
-                                AlignItems="Start">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:TimeSlotItem">
-                                        <Frame Margin="4"
-                                               Padding="0"
-                                               CornerRadius="8"
-                                               HasShadow="False"
-                                               BackgroundColor="{Binding BackgroundColor}"
-                                               BorderColor="{Binding BorderColor}"
-                                               WidthRequest="96"
-                                               HeightRequest="56">
-                                            <Frame.GestureRecognizers>
-                                                <TapGestureRecognizer
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                              Path=BindingContext.SelectSlotCommand}"
-                                                    CommandParameter="{Binding .}"/>
-                                            </Frame.GestureRecognizers>
-                                            <VerticalStackLayout
-                                                VerticalOptions="Center"
-                                                HorizontalOptions="Center"
-                                                Spacing="2">
-                                                <Label Text="{Binding Display}"
-                                                       FontSize="13"
-                                                       FontAttributes="Bold"
-                                                       TextColor="{Binding TextColor}"
-                                                       HorizontalOptions="Center"/>
-                                                <Label Text="{Binding StatusText}"
-                                                       FontSize="9"
-                                                       TextColor="{Binding StatusColor}"
-                                                       HorizontalOptions="Center"/>
-                                            </VerticalStackLayout>
-                                        </Frame>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </FlexLayout>
+						<!-- ── Fixed 3×2 time slot grid ── -->
+						<Grid ColumnDefinitions="*,*,*"
+                              RowDefinitions="Auto,Auto"
+                              ColumnSpacing="8"
+                              RowSpacing="8"
+                              Margin="0,10,0,0"
+                              IsVisible="{Binding IsLoadingSlots, Converter={StaticResource InvertedBoolConverter}}">
 
-                            <!-- Selected slot display -->
-                            <Label FontSize="12" TextColor="#4A4A8A"
-                                   FontAttributes="Bold"
-                                   IsVisible="{Binding SelectedSlotDisplay,
-                                       Converter={StaticResource StringNotEmptyConverter}}">
-                                <Label.FormattedText>
-                                    <FormattedString>
-                                        <Span Text="Selected: "/>
-                                        <Span Text="{Binding SelectedSlotDisplay}"
-                                              FontAttributes="Bold"/>
-                                    </FormattedString>
-                                </Label.FormattedText>
-                            </Label>
+							<!-- Row 0 -->
+							<Border Grid.Row="0" Grid.Column="0"
+                                    BackgroundColor="{Binding TimeSlots[0].BackgroundColor}"
+                                    Stroke="{Binding TimeSlots[0].BorderColor}"
+                                    StrokeThickness="1.5"
+                                    StrokeShape="RoundRectangle 10"
+                                    HeightRequest="56">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Command="{Binding SelectSlotCommand}"
+                                                          CommandParameter="{Binding TimeSlots[0]}"/>
+								</Border.GestureRecognizers>
+								<VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+									<Label Text="{Binding TimeSlots[0].Display}"
+                                           FontSize="13" FontAttributes="Bold"
+                                           TextColor="{Binding TimeSlots[0].TextColor}"
+                                           HorizontalOptions="Center"/>
+									<Label Text="{Binding TimeSlots[0].StatusText}"
+                                           FontSize="9"
+                                           TextColor="{Binding TimeSlots[0].StatusColor}"
+                                           HorizontalOptions="Center"/>
+								</VerticalStackLayout>
+							</Border>
 
-                            <!-- Notes -->
-                            <Label Text="Notes (optional)"
-                                   FontSize="12" TextColor="#666"/>
-                            <Editor Text="{Binding Notes}"
+							<Border Grid.Row="0" Grid.Column="1"
+                                    BackgroundColor="{Binding TimeSlots[1].BackgroundColor}"
+                                    Stroke="{Binding TimeSlots[1].BorderColor}"
+                                    StrokeThickness="1.5"
+                                    StrokeShape="RoundRectangle 10"
+                                    HeightRequest="56">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Command="{Binding SelectSlotCommand}"
+                                                          CommandParameter="{Binding TimeSlots[1]}"/>
+								</Border.GestureRecognizers>
+								<VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+									<Label Text="{Binding TimeSlots[1].Display}"
+                                           FontSize="13" FontAttributes="Bold"
+                                           TextColor="{Binding TimeSlots[1].TextColor}"
+                                           HorizontalOptions="Center"/>
+									<Label Text="{Binding TimeSlots[1].StatusText}"
+                                           FontSize="9"
+                                           TextColor="{Binding TimeSlots[1].StatusColor}"
+                                           HorizontalOptions="Center"/>
+								</VerticalStackLayout>
+							</Border>
+
+							<Border Grid.Row="0" Grid.Column="2"
+                                    BackgroundColor="{Binding TimeSlots[2].BackgroundColor}"
+                                    Stroke="{Binding TimeSlots[2].BorderColor}"
+                                    StrokeThickness="1.5"
+                                    StrokeShape="RoundRectangle 10"
+                                    HeightRequest="56">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Command="{Binding SelectSlotCommand}"
+                                                          CommandParameter="{Binding TimeSlots[2]}"/>
+								</Border.GestureRecognizers>
+								<VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+									<Label Text="{Binding TimeSlots[2].Display}"
+                                           FontSize="13" FontAttributes="Bold"
+                                           TextColor="{Binding TimeSlots[2].TextColor}"
+                                           HorizontalOptions="Center"/>
+									<Label Text="{Binding TimeSlots[2].StatusText}"
+                                           FontSize="9"
+                                           TextColor="{Binding TimeSlots[2].StatusColor}"
+                                           HorizontalOptions="Center"/>
+								</VerticalStackLayout>
+							</Border>
+
+							<!-- Row 1 -->
+							<Border Grid.Row="1" Grid.Column="0"
+                                    BackgroundColor="{Binding TimeSlots[3].BackgroundColor}"
+                                    Stroke="{Binding TimeSlots[3].BorderColor}"
+                                    StrokeThickness="1.5"
+                                    StrokeShape="RoundRectangle 10"
+                                    HeightRequest="56">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Command="{Binding SelectSlotCommand}"
+                                                          CommandParameter="{Binding TimeSlots[3]}"/>
+								</Border.GestureRecognizers>
+								<VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+									<Label Text="{Binding TimeSlots[3].Display}"
+                                           FontSize="13" FontAttributes="Bold"
+                                           TextColor="{Binding TimeSlots[3].TextColor}"
+                                           HorizontalOptions="Center"/>
+									<Label Text="{Binding TimeSlots[3].StatusText}"
+                                           FontSize="9"
+                                           TextColor="{Binding TimeSlots[3].StatusColor}"
+                                           HorizontalOptions="Center"/>
+								</VerticalStackLayout>
+							</Border>
+
+							<Border Grid.Row="1" Grid.Column="1"
+                                    BackgroundColor="{Binding TimeSlots[4].BackgroundColor}"
+                                    Stroke="{Binding TimeSlots[4].BorderColor}"
+                                    StrokeThickness="1.5"
+                                    StrokeShape="RoundRectangle 10"
+                                    HeightRequest="56">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Command="{Binding SelectSlotCommand}"
+                                                          CommandParameter="{Binding TimeSlots[4]}"/>
+								</Border.GestureRecognizers>
+								<VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+									<Label Text="{Binding TimeSlots[4].Display}"
+                                           FontSize="13" FontAttributes="Bold"
+                                           TextColor="{Binding TimeSlots[4].TextColor}"
+                                           HorizontalOptions="Center"/>
+									<Label Text="{Binding TimeSlots[4].StatusText}"
+                                           FontSize="9"
+                                           TextColor="{Binding TimeSlots[4].StatusColor}"
+                                           HorizontalOptions="Center"/>
+								</VerticalStackLayout>
+							</Border>
+
+							<Border Grid.Row="1" Grid.Column="2"
+                                    BackgroundColor="{Binding TimeSlots[5].BackgroundColor}"
+                                    Stroke="{Binding TimeSlots[5].BorderColor}"
+                                    StrokeThickness="1.5"
+                                    StrokeShape="RoundRectangle 10"
+                                    HeightRequest="56">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Command="{Binding SelectSlotCommand}"
+                                                          CommandParameter="{Binding TimeSlots[5]}"/>
+								</Border.GestureRecognizers>
+								<VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+									<Label Text="{Binding TimeSlots[5].Display}"
+                                           FontSize="13" FontAttributes="Bold"
+                                           TextColor="{Binding TimeSlots[5].TextColor}"
+                                           HorizontalOptions="Center"/>
+									<Label Text="{Binding TimeSlots[5].StatusText}"
+                                           FontSize="9"
+                                           TextColor="{Binding TimeSlots[5].StatusColor}"
+                                           HorizontalOptions="Center"/>
+								</VerticalStackLayout>
+							</Border>
+
+						</Grid>
+
+						<!-- Selected slot display -->
+						<Label FontSize="12"
+                               TextColor="{StaticResource PrimaryGreen}"
+                               FontAttributes="Bold"
+                               Margin="0,10,0,0"
+                               IsVisible="{Binding SelectedSlotDisplay,
+                                   Converter={StaticResource StringNotEmptyConverter}}">
+							<Label.FormattedText>
+								<FormattedString>
+									<Span Text="Selected: "/>
+									<Span Text="{Binding SelectedSlotDisplay}" FontAttributes="Bold"/>
+								</FormattedString>
+							</Label.FormattedText>
+						</Label>
+
+						<!-- Notes -->
+						<Label Text="Notes (optional)" Style="{StaticResource FormFieldLabel}"/>
+						<Border Style="{StaticResource FormInputBoxTall}" Margin="0,6,0,0">
+							<Editor Style="{StaticResource FormEditor}"
+                                    Text="{Binding Notes}"
                                     Placeholder="Any notes or concerns..."
-                                    HeightRequest="80"
-                                    FontSize="13"
-                                    TextColor="#222"
-                                    PlaceholderColor="#AAAAAA"/>
+                                    HeightRequest="80"/>
+						</Border>
 
-                        </VerticalStackLayout>
-                    </Frame>
+					</VerticalStackLayout>
+				</Border>
 
-                    <!-- Summary -->
-                    <Frame BackgroundColor="#E8F5E9"
-                           BorderColor="#C8E6C9"
-                           CornerRadius="12" Padding="14"
-                           HasShadow="False"
-                           IsVisible="{Binding HasSummary}">
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="📋 Booking Summary"
-                                   FontSize="12" FontAttributes="Bold"
-                                   TextColor="#2E7D32"/>
-                            <Label Text="{Binding SummaryText}"
-                                   FontSize="13" TextColor="#1B5E20"
-                                   LineHeight="1.6"/>
-                        </VerticalStackLayout>
-                    </Frame>
+				<!-- ── Booking Summary ── -->
+				<Border BackgroundColor="#E8F5E9"
+                        Stroke="#C8E6C9"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 12"
+                        Padding="14"
+                        Margin="0,0,0,14"
+                        IsVisible="{Binding HasSummary}">
+					<VerticalStackLayout Spacing="4">
+						<Label Text="Booking Summary"
+                               FontSize="12" FontAttributes="Bold"
+                               TextColor="{StaticResource PrimaryGreen}"/>
+						<Label Text="{Binding SummaryText}"
+                               FontSize="13" TextColor="#1B5E20"
+                               LineHeight="1.6"/>
+					</VerticalStackLayout>
+				</Border>
 
-                    <!-- Error -->
-                    <Frame BackgroundColor="#FCEAEA"
-                           BorderColor="#FFCDD2"
-                           CornerRadius="12" Padding="14"
-                           HasShadow="False"
-                           IsVisible="{Binding HasError}">
-                        <Label Text="{Binding ErrorMessage}"
-                               FontSize="12" TextColor="#C62828"/>
-                    </Frame>
+				<!-- ── Error ── -->
+				<Border BackgroundColor="#FCEAEA"
+                        Stroke="#FFCDD2"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 12"
+                        Padding="14"
+                        Margin="0,0,0,14"
+                        IsVisible="{Binding HasError}">
+					<Label Text="{Binding ErrorMessage}"
+                           FontSize="12" TextColor="#C62828"/>
+				</Border>
 
-                    <!-- Confirm button -->
-                    <Button Text="✓  Confirm Walk-in Booking"
-                            BackgroundColor="{Binding CanConfirm,
-                                Converter={StaticResource BoolToColorConverter},
-                                ConverterParameter='#4A4A8A|#BBBBBB'}"
-                            TextColor="White"
-                            CornerRadius="12"
-                            HeightRequest="52"
-                            FontSize="15"
-                            FontAttributes="Bold"
-                            IsEnabled="{Binding CanConfirm}"
-                            Command="{Binding ConfirmBookingCommand}"/>
+				<!-- ── Buttons ── -->
+				<Button Text="✓  Confirm Walk-in Booking"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        IsEnabled="{Binding CanConfirm}"
+                        Command="{Binding ConfirmBookingCommand}"
+                        Margin="0,0,0,10"/>
 
-                    <Button Text="Cancel"
-                            BackgroundColor="Transparent"
-                            BorderColor="#E0E0E0"
-                            BorderWidth="1"
-                            TextColor="#888"
-                            CornerRadius="12"
-                            HeightRequest="44"
-                            FontSize="13"
-                            Command="{Binding CancelCommand}"/>
+				<Button Text="Cancel"
+                        BackgroundColor="Transparent"
+                        BorderColor="{StaticResource BorderColor}"
+                        BorderWidth="1"
+                        TextColor="{StaticResource TextMuted}"
+                        CornerRadius="12"
+                        HeightRequest="44"
+                        FontSize="13"
+                        Command="{Binding CancelCommand}"/>
 
-                    <BoxView HeightRequest="40" Color="Transparent"/>
+				<BoxView HeightRequest="40" Color="Transparent"/>
 
-                </VerticalStackLayout>
-            </ScrollView>
+			</VerticalStackLayout>
+		</ScrollView>
 
-            <!-- Loading overlay -->
-            <Grid IsVisible="{Binding IsBusy}"
-                  BackgroundColor="#80000000"
-                  ZIndex="10">
-                <VerticalStackLayout VerticalOptions="Center"
-                                     HorizontalOptions="Center"
-                                     Spacing="12">
-                    <ActivityIndicator IsRunning="True"
-                                       Color="White"
-                                       WidthRequest="40"
-                                       HeightRequest="40"/>
-                    <Label Text="Saving booking..."
-                           TextColor="White"
-                           FontSize="14"
-                           HorizontalOptions="Center"/>
-                </VerticalStackLayout>
-            </Grid>
+		<!-- Loading overlay -->
+		<Grid IsVisible="{Binding IsBusy}"
+              BackgroundColor="#80000000"
+              ZIndex="10">
+			<VerticalStackLayout VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="12">
+				<ActivityIndicator IsRunning="True" Color="White"
+                                   WidthRequest="40" HeightRequest="40"/>
+				<Label Text="Saving booking..." TextColor="White"
+                       FontSize="14" HorizontalOptions="Center"/>
+			</VerticalStackLayout>
+		</Grid>
 
-        </Grid>
-    </ContentPage.Content>
-
+	</Grid>
 </ContentPage>

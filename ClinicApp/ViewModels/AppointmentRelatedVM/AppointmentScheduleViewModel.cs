@@ -24,6 +24,11 @@ namespace ClinicApp.ViewModels
         public ObservableCollection<AppointmentEntry> TodayAppointments { get; } = new();
         public ObservableCollection<AppointmentEntry> WeekAppointments { get; } = new();
 
+        // Grouped by specific date (excludes today, which has its own section above).
+        // Max 6 groups — the other days of the Sun–Sat week.
+        public ObservableCollection<AppointmentDateGroup> GroupedWeekAppointments { get; } = new();
+        [ObservableProperty] private bool hasNoWeekAppointments = true;
+
         // Calendar grid — 7 days x time slots
         public ObservableCollection<CalendarDayColumn> WeekColumns { get; } = new();
         [ObservableProperty] private bool canGoPrevious = true;
@@ -41,7 +46,7 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private int pendingBookingsCount;
         [ObservableProperty] private bool hasPendingBookings;
         [ObservableProperty] private string todayLabel = "Today";
-        [ObservableProperty]  private string weekLabel = "This week";
+        [ObservableProperty] private string weekLabel = "This week";
         // Add these properties
         public bool IsSelectedApproved =>
         SelectedAppointment?.Status == "approved";
@@ -61,7 +66,7 @@ namespace ClinicApp.ViewModels
         partial void OnSelectedAppointmentChanged(AppointmentEntry? value)
         {
             OnPropertyChanged(nameof(IsSelectedApproved));
-            OnPropertyChanged(nameof(CanChangeDate)); 
+            OnPropertyChanged(nameof(CanChangeDate));
             OnPropertyChanged(nameof(IsSelectedPending));
             OnPropertyChanged(nameof(CanCancel));
         }
@@ -102,7 +107,7 @@ namespace ClinicApp.ViewModels
             DateRangeLabel = $"{ws:MMM d} – {we:d, yyyy}";
             UpdateListLabels();
         }
-        
+
 
         [RelayCommand]
         void ShowList()
@@ -591,13 +596,37 @@ namespace ClinicApp.ViewModels
                     TodayCount = TodayAppointments.Count;
                 });
 
-                // ── Populate Week
+                // ── Populate Week (kept as-is; no longer bound in the list UI,
+                //    left in case anything else reads WeekAppointments/WeekCount) ──
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     WeekAppointments.Clear();
                     foreach (var a in allEntries)
                         WeekAppointments.Add(a);
                     WeekCount = WeekAppointments.Count;
+                });
+
+                // ── Populate GroupedWeekAppointments — one section per date ──
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    GroupedWeekAppointments.Clear();
+                    for (int d = 0; d < 7; d++)
+                    {
+                        var day = WeekStart.AddDays(d).Date;
+                        if (day == DateTime.Today) continue; // Today has its own section
+
+                        var dayEntries = allEntries
+                            .Where(e => e.AppointmentDateTimeParsed.Date == day)
+                            .ToList();
+                        if (dayEntries.Count == 0) continue;
+
+                        GroupedWeekAppointments.Add(new AppointmentDateGroup
+                        {
+                            Header = day.ToString("dddd, MMMM d"),
+                            Items = dayEntries
+                        });
+                    }
+                    HasNoWeekAppointments = GroupedWeekAppointments.Count == 0;
                 });
 
                 // ── Build calendar
@@ -735,7 +764,33 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        [RelayCommand]
+        async Task EmailPatient(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                await Shell.Current.DisplayAlert("Error", "No email address available for this patient.", "OK");
+                return;
+            }
 
+            try
+            {
+                var message = new EmailMessage { To = new List<string> { email } };
+                await Email.Default.ComposeAsync(message);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EmailPatient] Error: {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", "Unable to open email app.", "OK");
+            }
+        }
+
+    }
+
+    public class AppointmentDateGroup
+    {
+        public string Header { get; set; } = "";
+        public List<AppointmentEntry> Items { get; set; } = new();
     }
 
     public class CalendarDayColumn

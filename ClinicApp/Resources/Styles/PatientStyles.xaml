@@ -5,14 +5,19 @@
 
 	<!-- ══════════════════════════════════════════
          MLC CLINIC — GREEN PALETTE
-         Used across all pages. Keep this file in sync with Colors.xaml.
+         Used across all pages. Keep in sync with Colors.xaml.
+         NOTE: Keys previously named "Pink" have been renamed to
+         accurate green names. Find+Replace in all pages:
+           PrimaryGreen  → PrimaryGreen
+           LightGreen    → LightGreen
+           MediumGreen   → MediumGreen
+           PrimaryGreen   → PrimaryGreen
     ══════════════════════════════════════════════ -->
 
-	<!-- Brand greens (mirrors Colors.xaml Primary) -->
-	<Color x:Key="PrimaryPink">#1A6B2F</Color>
-	<Color x:Key="LightPink">#EAF4EC</Color>
-	<Color x:Key="MediumPink">#B8DEC0</Color>
-	<Color x:Key="HeaderPink">#1A6B2F</Color>
+	<!-- Brand greens -->
+	<Color x:Key="PrimaryGreen">#1A6B2F</Color>
+	<Color x:Key="LightGreen">#EAF4EC</Color>
+	<Color x:Key="MediumGreen">#B8DEC0</Color>
 
 	<!-- Backgrounds -->
 	<Color x:Key="PageBg">#FFFFFF</Color>
@@ -36,7 +41,7 @@
 	<Style x:Key="SectionTitleStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="12"/>
 		<Setter Property="FontAttributes" Value="Bold"/>
-		<Setter Property="TextColor" Value="{StaticResource PrimaryPink}"/>
+		<Setter Property="TextColor" Value="{StaticResource PrimaryGreen}"/>
 		<Setter Property="Margin" Value="0,0,0,12"/>
 	</Style>
 
@@ -87,13 +92,14 @@
 		<Setter Property="PlaceholderColor" Value="{StaticResource TextMuted}"/>
 		<Setter Property="MinimumHeightRequest" Value="44"/>
 		<Setter Property="BackgroundColor" Value="Transparent"/>
+		<Setter Property="Keyboard" Value="Text"/>
 	</Style>
 
 	<!-- ══════════════════════════════════════════
          BUTTONS
     ══════════════════════════════════════════════ -->
 	<Style x:Key="PrimaryButtonStyle" TargetType="Button">
-		<Setter Property="BackgroundColor" Value="{StaticResource PrimaryPink}"/>
+		<Setter Property="BackgroundColor" Value="{StaticResource PrimaryGreen}"/>
 		<Setter Property="TextColor" Value="{StaticResource TextOnPrimary}"/>
 		<Setter Property="FontSize" Value="16"/>
 		<Setter Property="FontAttributes" Value="Bold"/>
@@ -103,7 +109,7 @@
 	</Style>
 
 	<Style x:Key="FabStyle" TargetType="Button">
-		<Setter Property="BackgroundColor" Value="{StaticResource PrimaryPink}"/>
+		<Setter Property="BackgroundColor" Value="{StaticResource PrimaryGreen}"/>
 		<Setter Property="TextColor" Value="{StaticResource TextOnPrimary}"/>
 		<Setter Property="CornerRadius" Value="28"/>
 		<Setter Property="Padding" Value="20,12"/>
@@ -113,7 +119,7 @@
 
 	<Style x:Key="SortButtonStyle" TargetType="Button">
 		<Setter Property="BackgroundColor" Value="{StaticResource CardBg}"/>
-		<Setter Property="TextColor" Value="{StaticResource PrimaryPink}"/>
+		<Setter Property="TextColor" Value="{StaticResource PrimaryGreen}"/>
 		<Setter Property="BorderColor" Value="{StaticResource CardBorder}"/>
 		<Setter Property="BorderWidth" Value="1"/>
 		<Setter Property="CornerRadius" Value="12"/>
@@ -141,8 +147,8 @@
 	</Style>
 
 	<Style x:Key="SectionButtonStyle" TargetType="Frame">
-		<Setter Property="BackgroundColor" Value="{StaticResource LightPink}"/>
-		<Setter Property="BorderColor" Value="{StaticResource MediumPink}"/>
+		<Setter Property="BackgroundColor" Value="{StaticResource LightGreen}"/>
+		<Setter Property="BorderColor" Value="{StaticResource MediumGreen}"/>
 		<Setter Property="CornerRadius" Value="10"/>
 		<Setter Property="HasShadow" Value="False"/>
 		<Setter Property="Padding" Value="12,10"/>
@@ -151,7 +157,7 @@
 
 	<Style x:Key="SectionButtonLabelStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="12"/>
-		<Setter Property="TextColor" Value="{StaticResource PrimaryPink}"/>
+		<Setter Property="TextColor" Value="{StaticResource PrimaryGreen}"/>
 		<Setter Property="FontAttributes" Value="Bold"/>
 		<Setter Property="LineBreakMode" Value="WordWrap"/>
 		<Setter Property="VerticalOptions" Value="Center"/>

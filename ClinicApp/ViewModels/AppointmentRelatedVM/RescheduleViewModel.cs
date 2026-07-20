@@ -196,23 +196,23 @@ namespace ClinicApp.ViewModels
             IsSelected ? "Selected ✓" : "Available";
 
         public Color BackgroundColor =>
-            IsTaken ? Color.FromArgb("#F5F5F5") :
-            IsSelected ? Color.FromArgb("#4A4A8A") :
+            IsTaken ? Color.FromArgb("#F0F0F0") :
+            IsSelected ? Color.FromArgb("#2E7D32") :
                          Colors.White;
 
         public Color BorderColor =>
-            IsTaken ? Color.FromArgb("#E0E0E0") :
-            IsSelected ? Color.FromArgb("#4A4A8A") :
-                         Color.FromArgb("#BBDEFB");
+            IsTaken ? Color.FromArgb("#CCCCCC") :
+            IsSelected ? Color.FromArgb("#2E7D32") :
+                         Color.FromArgb("#C4DEC9");
 
         public Color TextColor =>
-            IsTaken ? Color.FromArgb("#BDBDBD") :
+            IsTaken ? Color.FromArgb("#AAAAAA") :
             IsSelected ? Colors.White :
-                         Color.FromArgb("#333333");
+                         Color.FromArgb("#1A1A2E");
 
         public Color StatusColor =>
-            IsTaken ? Color.FromArgb("#BDBDBD") :
-            IsSelected ? Colors.White :
+            IsTaken ? Color.FromArgb("#AAAAAA") :
+            IsSelected ? Color.FromArgb("#A5D6A7") :
                          Color.FromArgb("#2E7D32");
     }
 }

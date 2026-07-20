@@ -166,9 +166,6 @@
 	  <MauiXaml Update="Views\ServicesRelated\ServiceListPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\Shared\CustomTabBar.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
 	  <MauiXaml Update="Views\Shared\ItemActionSheet.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

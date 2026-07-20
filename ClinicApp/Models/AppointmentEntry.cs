@@ -1,5 +1,4 @@
 ﻿using SQLite;
-
 namespace ClinicApp.Models
 {
     [Table("AppointmentEntry")]
@@ -7,23 +6,17 @@ namespace ClinicApp.Models
     {
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
-
         public string SupabaseBookingId { get; set; } = string.Empty;
         public string PatientName { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        
         public string Notes { get; set; } = string.Empty;
         public string GoogleTaskId { get; set; } = string.Empty;
-
         // Stored as "yyyy-MM-dd HH:mm:ss"
         public string AppointmentDateTime { get; set; } = string.Empty;
-
         // pending / approved / completed / cancelled / rescheduled
         public string Status { get; set; } = "pending";
-
         public string CreatedAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-
 
         [SQLite.Ignore]
         public DateTime AppointmentDateTimeParsed
@@ -32,17 +25,11 @@ namespace ClinicApp.Models
             {
                 if (string.IsNullOrEmpty(AppointmentDateTime))
                     return DateTime.MinValue;
-
                 if (DateTime.TryParse(AppointmentDateTime,
                     System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.None,
                     out var dt))
-                {
-                    // We always store local time strings now
-                    // so just return as-is — no conversion needed
                     return dt;
-                }
-
                 return DateTime.MinValue;
             }
         }
@@ -75,15 +62,14 @@ namespace ClinicApp.Models
             }
         }
 
-
         [Ignore]
         public Color StatusColor => Status switch
         {
             "pending" => Color.FromArgb("#E65100"),
-            "approved" => Color.FromArgb("#1565C0"),
+            "approved" => Color.FromArgb("#2E7D32"), // changed: blue → green
             "completed" => Color.FromArgb("#2E7D32"),
             "cancelled" => Color.FromArgb("#C62828"),
-            "rescheduled" => Color.FromArgb("#6A1B9A"),
+            "rescheduled" => Color.FromArgb("#C8A84B"), // changed: purple → gold
             _ => Color.FromArgb("#888780")
         };
 
@@ -91,10 +77,10 @@ namespace ClinicApp.Models
         public Color StatusBgColor => Status switch
         {
             "pending" => Color.FromArgb("#FFF3E0"),
-            "approved" => Color.FromArgb("#E3F2FD"),
+            "approved" => Color.FromArgb("#EEF5EE"), // changed: blue tint → pale green
             "completed" => Color.FromArgb("#E8F5E9"),
             "cancelled" => Color.FromArgb("#FCEAEA"),
-            "rescheduled" => Color.FromArgb("#F3E5F5"),
+            "rescheduled" => Color.FromArgb("#FBF4E0"), // changed: purple tint → pale gold
             _ => Color.FromArgb("#F1EFE8")
         };
 

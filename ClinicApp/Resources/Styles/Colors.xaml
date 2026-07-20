@@ -21,9 +21,15 @@
 	<Color x:Key="SecondaryDarkText">#2E7D32</Color>
 	<Color x:Key="Tertiary">#1B5E20</Color>
 
+	<!-- Alias used by FormStyles.xaml -->
+	<Color x:Key="PrimaryGreen">#2E7D32</Color>
+
 	<!-- Accent gold (from logo) — use sparingly for highlights -->
 	<Color x:Key="Gold">#C8A84B</Color>
 	<Color x:Key="GoldLight">#FBF4E0</Color>
+
+	<!-- Neutral card background for Appointment list cards (test — was per-status StatusBgColor) -->
+	<Color x:Key="AppointmentCardBg">#F5F0D0</Color>
 
 	<!-- Base -->
 	<Color x:Key="White">White</Color>

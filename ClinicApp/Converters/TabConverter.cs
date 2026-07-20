@@ -2,7 +2,7 @@
 
 namespace ClinicApp.Converters;
 
-// Active tab = white card background, inactive = muted pink
+// Active tab = white card background, inactive = muted green
 public class BoolToTabBgConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -15,7 +15,7 @@ public class BoolToTabBgConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-// Active tab label = primary pink, inactive = gray
+// Active tab label = primary green, inactive = gray
 public class BoolToTabTextConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
