@@ -137,75 +137,15 @@
 			<!-- LIST VIEW -->
 			<RefreshView Command="{Binding RefreshCommand}"
                          IsRefreshing="{Binding IsRefreshing}"
-                         IsVisible="{Binding IsListView}">
+                         IsVisible="{Binding ShowListContent}">
 				<ScrollView>
 					<VerticalStackLayout Padding="12" Spacing="0">
 
-						<!-- TODAY section -->
-						<Label Text="{Binding TodayLabel}" FontSize="13" FontAttributes="Bold"
-                               TextColor="{StaticResource Primary}" Margin="4,0,0,10"/>
-
-						<Label Text="No appointments today"
+						<!-- WEEK LIST — one chronological section per day (Mon–Sat), Today included in its
+                             normal weekday position with a "Today, <date>" header -->
+						<Label Text="No appointments this week"
                                FontSize="12" TextColor="{StaticResource Gray400}"
                                Margin="4,0,0,8"
-                               IsVisible="{Binding TodayCount,
-                                   Converter={StaticResource IntToBoolConverter},
-                                   ConverterParameter=invert}"/>
-
-						<CollectionView ItemsSource="{Binding TodayAppointments}">
-							<CollectionView.ItemTemplate>
-								<DataTemplate x:DataType="models:AppointmentEntry">
-									<Grid ColumnDefinitions="46,*" Margin="0,0,0,12">
-										<!-- Time column -->
-										<VerticalStackLayout Grid.Column="0"
-                                            HorizontalOptions="End"
-                                            VerticalOptions="Start"
-                                            Margin="0,10,8,0" Spacing="0">
-											<Label Text="{Binding TimeDisplay}"
-                                                   FontSize="12" FontAttributes="Bold"
-                                                   TextColor="{StaticResource Gray700}"
-                                                   HorizontalOptions="End"/>
-											<Label Text="{Binding AmPm}"
-                                                   FontSize="9" TextColor="{StaticResource Gray400}"
-                                                   HorizontalOptions="End"/>
-										</VerticalStackLayout>
-										<!-- Card -->
-										<Frame Grid.Column="1" Padding="14,12"
-                                               CornerRadius="10" HasShadow="False"
-                                               BackgroundColor="{StaticResource AppointmentCardBg}"
-                                               BorderColor="{StaticResource Gold}">
-											<Frame.GestureRecognizers>
-												<TapGestureRecognizer
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                              Path=BindingContext.SelectAppointmentCommand}"
-                                                    CommandParameter="{Binding .}"/>
-											</Frame.GestureRecognizers>
-											<Grid ColumnDefinitions="*,Auto">
-												<Label Grid.Column="0"
-                                                       Text="{Binding PatientName}"
-                                                       FontSize="15" FontAttributes="Bold"
-                                                       TextColor="{StaticResource Gray800}"
-                                                       VerticalOptions="Center"/>
-												<Border Grid.Column="1"
-                                                        BackgroundColor="{Binding StatusColor}"
-                                                        StrokeShape="RoundRectangle 6"
-                                                        StrokeThickness="0" Padding="8,3"
-                                                        VerticalOptions="Center">
-													<Label Text="{Binding StatusLabel}"
-                                                           FontSize="12" FontAttributes="Bold"
-                                                           TextColor="White"/>
-												</Border>
-											</Grid>
-										</Frame>
-									</Grid>
-								</DataTemplate>
-							</CollectionView.ItemTemplate>
-						</CollectionView>
-
-						<!-- DATE-GROUPED SECTIONS (rest of the week, excluding Today) -->
-						<Label Text="No appointments the rest of this week"
-                               FontSize="12" TextColor="{StaticResource Gray400}"
-                               Margin="4,16,0,8"
                                IsVisible="{Binding HasNoWeekAppointments}"/>
 
 						<CollectionView ItemsSource="{Binding GroupedWeekAppointments}">
@@ -213,9 +153,15 @@
 								<DataTemplate x:DataType="vm:AppointmentDateGroup">
 									<VerticalStackLayout Spacing="0" Margin="0,20,0,0">
 
-										<!-- Date section header, e.g. "Monday, July 20" -->
+										<!-- Date section header, e.g. "Monday, July 20" or "Today, July 21" -->
 										<Label Text="{Binding Header}" FontSize="13" FontAttributes="Bold"
                                                TextColor="{StaticResource Primary}" Margin="4,0,0,10"/>
+
+										<!-- Only shown for today's own (otherwise-empty) section -->
+										<Label Text="No appointments today"
+                                               FontSize="12" TextColor="{StaticResource Gray400}"
+                                               Margin="4,0,0,8"
+                                               IsVisible="{Binding IsEmptyToday}"/>
 
 										<CollectionView ItemsSource="{Binding Items}">
 											<CollectionView.ItemTemplate>
@@ -276,6 +222,18 @@
 				</ScrollView>
 			</RefreshView>
 
+			<!-- Loading — shown only on first load, so the empty-state message never flashes
+                 on screen before data actually arrives. Doesn't re-trigger on refresh/week-nav. -->
+			<VerticalStackLayout IsVisible="{Binding IsInitialLoading}"
+                                 HorizontalOptions="Center" VerticalOptions="Center" Spacing="8">
+				<ActivityIndicator IsRunning="{Binding IsInitialLoading}"
+                                   Color="{StaticResource Primary}"
+                                   HeightRequest="36" WidthRequest="36"/>
+				<Label Text="Loading appointments..." FontSize="12"
+                       TextColor="{StaticResource Gray400}"
+                       HorizontalTextAlignment="Center"/>
+			</VerticalStackLayout>
+
 			<!-- CALENDAR VIEW -->
 			<VerticalStackLayout IsVisible="{Binding IsCalendarView}" Spacing="0">
 				<GraphicsView x:Name="CalendarGraphics"
@@ -287,211 +245,6 @@
 					</GraphicsView.GestureRecognizers>
 				</GraphicsView>
 			</VerticalStackLayout>
-
-			<!-- APPOINTMENT DETAIL OVERLAY -->
-			<Grid IsVisible="{Binding ShowDetail}"
-                  BackgroundColor="Transparent">
-				<Frame Margin="12,8"
-                       Padding="0"
-                       CornerRadius="14"
-                       HasShadow="True"
-                       BackgroundColor="{StaticResource PageBg}"
-                       BorderColor="{StaticResource Gray200}">
-					<Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto">
-
-						<!-- Header row: name + status beside it, close (X) top-right -->
-						<Grid Grid.Row="0" Padding="14,12" ColumnDefinitions="*,Auto" VerticalOptions="Center">
-							<HorizontalStackLayout Grid.Column="0" Spacing="10" VerticalOptions="Center">
-								<Label Text="{Binding SelectedAppointment.PatientName}"
-                                       FontSize="19" FontAttributes="Bold"
-                                       TextColor="{StaticResource Gray800}"
-                                       Margin="0,6,8,6"
-                                       VerticalOptions="Center"/>
-								<Border BackgroundColor="{Binding SelectedAppointment.StatusColor}"
-                                        StrokeThickness="0" Padding="9,4"
-                                        VerticalOptions="Center">
-									<Border.StrokeShape>
-										<RoundRectangle CornerRadius="6"/>
-									</Border.StrokeShape>
-									<Label Text="{Binding SelectedAppointment.StatusLabel}"
-                                           FontSize="12" FontAttributes="Bold"
-                                           TextColor="White"/>
-								</Border>
-							</HorizontalStackLayout>
-
-							<!-- Close: no container, plain bold Material icon -->
-							<!-- TODO: "close" glyph below (e5cd) is a best-guess, not verified against your .ttf via fonttools -->
-							<Label Grid.Column="1"
-                                   FontFamily="MaterialSymbolsRoundedFilled"
-                                   Text="&#xe5cd;"
-                                   FontSize="20" FontAttributes="Bold"
-                                   TextColor="{StaticResource Gray600}"
-                                   VerticalOptions="Center" HorizontalOptions="End">
-								<Label.GestureRecognizers>
-									<TapGestureRecognizer Command="{Binding CloseDetailCommand}"/>
-								</Label.GestureRecognizers>
-							</Label>
-						</Grid>
-
-						<BoxView Grid.Row="1" HeightRequest="0.5" Color="{StaticResource Gray200}"/>
-
-						<!-- Date / Time / Contact / Email -->
-						<VerticalStackLayout Grid.Row="2" Padding="14,12" Spacing="14">
-
-							<Grid ColumnDefinitions="*,*">
-								<VerticalStackLayout Grid.Column="0" Spacing="2">
-									<Label Text="Date" FontSize="12" TextColor="{StaticResource Gray400}"/>
-									<Label Text="{Binding SelectedAppointment.DateDisplay}"
-                                           FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Gray800}"/>
-								</VerticalStackLayout>
-								<VerticalStackLayout Grid.Column="1" Spacing="2">
-									<Label Text="Time" FontSize="12" TextColor="{StaticResource Gray400}"/>
-									<Label FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Gray800}">
-										<Label.FormattedText>
-											<FormattedString>
-												<Span Text="{Binding SelectedAppointment.TimeDisplay}"/>
-												<Span Text=" "/>
-												<Span Text="{Binding SelectedAppointment.AmPm}"/>
-											</FormattedString>
-										</Label.FormattedText>
-									</Label>
-								</VerticalStackLayout>
-							</Grid>
-
-							<VerticalStackLayout Spacing="2">
-								<Label Text="Contact No." FontSize="12" TextColor="{StaticResource Gray400}" Margin="0, 10, 0, -5"/>
-								<Grid ColumnDefinitions="*,Auto">
-									<Label Grid.Column="0"
-                                           Text="{Binding SelectedAppointment.Phone}"
-                                           FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Gray800}"
-                                           VerticalOptions="Center"/>
-									<Border Grid.Column="1"
-                                            BackgroundColor="{StaticResource Secondary}"
-                                            StrokeThickness="0"
-                                            HeightRequest="42" WidthRequest="42"
-                                            Margin="0,-10,5,0"
-                                            VerticalOptions="Center">
-										<Border.StrokeShape>
-											<RoundRectangle CornerRadius="21"/>
-										</Border.StrokeShape>
-										<Border.GestureRecognizers>
-											<TapGestureRecognizer
-                                                Command="{Binding CallPatientCommand}"
-                                                CommandParameter="{Binding SelectedAppointment.Phone}"/>
-										</Border.GestureRecognizers>
-										<Label FontFamily="MaterialSymbolsRoundedFilled"
-                                               Text="&#xe0b0;"
-                                               FontSize="20" TextColor="{StaticResource Primary}"
-                                               HorizontalOptions="Center" VerticalOptions="Center"/>
-									</Border>
-								</Grid>
-							</VerticalStackLayout>
-
-							<!-- Email — hidden entirely when there's no email on file -->
-							<VerticalStackLayout Spacing="2"
-                                IsVisible="{Binding SelectedAppointment.Email,
-                                    Converter={StaticResource StringNotEmptyConverter}}">
-								<Label Text="Email" FontSize="12" TextColor="{StaticResource Gray400}"/>
-								<Grid ColumnDefinitions="*,Auto">
-									<Label Grid.Column="0"
-                                           Text="{Binding SelectedAppointment.Email}"
-                                           FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Gray800}"
-                                           LineBreakMode="TailTruncation"
-                                           VerticalOptions="Center"/>
-									<Border Grid.Column="1"
-                                            BackgroundColor="{StaticResource Secondary}"
-                                            StrokeThickness="0"
-                                            HeightRequest="42" WidthRequest="42"
-                                            Margin="0,0,10,0"
-                                            VerticalOptions="Center">
-										<Border.StrokeShape>
-											<RoundRectangle CornerRadius="21"/>
-										</Border.StrokeShape>
-										<Border.GestureRecognizers>
-											<TapGestureRecognizer
-                                                Command="{Binding EmailPatientCommand}"
-                                                CommandParameter="{Binding SelectedAppointment.Email}"/>
-										</Border.GestureRecognizers>
-										<!-- TODO: "mail" glyph below (e158) is a best-guess, not verified against your .ttf -->
-										<Label FontFamily="MaterialSymbolsRoundedFilled"
-                                               Text="&#xe158;"
-                                               FontSize="20" TextColor="{StaticResource Primary}"
-                                               HorizontalOptions="Center" VerticalOptions="Center"/>
-									</Border>
-								</Grid>
-							</VerticalStackLayout>
-
-						</VerticalStackLayout>
-
-						<BoxView Grid.Row="3" HeightRequest="0.5" Color="{StaticResource Gray200}"/>
-
-						<!-- Notes — fills the leftover space, pushing the buttons to the very bottom -->
-						<VerticalStackLayout Grid.Row="4" Padding="14,12" Spacing="2" VerticalOptions="Start">
-							<Label Text="Notes" FontSize="12" TextColor="{StaticResource Gray400}"/>
-							<Label Text="{Binding SelectedAppointment.Notes}"
-                                   FontSize="14" TextColor="{StaticResource Gray600}"
-                                   LineHeight="1.4"/>
-							<Label Text="No notes added" FontSize="14"
-                                   TextColor="{StaticResource Gray300}"
-                                   IsVisible="{Binding SelectedAppointment.Notes,
-                                       Converter={StaticResource StringEmptyConverter}}"/>
-						</VerticalStackLayout>
-
-						<BoxView Grid.Row="5" HeightRequest="0.5" Color="{StaticResource Gray200}"/>
-
-						<!-- Action buttons — pinned to the very bottom -->
-						<VerticalStackLayout Grid.Row="6" Padding="14,12" Spacing="8">
-
-							<!-- Mark Complete — approved only -->
-							<!-- TODO: "check" glyph below (e5ca) is a best-guess, not verified against your .ttf -->
-							<Button Text="Mark as completed"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    TextColor="White"
-                                    CornerRadius="10"
-                                    HeightRequest="42" FontSize="13" FontAttributes="Bold"
-                                    ContentLayout="Left,8"
-                                    IsVisible="{Binding IsSelectedApproved}"
-                                    Command="{Binding MarkCompletedCommand}">
-								<Button.ImageSource>
-									<FontImageSource FontFamily="MaterialSymbolsRoundedFilled" Glyph="&#xe5ca;" Color="White" Size="15"/>
-								</Button.ImageSource>
-							</Button>
-
-							<!-- Change schedule -->
-							<!-- TODO: "refresh" glyph below (e5d5) is a best-guess, not verified against your .ttf -->
-							<Button Text="Change schedule"
-                                    BackgroundColor="{StaticResource Gold}"
-                                    TextColor="White"
-                                    CornerRadius="10"
-                                    HeightRequest="42" FontSize="13" FontAttributes="Bold"
-                                    ContentLayout="Left,8"
-                                    IsVisible="{Binding CanChangeDate}"
-                                    Command="{Binding RescheduleAppointmentCommand}">
-								<Button.ImageSource>
-									<FontImageSource FontFamily="MaterialSymbolsRoundedFilled" Glyph="&#xe5d5;" Color="White" Size="15"/>
-								</Button.ImageSource>
-							</Button>
-
-							<!-- Cancel — fully red, same design as the buttons above -->
-							<!-- TODO: "close" glyph below (e5cd) is a best-guess, not verified against your .ttf -->
-							<Button Text="Cancel appointment"
-                                    BackgroundColor="#C62828"
-                                    TextColor="White"
-                                    CornerRadius="10"
-                                    HeightRequest="42" FontSize="13" FontAttributes="Bold"
-                                    ContentLayout="Left,8"
-                                    IsVisible="{Binding CanCancel}"
-                                    Command="{Binding CancelAppointmentCommand}">
-								<Button.ImageSource>
-									<FontImageSource FontFamily="MaterialSymbolsRoundedFilled" Glyph="&#xe5cd;" Color="White" Size="15"/>
-								</Button.ImageSource>
-							</Button>
-
-						</VerticalStackLayout>
-
-					</Grid>
-				</Frame>
-			</Grid>
 
 			<!-- FAB — Book Appointment (green, same style as Patient page) -->
 			<Button Text="+ Book Appointment"

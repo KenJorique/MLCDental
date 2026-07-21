@@ -37,6 +37,15 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private bool isLoading;
         [ObservableProperty] private bool isRefreshing;
         [ObservableProperty] private bool isBusy;
+        [ObservableProperty] private bool isInitialLoading = true;
+
+        /// <summary>List content (including its "no appointments" text) is hidden only during the
+        /// very first load — not on every refresh/week-nav, so the list doesn't disappear and
+        /// get replaced by the big spinner on every quick tap.</summary>
+        public bool ShowListContent => IsListView && !IsInitialLoading;
+
+        partial void OnIsInitialLoadingChanged(bool value) => OnPropertyChanged(nameof(ShowListContent));
+        partial void OnIsListViewChanged(bool value) => OnPropertyChanged(nameof(ShowListContent));
         [ObservableProperty] private DateTime currentDate = DateTime.Today;
         [ObservableProperty] private string dateRangeLabel = string.Empty;
         [ObservableProperty] private AppointmentEntry? selectedAppointment;
@@ -47,6 +56,8 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private bool hasPendingBookings;
         [ObservableProperty] private string todayLabel = "Today";
         [ObservableProperty] private string weekLabel = "This week";
+
+        AppointmentDetailSheet? _detailSheet;
         // Add these properties
         public bool IsSelectedApproved =>
         SelectedAppointment?.Status == "approved";
@@ -177,7 +188,7 @@ namespace ClinicApp.ViewModels
 
             if (weekStartDate == today.AddDays(-(int)today.DayOfWeek).Date) // Current week
             {
-                TodayLabel = "Today";
+                TodayLabel = DateTime.Today.ToString("dddd, MMMM d");
                 WeekLabel = "This week";
             }
             else if (weekStartDate > today) // Future week
@@ -207,6 +218,9 @@ namespace ClinicApp.ViewModels
             SelectedAppointment = entry;
             ShowDetail = true;
 
+            _detailSheet = new AppointmentDetailSheet { BindingContext = this };
+            _ = _detailSheet.ShowAsync();
+
             try
             {
                 var all = await _supabaseData.GetAppointmentEntriesAsync();
@@ -222,10 +236,23 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
-        void CloseDetail()
+        async Task CloseDetail()
         {
             ShowDetail = false;
             SelectedAppointment = null;
+            await CloseSheetAsync();
+        }
+
+        async Task CloseSheetAsync()
+        {
+            if (_detailSheet == null) return;
+            var sheet = _detailSheet;
+            _detailSheet = null;
+            try { await sheet.DismissAsync(); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CloseSheetAsync] {ex.Message}");
+            }
         }
 
         [RelayCommand]
@@ -278,6 +305,7 @@ namespace ClinicApp.ViewModels
                 // 5. Close detail and refresh
                 ShowDetail = false;
                 SelectedAppointment = null;
+                await CloseSheetAsync();
 
                 await LoadAppointments();
 
@@ -327,6 +355,7 @@ namespace ClinicApp.ViewModels
 
                 ShowDetail = false;
                 SelectedAppointment = null;
+                await CloseSheetAsync();
                 await LoadAppointments();
             }
             catch (Exception ex)
@@ -342,6 +371,7 @@ namespace ClinicApp.ViewModels
             if (SelectedAppointment == null) return;
 
             ShowDetail = false;
+            await CloseSheetAsync();
 
             var currentDt = SelectedAppointment.AppointmentDateTimeParsed
                 != DateTime.MinValue
@@ -583,7 +613,7 @@ namespace ClinicApp.ViewModels
                     }
                 }
 
-                // ── Populate Today
+                // ── Populate Today (kept for backward-compat; no longer drives its own UI section) ──
                 var todayEntries = allEntries
                     .Where(e => e.AppointmentDateTimeParsed.Date == DateTime.Today)
                     .ToList();
@@ -606,24 +636,39 @@ namespace ClinicApp.ViewModels
                     WeekCount = WeekAppointments.Count;
                 });
 
-                // ── Populate GroupedWeekAppointments — one section per date ──
+                // ── Populate GroupedWeekAppointments — ONE chronological list, Mon–Sat.
+                //    Today gets a "Today, <date>" header instead of the weekday name, and always
+                //    shows (even with 0 appointments) — but ONLY when the week being viewed is the
+                //    current week, since "day == DateTime.Today" can only be true for a day that's
+                //    actually inside WeekStart..WeekStart+6. Other days are skipped when empty. ──
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     GroupedWeekAppointments.Clear();
+
+                    bool isCurrentWeek = WeekStart.Date ==
+                        DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek).Date;
+
                     for (int d = 0; d < 7; d++)
                     {
                         var day = WeekStart.AddDays(d).Date;
-                        if (day == DateTime.Today) continue; // Today has its own section
+                        if (day.DayOfWeek == DayOfWeek.Sunday) continue; // Clinic closed Sundays
+
+                        // Only when viewing the CURRENT week: hide days already passed, so
+                        // Today is always first. Intentionally-browsed past weeks still show fully.
+                        if (isCurrentWeek && day < DateTime.Today.Date) continue;
+
+                        bool isToday = day == DateTime.Today;
 
                         var dayEntries = allEntries
                             .Where(e => e.AppointmentDateTimeParsed.Date == day)
                             .ToList();
-                        if (dayEntries.Count == 0) continue;
+                        if (dayEntries.Count == 0 && !isToday) continue;
 
                         GroupedWeekAppointments.Add(new AppointmentDateGroup
                         {
-                            Header = day.ToString("dddd, MMMM d"),
-                            Items = dayEntries
+                            Header = isToday ? $"Today, {day:MMMM d}" : day.ToString("dddd, MMMM d"),
+                            Items = dayEntries,
+                            IsToday = isToday
                         });
                     }
                     HasNoWeekAppointments = GroupedWeekAppointments.Count == 0;
@@ -657,6 +702,7 @@ namespace ClinicApp.ViewModels
             finally
             {
                 IsBusy = false;
+                IsInitialLoading = false;
             }
         }
 
@@ -728,6 +774,7 @@ namespace ClinicApp.ViewModels
 
                 ShowDetail = false;
                 SelectedAppointment = null;
+                await CloseSheetAsync();
                 await LoadAppointments();
             }
             catch (Exception ex)
@@ -791,6 +838,8 @@ namespace ClinicApp.ViewModels
     {
         public string Header { get; set; } = "";
         public List<AppointmentEntry> Items { get; set; } = new();
+        public bool IsToday { get; set; }
+        public bool IsEmptyToday => IsToday && Items.Count == 0;
     }
 
     public class CalendarDayColumn

@@ -25,9 +25,30 @@ namespace ClinicApp.ViewModels
         {
             _db = db;
             _supabase = supabase;
+            InitializeEmptySlots();
+        }
+
+        // Pre-populate 6 empty slots so TimeSlots[0-5] bindings never crash
+        void InitializeEmptySlots()
+        {
+            var hours = new[] { 10, 11, 13, 14, 15, 16 };
+            foreach (var h in hours)
+            {
+                var slotTime = new DateTime(
+                    DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day, h, 0, 0);
+                TimeSlots.Add(new TimeSlotItem
+                {
+                    Hour = h,
+                    SlotDateTime = slotTime,
+                    Display = slotTime.ToString("h:00 tt"),
+                    IsTaken = false,
+                    IsSelected = false
+                });
+            }
         }
 
         // ── Patient ───────────────────────────────────────────
+        bool _suppressSearch = false; // prevents re-search when auto-filling
         [ObservableProperty] string searchName = string.Empty;
         [ObservableProperty] string fullName = string.Empty;
         [ObservableProperty] string phone = string.Empty;
@@ -70,7 +91,6 @@ namespace ClinicApp.ViewModels
             Phone.StartsWith("09") &&
             Phone.Length == 11 &&
             _selectedSlot != null &&
-            !IsSunday &&
             !IsBusy;
 
         void NotifyCanConfirm() => OnPropertyChanged(nameof(CanConfirm));
@@ -78,6 +98,9 @@ namespace ClinicApp.ViewModels
         // ── Live name search ──────────────────────────────────
         partial void OnSearchNameChanged(string value)
         {
+            // Skip search if we are auto-filling from a selection
+            if (_suppressSearch) return;
+
             // Clear patient state when user edits the name field
             if (IsExistingPatient)
             {
@@ -89,6 +112,15 @@ namespace ClinicApp.ViewModels
                 _existingPatient = null;
             }
 
+            // BUGFIX: FullName was only ever set inside SelectPatient() (tapping a
+            // dropdown result). For a brand-new patient with no matching record,
+            // nothing was ever available to tap, so FullName stayed empty forever
+            // and CanConfirm could never become true. Keep it in sync with what's
+            // typed here; SelectPatient() still overwrites it correctly afterward
+            // if the user does pick an existing patient.
+            FullName = value;
+            IsNewPatient = !string.IsNullOrWhiteSpace(value);
+
             if (string.IsNullOrWhiteSpace(value) || value.Length < 2)
             {
                 SearchResults.Clear();
@@ -96,7 +128,6 @@ namespace ClinicApp.ViewModels
                 return;
             }
 
-            // Debounce via fire-and-forget
             MainThread.BeginInvokeOnMainThread(async () =>
                 await SearchPatientsAsync(value));
         }
@@ -143,15 +174,18 @@ namespace ClinicApp.ViewModels
         {
             if (result is null) return;
 
+            // Suppress OnSearchNameChanged so setting SearchName
+            // does not trigger another search and re-show the dropdown
+            _suppressSearch = true;
             SearchName = result.FullName;
             FullName = result.FullName;
             Phone = result.ContactNo;
             Email = result.Email;
             IsExistingPatient = true;
             IsNewPatient = false;
-
             SearchResults.Clear();
             HasSearchResults = false;
+            _suppressSearch = false;
 
             NotifyCanConfirm();
             UpdateSummary();
@@ -211,7 +245,7 @@ namespace ClinicApp.ViewModels
             try
             {
                 var booked = await _supabase.GetBookedTimeSlotsForDateAsync(date);
-                var hours = new[] { 10, 11, 12, 13, 14, 15 };
+                var hours = new[] { 10, 11, 13, 14, 15, 16 };
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {

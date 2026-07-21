@@ -76,7 +76,7 @@ namespace ClinicApp.ViewModels
 
                 TimeSlots.Clear();
 
-                var hours = new[] { 10, 11, 12, 13, 14, 15 };
+                var hours = new[] { 10, 11, 13, 14, 15, 16 };
                 foreach (var h in hours)
                 {
                     var slotTime = new DateTime(
@@ -203,7 +203,7 @@ namespace ClinicApp.ViewModels
         public Color BorderColor =>
             IsTaken ? Color.FromArgb("#CCCCCC") :
             IsSelected ? Color.FromArgb("#2E7D32") :
-                         Color.FromArgb("#C4DEC9");
+                         Color.FromArgb("#C8A84B");
 
         public Color TextColor =>
             IsTaken ? Color.FromArgb("#AAAAAA") :
