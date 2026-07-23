@@ -8,18 +8,14 @@ namespace ClinicApp.Helpers
 {
     public static class DateTimeExtensions
     {
-        /// <summary>
-        /// Safely converts a DateTime to local time regardless of what
-        /// Kind the Postgrest/Supabase deserializer assigned it.
-        /// - Utc       → convert normally
-        /// - Local     → already correct, leave as-is
-        /// - Unspecified → treat as UTC (Postgrest's usual default), then convert
-        /// </summary>
-        public static DateTime ToLocalSafe(this DateTime dt) => dt.Kind switch
+        public static DateTime ToLocalSafe(this DateTime dt)
         {
-            DateTimeKind.Utc => dt.ToLocalTime(),
-            DateTimeKind.Local => dt,
-            _ => DateTime.SpecifyKind(dt, DateTimeKind.Utc).ToLocalTime()
-        };
+            return dt.Kind switch
+            {
+                DateTimeKind.Utc => dt.ToLocalTime(),
+                DateTimeKind.Local => dt,
+                DateTimeKind.Unspecified => dt // don't convert again
+            };
+        }
     }
 }

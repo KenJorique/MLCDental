@@ -18,6 +18,7 @@ public partial class TreatmentHistoryViewModel : ObservableObject
     [ObservableProperty] private bool isHistoryEmpty = true;
     [ObservableProperty] private string historyCountText = "0 records";
 
+
     public ObservableCollection<TreatmentHistoryItemViewModel> History { get; } = new();
 
     public TreatmentHistoryViewModel(DatabaseService db)
@@ -66,19 +67,43 @@ public class TreatmentHistoryItemViewModel
         Record = record;
     }
 
-    public string ToothLabel => $"Tooth #{Record.ToothNumber}";
-    public string ToothName => Record.ToothName;
-    public string Condition => Record.Condition;
+    /// <summary>
+    /// True if this record is a general service rather than a tooth treatment.
+    /// </summary>
+    public bool IsGeneralService => Record.ActionType == "Service";
+
+    public string ToothLabel =>
+        IsGeneralService
+            ? "Service Rendered"
+            : $"Tooth #{Record.ToothNumber}";
+
+    public string ToothName =>
+        IsGeneralService
+            ? Record.Description
+            : Record.ToothName;
+
+    public string Condition =>
+        IsGeneralService
+            ? "General Service"
+            : Record.Condition;
+
     public string Notes => Record.Notes;
+
     public string ActionType => Record.ActionType;
-    public bool HasNotes => !string.IsNullOrWhiteSpace(Record.Notes);
+
+    public bool HasNotes =>
+        !string.IsNullOrWhiteSpace(Record.Notes);
+
     public bool HasPreviousCondition =>
+        !IsGeneralService &&
         !string.IsNullOrWhiteSpace(Record.PreviousCondition) &&
         Record.PreviousCondition != Record.Condition &&
         Record.ActionType != "Added";
 
     public string PreviousConditionDisplay =>
-        HasPreviousCondition ? $"was: {Record.PreviousCondition}" : string.Empty;
+        HasPreviousCondition
+            ? $"was: {Record.PreviousCondition}"
+            : string.Empty;
 
     public string DateDisplay
     {
@@ -86,6 +111,7 @@ public class TreatmentHistoryItemViewModel
         {
             if (DateTime.TryParse(Record.Timestamp, out var dt))
                 return dt.ToString("MMM dd, yyyy");
+
             return Record.Timestamp;
         }
     }
@@ -96,6 +122,7 @@ public class TreatmentHistoryItemViewModel
         {
             if (DateTime.TryParse(Record.Timestamp, out var dt))
                 return dt.ToString("hh:mm tt");
+
             return string.Empty;
         }
     }
@@ -104,8 +131,14 @@ public class TreatmentHistoryItemViewModel
     {
         get
         {
-            try { return Color.FromArgb(Record.Color); }
-            catch { return Colors.White; }
+            try
+            {
+                return Color.FromArgb(Record.Color);
+            }
+            catch
+            {
+                return Colors.White;
+            }
         }
     }
 
@@ -114,6 +147,7 @@ public class TreatmentHistoryItemViewModel
         "Added" => Color.FromArgb("#22C55E"),
         "Updated" => Color.FromArgb("#F59E0B"),
         "Completed" => Color.FromArgb("#EF4444"),
-        _ => Color.FromArgb("#6B7A9A"),
+        "Service" => Color.FromArgb("#3B82F6"),
+        _ => Color.FromArgb("#6B7280")
     };
 }

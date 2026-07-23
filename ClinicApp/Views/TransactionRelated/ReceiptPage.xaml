@@ -13,15 +13,6 @@
             <VerticalStackLayout Padding="16" Spacing="14">
 
                 <!-- Receipt header -->
-                <Label Text="Bill not found — it may not have loaded correctly."
-       FontSize="13" TextColor="#C62828"
-       HorizontalOptions="Center"
-       IsVisible="{Binding NotFound}"/>
-
-                <Label Text="{Binding DebugInfo}"
-FontSize="10" TextColor="#888"
-HorizontalOptions="Center"
-IsVisible="{Binding NotFound}"/>
                 
                 <Frame BackgroundColor="White" BorderColor="#E0E0E0"
                        CornerRadius="12" Padding="16" HasShadow="False">

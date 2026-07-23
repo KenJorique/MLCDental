@@ -37,6 +37,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] bool isInstallment;
         [ObservableProperty] string supabaseEntryId = string.Empty;
         [ObservableProperty] string serviceSearch = string.Empty;
+            
         public bool CanCreateBill =>
             SelectedServices.Count > 0 && !IsBusy;
 
@@ -272,13 +273,15 @@ namespace ClinicApp.ViewModels.TransactionVM
                                         item.ParsedTeethNumbers.Count > 0
                     });
 
-                    // Apply to dental chart if teeth were entered
-                    if (item.ShowTeethInput &&
-                        item.ParsedTeethNumbers.Count > 0)
+                    if (item.ShowTeethInput && item.ParsedTeethNumbers.Count > 0)
                     {
-                        await ApplyToothConditionsAsync(
-                            item.ServiceName,
-                            item.ParsedTeethNumbers);
+                        // Tooth-specific services — logs per tooth with chart coloring
+                        await ApplyToothConditionsAsync(item.ServiceName, item.ParsedTeethNumbers);
+                    }
+                    else
+                    {
+                        // General services — still logged, just without a tooth number
+                        await LogGeneralServiceAsync(item.ServiceName);
                     }
                 }
 
@@ -357,6 +360,42 @@ namespace ClinicApp.ViewModels.TransactionVM
             }
         }
 
+        private async Task LogGeneralServiceAsync(string serviceName)
+        {
+            try
+            {
+                var localPatientId = await GetLocalPatientIdAsync();
+                if (localPatientId <= 0)
+                    return;
+
+                var history = new TreatmentHistory
+                {
+                    PatientId = localPatientId,
+
+                    // Indicates this isn't tied to a tooth
+                    ToothNumber = 0,
+                    ToothName = string.Empty,
+
+                    // Store the service name
+                    Condition = serviceName,
+                    Description = serviceName,
+
+                    Color = "#3B82F6",
+
+                    Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+
+                    Notes = "Service rendered",
+
+                    ActionType = "Service"
+                };
+
+                await _db.AddTreatmentHistory(history);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[LogGeneralService] {ex.Message}");
+            }
+        }
         private async Task<int> GetLocalPatientIdAsync()
         {
             try

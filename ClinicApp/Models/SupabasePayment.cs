@@ -22,7 +22,7 @@ namespace ClinicApp.Models
         public decimal Amount { get; set; }
 
         [Column("payment_date")]
-        public DateTime PaymentDate { get; set; }
+        public DateTime PaymentDate { get; set; } = DateTime.Today;
 
         [Column("recorded_by")]
         public string? RecordedBy { get; set; }
@@ -38,6 +38,6 @@ namespace ClinicApp.Models
         [Ignore]
         [JsonIgnore]
     public string DateDisplay =>
-    PaymentDate.ToLocalSafe().ToString("MMM dd, yyyy h:mm tt");
+    PaymentDate.ToString("MMM dd, yyyy h:mm tt");
     }
 }

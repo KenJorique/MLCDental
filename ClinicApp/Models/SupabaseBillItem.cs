@@ -36,6 +36,7 @@ namespace ClinicApp.Models
         [Column("affects_teeth")]
         public bool AffectsTeeth { get; set; }
 
+
         // Display helpers
         public string ToothNumbersDisplay =>
             string.IsNullOrEmpty(ToothNumbers)
