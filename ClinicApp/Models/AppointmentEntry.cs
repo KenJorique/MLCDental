@@ -24,6 +24,7 @@ namespace ClinicApp.Models
 
         public string CreatedAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
+        public string PatientSupabaseId { get; set; } = string.Empty;
 
         [SQLite.Ignore]
         public DateTime AppointmentDateTimeParsed

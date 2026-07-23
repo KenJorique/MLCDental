@@ -1,9 +1,9 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Services;
+using ClinicApp.Views.AppointmentRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using ClinicApp.Views.AppointmentRelated;
 
 namespace ClinicApp.ViewModels
 {
@@ -22,6 +22,8 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private int pendingCount;
         [ObservableProperty] private int approvedCount;
         [ObservableProperty] private int rescheduledCount;
+        [ObservableProperty] private bool isBusy;
+
 
         // Capital H — matches XAML binding exactly
         public bool HasPending => PendingCount > 0;
@@ -35,17 +37,52 @@ namespace ClinicApp.ViewModels
         }
 
         // Called from OnAppearing — not triggered by RefreshView
+        [RelayCommand]
         public async Task LoadAppointments()
         {
-            if (IsLoading) return;
-            IsLoading = true;
+            if (isRefreshing && isBusy) return;
+            isBusy = true;
             try
             {
-                await FetchAndPopulate();
+                // Only fetch pending and rescheduled — hide approved/completed/cancelled
+                var pendingTask = _supabaseData.GetBookingsByStatusAsync("pending");
+                var rescheduledTask = _supabaseData.GetBookingsByStatusAsync("rescheduled");
+
+                await Task.WhenAll(pendingTask, rescheduledTask);
+
+                PendingBookings.Clear();
+                foreach (var b in pendingTask.Result)
+                    PendingBookings.Add(b);
+
+                RescheduledBookings.Clear();
+                foreach (var b in rescheduledTask.Result)
+                    RescheduledBookings.Add(b);
+
+                // Keep approved section but don't load it here
+                // Approved appointments are managed in AppointmentSchedulePage
+                ApprovedBookings.Clear();
+
+                PendingCount = PendingBookings.Count;
+                RescheduledCount = RescheduledBookings.Count;
+                ApprovedCount = 0;
+
+                //HasPending = PendingCount > 0;
+                //HasRescheduled = RescheduledCount > 0;
+                //HasApproved = false;
+
+                OnPropertyChanged(nameof(HasPending));
+                OnPropertyChanged(nameof(HasApproved));
+                OnPropertyChanged(nameof(HasRescheduled));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[LoadAppointments] {ex.Message}");
             }
             finally
             {
-                IsLoading = false;
+                isBusy = false;
+                isRefreshing = false;
             }
         }
 

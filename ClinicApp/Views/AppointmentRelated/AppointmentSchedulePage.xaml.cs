@@ -67,7 +67,7 @@ namespace ClinicApp.Views.AppointmentRelated
 
                 var entry = _vm.CalendarDrawable.HitTest((float)pos.Value.X, (float)pos.Value.Y);
                 if (entry != null)
-                    _vm.SelectAppointmentCommand.Execute(entry);
+                    _vm.SelectWeekAppointmentCommand.Execute(entry);
             }
             catch (Exception ex)
             {

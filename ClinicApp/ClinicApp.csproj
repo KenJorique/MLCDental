@@ -193,7 +193,13 @@
 	  <MauiXaml Update="Views\SupplyRelated\SupplyListPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\TransactionPage.xaml">
+	  <MauiXaml Update="Views\TransactionRelated\CreateBillPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\TransactionRelated\ReceiptPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\TransactionRelated\TransactionPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\UsersRelated\AddUserPage.xaml">
