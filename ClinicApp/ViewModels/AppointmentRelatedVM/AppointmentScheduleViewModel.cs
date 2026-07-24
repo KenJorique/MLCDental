@@ -287,11 +287,11 @@ namespace ClinicApp.ViewModels
                 // Deletion happens INSIDE CreateBillViewModel.CreateBill()
                 // so going back doesn't lose the appointment
                 await Shell.Current.GoToAsync(
-                    $"{nameof(CreateBillPage)}" +
-                    $"?patientId={Uri.EscapeDataString(appointment.Phone)}" +
-                    $"&patientName={Uri.EscapeDataString(appointment.PatientName)}" +
-                    $"&appointmentEntryId={Uri.EscapeDataString(supabaseEntryId ?? "")}" +
-                    $"&supabaseEntryId={Uri.EscapeDataString(supabaseEntryId ?? "")}");
+     $"{nameof(CreateBillPage)}" +
+     $"?patientId={Uri.EscapeDataString(appointment.PatientSupabaseId ?? string.Empty)}" +
+     $"&patientName={Uri.EscapeDataString(appointment.PatientName ?? string.Empty)}" +
+     $"&appointmentEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}" +
+     $"&supabaseEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}");
             }
             catch (Exception ex)
             {
@@ -430,6 +430,7 @@ namespace ClinicApp.ViewModels
                         {
                             SupabaseBookingId = e.SupabaseBookingId,
                             PatientName = e.PatientName,
+                            PatientSupabaseId = e.PatientId,
                             Phone = e.Phone ?? "",
                             Email = e.Email ?? "",
                             Notes = e.Notes ?? "",
@@ -529,6 +530,7 @@ namespace ClinicApp.ViewModels
                         {
                             SupabaseBookingId = e.SupabaseBookingId,
                             PatientName = e.PatientName,
+                            PatientSupabaseId = e.PatientId,
                             Phone = e.Phone ?? "",
                             Email = e.Email ?? "",
                             Notes = e.Notes ?? "",

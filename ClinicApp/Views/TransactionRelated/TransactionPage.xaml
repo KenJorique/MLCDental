@@ -59,7 +59,7 @@
                             Command="{Binding CreateNewBillCommand}"/>
 
                     <!-- Outstanding balances -->
-                    <VerticalStackLayout Spacing="8"
+                    <!--<VerticalStackLayout Spacing="8"
                         IsVisible="{Binding HasBalance}">
                         <Label Text="⚠ Outstanding Balances"
                                FontSize="14" FontAttributes="Bold"
@@ -129,10 +129,10 @@
                                 </DataTemplate>
                             </CollectionView.ItemTemplate>
                         </CollectionView>
-                    </VerticalStackLayout>
+                    </VerticalStackLayout>-->
 
                     <!-- Full billing history -->
-                    <!--<Label Text="Billing History"
+                    <Label Text="Billing History"
                            FontSize="14" FontAttributes="Bold"
                            TextColor="#333" Margin="0,8,0,0"/>
 
@@ -189,7 +189,7 @@
                                 </Frame>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
-                    </CollectionView>-->
+                    </CollectionView>
 
                     <BoxView HeightRequest="20" Color="Transparent"/>
 

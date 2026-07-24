@@ -77,6 +77,12 @@ namespace ClinicApp.ViewModels.TransactionVM
         }
 
         [RelayCommand]
+        public async Task OnAppearing()
+        {
+            await LoadBillsAsync();
+        }
+
+        [RelayCommand]
         async Task Refresh()
         {
             IsRefreshing = true;

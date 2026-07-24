@@ -333,8 +333,8 @@ namespace ClinicApp.Services
             }
         }
 
-     
 
+        // ── Google Tasks Integration ─────────────────────────────────
         public async Task<string?> SyncToGoogleTasksAsync(
                         string accessToken,
                         string patientName,
@@ -870,21 +870,30 @@ namespace ClinicApp.Services
                 throw;
             }
         }
-        public async Task AddBillItemAsync(SupabaseBillItem item)
+        public async Task AddBillItemAsync(SupabaseBillItemInsert item)
         {
+            await EnsureInitializedAsync();
+
             try
             {
-                await EnsureInitializedAsync();
-                await _client!.From<SupabaseBillItem>().Insert(item);
+                var result = await _client!
+                    .From<SupabaseBillItemInsert>()
+                    .Insert(item);
+
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] Bill item saved: {item.ServiceName}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] AddBillItem: {ex.Message}");
+                    $"[Supabase] AddBillItem ERROR: {ex}");
+
+                throw;
             }
         }
 
-        public async Task<List<SupabaseBill>> GetBillsForPatientAsync(
+        public async Task<List<SupabaseBill>> GetBillsForPatientAsync(  
             string patientId)
         {
             try

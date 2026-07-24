@@ -1,5 +1,10 @@
 ﻿using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
+using Newtonsoft.Json;
+using SQLite;
+using Table = Supabase.Postgrest.Attributes.TableAttribute;
+using PrimaryKey = Supabase.Postgrest.Attributes.PrimaryKeyAttribute;
+using Column = Supabase.Postgrest.Attributes.ColumnAttribute;
 
 namespace ClinicApp.Models
 {
@@ -25,6 +30,7 @@ namespace ClinicApp.Models
         public int Quantity { get; set; } = 1;
 
         [Column("subtotal")]
+        [JsonProperty("subtotal")]
         public decimal Subtotal { get; set; }
 
         [Column("notes")]
@@ -38,14 +44,19 @@ namespace ClinicApp.Models
 
 
         // Display helpers
+        [JsonIgnore]
         public string ToothNumbersDisplay =>
             string.IsNullOrEmpty(ToothNumbers)
                 ? "" : $"Teeth: {ToothNumbers}";
 
+        [JsonIgnore]
         public bool HasTeethInfo =>
             !string.IsNullOrEmpty(ToothNumbers);
 
+        [JsonIgnore]
         public string SubtotalDisplay => $"₱{Subtotal:N2}";
+
+        [JsonIgnore]
         public string UnitPriceDisplay => $"₱{UnitPrice:N2}";
     }
 }

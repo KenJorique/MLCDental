@@ -261,27 +261,51 @@ namespace ClinicApp.ViewModels.TransactionVM
                 // 3. Save bill items + apply to dental chart
                 foreach (var item in SelectedServices)
                 {
-                    await _supabase.AddBillItemAsync(new SupabaseBillItem
+                    var billItem = new SupabaseBillItemInsert
                     {
-                        BillId = saved.Id,
-                        ServiceId = item.ServiceId,
-                        ServiceName = item.ServiceName,
-                        UnitPrice = item.UnitPrice,
-                        Quantity = item.Quantity,
-                        ToothNumbers = item.ToothNumbers,
-                        AffectsTeeth = item.ShowTeethInput &&
-                                        item.ParsedTeethNumbers.Count > 0
-                    });
+                        Id = Guid.NewGuid().ToString(),
 
-                    if (item.ShowTeethInput && item.ParsedTeethNumbers.Count > 0)
+                        BillId = saved.Id,
+
+                        ServiceId = item.ServiceId,
+
+                        ServiceName = item.ServiceName,
+
+                        UnitPrice = item.UnitPrice,
+
+                        Quantity = item.Quantity,
+
+                        ToothNumbers = string.IsNullOrWhiteSpace(item.ToothNumbers)
+         ? null
+         : item.ToothNumbers,
+
+                        AffectsTeeth =
+         item.ShowTeethInput &&
+         item.ParsedTeethNumbers.Count > 0
+                    };
+
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[CreateBill] Saving item: {billItem.ServiceName} " +
+                        $"Qty={billItem.Quantity} " +
+                        $"Price={billItem.UnitPrice} ");
+
+
+                    await _supabase.AddBillItemAsync(billItem);
+
+
+                    // Dental chart update
+                    if (item.ShowTeethInput &&
+                        item.ParsedTeethNumbers.Count > 0)
                     {
-                        // Tooth-specific services — logs per tooth with chart coloring
-                        await ApplyToothConditionsAsync(item.ServiceName, item.ParsedTeethNumbers);
+                        await ApplyToothConditionsAsync(
+                            item.ServiceName,
+                            item.ParsedTeethNumbers);
                     }
                     else
                     {
-                        // General services — still logged, just without a tooth number
-                        await LogGeneralServiceAsync(item.ServiceName);
+                        await LogGeneralServiceAsync(
+                            item.ServiceName);
                     }
                 }
 
@@ -400,15 +424,28 @@ namespace ClinicApp.ViewModels.TransactionVM
         {
             try
             {
-                // Try by SupabaseId first
                 if (!string.IsNullOrEmpty(PatientId))
                 {
                     var p = await _db.GetPatientBySupabaseId(PatientId);
-                    if (p != null) return p.PatientID;
+
+                    if (p != null)
+                        return p.PatientID;
                 }
+
+                // fallback using patient name/phone if UUID link missing
+                var patients = await _db.GetPatients();
+
+                var match = patients.FirstOrDefault(p =>
+                    $"{p.FirstName} {p.LastName}".Trim()
+                    .Equals(PatientName.Trim(),
+                            StringComparison.OrdinalIgnoreCase));
+
+                return match?.PatientID ?? 0;
+            }
+            catch
+            {
                 return 0;
             }
-            catch { return 0; }
         }
 
         [RelayCommand]
@@ -445,9 +482,10 @@ namespace ClinicApp.ViewModels.TransactionVM
                 ShowPayment = false;
 
                 await Shell.Current.GoToAsync(
-                    $"{nameof(ReceiptPage)}" +
-                    $"?billId={CreatedBillId}" +
-                    $"&patientName={Uri.EscapeDataString(PatientName)}");
+     $"{nameof(ReceiptPage)}" +
+     $"?billId={CreatedBillId}" +
+     $"&patientName={Uri.EscapeDataString(PatientName)}" +
+     $"&patientId={Uri.EscapeDataString(PatientId)}");
             }
             catch (Exception ex)
             {

@@ -17,12 +17,9 @@ namespace ClinicApp.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            try { await _vm.LoadBillsCommand.ExecuteAsync(null); }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[TransactionPage] {ex.Message}");
-            }
+
+            if (BindingContext is TransactionViewModel vm)
+                await vm.LoadBillsAsync();
         }
     }
 }

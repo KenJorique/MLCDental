@@ -51,8 +51,27 @@ namespace ClinicApp.ViewModels.TransactionVM
             try
             {
                 var items = await _supabase.GetBillItemsAsync(BillId);
+
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Receipt] Loaded {items.Count} items for bill {BillId}");
+
+
+                foreach (var item in items)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Receipt] {item.ServiceName} " +
+                        $"Qty={item.Quantity} " +
+                        $"Subtotal={item.Subtotal}");
+                }
+
+
                 Items.Clear();
-                foreach (var i in items) Items.Add(i);
+
+                foreach (var i in items)
+                {
+                    Items.Add(i);
+                }
 
                 var payments = await _supabase.GetPaymentsForBillAsync(BillId);
                 Payments.Clear();
@@ -122,8 +141,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 // TransactionPage or AppointmentSchedulePage.
                 await Shell.Current.GoToAsync(
                     $"//{nameof(Views.PatientsRelated.PatientDetailsPage)}" +
-                    $"?patientId={Uri.EscapeDataString(PatientId)}" +
-                    $"&patientName={Uri.EscapeDataString(PatientName)}");
+                    $"?patientId={Uri.EscapeDataString(PatientId)}" );
             }
             else
             {

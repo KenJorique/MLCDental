@@ -7,7 +7,7 @@ using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels.PatientsRelatedVM;
 
-[QueryProperty(nameof(PatientId), "id")]
+[QueryProperty(nameof(PatientId), "patientId")]
 public partial class PatientDetailsViewModel : ObservableObject
 {
     readonly DatabaseService _db;
