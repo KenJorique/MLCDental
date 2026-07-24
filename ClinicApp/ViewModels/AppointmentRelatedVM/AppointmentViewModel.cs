@@ -154,25 +154,24 @@ namespace ClinicApp.ViewModels
                 // Only create new patient if not existing
                 // Replace the existing patient check section with this:
 
-                // Always check by phone first — prevents duplicates regardless of flag
-                bool patientExists = false;
+                // Always check by phone first — prevents duplicates regardless of flag.
+                // Track the resolved patient (existing or newly-created) so its Supabase Id
+                // can be linked onto the appointment entry below.
+                SupabasePatient? patient = null;
 
                 if (!string.IsNullOrEmpty(booking.Phone))
                 {
-                    var existingPatients = await _supabaseData
-                        .GetPatientByPhoneAsync(booking.Phone);
-                    patientExists = existingPatients != null;
+                    patient = await _supabaseData.GetPatientByPhoneAsync(booking.Phone);
 
                     System.Diagnostics.Debug.WriteLine(
-                        $"[Approve] Patient exists check: {patientExists} " +
-                        $"for phone {booking.Phone}");
+                        $"[Approve] Existing patient: {(patient != null ? patient.Id : "NONE")}");
                 }
 
-                if (!patientExists)
+                if (patient == null)
                 {
                     // Create new patient — only if truly doesn't exist
                     var parts = (booking.FullName ?? "").Trim().Split(' ', 2);
-                    var patient = new Patient
+                    var localPatient = new Patient
                     {
                         FirstName = parts.Length > 0 ? parts[0] : "",
                         LastName = parts.Length > 1 ? parts[1] : "",
@@ -181,22 +180,26 @@ namespace ClinicApp.ViewModels
                         ReferredBy = "Online Booking",
                         DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
                     };
-                    await _db.AddPatient(patient);
 
                     var supPatient = new SupabasePatient
                     {
-                        FirstName = patient.FirstName,
-                        LastName = patient.LastName,
-                        Phone = patient.MobileNo,
-                        Email = patient.Email,
-                        ReasonForConsultation = patient.ReasonForConsultation,
+                        FirstName = localPatient.FirstName,
+                        LastName = localPatient.LastName,
+                        Phone = localPatient.MobileNo,
+                        Email = localPatient.Email,
+                        ReasonForConsultation = localPatient.ReasonForConsultation,
                         ReferredBy = "Online Booking",
                         DateRegistered = DateTime.UtcNow
                     };
-                    await _supabaseData.AddPatientAsync(supPatient);
+                    patient = await _supabaseData.AddPatientAsync(supPatient);
+
+                    if (patient != null)
+                        localPatient.SupabaseId = patient.Id;
+
+                    await _db.AddPatient(localPatient);
 
                     System.Diagnostics.Debug.WriteLine(
-                        $"[Approve] New patient created: {patient.FirstName}");
+                        $"[Approve] New patient created: {localPatient.FirstName}");
                 }
                 else
                 {
@@ -228,6 +231,9 @@ namespace ClinicApp.ViewModels
                 var supEntry = new SupabaseAppointmentEntry
                 {
                     SupabaseBookingId = booking.Id,
+                    // BUGFIX (Ken's improvement, folded in): previously this was never set,
+                    // leaving the appointment entry with no link back to the patient record.
+                    PatientId = patient?.Id ?? "",
                     PatientName = booking.FullName ?? "",
                     Phone = booking.Phone ?? "",
                     Email = booking.Email ?? "",

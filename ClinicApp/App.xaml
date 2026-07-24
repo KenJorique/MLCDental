@@ -36,6 +36,12 @@
 			<converters:BoolToColorConverter x:Key="BoolToColorConverter" />
 			<converters:IntToBoolConverter x:Key="IntToBoolConverter" />
 			<converters:StringToBoolConverter x:Key="StringToBoolConverter" />
-		</ResourceDictionary>
+
+            <converters:DecimalNotZeroConverter x:Key="DecimalNotZeroConverter"/>
+
+            <converters:ToothAwareConverter   x:Key="ToothAwareConverter"/>
+            <converters:InstallmentConverter  x:Key="InstallmentConverter"/>
+
+        </ResourceDictionary>
 	</Application.Resources>
 </Application>

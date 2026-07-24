@@ -46,4 +46,6 @@ public class TreatmentHistory
 
     /// <summary>Full ISO timestamp of when the record was created.</summary>
     public string Timestamp { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+    public string Description { get; set; } = string.Empty;
 }

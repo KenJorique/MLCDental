@@ -5,18 +5,20 @@ using ClinicApp.ViewModels.DentalChart;
 using ClinicApp.ViewModels.PatientsRelatedVM;
 using ClinicApp.ViewModels.ServicesRelatedVM;
 using ClinicApp.ViewModels.SupplyVM;
+using ClinicApp.ViewModels.TransactionVM;
 using ClinicApp.ViewModels.UsersRelated;
 using ClinicApp.Views;
+using ClinicApp.Views.AppointmentRelated;
 using ClinicApp.Views.CephalometricRelated;
 using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.SupplyRelated;
+using ClinicApp.Views.TransactionRelated;
 using ClinicApp.Views.UsersRelated;
-using ClinicApp.Views.AppointmentRelated;
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using The49.Maui.BottomSheet;
-using CommunityToolkit.Maui;
 
 namespace ClinicApp
 {
@@ -125,11 +127,21 @@ namespace ClinicApp
             builder.Services.AddTransient<AddUserViewModel>();
 
             // Transactions
-            builder.Services.AddTransient<TransactionViewModel>(sp =>
-                            new TransactionViewModel(
-                                sp.GetRequiredService<SupabaseDataService>()
-                            ));
-            builder.Services.AddTransient<TransactionPage>();
+            builder.Services.AddTransient<TransactionViewModel>(s =>
+                new TransactionViewModel(
+                    s.GetRequiredService<SupabaseDataService>(),
+                    s.GetRequiredService<DatabaseService>()));
+            builder.Services.AddTransient<Views.TransactionPage>();
+            builder.Services.AddTransient<CreateBillViewModel>(sp =>
+                    new CreateBillViewModel(
+                 sp.GetRequiredService<SupabaseDataService>(),
+                 sp.GetRequiredService<DatabaseService>()));
+            builder.Services.AddTransient<Views.CreateBillPage>();
+
+            builder.Services.AddTransient<ReceiptViewModel>(sp =>
+                new ReceiptViewModel(
+                    sp.GetRequiredService<SupabaseDataService>()));
+            builder.Services.AddTransient<ReceiptPage>();
 
             // ── Supply ────────────────────────────────────────────
             builder.Services.AddTransient<SupplyListPage>();

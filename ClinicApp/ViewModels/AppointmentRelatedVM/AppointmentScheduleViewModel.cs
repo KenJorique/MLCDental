@@ -24,8 +24,8 @@ namespace ClinicApp.ViewModels
         public ObservableCollection<AppointmentEntry> TodayAppointments { get; } = new();
         public ObservableCollection<AppointmentEntry> WeekAppointments { get; } = new();
 
-        // Grouped by specific date (excludes today, which has its own section above).
-        // Max 6 groups — the other days of the Sun–Sat week.
+        // Grouped by specific date — one chronological list, Mon–Sat, Today included in its
+        // normal weekday position (see LoadAppointments for the grouping logic).
         public ObservableCollection<AppointmentDateGroup> GroupedWeekAppointments { get; } = new();
         [ObservableProperty] private bool hasNoWeekAppointments = true;
 
@@ -58,29 +58,34 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private string weekLabel = "This week";
 
         AppointmentDetailSheet? _detailSheet;
-        // Add these properties
-        public bool IsSelectedApproved =>
-        SelectedAppointment?.Status == "approved" ||
-        SelectedAppointment?.Status == "rescheduled";
 
-        public bool CanChangeDate =>
-        SelectedAppointment?.Status == "approved" ||
-        SelectedAppointment?.Status == "rescheduled";
+        // Complete only makes sense for an appointment happening today; reschedule only for
+        // one that isn't (Ken's rule — kept, but derived from the date directly instead of a
+        // separately-tracked "selected from week" flag, since Today now lives inside the same
+        // single chronological list rather than a separate section).
+        public bool IsSelectedApproved =>
+            SelectedAppointment?.Status == "approved" &&
+            SelectedAppointment?.AppointmentDateTimeParsed.Date == DateTime.Today;
+
         public bool IsSelectedPending =>
-            SelectedAppointment?.Status == "pending";
+            SelectedAppointment?.Status == "pending" ||
+            SelectedAppointment?.Status == "rescheduled";
 
         public bool CanCancel =>
-        SelectedAppointment?.Status == "approved" ||
-        SelectedAppointment?.Status == "pending" ||
-        SelectedAppointment?.Status == "rescheduled";
+            SelectedAppointment?.Status == "approved" ||
+            SelectedAppointment?.Status == "pending" ||
+            SelectedAppointment?.Status == "rescheduled";
 
-        // Update OnSelectedAppointmentChanged to notify them
+        public bool CanChangeDate =>
+            SelectedAppointment?.Status == "approved" &&
+            SelectedAppointment?.AppointmentDateTimeParsed.Date != DateTime.Today;
+
         partial void OnSelectedAppointmentChanged(AppointmentEntry? value)
         {
             OnPropertyChanged(nameof(IsSelectedApproved));
-            OnPropertyChanged(nameof(CanChangeDate));
             OnPropertyChanged(nameof(IsSelectedPending));
             OnPropertyChanged(nameof(CanCancel));
+            OnPropertyChanged(nameof(CanChangeDate));
         }
 
         [RelayCommand]
@@ -88,6 +93,7 @@ namespace ClinicApp.ViewModels
         {
             await Shell.Current.GoToAsync(nameof(AppointmentPage));
         }
+
         // always start from Sunday of the CURRENT week
         public DateTime WeekStart
         {
@@ -104,7 +110,6 @@ namespace ClinicApp.ViewModels
             await Shell.Current.GoToAsync(nameof(WalkInBookingPage));
         }
 
-
         public AppointmentScheduleViewModel(DatabaseService db, SupabaseDataService supabaseData)
         {
             _db = db;
@@ -119,7 +124,6 @@ namespace ClinicApp.ViewModels
             DateRangeLabel = $"{ws:MMM d} – {we:d, yyyy}";
             UpdateListLabels();
         }
-
 
         [RelayCommand]
         void ShowList()
@@ -176,7 +180,6 @@ namespace ClinicApp.ViewModels
             CalendarNeedsRedraw?.Invoke();
         }
 
-        // Add this method
         private void UpdateCanGoPrevious()
         {
             CanGoPrevious = WeekStart.Date >= DateTime.Today.AddDays(-6); // Current week or future
@@ -204,17 +207,16 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Single selection command — matches the one chronological list in the XAML.
+        // (Ken's version had separate SelectTodayAppointment/SelectWeekAppointment commands
+        // tracking a "SelectedFromWeekSection" flag, left over from before Today and the rest
+        // of the week were merged into one list. That flag is no longer meaningful now that
+        // there's only one list to select from, so IsSelectedApproved/CanChangeDate above
+        // derive the same "is this today?" distinction directly from the date instead.)
         [RelayCommand]
         async Task SelectAppointment(AppointmentEntry entry)
         {
             if (entry == null) return;
-
-            if (entry.Status == "pending")
-            {
-                // Go to approval page
-                await Shell.Current.GoToAsync(nameof(AppointmentPage));
-                return;
-            }
 
             SelectedAppointment = entry;
             ShowDetail = true;
@@ -231,10 +233,14 @@ namespace ClinicApp.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[SelectAppointment] {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[SelectAppointment] {ex.Message}");
             }
         }
+
+        // Used by the Calendar view tap handler — same behaviour as SelectAppointment
+        [RelayCommand]
+        async Task SelectWeekAppointment(AppointmentEntry entry) =>
+            await SelectAppointmentCommand.ExecuteAsync(entry);
 
         [RelayCommand]
         async Task CloseDetail()
@@ -264,63 +270,53 @@ namespace ClinicApp.ViewModels
             bool confirm = await Shell.Current.DisplayAlert(
                 "Mark as completed",
                 $"Mark {SelectedAppointment.PatientName}'s appointment as completed?\n" +
-                "It will be removed from the schedule.",
-                "Yes", "Cancel");
+                "You will be redirected to create a bill.",
+                "Yes, proceed", "Cancel");
             if (!confirm) return;
 
             var appointment = SelectedAppointment;
             var supabaseEntryId = _selectedSupabaseEntryId;
 
-            IsLoading = true;
             try
             {
-                // 1. Complete Google Task
+                // Google Tasks complete
                 try
                 {
-                    var accessToken = await _supabaseData.GetFreshAccessTokenAsync();
-                    if (!string.IsNullOrEmpty(accessToken)
-                        && !string.IsNullOrEmpty(appointment.GoogleTaskId))
-                    {
+                    var token = await _supabaseData.GetFreshAccessTokenAsync();
+                    if (!string.IsNullOrEmpty(token) &&
+                        !string.IsNullOrEmpty(appointment.GoogleTaskId))
                         await _supabaseData.CompleteGoogleTaskAsync(
-                            accessToken, appointment.GoogleTaskId);
-                    }
+                            token, appointment.GoogleTaskId);
                 }
-                catch (Exception googleEx)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[MarkCompleted] Google: {googleEx.Message}");
-                }
+                catch { /* silent */ }
 
-                // 2. Delete from Supabase appointment_entries immediately
-                if (!string.IsNullOrEmpty(supabaseEntryId))
-                    await _supabaseData.DeleteAppointmentEntryAsync(supabaseEntryId);
-
-                // 3. Delete from Supabase bookings
-                if (!string.IsNullOrEmpty(appointment.SupabaseBookingId))
-                    await _supabaseData.DeleteBookingAsync(
-                        appointment.SupabaseBookingId);
-
-                // 4. Delete from local SQLite
-                await _db.DeleteAppointmentEntry(appointment);
-
-                // 5. Close detail and refresh
                 ShowDetail = false;
                 SelectedAppointment = null;
                 await CloseSheetAsync();
 
+                // BUGFIX: the removal used to only touch TodayAppointments/WeekAppointments —
+                // two legacy collections the current XAML doesn't actually display anymore
+                // (it's bound to GroupedWeekAppointments). That meant a just-completed
+                // appointment wouldn't visually disappear until the next full reload.
+                // A full LoadAppointments() rebuilds GroupedWeekAppointments (and the calendar)
+                // correctly, same as CancelAppointment/DeleteAppointment already do.
                 await LoadAppointments();
 
-                await Shell.Current.DisplayAlert("Completed",
-                    $"{appointment.PatientName}'s appointment completed " +
-                    "and removed from schedule.", "OK");
+                // Navigate to billing — pass appointment entry id.
+                // Deletion happens INSIDE CreateBillViewModel.CreateBill()
+                // so going back doesn't lose the appointment.
+                await Shell.Current.GoToAsync(
+                    $"{nameof(CreateBillPage)}" +
+                    $"?patientId={Uri.EscapeDataString(appointment.PatientSupabaseId ?? string.Empty)}" +
+                    $"&patientName={Uri.EscapeDataString(appointment.PatientName ?? string.Empty)}" +
+                    $"&appointmentEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}" +
+                    $"&supabaseEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MarkCompleted] {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MarkCompleted] {ex.Message}");
                 await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
             }
-            finally { IsLoading = false; }
         }
 
         [RelayCommand]
@@ -371,27 +367,21 @@ namespace ClinicApp.ViewModels
         {
             if (SelectedAppointment == null) return;
 
-            // BUGFIX: capture before closing the sheet. CloseSheetAsync() now
-            // triggers the sheet's Dismissed event, which resets SelectedAppointment
-            // to null — reading it after that line threw a NullReferenceException.
-            var appointment = SelectedAppointment;
-
             ShowDetail = false;
             await CloseSheetAsync();
 
-            var currentDt = appointment.AppointmentDateTimeParsed
+            var currentDt = SelectedAppointment.AppointmentDateTimeParsed
                 != DateTime.MinValue
-                ? appointment.AppointmentDateTimeParsed
+                ? SelectedAppointment.AppointmentDateTimeParsed
                       .ToString("MMM dd, yyyy h:mm tt")
                 : "Unknown";
 
             await Shell.Current.GoToAsync(
                 $"{nameof(ReschedulePage)}" +
-                $"?bookingId={Uri.EscapeDataString(appointment.SupabaseBookingId)}" +
-                $"&patientName={Uri.EscapeDataString(appointment.PatientName)}" +
+                $"?bookingId={Uri.EscapeDataString(SelectedAppointment.SupabaseBookingId)}" +
+                $"&patientName={Uri.EscapeDataString(SelectedAppointment.PatientName)}" +
                 $"&currentDateTime={Uri.EscapeDataString(currentDt)}");
         }
-
 
         [RelayCommand]
         async Task Refresh()
@@ -407,185 +397,38 @@ namespace ClinicApp.ViewModels
             CalendarNeedsRedraw?.Invoke();
         }
 
-        private async Task FetchAndPopulate()
-        {
-            try
-            {
-                var weekEnd = WeekStart.AddDays(7);
-
-                var bookingsTask = _supabaseData.GetBookingsForWeekAsync(
-                                       WeekStart, weekEnd);
-                var entriesTask = _supabaseData.GetAppointmentEntriesAsync();
-
-                await Task.WhenAll(bookingsTask, entriesTask);
-
-                var bookings = bookingsTask.Result;
-                var entries = entriesTask.Result;
-
-                // ── Convert bookings → AppointmentEntry ──────────────
-                var bookingEntries = bookings.Select(b =>
-                {
-                    // Force UTC kind then convert ONCE to local
-                    var utc = DateTime.SpecifyKind(
-                                    b.AppointmentDate, DateTimeKind.Utc);
-                    var local = utc.ToLocalTime();
-
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[Time] {b.FullName}: UTC={utc:HH:mm} Local={local:HH:mm}");
-
-                    return new AppointmentEntry
-                    {
-                        SupabaseBookingId = b.Id,
-                        PatientName = b.FullName ?? "",
-                        Phone = b.Phone ?? "",
-                        Email = b.Email ?? "",
-                        Notes = b.Notes ?? "",
-                        // Store as LOCAL time string with no timezone info
-                        // AppointmentDateTimeParsed treats unspecified as local
-                        AppointmentDateTime = local.ToString("yyyy-MM-dd HH:mm:ss"),
-                        Status = b.Status
-                    };
-                }).ToList();
-
-                // ── Convert approved entries ──────────────────────────
-                var approvedEntries = entries
-                    .Select(e =>
-                    {
-                        // e.AppointmentDateTime is UTC from Supabase
-                        var utc = DateTime.SpecifyKind(
-                                        e.AppointmentDateTime, DateTimeKind.Utc);
-                        var local = utc.ToLocalTime();
-
-                        return new AppointmentEntry
-                        {
-                            SupabaseBookingId = e.SupabaseBookingId,
-                            PatientName = e.PatientName,
-                            Phone = e.Phone ?? "",
-                            Email = e.Email ?? "",
-                            Notes = e.Notes ?? "",
-                            AppointmentDateTime = local.ToString("yyyy-MM-dd HH:mm:ss"),
-                            Status = e.Status,
-                            GoogleTaskId = e.GoogleTaskId ?? ""
-                        };
-                    })
-                    .Where(e =>
-                    {
-                        // Filter by week AFTER conversion to local
-                        return e.AppointmentDateTimeParsed.Date >= WeekStart.Date &&
-                               e.AppointmentDateTimeParsed.Date < WeekStart.AddDays(7).Date;
-                    })
-                    .ToList();
-
-                // ── Merge — approved takes priority over pending ──────
-                var approvedIds = approvedEntries
-                    .Select(e => e.SupabaseBookingId)
-                    .ToHashSet();
-
-                var pendingOnly = bookingEntries
-                    .Where(b => !approvedIds.Contains(b.SupabaseBookingId))
-                    .ToList();
-
-                var allEntries = approvedEntries
-                    .Concat(pendingOnly)
-                    .OrderBy(e => e.AppointmentDateTimeParsed)
-                    .ToList();
-
-                // ── Today ─────────────────────────────────────────────
-                var todayEntries = allEntries
-                    .Where(e => e.AppointmentDateTimeParsed.Date == DateTime.Today)
-                    .ToList();
-
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    TodayAppointments.Clear();
-                    foreach (var a in todayEntries)
-                        TodayAppointments.Add(a);
-                    TodayCount = TodayAppointments.Count;
-                });
-
-                // ── Week ──────────────────────────────────────────────
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    WeekAppointments.Clear();
-                    foreach (var a in allEntries)
-                        WeekAppointments.Add(a);
-                    WeekCount = WeekAppointments.Count;
-                });
-
-                // ── Pending count for banner ──────────────────────────
-                var pending = await _supabaseData.GetBookingsByStatusAsync("pending");
-                PendingBookingsCount = pending.Count;
-                HasPendingBookings = PendingBookingsCount > 0;
-                OnPropertyChanged(nameof(HasPendingBookings));
-                OnPropertyChanged(nameof(PendingBookingsCount));
-
-                // ── Calendar ──────────────────────────────────────────
-                BuildCalendarColumns(allEntries);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[FetchAndPopulate] ERROR: {ex.Message}");
-            }
-        }
         public async Task LoadAppointments()
         {
             if (IsBusy) return;
             IsBusy = true;
             try
             {
-                var weekEnd = WeekStart.AddDays(7);
+                var entries = await _supabaseData.GetAppointmentEntriesAsync();
 
-                var bookingsTask = _supabaseData.GetBookingsForWeekAsync(WeekStart, weekEnd);
-                var entriesTask = _supabaseData.GetAppointmentEntriesAsync();
-                await Task.WhenAll(bookingsTask, entriesTask);
-
-                var bookings = bookingsTask.Result;
-                var entries = entriesTask.Result;
-                // Fix bookingEntries conversion — always convert UTC to Philippine local time
-                var bookingEntries = bookings.Select(b =>
-                {
-                    // Ensure UTC kind is set before converting
-                    var utcDate = b.AppointmentDate.Kind == DateTimeKind.Utc
-                        ? b.AppointmentDate
-                        : DateTime.SpecifyKind(b.AppointmentDate, DateTimeKind.Utc);
-
-                    var localDate = utcDate.ToLocalTime();
-
-                    return new AppointmentEntry
-                    {
-                        SupabaseBookingId = b.Id,
-                        PatientName = b.FullName ?? "",
-                        Phone = b.Phone ?? "",
-                        Email = b.Email ?? "",
-                        Notes = b.Notes ?? "",
-                        // Store as local time string so AppointmentDateTimeParsed works correctly
-                        AppointmentDateTime = localDate.ToString("yyyy-MM-dd HH:mm:ss"),
-                        Status = b.Status
-                    };
-                }).ToList();
-
+                // Schedule page shows APPROVED appointments only.
+                // Pending / rescheduled bookings live exclusively in the
+                // review list (AppointmentPage) — they never appear here.
                 var approvedEntries = entries
+                    .Where(e => e.Status == "approved")
                     .Where(e =>
                     {
-                        var utcDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
-                            ? e.AppointmentDateTime
-                            : DateTime.SpecifyKind(e.AppointmentDateTime, DateTimeKind.Utc);
-                        var dt = utcDt.ToLocalTime();
+                        var dt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
+                            ? e.AppointmentDateTime.ToLocalTime()
+                            : e.AppointmentDateTime;
                         return dt.Date >= WeekStart.Date &&
                                dt.Date < WeekStart.AddDays(7).Date;
                     })
                     .Select(e =>
                     {
-                        var utcDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
-                            ? e.AppointmentDateTime
-                            : DateTime.SpecifyKind(e.AppointmentDateTime, DateTimeKind.Utc);
-                        var localDt = utcDt.ToLocalTime();
+                        var localDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
+                            ? e.AppointmentDateTime.ToLocalTime()
+                            : e.AppointmentDateTime;
 
                         return new AppointmentEntry
                         {
                             SupabaseBookingId = e.SupabaseBookingId,
                             PatientName = e.PatientName,
+                            PatientSupabaseId = e.PatientId,
                             Phone = e.Phone ?? "",
                             Email = e.Email ?? "",
                             Notes = e.Notes ?? "",
@@ -595,21 +438,11 @@ namespace ClinicApp.ViewModels
                         };
                     }).ToList();
 
-                // ── Merge
-                var approvedIds = approvedEntries
-                    .Select(e => e.SupabaseBookingId)
-                    .ToHashSet();
-
-                var pendingOnly = bookingEntries
-                    .Where(b => !approvedIds.Contains(b.SupabaseBookingId))
-                    .ToList();
-
                 var allEntries = approvedEntries
-                    .Concat(pendingOnly)
                     .OrderBy(e => e.AppointmentDateTimeParsed)
                     .ToList();
 
-                // ── Force round to nearest hour (no :30) ─────────────────────
+                // ── Force round to nearest hour (no :30) ─────────────────
                 foreach (var entry in allEntries)
                 {
                     var dt = entry.AppointmentDateTimeParsed;
@@ -633,6 +466,8 @@ namespace ClinicApp.ViewModels
                     TodayCount = TodayAppointments.Count;
                 });
 
+                // ── Populate Week (kept as-is; no longer bound in the list UI,
+                //    left in case anything else reads WeekAppointments/WeekCount) ──
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     WeekAppointments.Clear();
@@ -642,6 +477,10 @@ namespace ClinicApp.ViewModels
                 });
 
                 // ── Populate GroupedWeekAppointments — ONE chronological list, Mon–Sat.
+                //    Today gets a "Today, <date>" header instead of the weekday name, and always
+                //    shows (even with 0 appointments) — but ONLY when the week being viewed is the
+                //    current week, since "day == DateTime.Today" can only be true for a day that's
+                //    actually inside WeekStart..WeekStart+6. Other days are skipped when empty. ──
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     GroupedWeekAppointments.Clear();
@@ -685,21 +524,11 @@ namespace ClinicApp.ViewModels
                 var pending = await _supabaseData.GetBookingsByStatusAsync("pending");
                 PendingBookingsCount = pending.Count;
                 HasPendingBookings = PendingBookingsCount > 0;
-
-                System.Diagnostics.Debug.WriteLine("=== LOAD APPOINTMENTS FINISHED ===");
-                System.Diagnostics.Debug.WriteLine($"Total entries: {allEntries.Count}");
-                foreach (var e in allEntries.Take(5))
-                {
-                    System.Diagnostics.Debug.WriteLine($"  - {e.PatientName} at {e.AppointmentDateTimeParsed:yyyy-MM-dd HH:mm}");
-                }
             }
-
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[LoadAppointments] ERROR: {ex.Message}");
             }
-
-
             finally
             {
                 IsBusy = false;

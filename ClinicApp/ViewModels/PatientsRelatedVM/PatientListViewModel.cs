@@ -291,16 +291,17 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                             await Shell.Current.GoToAsync(
                                 $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
                     },
+                 // Find the ActionSheet Option inside OpenActionSheet method and update its target:
                     new ActionSheetOption
                     {
                         Icon = "\ue8f1",
                         Label = "Transaction History",
-                        Subtitle = "Coming soon",
-                        IconBackgroundColor = Color.FromArgb("#F5F5F5"),
-                        IconColor = Color.FromArgb("#9E9E9E"),
+                        Subtitle = "View billing balance & history logs",
+                        IconBackgroundColor = Color.FromArgb("#E8F5E9"), // changed from gray to green active asset styling
+                        IconColor = Color.FromArgb("#1A6B2F"),
                         OnTapped = async () =>
-                            await Shell.Current.DisplayAlert("Coming Soon",
-                                "Transaction History is not available yet.", "OK"),
+                            await Shell.Current.GoToAsync(
+                                $"{nameof(TransactionPage)}?patientId={card.Patient.SupabaseId}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
                     },
                     new ActionSheetOption
                     {
@@ -412,6 +413,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 $"&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
         }
 
+        // Change this current implementation at the bottom of your PatientListViewModel.cs:
         [RelayCommand]
         async Task ViewTransactions(PatientCardViewModel card)
         {

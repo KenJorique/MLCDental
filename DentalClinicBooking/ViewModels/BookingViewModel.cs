@@ -36,16 +36,6 @@ namespace DentalClinicBooking.ViewModels
         [StringLength(500)]
         public string? Notes { get; set; }
 
-        public List<string> AvailableServices => new()
-        {
-            "General Checkup",
-            "Teeth Cleaning",
-            "Tooth Extraction",
-            "Dental Filling",
-            "Orthodontics",
-            "Teeth Whitening",
-            "Dentures",
-            "X-Ray"
-        };
+    
     }
 }

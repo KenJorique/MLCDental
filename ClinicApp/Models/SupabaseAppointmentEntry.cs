@@ -15,6 +15,9 @@ namespace ClinicApp.Models
         [Column("patient_name")]
         public string PatientName { get; set; } = string.Empty;
 
+        [Column("patient_id")]
+        public string PatientId { get; set; } = string.Empty;
+
         [Column("phone")]
         public string? Phone { get; set; }
 

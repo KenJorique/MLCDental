@@ -333,8 +333,8 @@ namespace ClinicApp.Services
             }
         }
 
-     
 
+        // ── Google Tasks Integration ─────────────────────────────────
         public async Task<string?> SyncToGoogleTasksAsync(
                         string accessToken,
                         string patientName,
@@ -697,7 +697,7 @@ namespace ClinicApp.Services
             }
         }
 
-        public async Task<bool> RecordPaymentAsync(
+        public async Task<bool> RecordTransactionPaymentAsync(
             string transactionId, decimal amountToPay)
         {
             try
@@ -812,6 +812,226 @@ namespace ClinicApp.Services
                 System.Diagnostics.Debug.WriteLine(
                     $"[Supabase] GetPatientByPhone: {ex.Message}");
                 return null;
+            }
+        }
+
+        // ── Services ──────────────────────────────────────────────────
+
+        public async Task<List<SupabaseService>> GetServicesAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseService>()
+                    .Where(s => s.IsActive == true)
+                    .Order("name", Supabase.Postgrest.Constants.Ordering.Ascending)
+                    .Get();
+                return result.Models ?? new List<SupabaseService>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetServices: {ex.Message}");
+                return new List<SupabaseService>();
+            }
+        }
+
+        // ── Bills ─────────────────────────────────────────────────────
+
+        public async Task<SupabaseBill?> CreateBillAsync(SupabaseBill bill)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                // Calculate balance before insert — no generated column
+                bill.Balance = bill.TotalAmount - bill.AmountPaid;
+                bill.BillNumber = $"B-{DateTime.Now:yyyy}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] Creating bill: {bill.PatientName} " +
+                    $"total={bill.TotalAmount} balance={bill.Balance}");
+
+                var result = await _client!
+                    .From<SupabaseBill>()
+                    .Insert(bill);
+
+                var saved = result.Models.FirstOrDefault();
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] Bill created: {saved?.Id ?? "NULL - INSERT FAILED"}");
+
+                return saved;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] CreateBill ERROR: {ex.Message}");
+                throw;
+            }
+        }
+        public async Task AddBillItemAsync(SupabaseBillItemInsert item)
+        {
+            await EnsureInitializedAsync();
+
+            try
+            {
+                var result = await _client!
+                    .From<SupabaseBillItemInsert>()
+                    .Insert(item);
+
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] Bill item saved: {item.ServiceName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] AddBillItem ERROR: {ex}");
+
+                throw;
+            }
+        }
+
+        public async Task<List<SupabaseBill>> GetBillsForPatientAsync(  
+            string patientId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBill>()
+                    .Where(b => b.PatientId == patientId)
+                    .Order("visit_date",
+                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseBill>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetBillsForPatient: {ex.Message}");
+                return new List<SupabaseBill>();
+            }
+        }
+
+        public async Task<List<SupabaseBillItem>> GetBillItemsAsync(string billId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBillItem>()
+                    .Where(i => i.BillId == billId)
+                    .Get();
+                return result.Models ?? new List<SupabaseBillItem>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetBillItems: {ex.Message}");
+                return new List<SupabaseBillItem>();
+            }
+        }
+
+        public async Task<List<SupabaseBill>> GetUnpaidBillsAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBill>()
+                    .Where(b => b.Status != "paid")
+                    .Order("visit_date",
+                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseBill>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetUnpaidBills: {ex.Message}");
+                return new List<SupabaseBill>();
+            }
+        }
+
+        public async Task<(bool Success, string? Error)> RecordPaymentAsync(
+       string billId, decimal amount, string? notes = null)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var billResult = await _client!
+                    .From<SupabaseBill>()
+                    .Where(b => b.Id == billId)
+                    .Single();
+
+                if (billResult == null)
+                    return (false, "Bill not found");
+
+                var payment = new SupabasePayment
+                {
+                    Id = Guid.NewGuid().ToString(),   // ← make sure Id is actually generated
+                    BillId = billId,
+                    Amount = amount,
+                    PaymentDate = DateTime.UtcNow,
+                    Notes = notes
+                };
+                await _client!.From<SupabasePayment>().Insert(payment);
+
+                billResult.AmountPaid += amount;
+                billResult.Balance = billResult.TotalAmount - billResult.AmountPaid;
+                billResult.Status = billResult.AmountPaid >= billResult.TotalAmount
+                    ? "paid" : billResult.AmountPaid > 0 ? "partial" : "unpaid";
+
+                await _client!.From<SupabaseBill>().Update(billResult);
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] RecordPayment: {ex.Message}");
+                return (false, ex.Message);
+            }
+        }
+        public async Task<List<SupabasePayment>> GetPaymentsForBillAsync(
+            string billId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabasePayment>()
+                    .Where(p => p.BillId == billId)
+                    .Order("payment_date",
+                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabasePayment>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetPaymentsForBill: {ex.Message}");
+                return new List<SupabasePayment>();
+            }
+        }
+
+        public async Task<List<SupabaseBill>> GetAllBillsAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBill>()
+                    .Order("visit_date",
+                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseBill>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetAllBills: {ex.Message}");
+                return new List<SupabaseBill>();
             }
         }
     }

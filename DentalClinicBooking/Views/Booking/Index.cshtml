@@ -427,7 +427,7 @@
         // Set default date to tomorrow, skip Sunday
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        if (tomorrow.getDay() =x== 0) tomorrow.setDate(tomorrow.getDate() + 1);
+        if (tomorrow.getDay() === 0) tomorrow.setDate(tomorrow.getDate() + 1);
         dateInput.value = tomorrow.toISOString().split('T')[0];
         dateInput.dispatchEvent(new Event('change'));
 
