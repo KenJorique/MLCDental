@@ -12,21 +12,16 @@ namespace ClinicApp.ViewModels
         readonly DatabaseService _db;
         readonly SupabaseDataService _supabaseData;
 
-        public ObservableCollection<SupabaseBooking> PendingBookings { get; set; } = new();
-        public ObservableCollection<SupabaseBooking> ApprovedBookings { get; set; } = new();
-        public ObservableCollection<SupabaseBooking> RescheduledBookings { get; set; } = new();
+        public ObservableCollection<BookingCardViewModel> PendingBookings { get; set; } = new();
 
         // Separate busy flags — IsRefreshing for pull-to-refresh, IsLoading for internal ops
         [ObservableProperty] private bool isRefreshing;
         [ObservableProperty] private bool isLoading;
         [ObservableProperty] private int pendingCount;
-        [ObservableProperty] private int approvedCount;
-        [ObservableProperty] private int rescheduledCount;
+        [ObservableProperty] private BookingCardViewModel? selectedCard;
 
         // Capital H — matches XAML binding exactly
         public bool HasPending => PendingCount > 0;
-        public bool HasApproved => ApprovedCount > 0;
-        public bool HasRescheduled => RescheduledCount > 0;
 
         public AppointmentViewModel(DatabaseService db, SupabaseDataService supabaseData)
         {
@@ -70,31 +65,15 @@ namespace ClinicApp.ViewModels
 
             try
             {
-                var pendingTask = _supabaseData.GetBookingsByStatusAsync("pending");
-                var approvedTask = _supabaseData.GetBookingsByStatusAsync("approved");
-                var rescheduledTask = _supabaseData.GetBookingsByStatusAsync("rescheduled");
-
-                await Task.WhenAll(pendingTask, approvedTask, rescheduledTask);
+                var pending = await _supabaseData.GetBookingsByStatusAsync("pending");
 
                 PendingBookings.Clear();
-                foreach (var b in pendingTask.Result)
-                    PendingBookings.Add(b);
-
-                ApprovedBookings.Clear();
-                foreach (var b in approvedTask.Result)
-                    ApprovedBookings.Add(b);
-
-                RescheduledBookings.Clear();
-                foreach (var b in rescheduledTask.Result)
-                    RescheduledBookings.Add(b);
+                foreach (var b in pending)
+                    PendingBookings.Add(new BookingCardViewModel(b));
 
                 PendingCount = PendingBookings.Count;
-                ApprovedCount = ApprovedBookings.Count;
-                RescheduledCount = RescheduledBookings.Count;
 
                 OnPropertyChanged(nameof(HasPending));
-                OnPropertyChanged(nameof(HasApproved));
-                OnPropertyChanged(nameof(HasRescheduled));
             }
             catch (Exception ex)
             {
@@ -102,10 +81,65 @@ namespace ClinicApp.ViewModels
             }
 
         }
+
+        PendingDetailSheet? _pendingSheet;
+
+        // Opens the bottom detail sheet when a card is tapped — custom sheet matching
+        // AppointmentDetailSheet's layout (Date/Time/Contact+call, icon-row actions)
         [RelayCommand]
-        async Task Approve(SupabaseBooking booking)
+        async Task ShowBookingDetail(BookingCardViewModel card)
         {
-            if (booking == null) return;
+            if (card is null) return;
+            SelectedCard = card;
+
+            _pendingSheet = new PendingDetailSheet { BindingContext = this };
+            await _pendingSheet.ShowAsync();
+        }
+
+        async Task CloseSheetAsync()
+        {
+            if (_pendingSheet == null) return;
+            var sheet = _pendingSheet;
+            _pendingSheet = null;
+            try { await sheet.DismissAsync(); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CloseSheetAsync] {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        async Task CallPatient(string phoneNumber)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                await Shell.Current.DisplayAlert("Error", "No phone number available for this patient.", "OK");
+                return;
+            }
+
+            try
+            {
+                if (PhoneDialer.Default.IsSupported)
+                {
+                    PhoneDialer.Default.Open(phoneNumber);
+                }
+                else
+                {
+                    await Shell.Current.DisplayAlert("Not Supported", "Phone dialing is not supported on this device.", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CallPatient] Error: {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", "Unable to open phone dialer.", "OK");
+            }
+        }
+
+        [RelayCommand]
+        async Task Approve(BookingCardViewModel card)
+        {
+            if (card == null) return;
+            var booking = card.Booking;
 
             bool confirm = await Shell.Current.DisplayAlert(
                 "Approve Booking",
@@ -231,6 +265,7 @@ namespace ClinicApp.ViewModels
                         : $"{booking.FullName} added to patient list and approved.",
                     "OK");
 
+                await CloseSheetAsync();
                 await FetchAndPopulate();
             }
             catch (Exception ex)
@@ -249,13 +284,16 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
-        async Task Reschedule(SupabaseBooking booking)
+        async Task Reschedule(BookingCardViewModel card)
         {
-            if (booking == null)
+            if (card == null)
             {
-                System.Diagnostics.Debug.WriteLine("[Reschedule] booking is null");
+                System.Diagnostics.Debug.WriteLine("[Reschedule] card is null");
                 return;
             }
+            var booking = card.Booking;
+
+            await CloseSheetAsync();
 
             // 1. (Optional) Remove the status update alert if you want it to navigate instantly,
             // or keep it if you want them to confirm they are changing it right now.
@@ -272,13 +310,14 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
-        async Task MoveToPending(SupabaseBooking booking)
+        async Task MoveToPending(BookingCardViewModel card)
         {
-            if (booking == null)
+            if (card == null)
             {
-                System.Diagnostics.Debug.WriteLine("[MoveToPending] booking is null");
+                System.Diagnostics.Debug.WriteLine("[MoveToPending] card is null");
                 return;
             }
+            var booking = card.Booking;
 
             System.Diagnostics.Debug.WriteLine($"[MoveToPending] Starting for {booking.FullName}, Id={booking.Id}");
 
@@ -299,9 +338,10 @@ namespace ClinicApp.ViewModels
 
         // Cancel a pending booking
         [RelayCommand]
-        async Task CancelBooking(SupabaseBooking booking)
+        async Task CancelBooking(BookingCardViewModel card)
         {
-            if (booking == null) return;
+            if (card == null) return;
+            var booking = card.Booking;
 
             bool confirm = await Shell.Current.DisplayAlert(
                 "Cancel Booking",
@@ -314,6 +354,7 @@ namespace ClinicApp.ViewModels
             try
             {
                 await _supabaseData.UpdateBookingStatusAsync(booking.Id, "cancelled");
+                await CloseSheetAsync();
                 await FetchAndPopulate();
             }
             catch (Exception ex)
@@ -325,9 +366,10 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
-        async Task MarkComplete(SupabaseBooking booking)
+        async Task MarkComplete(BookingCardViewModel card)
         {
-            if (booking == null) return;
+            if (card == null) return;
+            var booking = card.Booking;
 
             bool confirm = await Shell.Current.DisplayAlert(
                 "Mark as Complete",
@@ -393,5 +435,27 @@ namespace ClinicApp.ViewModels
             }
             finally { IsLoading = false; }
         }
+    }
+
+    /// <summary>
+    /// Wraps a SupabaseBooking for the card list — kept as a thin passthrough wrapper
+    /// (no expand/collapse state; cards are always shown fully expanded).
+    /// </summary>
+    public partial class BookingCardViewModel : ObservableObject
+    {
+        public SupabaseBooking Booking { get; }
+
+        public BookingCardViewModel(SupabaseBooking booking)
+        {
+            Booking = booking;
+        }
+
+        // Convenience passthroughs so the card template can bind directly
+        public string FullName => Booking.FullName ?? "";
+        public string Phone => Booking.Phone ?? "";
+        public string Email => Booking.Email ?? "";
+        public string Notes => Booking.Notes ?? "";
+        public DateTime AppointmentDate => Booking.AppointmentDate;
+        public bool IsExistingPatient => Booking.IsExistingPatient;
     }
 }

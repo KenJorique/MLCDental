@@ -108,16 +108,9 @@ namespace ClinicApp.ViewModels
                 IsNewPatient = false;
                 Phone = string.Empty;
                 Email = string.Empty;
-                FullName = string.Empty;
                 _existingPatient = null;
             }
 
-            // BUGFIX: FullName was only ever set inside SelectPatient() (tapping a
-            // dropdown result). For a brand-new patient with no matching record,
-            // nothing was ever available to tap, so FullName stayed empty forever
-            // and CanConfirm could never become true. Keep it in sync with what's
-            // typed here; SelectPatient() still overwrites it correctly afterward
-            // if the user does pick an existing patient.
             FullName = value;
             IsNewPatient = !string.IsNullOrWhiteSpace(value);
 
@@ -244,7 +237,21 @@ namespace ClinicApp.ViewModels
 
             try
             {
+                // Check both bookings table (website) AND appointment_entries (app)
                 var booked = await _supabase.GetBookedTimeSlotsForDateAsync(date);
+
+                var allEntries = await _supabase.GetAppointmentEntriesAsync();
+                var startUtc = date.Date.ToUniversalTime();
+                var endUtc = startUtc.AddDays(1);
+                var entrySlots = allEntries
+                    .Where(e => e.AppointmentDateTime >= startUtc
+                             && e.AppointmentDateTime < endUtc
+                             && e.Status != "rejected"
+                             && e.Status != "cancelled")
+                    .Select(e => e.AppointmentDateTime)
+                    .ToList();
+
+                var allBooked = booked.Concat(entrySlots).ToList();
                 var hours = new[] { 10, 11, 13, 14, 15, 16 };
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -257,7 +264,7 @@ namespace ClinicApp.ViewModels
                     foreach (var h in hours)
                     {
                         var slotTime = new DateTime(date.Year, date.Month, date.Day, h, 0, 0);
-                        var isTaken = booked.Any(b => b.ToLocalTime().Hour == h);
+                        var isTaken = allBooked.Any(b => b.ToLocalTime().Hour == h);
 
                         TimeSlots.Add(new TimeSlotItem
                         {

@@ -60,7 +60,8 @@ namespace ClinicApp.ViewModels
         AppointmentDetailSheet? _detailSheet;
         // Add these properties
         public bool IsSelectedApproved =>
-        SelectedAppointment?.Status == "approved";
+        SelectedAppointment?.Status == "approved" ||
+        SelectedAppointment?.Status == "rescheduled";
 
         public bool CanChangeDate =>
         SelectedAppointment?.Status == "approved" ||
@@ -208,7 +209,7 @@ namespace ClinicApp.ViewModels
         {
             if (entry == null) return;
 
-            if (entry.Status == "pending" || entry.Status == "rescheduled")
+            if (entry.Status == "pending")
             {
                 // Go to approval page
                 await Shell.Current.GoToAsync(nameof(AppointmentPage));
@@ -370,19 +371,24 @@ namespace ClinicApp.ViewModels
         {
             if (SelectedAppointment == null) return;
 
+            // BUGFIX: capture before closing the sheet. CloseSheetAsync() now
+            // triggers the sheet's Dismissed event, which resets SelectedAppointment
+            // to null — reading it after that line threw a NullReferenceException.
+            var appointment = SelectedAppointment;
+
             ShowDetail = false;
             await CloseSheetAsync();
 
-            var currentDt = SelectedAppointment.AppointmentDateTimeParsed
+            var currentDt = appointment.AppointmentDateTimeParsed
                 != DateTime.MinValue
-                ? SelectedAppointment.AppointmentDateTimeParsed
+                ? appointment.AppointmentDateTimeParsed
                       .ToString("MMM dd, yyyy h:mm tt")
                 : "Unknown";
 
             await Shell.Current.GoToAsync(
                 $"{nameof(ReschedulePage)}" +
-                $"?bookingId={Uri.EscapeDataString(SelectedAppointment.SupabaseBookingId)}" +
-                $"&patientName={Uri.EscapeDataString(SelectedAppointment.PatientName)}" +
+                $"?bookingId={Uri.EscapeDataString(appointment.SupabaseBookingId)}" +
+                $"&patientName={Uri.EscapeDataString(appointment.PatientName)}" +
                 $"&currentDateTime={Uri.EscapeDataString(currentDt)}");
         }
 
@@ -559,21 +565,22 @@ namespace ClinicApp.ViewModels
                     };
                 }).ToList();
 
-                // Fix approvedEntries conversion too
                 var approvedEntries = entries
                     .Where(e =>
                     {
-                        var dt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
-                            ? e.AppointmentDateTime.ToLocalTime()
-                            : e.AppointmentDateTime;
+                        var utcDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
+                            ? e.AppointmentDateTime
+                            : DateTime.SpecifyKind(e.AppointmentDateTime, DateTimeKind.Utc);
+                        var dt = utcDt.ToLocalTime();
                         return dt.Date >= WeekStart.Date &&
                                dt.Date < WeekStart.AddDays(7).Date;
                     })
                     .Select(e =>
                     {
-                        var localDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
-                            ? e.AppointmentDateTime.ToLocalTime()
-                            : e.AppointmentDateTime;
+                        var utcDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
+                            ? e.AppointmentDateTime
+                            : DateTime.SpecifyKind(e.AppointmentDateTime, DateTimeKind.Utc);
+                        var localDt = utcDt.ToLocalTime();
 
                         return new AppointmentEntry
                         {
@@ -626,8 +633,6 @@ namespace ClinicApp.ViewModels
                     TodayCount = TodayAppointments.Count;
                 });
 
-                // ── Populate Week (kept as-is; no longer bound in the list UI,
-                //    left in case anything else reads WeekAppointments/WeekCount) ──
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     WeekAppointments.Clear();
@@ -637,10 +642,6 @@ namespace ClinicApp.ViewModels
                 });
 
                 // ── Populate GroupedWeekAppointments — ONE chronological list, Mon–Sat.
-                //    Today gets a "Today, <date>" header instead of the weekday name, and always
-                //    shows (even with 0 appointments) — but ONLY when the week being viewed is the
-                //    current week, since "day == DateTime.Today" can only be true for a day that's
-                //    actually inside WeekStart..WeekStart+6. Other days are skipped when empty. ──
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     GroupedWeekAppointments.Clear();

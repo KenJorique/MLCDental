@@ -91,6 +91,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Views\AppointmentRelated\PendingDetailSheet.xaml.cs">
+	    <DependentUpon>PendingDetailSheet.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="Views\GoogleSignInPage.xaml.cs">
 	    <DependentUpon>GoogleSignInPage.xaml</DependentUpon>
 	  </Compile>
@@ -119,6 +122,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>  
 	  <MauiXaml Update="Views\AppointmentRelated\AppointmentPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>  
+	  <MauiXaml Update="Views\AppointmentRelated\PendingDetailSheet.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentRelated\ReschedulePage.xaml">

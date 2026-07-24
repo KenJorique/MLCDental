@@ -23,7 +23,7 @@
 				<VerticalStackLayout.GestureRecognizers>
 					<TapGestureRecognizer Command="{Binding ShowListCommand}"/>
 				</VerticalStackLayout.GestureRecognizers>
-				<Label Text="List View" Padding="0,12"
+				<Label Text="List" Padding="0,12"
                        HorizontalTextAlignment="Center" FontSize="14"
                        FontAttributes="{Binding IsListView, Converter={StaticResource BoolToFontAttrConverter}}"
                        TextColor="{Binding IsListView, Converter={StaticResource BoolToTabTextConverter}}"/>
@@ -151,7 +151,7 @@
 						<CollectionView ItemsSource="{Binding GroupedWeekAppointments}">
 							<CollectionView.ItemTemplate>
 								<DataTemplate x:DataType="vm:AppointmentDateGroup">
-									<VerticalStackLayout Spacing="0" Margin="0,20,0,0">
+									<VerticalStackLayout Spacing="0" Margin="0,5,0,0">
 
 										<!-- Date section header, e.g. "Monday, July 20" or "Today, July 21" -->
 										<Label Text="{Binding Header}" FontSize="13" FontAttributes="Bold"
@@ -189,22 +189,10 @@
                                                                               Path=BindingContext.SelectAppointmentCommand}"
                                                                     CommandParameter="{Binding .}"/>
 															</Frame.GestureRecognizers>
-															<Grid ColumnDefinitions="*,Auto">
-																<Label Grid.Column="0"
-                                                                       Text="{Binding PatientName}"
-                                                                       FontSize="15" FontAttributes="Bold"
-                                                                       TextColor="{StaticResource Gray800}"
-                                                                       VerticalOptions="Center"/>
-																<Border Grid.Column="1"
-                                                                        BackgroundColor="{Binding StatusColor}"
-                                                                        StrokeShape="RoundRectangle 6"
-                                                                        StrokeThickness="0" Padding="8,3"
-                                                                        VerticalOptions="Center">
-																	<Label Text="{Binding StatusLabel}"
-                                                                           FontSize="12" FontAttributes="Bold"
-                                                                           TextColor="White"/>
-																</Border>
-															</Grid>
+															<Label Text="{Binding PatientName}"
+															   FontSize="15" FontAttributes="Bold"
+															   TextColor="{StaticResource Gray800}" Padding="5, 0"
+															   VerticalOptions="Center"/>
 														</Frame>
 													</Grid>
 												</DataTemplate>
