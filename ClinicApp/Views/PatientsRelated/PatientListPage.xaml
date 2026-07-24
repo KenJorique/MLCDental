@@ -6,7 +6,7 @@
     x:Class="ClinicApp.Views.PatientsRelated.PatientListPage"
     Title="Patients"
     Shell.NavBarIsVisible="True"
-    Shell.BackgroundColor="{StaticResource PrimaryPink}"
+    Shell.BackgroundColor="{StaticResource PrimaryGreen}"
     Shell.TitleColor="White"
     Shell.ForegroundColor="White"
     Shell.TabBarIsVisible="True"
@@ -16,7 +16,7 @@
 
 		<!-- ── SEARCH + SORT ── -->
 		<VerticalStackLayout Grid.Row="0"
-                             BackgroundColor="{StaticResource PrimaryPink}"
+                             BackgroundColor="{StaticResource PrimaryGreen}"
                              Padding="16,0,16,14">
 			<Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
 				<Border Grid.Column="0" BackgroundColor="White"
@@ -124,7 +124,7 @@
 
 								<!-- Row 2: Patient Name -->
 								<Label Grid.Row="1" Grid.Column="0"
-                                       Text="{Binding Patient.FullName}"
+                                       Text="{Binding DisplayName}"
                                        FontSize="16" FontAttributes="Bold"
                                        TextColor="{StaticResource TextPrimary}"
                                        LineBreakMode="TailTruncation"
@@ -132,7 +132,7 @@
 
 								<!-- Call button spans rows 2 & 3 -->
 								<Border Grid.Row="1" Grid.Column="1" Grid.RowSpan="2"
-                                        BackgroundColor="{StaticResource PrimaryPink}"
+                                        BackgroundColor="{StaticResource PrimaryGreen}"
                                         StrokeThickness="0"
                                         HeightRequest="38" WidthRequest="38"
                                         VerticalOptions="Center">
@@ -172,7 +172,7 @@
                              IsVisible="{Binding IsBusy}"
                              HorizontalOptions="Center" VerticalOptions="Center" Spacing="8">
 			<ActivityIndicator IsRunning="{Binding IsBusy}"
-                               Color="{StaticResource PrimaryPink}"
+                               Color="{StaticResource PrimaryGreen}"
                                HeightRequest="36" WidthRequest="36"/>
 			<Label Text="Loading patients..." FontSize="12"
                    TextColor="{StaticResource TextMuted}"

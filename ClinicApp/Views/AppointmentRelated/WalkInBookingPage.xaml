@@ -4,311 +4,273 @@
              xmlns:vm="clr-namespace:ClinicApp.ViewModels"
              x:Class="ClinicApp.Views.WalkInBookingPage"
              Title="Walk-in Booking"
-             BackgroundColor="#F5F5F5">
+             Shell.NavBarIsVisible="True"
+             Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+             Shell.TitleColor="White"
+             Shell.ForegroundColor="White"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource PageBg}">
 
-    <ContentPage.Content>
-        <Grid>
-            <ScrollView>
-                <VerticalStackLayout Padding="16" Spacing="14">
+	<ScrollView>
+		<VerticalStackLayout Padding="16" Spacing="0">
 
-                    <!-- Header -->
-                    <Frame BackgroundColor="#4A4A8A"
-                           BorderColor="#4A4A8A"
-                           CornerRadius="12" Padding="14"
-                           HasShadow="False">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="🚶 Walk-in Booking"
-                                   FontSize="16" FontAttributes="Bold"
-                                   TextColor="White"/>
-                            <Label Text="Auto-approved — skips pending queue"
-                                   FontSize="11" TextColor="#B0B0D0"/>
-                        </VerticalStackLayout>
-                    </Frame>
+			<!-- ── Header banner ── -->
+			<Border BackgroundColor="{StaticResource PrimaryGreen}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="14,12"
+                    Margin="0,0,0,16">
+				<VerticalStackLayout Spacing="2">
+					<Label Text="Walk-in Booking"
+                           FontSize="15" FontAttributes="Bold"
+                           TextColor="White"/>
+					<Label Text="Auto-approved — skips pending queue"
+                           FontSize="11" TextColor="{StaticResource MediumGreen}"/>
+				</VerticalStackLayout>
+			</Border>
 
-                    <!-- Patient lookup -->
-                    <Frame BackgroundColor="White"
-                           BorderColor="#E0E0E0"
-                           CornerRadius="12" Padding="14"
-                           HasShadow="False">
-                        <VerticalStackLayout Spacing="12">
+			<!-- ═══════════════════════════════
+                 PATIENT INFORMATION
+            ═══════════════════════════════════ -->
+			<Border BackgroundColor="White"
+                    Stroke="{StaticResource BorderColor}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="16"
+                    Margin="0,0,0,14">
+				<VerticalStackLayout Spacing="0">
 
-                            <Label Text="Patient Information"
-                                   FontSize="14" FontAttributes="Bold"
-                                   TextColor="#222"/>
+					<Label Text="Patient Information"
+                           FontSize="17" FontAttributes="Bold"
+                           TextColor="{StaticResource PrimaryGreen}"
+                           Margin="0,0,0,8"/>
 
-                            <!-- Phone + search -->
-                            <Label Text="Mobile Number"
-                                   FontSize="12" TextColor="#666"/>
-                            <Grid ColumnDefinitions="*,80"
-                                  ColumnSpacing="8">
-                                <Entry Grid.Column="0"
-                                       Text="{Binding Phone}"
-                                       Placeholder="09XXXXXXXXX"
-                                       Keyboard="Telephone"
-                                       MaxLength="11"
-                                       TextColor="#222"
-                                       PlaceholderColor="#AAAAAA"
-                                       ReturnType="Search"
-                                       ReturnCommand="{Binding LookupPatientCommand}"/>
-                                <Button Grid.Column="1"
-                                        Text="Search"
-                                        BackgroundColor="#4A4A8A"
-                                        TextColor="White"
-                                        CornerRadius="8"
-                                        FontSize="12"
-                                        HeightRequest="44"
-                                        Command="{Binding LookupPatientCommand}"/>
-                            </Grid>
+					<!-- Full Name -->
+					<Label Text="Full Name" Style="{StaticResource FormFieldLabel}"
+                           Margin="0,4,0,4"/>
+					<Border Style="{StaticResource FormInputBox}">
+						<Entry Style="{StaticResource FormEntry}"
+                               Text="{Binding SearchName}"/>
+					</Border>
 
-                            <Label Text="{Binding PhoneErrorMsg}"
-                                   FontSize="11" TextColor="#C62828"
-                                   IsVisible="{Binding HasPhoneError}"/>
-
-                            <!-- Existing patient banner -->
-                            <Frame BackgroundColor="#E8F5E9"
-                                   BorderColor="#A5D6A7"
-                                   CornerRadius="8" Padding="10"
-                                   HasShadow="False"
-                                   IsVisible="{Binding IsExistingPatient}">
-                                <HorizontalStackLayout Spacing="10">
-                                    <Label Text="✓"
-                                           FontSize="18"
-                                           TextColor="#2E7D32"
-                                           VerticalOptions="Center"/>
-                                    <VerticalStackLayout
-                                        VerticalOptions="Center"
-                                        Spacing="2">
-                                        <Label Text="Existing patient found"
+					<!-- Live dropdown results -->
+					<Border IsVisible="{Binding HasSearchResults}"
+                            BackgroundColor="White"
+                            Stroke="{StaticResource BorderColor}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 10"
+                            Margin="0,2,0,0">
+						<CollectionView ItemsSource="{Binding SearchResults}"
+                                        SelectionMode="None"
+                                        MaximumHeightRequest="200">
+							<CollectionView.ItemTemplate>
+								<DataTemplate>
+									<Grid Padding="14,10" ColumnDefinitions="*,Auto">
+										<Grid.GestureRecognizers>
+											<TapGestureRecognizer
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                          Path=BindingContext.SelectPatientCommand}"
+                                                CommandParameter="{Binding .}"/>
+										</Grid.GestureRecognizers>
+										<VerticalStackLayout Grid.Column="0" Spacing="2">
+											<Label Text="{Binding DisplayName}"
+                                                   FontSize="14" FontAttributes="Bold"
+                                                   TextColor="{StaticResource TextPrimary}"/>
+											<Label Text="{Binding ContactNo}"
+                                                   FontSize="12"
+                                                   TextColor="{StaticResource TextMuted}"/>
+										</VerticalStackLayout>
+										<Label Grid.Column="1" Text="Existing"
                                                FontSize="11"
-                                               TextColor="#388E3C"
-                                               FontAttributes="Bold"/>
-                                        <Label Text="{Binding FullName}"
-                                               FontSize="14"
-                                               TextColor="#1B5E20"
-                                               FontAttributes="Bold"/>
-                                    </VerticalStackLayout>
-                                </HorizontalStackLayout>
-                            </Frame>
+                                               TextColor="{StaticResource PrimaryGreen}"
+                                               FontAttributes="Bold"
+                                               VerticalOptions="Center"/>
+									</Grid>
+								</DataTemplate>
+							</CollectionView.ItemTemplate>
+						</CollectionView>
+					</Border>
 
-                            <!-- New patient banner -->
-                            <Frame BackgroundColor="#E3F2FD"
-                                   BorderColor="#90CAF9"
-                                   CornerRadius="8" Padding="10"
-                                   HasShadow="False"
-                                   IsVisible="{Binding IsNewPatient}">
-                                <Label Text="🆕  New patient — fill in details below"
-                                       FontSize="12"
-                                       TextColor="#1565C0"/>
-                            </Frame>
+					<!-- New patient hint -->
+					<Border BackgroundColor="#E3F2FD"
+                            Stroke="#90CAF9"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 8"
+                            Padding="12,10"
+                            Margin="0,8,0,0"
+                            IsVisible="{Binding IsNewPatient}">
+						<Label Text="New patient — fill in details below"
+                               FontSize="12" TextColor="#1565C0"/>
+					</Border>
 
-                            <!-- Full name -->
-                            <Label Text="Full Name"
-                                   FontSize="12" TextColor="#666"/>
-                            <Entry Text="{Binding FullName}"
-                                   Placeholder="e.g. Juan dela Cruz"
-                                   TextColor="#222"
-                                   PlaceholderColor="#AAAAAA"
-                                   IsReadOnly="{Binding IsExistingPatient}"/>
+					<!-- Contact No -->
+					<Label Text="Contact No." Style="{StaticResource FormFieldLabel}"
+                           Margin="0,12,0,4"/>
+					<Border Style="{StaticResource FormInputBox}">
+						<Entry Style="{StaticResource FormEntry}"
+                               Text="{Binding Phone}"
+                               Keyboard="Telephone"
+                               MaxLength="11"/>
+					</Border>
+					<Label Style="{StaticResource FormErrorLabel}"
+                           Text="{Binding PhoneErrorMsg}"
+                           IsVisible="{Binding HasPhoneError}"
+                           Margin="0,4,0,0"/>
 
-                            <!-- Email -->
-                            <Label Text="Email (optional)"
-                                   FontSize="12" TextColor="#666"/>
-                            <Entry Text="{Binding Email}"
-                                   Placeholder="email@example.com"
-                                   Keyboard="Email"
-                                   TextColor="#222"
-                                   PlaceholderColor="#AAAAAA"
-                                   IsReadOnly="{Binding IsExistingPatient}"/>
+					<!-- Email -->
+					<Label Text="Email (optional)" Style="{StaticResource FormFieldLabel}"
+                           Margin="0,12,0,4"/>
+					<Border Style="{StaticResource FormInputBox}">
+						<Entry Style="{StaticResource FormEntry}"
+                               Text="{Binding Email}"
+                               Keyboard="Email"/>
+					</Border>
 
-                        </VerticalStackLayout>
-                    </Frame>
+				</VerticalStackLayout>
+			</Border>
 
-                    <!-- Appointment details -->
-                    <Frame BackgroundColor="White"
-                           BorderColor="#E0E0E0"
-                           CornerRadius="12" Padding="14"
-                           HasShadow="False">
-                        <VerticalStackLayout Spacing="12">
+			<!-- ═══════════════════════════════
+                 APPOINTMENT DETAILS
+            ═══════════════════════════════════ -->
+			<Border BackgroundColor="White"
+                    Stroke="{StaticResource BorderColor}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="16"
+                    Margin="0,0,0,14">
+				<VerticalStackLayout Spacing="0">
 
-                            <Label Text="Appointment Details"
-                                   FontSize="14" FontAttributes="Bold"
-                                   TextColor="#222"/>
+					<Label Text="Appointment Details"
+                           FontSize="17" FontAttributes="Bold"
+                           TextColor="{StaticResource PrimaryGreen}"
+                           Margin="0,0,0,8"/>
 
-                      
+					<!-- Date -->
+					<Label Text="Appointment Date" Style="{StaticResource FormFieldLabel}"
+                           Margin="0,4,0,4"/>
+					<Border Style="{StaticResource FormInputBox}">
+						<DatePicker Date="{Binding AppointmentDate}"
+                                    MinimumDate="{Binding MinDate}"
+                                    MaximumDate="{Binding MaxDate}"
+                                    Format="MMMM dd, yyyy"
+                                    TextColor="{StaticResource TextPrimary}"/>
+					</Border>
 
-                            <!-- Date -->
-                            <Label Text="Appointment Date"
-                                   FontSize="12" TextColor="#666"/>
-                            <DatePicker Date="{Binding AppointmentDate}"
-                                        MinimumDate="{Binding MinDate}"
-                                        MaximumDate="{Binding MaxDate}"
-                                        Format="MMMM dd, yyyy"
-                                        TextColor="#222"/>
-
-                            <Frame BackgroundColor="#FCEAEA"
-                                   BorderColor="#FFCDD2"
-                                   CornerRadius="8" Padding="8"
-                                   HasShadow="False"
-                                   IsVisible="{Binding IsSunday}">
-                                <Label Text="⚠ Clinic is closed on Sundays."
-                                       FontSize="12" TextColor="#C62828"/>
-                            </Frame>
-
-                            <!-- Time slots -->
-                            <Label Text="Select Time Slot"
-                                   FontSize="12" TextColor="#666"/>
-
-                            <ActivityIndicator
-                                IsRunning="{Binding IsLoadingSlots}"
-                                IsVisible="{Binding IsLoadingSlots}"
-                                Color="#4A4A8A"
-                                HeightRequest="30"/>
-
-                            <Label Text="No available slots for this date"
-                                   FontSize="12" TextColor="#888"
-                                   IsVisible="{Binding HasNoSlots}"/>
-
-                            <!-- Slot grid using BindableLayout -->
-                            <FlexLayout
-                                BindableLayout.ItemsSource="{Binding TimeSlots}"
-                                Wrap="Wrap"
-                                JustifyContent="Start"
-                                AlignItems="Start">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:TimeSlotItem">
-                                        <Frame Margin="4"
-                                               Padding="0"
-                                               CornerRadius="8"
-                                               HasShadow="False"
-                                               BackgroundColor="{Binding BackgroundColor}"
-                                               BorderColor="{Binding BorderColor}"
-                                               WidthRequest="96"
-                                               HeightRequest="56">
-                                            <Frame.GestureRecognizers>
-                                                <TapGestureRecognizer
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                              Path=BindingContext.SelectSlotCommand}"
-                                                    CommandParameter="{Binding .}"/>
-                                            </Frame.GestureRecognizers>
-                                            <VerticalStackLayout
-                                                VerticalOptions="Center"
-                                                HorizontalOptions="Center"
-                                                Spacing="2">
-                                                <Label Text="{Binding Display}"
-                                                       FontSize="13"
-                                                       FontAttributes="Bold"
-                                                       TextColor="{Binding TextColor}"
-                                                       HorizontalOptions="Center"/>
-                                                <Label Text="{Binding StatusText}"
-                                                       FontSize="9"
-                                                       TextColor="{Binding StatusColor}"
-                                                       HorizontalOptions="Center"/>
-                                            </VerticalStackLayout>
-                                        </Frame>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </FlexLayout>
-
-                            <!-- Selected slot display -->
-                            <Label FontSize="12" TextColor="#4A4A8A"
-                                   FontAttributes="Bold"
-                                   IsVisible="{Binding SelectedSlotDisplay,
-                                       Converter={StaticResource StringNotEmptyConverter}}">
-                                <Label.FormattedText>
-                                    <FormattedString>
-                                        <Span Text="Selected: "/>
-                                        <Span Text="{Binding SelectedSlotDisplay}"
-                                              FontAttributes="Bold"/>
-                                    </FormattedString>
-                                </Label.FormattedText>
-                            </Label>
-
-                            <!-- Notes -->
-                            <Label Text="Notes (optional)"
-                                   FontSize="12" TextColor="#666"/>
-                            <Editor Text="{Binding Notes}"
-                                    Placeholder="Any notes or concerns..."
-                                    HeightRequest="80"
-                                    FontSize="13"
-                                    TextColor="#222"
-                                    PlaceholderColor="#AAAAAA"/>
-
-                        </VerticalStackLayout>
-                    </Frame>
-
-                    <!-- Summary -->
-                    <Frame BackgroundColor="#E8F5E9"
-                           BorderColor="#C8E6C9"
-                           CornerRadius="12" Padding="14"
-                           HasShadow="False"
-                           IsVisible="{Binding HasSummary}">
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="📋 Booking Summary"
-                                   FontSize="12" FontAttributes="Bold"
-                                   TextColor="#2E7D32"/>
-                            <Label Text="{Binding SummaryText}"
-                                   FontSize="13" TextColor="#1B5E20"
-                                   LineHeight="1.6"/>
-                        </VerticalStackLayout>
-                    </Frame>
-
-                    <!-- Error -->
-                    <Frame BackgroundColor="#FCEAEA"
-                           BorderColor="#FFCDD2"
-                           CornerRadius="12" Padding="14"
-                           HasShadow="False"
-                           IsVisible="{Binding HasError}">
-                        <Label Text="{Binding ErrorMessage}"
+					<!-- Sunday warning -->
+					<Border BackgroundColor="#FCEAEA"
+                            Stroke="#FFCDD2"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 8"
+                            Padding="10,8"
+                            Margin="0,8,0,0"
+                            IsVisible="{Binding IsSunday}">
+						<Label Text="⚠ Clinic is closed on Sundays."
                                FontSize="12" TextColor="#C62828"/>
-                    </Frame>
+					</Border>
 
-                    <!-- Confirm button -->
-                    <Button Text="✓  Confirm Walk-in Booking"
-                            BackgroundColor="{Binding CanConfirm,
-                                Converter={StaticResource BoolToColorConverter},
-                                ConverterParameter='#4A4A8A|#BBBBBB'}"
-                            TextColor="White"
-                            CornerRadius="12"
-                            HeightRequest="52"
-                            FontSize="15"
-                            FontAttributes="Bold"
-                            IsEnabled="{Binding CanConfirm}"
-                            Command="{Binding ConfirmBookingCommand}"/>
+					<!-- Time slots -->
+					<Label Text="Select Time Slot" Style="{StaticResource FormFieldLabel}"
+                           Margin="0,12,0,8"/>
 
-                    <Button Text="Cancel"
-                            BackgroundColor="Transparent"
-                            BorderColor="#E0E0E0"
-                            BorderWidth="1"
-                            TextColor="#888"
-                            CornerRadius="12"
-                            HeightRequest="44"
-                            FontSize="13"
-                            Command="{Binding CancelCommand}"/>
+					<ActivityIndicator IsRunning="{Binding IsLoadingSlots}"
+                                       IsVisible="{Binding IsLoadingSlots}"
+                                       Color="{StaticResource PrimaryGreen}"
+                                       HeightRequest="30"/>
 
-                    <BoxView HeightRequest="40" Color="Transparent"/>
+					<!-- Slots rendered via CollectionView with 3-column layout -->
+					<CollectionView ItemsSource="{Binding TimeSlots}"
+                                    SelectionMode="None"
+                                    IsVisible="{Binding IsLoadingSlots,
+                                        Converter={StaticResource InvertedBoolConverter}}">
+						<CollectionView.ItemsLayout>
+							<GridItemsLayout Orientation="Vertical"
+                                             Span="3"
+                                             HorizontalItemSpacing="8"
+                                             VerticalItemSpacing="8"/>
+						</CollectionView.ItemsLayout>
+						<CollectionView.ItemTemplate>
+							<DataTemplate x:DataType="vm:TimeSlotItem">
+								<Border BackgroundColor="{Binding BackgroundColor}"
+                                        Stroke="{Binding BorderColor}"
+                                        StrokeThickness="1.5"
+                                        StrokeShape="RoundRectangle 10"
+                                        HeightRequest="56"
+                                        Margin="0">
+									<Border.GestureRecognizers>
+										<TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.SelectSlotCommand}"
+                                            CommandParameter="{Binding .}"/>
+									</Border.GestureRecognizers>
+									<Label Text="{Binding Display}"
+                                           FontSize="13" FontAttributes="Bold"
+                                           TextColor="{Binding TextColor}"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center"/>
+								</Border>
+							</DataTemplate>
+						</CollectionView.ItemTemplate>
+					</CollectionView>
 
-                </VerticalStackLayout>
-            </ScrollView>
+					<!-- Notes -->
+					<Label Text="Notes (optional)" Style="{StaticResource FormFieldLabel}"
+                           Margin="0,12,0,4"/>
+					<Border Style="{StaticResource FormInputBoxTall}">
+						<Editor Style="{StaticResource FormEditor}"
+                                Text="{Binding Notes}"
+                                HeightRequest="80"/>
+					</Border>
 
-            <!-- Loading overlay -->
-            <Grid IsVisible="{Binding IsBusy}"
-                  BackgroundColor="#80000000"
-                  ZIndex="10">
-                <VerticalStackLayout VerticalOptions="Center"
-                                     HorizontalOptions="Center"
-                                     Spacing="12">
-                    <ActivityIndicator IsRunning="True"
-                                       Color="White"
-                                       WidthRequest="40"
-                                       HeightRequest="40"/>
-                    <Label Text="Saving booking..."
-                           TextColor="White"
-                           FontSize="14"
-                           HorizontalOptions="Center"/>
-                </VerticalStackLayout>
-            </Grid>
+				</VerticalStackLayout>
+			</Border>
 
-        </Grid>
-    </ContentPage.Content>
+			<!-- ── Booking Summary ── -->
+			<Border BackgroundColor="#E8F5E9"
+                    Stroke="#C8E6C9"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="14"
+                    Margin="0,0,0,14"
+                    IsVisible="{Binding HasSummary}">
+				<VerticalStackLayout Spacing="6">
+					<Label Text="Booking Summary"
+                           FontSize="14" FontAttributes="Bold"
+                           TextColor="{StaticResource PrimaryGreen}"/>
+					<Label Text="{Binding SummaryText}"
+                           FontSize="14" TextColor="Black"
+                           LineHeight="1.6"/>
+				</VerticalStackLayout>
+			</Border>
+
+			<!-- ── Error ── -->
+			<Border BackgroundColor="#FCEAEA"
+                    Stroke="#FFCDD2"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="14"
+                    Margin="0,0,0,14"
+                    IsVisible="{Binding HasError}">
+				<Label Text="{Binding ErrorMessage}"
+                       FontSize="13" TextColor="#C62828"/>
+			</Border>
+
+			<!-- ── Confirm button ── -->
+			<Button Text="Confirm Booking"
+                    BackgroundColor="{StaticResource PrimaryGreen}"
+                    TextColor="White"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    CornerRadius="14"
+                    HeightRequest="52"
+                    HorizontalOptions="Fill"
+                    Command="{Binding ConfirmBookingCommand}"
+                    Margin="0,0,0,10"/>
+
+		</VerticalStackLayout>
+	</ScrollView>
+
+	<!-- Loading overlay -->
+	<ContentPage.Content>
+	</ContentPage.Content>
 
 </ContentPage>
