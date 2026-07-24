@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<the49:BottomSheet
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:the49="https://schemas.the49.com/dotnet/2023/maui"
+    x:Class="ClinicApp.Views.AppointmentRelated.AppointmentDetailSheet"
+    HasHandle="False"
+    HasBackdrop="True"
+    CornerRadius="20"
+    IsCancelable="True"
+    BackgroundColor="White">
+
+	<the49:BottomSheet.Detents>
+		<the49:ContentDetent />
+	</the49:BottomSheet.Detents>
+
+	<VerticalStackLayout Spacing="0" Padding="0,12,0,20">
+
+		<!-- Drag handle -->
+		<BoxView WidthRequest="40" HeightRequest="4" CornerRadius="2"
+                 BackgroundColor="#CCCCCC"
+                 HorizontalOptions="Center" Margin="0,0,0,16"/>
+
+		<!-- Patient name -->
+		<Label Text="{Binding SelectedAppointment.PatientName}"
+               FontSize="19" FontAttributes="Bold"
+               TextColor="{StaticResource Gray800}"
+               Margin="20,0,20,16"/>
+
+		<!-- Date / Time -->
+		<Grid Padding="20,0" ColumnDefinitions="*,*" Margin="0,0,0,16">
+			<VerticalStackLayout Grid.Column="0" Spacing="2">
+				<Label Text="Date" FontSize="12" TextColor="{StaticResource Gray400}"/>
+				<Label Text="{Binding SelectedAppointment.DateDisplay}"
+                       FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray800}"/>
+			</VerticalStackLayout>
+			<VerticalStackLayout Grid.Column="1" Spacing="2">
+				<Label Text="Time" FontSize="12" TextColor="{StaticResource Gray400}"/>
+				<Label FontSize="16" TextColor="{StaticResource Gray800}">
+					<Label.FormattedText>
+						<FormattedString>
+							<Span Text="{Binding SelectedAppointment.TimeDisplay}" FontAttributes="Bold"/>
+							<Span Text=" "/>
+							<Span Text="{Binding SelectedAppointment.AmPm}" FontAttributes="Bold"/>
+						</FormattedString>
+					</Label.FormattedText>
+				</Label>
+			</VerticalStackLayout>
+		</Grid>
+
+		<!-- Contact Number + call — bigger icon, value size matched to it -->
+		<VerticalStackLayout Padding="20,0" Spacing="2" Margin="0,0,0,24">
+			<Label Text="Contact Number" FontSize="12" TextColor="{StaticResource Gray400}"/>
+			<HorizontalStackLayout Spacing="12">
+				<Label Text="{Binding SelectedAppointment.Phone}"
+                       FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray800}"
+                       VerticalOptions="Center"/>
+				<Border BackgroundColor="{StaticResource Secondary}"
+                        StrokeThickness="0"
+                        HeightRequest="40" WidthRequest="40"
+                        VerticalOptions="Center">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="20"/>
+					</Border.StrokeShape>
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer
+                            Command="{Binding CallPatientCommand}"
+                            CommandParameter="{Binding SelectedAppointment.Phone}"/>
+					</Border.GestureRecognizers>
+					<Label FontFamily="MaterialSymbolsRoundedFilled"
+                           Text="&#xe0b0;"
+                           FontSize="20" TextColor="{StaticResource Primary}"
+                           HorizontalOptions="Center" VerticalOptions="Center"/>
+				</Border>
+			</HorizontalStackLayout>
+		</VerticalStackLayout>
+
+		<!-- Action rows — icon + label + caption + chevron, matching ItemActionSheet style -->
+		<VerticalStackLayout Padding="20,0" Spacing="8">
+
+			<!-- Complete — approved only -->
+			<!-- TODO: "check" glyph below (e5ca) is a best-guess, not verified against your .ttf -->
+			<Border BackgroundColor="White" StrokeThickness="1" Stroke="{StaticResource Gray200}"
+                    Padding="14,12"
+                    IsVisible="{Binding IsSelectedApproved}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Command="{Binding MarkCompletedCommand}"/>
+				</Border.GestureRecognizers>
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+					<Border Grid.Column="0" BackgroundColor="#E8F5E9" StrokeThickness="0"
+                            HeightRequest="44" WidthRequest="44">
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="22"/>
+						</Border.StrokeShape>
+						<Label FontFamily="MaterialSymbolsRounded" Text="&#xe5ca;"
+                               FontSize="22" TextColor="#1A6B2F"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
+					</Border>
+					<VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+						<Label Text="Complete"
+                               FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Gray800}"/>
+						<Label Text="Mark appointment as completed"
+                               FontSize="12" TextColor="{StaticResource Gray400}"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="20" TextColor="{StaticResource Gray300}"
+                           VerticalOptions="Center"/>
+				</Grid>
+			</Border>
+
+			<!-- Reschedule -->
+			<!-- TODO: "refresh" glyph below (e5d5) is a best-guess, not verified against your .ttf -->
+			<Border BackgroundColor="White" StrokeThickness="1" Stroke="{StaticResource Gray200}"
+                    Padding="14,12"
+                    IsVisible="{Binding CanChangeDate}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Command="{Binding RescheduleAppointmentCommand}"/>
+				</Border.GestureRecognizers>
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+					<Border Grid.Column="0" BackgroundColor="{StaticResource GoldLight}" StrokeThickness="0"
+                            HeightRequest="44" WidthRequest="44">
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="22"/>
+						</Border.StrokeShape>
+						<Label FontFamily="MaterialSymbolsRounded" Text="&#xe5d5;"
+                               FontSize="22" TextColor="{StaticResource Gold}"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
+					</Border>
+					<VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+						<Label Text="Reschedule"
+                               FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Gray800}"/>
+						<Label Text="Change the date or time"
+                               FontSize="12" TextColor="{StaticResource Gray400}"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="20" TextColor="{StaticResource Gray300}"
+                           VerticalOptions="Center"/>
+				</Grid>
+			</Border>
+
+			<!-- Cancel — destructive, colored label like Delete Patient elsewhere in the app -->
+			<!-- TODO: "close" glyph below (e5cd) is a best-guess, not verified against your .ttf -->
+			<Border BackgroundColor="White" StrokeThickness="1" Stroke="{StaticResource Gray200}"
+                    Padding="14,12"
+                    IsVisible="{Binding CanCancel}">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Command="{Binding CancelAppointmentCommand}"/>
+				</Border.GestureRecognizers>
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+					<Border Grid.Column="0" BackgroundColor="#FFEBEE" StrokeThickness="0"
+                            HeightRequest="44" WidthRequest="44">
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="22"/>
+						</Border.StrokeShape>
+						<Label FontFamily="MaterialSymbolsRounded" Text="&#xe5cd;"
+                               FontSize="22" TextColor="Crimson"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
+					</Border>
+					<VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+						<Label Text="Cancel"
+                               FontSize="15" FontAttributes="Bold" TextColor="Crimson"/>
+						<Label Text="Cancel this appointment"
+                               FontSize="12" TextColor="{StaticResource Gray400}"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="20" TextColor="{StaticResource Gray300}"
+                           VerticalOptions="Center"/>
+				</Grid>
+			</Border>
+
+		</VerticalStackLayout>
+
+	</VerticalStackLayout>
+
+</the49:BottomSheet>

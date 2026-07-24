@@ -6,30 +6,62 @@ using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels
 {
+    // ── Helper: result shown in the live dropdown ──────────────
+    public class PatientSearchResult
+    {
+        public int PatientID { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+        public string ContactNo { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+    }
+
     public partial class WalkInBookingViewModel : ObservableObject
     {
         readonly DatabaseService _db;
         readonly SupabaseDataService _supabase;
 
-        public WalkInBookingViewModel(
-            DatabaseService db,
-            SupabaseDataService supabase)
+        public WalkInBookingViewModel(DatabaseService db, SupabaseDataService supabase)
         {
             _db = db;
             _supabase = supabase;
+            InitializeEmptySlots();
+        }
+
+        // Pre-populate 6 empty slots so TimeSlots[0-5] bindings never crash
+        void InitializeEmptySlots()
+        {
+            var hours = new[] { 10, 11, 13, 14, 15, 16 };
+            foreach (var h in hours)
+            {
+                var slotTime = new DateTime(
+                    DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day, h, 0, 0);
+                TimeSlots.Add(new TimeSlotItem
+                {
+                    Hour = h,
+                    SlotDateTime = slotTime,
+                    Display = slotTime.ToString("h:00 tt"),
+                    IsTaken = false,
+                    IsSelected = false
+                });
+            }
         }
 
         // ── Patient ───────────────────────────────────────────
-        [ObservableProperty] string phone = string.Empty;
+        bool _suppressSearch = false; // prevents re-search when auto-filling
+        [ObservableProperty] string searchName = string.Empty;
         [ObservableProperty] string fullName = string.Empty;
+        [ObservableProperty] string phone = string.Empty;
         [ObservableProperty] string email = string.Empty;
         [ObservableProperty] bool isExistingPatient;
         [ObservableProperty] bool isNewPatient;
         [ObservableProperty] bool hasPhoneError;
         [ObservableProperty] string phoneErrorMsg = string.Empty;
+        [ObservableProperty] bool hasSearchResults;
+
+        public ObservableCollection<PatientSearchResult> SearchResults { get; } = new();
 
         // ── Appointment ───────────────────────────────────────
-      
         [ObservableProperty] DateTime appointmentDate = DateTime.Today;
         [ObservableProperty] string notes = string.Empty;
         [ObservableProperty] bool isLoadingSlots;
@@ -49,8 +81,6 @@ namespace ClinicApp.ViewModels
 
         public ObservableCollection<TimeSlotItem> TimeSlots { get; } = new();
 
-   
-
         private TimeSlotItem? _selectedSlot;
         private SupabasePatient? _existingPatient;
 
@@ -61,11 +91,105 @@ namespace ClinicApp.ViewModels
             Phone.StartsWith("09") &&
             Phone.Length == 11 &&
             _selectedSlot != null &&
-            !IsSunday &&
             !IsBusy;
 
-        void NotifyCanConfirm() =>
-            OnPropertyChanged(nameof(CanConfirm));
+        void NotifyCanConfirm() => OnPropertyChanged(nameof(CanConfirm));
+
+        // ── Live name search ──────────────────────────────────
+        partial void OnSearchNameChanged(string value)
+        {
+            // Skip search if we are auto-filling from a selection
+            if (_suppressSearch) return;
+
+            // Clear patient state when user edits the name field
+            if (IsExistingPatient)
+            {
+                IsExistingPatient = false;
+                IsNewPatient = false;
+                Phone = string.Empty;
+                Email = string.Empty;
+                FullName = string.Empty;
+                _existingPatient = null;
+            }
+
+            // BUGFIX: FullName was only ever set inside SelectPatient() (tapping a
+            // dropdown result). For a brand-new patient with no matching record,
+            // nothing was ever available to tap, so FullName stayed empty forever
+            // and CanConfirm could never become true. Keep it in sync with what's
+            // typed here; SelectPatient() still overwrites it correctly afterward
+            // if the user does pick an existing patient.
+            FullName = value;
+            IsNewPatient = !string.IsNullOrWhiteSpace(value);
+
+            if (string.IsNullOrWhiteSpace(value) || value.Length < 2)
+            {
+                SearchResults.Clear();
+                HasSearchResults = false;
+                return;
+            }
+
+            MainThread.BeginInvokeOnMainThread(async () =>
+                await SearchPatientsAsync(value));
+        }
+
+        private async Task SearchPatientsAsync(string query)
+        {
+            try
+            {
+                var allPatients = await _db.GetPatients();
+                var q = query.ToLowerInvariant();
+
+                var matches = allPatients
+                    .Where(p =>
+                        (p.FirstName + " " + p.LastName).ToLowerInvariant().Contains(q) ||
+                        (p.LastName + " " + p.FirstName).ToLowerInvariant().Contains(q))
+                    .Take(5)
+                    .Select(p => new PatientSearchResult
+                    {
+                        PatientID = p.PatientID,
+                        FullName = $"{p.FirstName} {p.LastName}".Trim(),
+                        DisplayName = $"{p.LastName}, {p.FirstName}".Trim(),
+                        ContactNo = p.MobileNo ?? string.Empty,
+                        Email = p.Email ?? string.Empty,
+                    })
+                    .ToList();
+
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    SearchResults.Clear();
+                    foreach (var m in matches)
+                        SearchResults.Add(m);
+                    HasSearchResults = SearchResults.Count > 0;
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Search] {ex.Message}");
+            }
+        }
+
+        // ── Tap a search result → auto-fill ──────────────────
+        [RelayCommand]
+        void SelectPatient(PatientSearchResult result)
+        {
+            if (result is null) return;
+
+            // Suppress OnSearchNameChanged so setting SearchName
+            // does not trigger another search and re-show the dropdown
+            _suppressSearch = true;
+            SearchName = result.FullName;
+            FullName = result.FullName;
+            Phone = result.ContactNo;
+            Email = result.Email;
+            IsExistingPatient = true;
+            IsNewPatient = false;
+            SearchResults.Clear();
+            HasSearchResults = false;
+            _suppressSearch = false;
+
+            NotifyCanConfirm();
+            UpdateSummary();
+        }
 
         partial void OnFullNameChanged(string value)
         {
@@ -79,10 +203,7 @@ namespace ClinicApp.ViewModels
             HasPhoneError = false;
         }
 
-   
-
-        partial void OnIsBusyChanged(bool value) =>
-            NotifyCanConfirm();
+        partial void OnIsBusyChanged(bool value) => NotifyCanConfirm();
 
         partial void OnAppointmentDateChanged(DateTime value)
         {
@@ -91,7 +212,6 @@ namespace ClinicApp.ViewModels
 
             if (!IsSunday)
             {
-                // Reset slot selection when date changes
                 _selectedSlot = null;
                 SelectedSlotDisplay = string.Empty;
                 NotifyCanConfirm();
@@ -109,61 +229,6 @@ namespace ClinicApp.ViewModels
             await LoadSlotsAsync(DateTime.Today);
         }
 
-        // ── Patient lookup ────────────────────────────────────
-        [RelayCommand]
-        async Task LookupPatient()
-        {
-            HasPhoneError = false;
-            HasError = false;
-
-            if (string.IsNullOrWhiteSpace(Phone))
-            {
-                PhoneErrorMsg = "Please enter a phone number";
-                HasPhoneError = true;
-                return;
-            }
-
-            if (!Phone.StartsWith("09") || Phone.Length != 11)
-            {
-                PhoneErrorMsg = "Must start with 09 and be 11 digits";
-                HasPhoneError = true;
-                return;
-            }
-
-            IsBusy = true;
-            try
-            {
-                var existing = await _supabase
-                    .GetPatientByPhoneAsync(Phone);
-
-                if (existing != null)
-                {
-                    _existingPatient = existing;
-                    FullName = $"{existing.FirstName} {existing.LastName}".Trim();
-                    Email = existing.Email ?? "";
-                    IsExistingPatient = true;
-                    IsNewPatient = false;
-                }
-                else
-                {
-                    _existingPatient = null;
-                    FullName = string.Empty;
-                    Email = string.Empty;
-                    IsExistingPatient = false;
-                    IsNewPatient = true;
-                }
-
-                NotifyCanConfirm();
-                UpdateSummary();
-            }
-            catch (Exception ex)
-            {
-                HasError = true;
-                ErrorMessage = $"Lookup failed: {ex.Message}";
-            }
-            finally { IsBusy = false; }
-        }
-
         // ── Load time slots ───────────────────────────────────
         public async Task LoadSlotsAsync(DateTime date)
         {
@@ -179,10 +244,8 @@ namespace ClinicApp.ViewModels
 
             try
             {
-                var booked = await _supabase
-                    .GetBookedTimeSlotsForDateAsync(date);
-
-                var hours = new[] { 10, 11, 12, 13, 14, 15 };
+                var booked = await _supabase.GetBookedTimeSlotsForDateAsync(date);
+                var hours = new[] { 10, 11, 13, 14, 15, 16 };
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -193,11 +256,8 @@ namespace ClinicApp.ViewModels
 
                     foreach (var h in hours)
                     {
-                        var slotTime = new DateTime(
-                            date.Year, date.Month, date.Day, h, 0, 0);
-
-                        var isTaken = booked.Any(b =>
-                            b.ToLocalTime().Hour == h);
+                        var slotTime = new DateTime(date.Year, date.Month, date.Day, h, 0, 0);
+                        var isTaken = booked.Any(b => b.ToLocalTime().Hour == h);
 
                         TimeSlots.Add(new TimeSlotItem
                         {
@@ -242,8 +302,7 @@ namespace ClinicApp.ViewModels
 
         void UpdateSummary()
         {
-            if (string.IsNullOrWhiteSpace(FullName)
-                || _selectedSlot == null)
+            if (string.IsNullOrWhiteSpace(FullName) || _selectedSlot == null)
             {
                 HasSummary = false;
                 return;
@@ -257,7 +316,7 @@ namespace ClinicApp.ViewModels
                 $"Status:     Auto-approved ✓";
         }
 
-        // ── Confirm walk-in booking ───────────────────────────
+        // ── Confirm booking ───────────────────────────────────
         [RelayCommand]
         async Task ConfirmBooking()
         {
@@ -271,7 +330,6 @@ namespace ClinicApp.ViewModels
                 var localTime = _selectedSlot.SlotDateTime;
                 var utcTime = localTime.ToUniversalTime();
 
-                // 1. Create patient if new
                 if (!IsExistingPatient)
                 {
                     var parts = FullName.Trim().Split(' ', 2);
@@ -281,7 +339,6 @@ namespace ClinicApp.ViewModels
                         LastName = parts.Length > 1 ? parts[1] : "",
                         MobileNo = Phone,
                         Email = Email,
-                        ReferredBy = "Walk-in",
                         DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
                     };
                     await _db.AddPatient(p);
@@ -298,7 +355,6 @@ namespace ClinicApp.ViewModels
                     await _supabase.AddPatientAsync(sp);
                 }
 
-                // 2. Create appointment entry — auto-approved
                 var bookingId = Guid.NewGuid().ToString();
 
                 var localEntry = new AppointmentEntry
@@ -308,13 +364,11 @@ namespace ClinicApp.ViewModels
                     Phone = Phone,
                     Email = Email,
                     Notes = Notes,
-                    AppointmentDateTime = localTime
-                                             .ToString("yyyy-MM-dd HH:mm:ss"),
+                    AppointmentDateTime = localTime.ToString("yyyy-MM-dd HH:mm:ss"),
                     Status = "approved"
                 };
                 await _db.AddAppointmentEntry(localEntry);
 
-                // 3. Save to Supabase appointment_entries
                 var supEntry = new SupabaseAppointmentEntry
                 {
                     SupabaseBookingId = bookingId,
@@ -327,16 +381,14 @@ namespace ClinicApp.ViewModels
                 };
                 await _supabase.AddAppointmentEntryAsync(supEntry);
 
-                // 4. Google Tasks (silent fail)
                 try
                 {
                     await _supabase.SyncToGoogleTasksAsync(
-                        "", FullName, "Walk- In Appointment", localTime, Phone, Notes);
+                        "", FullName, "Walk-In Appointment", localTime, Phone, Notes);
                 }
                 catch (Exception gEx)
                 {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[WalkIn] Google Tasks: {gEx.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[WalkIn] Google Tasks: {gEx.Message}");
                 }
 
                 await Shell.Current.DisplayAlert(
@@ -353,14 +405,11 @@ namespace ClinicApp.ViewModels
             {
                 HasError = true;
                 ErrorMessage = $"Booking failed: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine(
-                    $"[WalkIn] Error: {ex.Message}");
             }
             finally { IsBusy = false; }
         }
 
         [RelayCommand]
-        async Task Cancel() =>
-            await Shell.Current.GoToAsync("..");
+        async Task Cancel() => await Shell.Current.GoToAsync("..");
     }
 }

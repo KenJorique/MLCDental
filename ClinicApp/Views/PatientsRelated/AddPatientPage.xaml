@@ -193,27 +193,27 @@
 				<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto"
                       RowSpacing="0" ColumnSpacing="0" Margin="0,0,0,4">
 					<Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding IsGoodHealth}" Color="{StaticResource PrimaryPink}"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding IsGoodHealth}" Color="{StaticResource PrimaryGreen}"/>
 						<Label Grid.Column="1" Text="Good Health" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasBeenHospitalized}" Color="{StaticResource PrimaryPink}"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasBeenHospitalized}" Color="{StaticResource PrimaryGreen}"/>
 						<Label Grid.Column="1" Text="Hospitalized" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding TakingMedications}" Color="{StaticResource PrimaryPink}"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding TakingMedications}" Color="{StaticResource PrimaryGreen}"/>
 						<Label Grid.Column="1" Text="On Medications" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding UnderMedicalTreatment}" Color="{StaticResource PrimaryPink}"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding UnderMedicalTreatment}" Color="{StaticResource PrimaryGreen}"/>
 						<Label Grid.Column="1" Text="Under Treatment" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="2" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding UsesTobacco}" Color="{StaticResource PrimaryPink}"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding UsesTobacco}" Color="{StaticResource PrimaryGreen}"/>
 						<Label Grid.Column="1" Text="Uses Tobacco" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding IsPregnant}" Color="{StaticResource PrimaryPink}"
+						<CheckBox Grid.Column="0" IsChecked="{Binding IsPregnant}" Color="{StaticResource PrimaryGreen}"
                                   IsVisible="{Binding IsFemale}"/>
 						<Label Grid.Column="1" Text="Pregnant" Style="{StaticResource FormCheckLabel}"
                                IsVisible="{Binding IsFemale}"/>
@@ -244,23 +244,23 @@
 				<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto"
                       RowSpacing="0" ColumnSpacing="0">
 					<Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasAspirinAllergy}" Color="{StaticResource PrimaryPink}"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasAspirinAllergy}" Color="{StaticResource PrimaryGreen}"/>
 						<Label Grid.Column="1" Text="Aspirin" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasLatexAllergy}" Color="{StaticResource PrimaryPink}"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasLatexAllergy}" Color="{StaticResource PrimaryGreen}"/>
 						<Label Grid.Column="1" Text="Latex" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasLocalAnestheticAllergy}" Color="{StaticResource PrimaryPink}"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasLocalAnestheticAllergy}" Color="{StaticResource PrimaryGreen}"/>
 						<Label Grid.Column="1" Text="Local Anesthetic" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasPenicillinAllergy}" Color="{StaticResource PrimaryPink}"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasPenicillinAllergy}" Color="{StaticResource PrimaryGreen}"/>
 						<Label Grid.Column="1" Text="Penicillin" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 					<Grid Grid.Row="2" Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="4">
-						<CheckBox Grid.Column="0" IsChecked="{Binding HasSulfaAllergy}" Color="{StaticResource PrimaryPink}"/>
+						<CheckBox Grid.Column="0" IsChecked="{Binding HasSulfaAllergy}" Color="{StaticResource PrimaryGreen}"/>
 						<Label Grid.Column="1" Text="Sulfa" Style="{StaticResource FormCheckLabel}"/>
 					</Grid>
 				</Grid>
@@ -284,7 +284,7 @@
 						<DataTemplate x:DataType="vm:ConditionCheckItem">
 							<Grid ColumnDefinitions="Auto,*" ColumnSpacing="4" Padding="0,2">
 								<CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}"
-                                          Color="{StaticResource PrimaryPink}" VerticalOptions="Center"/>
+                                          Color="{StaticResource PrimaryGreen}" VerticalOptions="Center"/>
 								<Label Grid.Column="1" Text="{Binding ConditionName}"
                                        Style="{StaticResource FormCheckLabel}"/>
 							</Grid>

@@ -12,7 +12,7 @@
     xmlns:transact="clr-namespace:ClinicApp.Views.TransactionRelated" 
     Shell.FlyoutBehavior="Disabled"
     Shell.TabBarBackgroundColor="{StaticResource PageBg}"
-    Shell.TabBarTitleColor="{StaticResource PrimaryPink}"
+    Shell.TabBarTitleColor="{StaticResource PrimaryGreen}"
     Shell.TabBarUnselectedColor="{StaticResource TextMuted}">
 
 	<TabBar>
@@ -22,7 +22,7 @@
 				<FontImageSource
                     FontFamily="MaterialSymbolsRoundedFilled"
                     Glyph="&#xe88a;"
-                    Color="{StaticResource PrimaryPink}"
+                    Color="{StaticResource PrimaryGreen}"
                     Size="42"/>
 			</Tab.Icon>
 			<ShellContent
@@ -35,7 +35,7 @@
 				<FontImageSource
                     FontFamily="MaterialSymbolsRoundedFilled"
                     Glyph="&#xebcc;"
-                    Color="{StaticResource PrimaryPink}"
+                    Color="{StaticResource PrimaryGreen}"
                     Size="42"/>
 			</Tab.Icon>
 			<ShellContent
@@ -48,7 +48,7 @@
 				<FontImageSource
                     FontFamily="MaterialSymbolsRoundedFilled"
                     Glyph="&#xf233;"
-                    Color="{StaticResource PrimaryPink}"
+                    Color="{StaticResource PrimaryGreen}"
                     Size="42"/>
 			</Tab.Icon>
 			<ShellContent
@@ -61,7 +61,7 @@
 				<FontImageSource
                     FontFamily="MaterialSymbolsRoundedFilled"
                     Glyph="&#xe5d2;"
-                    Color="{StaticResource PrimaryPink}"
+                    Color="{StaticResource PrimaryGreen}"
                     Size="42"/>
 			</Tab.Icon>
 			<ShellContent
