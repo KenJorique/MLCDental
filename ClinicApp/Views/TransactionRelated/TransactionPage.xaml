@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClinicApp.ViewModels.TransactionVM"
+             xmlns:models="clr-namespace:ClinicApp.Models"
+             x:Class="ClinicApp.Views.TransactionPage"
+             BackgroundColor="#F5F5F5">
+
+    <ContentPage.Title>
+        <Binding Path="PatientName" StringFormat="Billing — {0}"/>
+    </ContentPage.Title>
+
+    <Grid>
+        <RefreshView Command="{Binding RefreshCommand}"
+                     IsRefreshing="{Binding IsRefreshing}">
+            <ScrollView>
+                <VerticalStackLayout Padding="16" Spacing="14">
+
+                    <!-- Summary -->
+                    <Frame BackgroundColor="#4A4A8A" BorderColor="#4A4A8A"
+                           CornerRadius="12" Padding="16" HasShadow="False">
+                        <Grid ColumnDefinitions="*,*,*">
+                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                <Label Text="Total Billed"
+                                       FontSize="10" TextColor="#B0B0D0"/>
+                                <Label Text="{Binding TotalBilled,
+                                           StringFormat='₱{0:N2}'}"
+                                       FontSize="14" FontAttributes="Bold"
+                                       TextColor="White"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="4"
+                                HorizontalOptions="Center">
+                                <Label Text="Total Paid"
+                                       FontSize="10" TextColor="#B0B0D0"/>
+                                <Label Text="{Binding TotalPaid,
+                                           StringFormat='₱{0:N2}'}"
+                                       FontSize="14" FontAttributes="Bold"
+                                       TextColor="#90EE90"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="4"
+                                HorizontalOptions="End">
+                                <Label Text="Balance"
+                                       FontSize="10" TextColor="#B0B0D0"/>
+                                <Label Text="{Binding TotalBalance,
+                                           StringFormat='₱{0:N2}'}"
+                                       FontSize="14" FontAttributes="Bold"
+                                       TextColor="#FFB347"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Frame>
+
+                    <!-- Add bill button -->
+                    <Button Text="+ Create New Bill"
+                            BackgroundColor="#4A4A8A"
+                            TextColor="White"
+                            CornerRadius="10"
+                            HeightRequest="44"
+                            FontSize="13"
+                            Command="{Binding CreateNewBillCommand}"/>
+
+                    <!-- Outstanding balances -->
+                    <!--<VerticalStackLayout Spacing="8"
+                        IsVisible="{Binding HasBalance}">
+                        <Label Text="⚠ Outstanding Balances"
+                               FontSize="14" FontAttributes="Bold"
+                               TextColor="#C62828"/>
+
+                        <CollectionView ItemsSource="{Binding UnpaidBills}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:SupabaseBill">
+                                    <Frame Margin="0,0,0,8" Padding="12"
+                                           CornerRadius="10" HasShadow="False"
+                                           BackgroundColor="{Binding StatusBgColor}"
+                                           BorderColor="{Binding StatusColor}">
+                                        <Frame.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                          Path=BindingContext.ViewReceiptCommand}"
+                                                CommandParameter="{Binding .}"/>
+                                        </Frame.GestureRecognizers>
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              RowDefinitions="Auto,Auto,Auto">
+                                            <Label Grid.Row="0" Grid.Column="0"
+                                                   Text="{Binding DateDisplay}"
+                                                   FontSize="13" FontAttributes="Bold"
+                                                   TextColor="#222"/>
+                                            <Border Grid.Row="0" Grid.Column="1"
+                                                    BackgroundColor="{Binding StatusColor}"
+                                                    StrokeShape="RoundRectangle 6"
+                                                    Stroke="Transparent"
+                                                    Padding="6,2">
+                                                <Label Text="{Binding StatusDisplay}"
+                                                       FontSize="10" FontAttributes="Bold"
+                                                       TextColor="White"/>
+                                            </Border>
+                                            <Label Grid.Row="1"
+                                                   Grid.Column="0"
+                                                   Grid.ColumnSpan="2"
+                                                   FontSize="12" TextColor="#555"
+                                                   Margin="0,4,0,0">
+                                                <Label.FormattedText>
+                                                    <FormattedString>
+                                                        <Span Text="Total: "/>
+                                                        <Span Text="{Binding TotalDisplay}"
+                                                              FontAttributes="Bold"/>
+                                                        <Span Text="   Paid: "/>
+                                                        <Span Text="{Binding PaidDisplay}"
+                                                              TextColor="#2E7D32"
+                                                              FontAttributes="Bold"/>
+                                                    </FormattedString>
+                                                </Label.FormattedText>
+                                            </Label>
+                                            <Label Grid.Row="2"
+                                                   Grid.Column="0"
+                                                   Grid.ColumnSpan="2"
+                                                   FontSize="13"
+                                                   TextColor="#C62828"
+                                                   FontAttributes="Bold"
+                                                   Margin="0,4,0,0">
+                                                <Label.FormattedText>
+                                                    <FormattedString>
+                                                        <Span Text="Balance: "/>
+                                                        <Span Text="{Binding BalanceDisplay}"/>
+                                                    </FormattedString>
+                                                </Label.FormattedText>
+                                            </Label>
+                                        </Grid>
+                                    </Frame>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>-->
+
+                    <!-- Full billing history -->
+                    <Label Text="Billing History"
+                           FontSize="14" FontAttributes="Bold"
+                           TextColor="#333" Margin="0,8,0,0"/>
+
+                    <Label Text="No billing records yet"
+                           FontSize="12" TextColor="#999"
+                           IsVisible="{Binding Bills.Count,
+                               Converter={StaticResource IntEqualZeroConverter}}"/>
+
+                    <CollectionView ItemsSource="{Binding Bills}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:SupabaseBill">
+                                <Frame Margin="0,0,0,8" Padding="12"
+                                       CornerRadius="10" HasShadow="False"
+                                       BackgroundColor="White"
+                                       BorderColor="#E0E0E0">
+                                    <Frame.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                      Path=BindingContext.ViewReceiptCommand}"
+                                            CommandParameter="{Binding .}"/>
+                                    </Frame.GestureRecognizers>
+                                    <Grid ColumnDefinitions="*,Auto"
+                                          RowDefinitions="Auto,Auto">
+                                        <Label Grid.Row="0" Grid.Column="0"
+                                               Text="{Binding DateDisplay}"
+                                               FontSize="13" FontAttributes="Bold"
+                                               TextColor="#222"/>
+                                        <Border Grid.Row="0" Grid.Column="1"
+                                                BackgroundColor="{Binding StatusColor}"
+                                                StrokeShape="RoundRectangle 6"
+                                                Stroke="Transparent" Padding="6,2">
+                                            <Label Text="{Binding StatusDisplay}"
+                                                   FontSize="10" FontAttributes="Bold"
+                                                   TextColor="White"/>
+                                        </Border>
+                                        <Label Grid.Row="1"
+                                               Grid.Column="0"
+                                               Grid.ColumnSpan="2"
+                                               FontSize="12" TextColor="#555"
+                                               Margin="0,4,0,0">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="Total: "/>
+                                                    <Span Text="{Binding TotalDisplay}"
+                                                          FontAttributes="Bold"/>
+                                                    <Span Text="   Balance: "/>
+                                                    <Span Text="{Binding BalanceDisplay}"
+                                                          TextColor="#C62828"
+                                                          FontAttributes="Bold"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                    </Grid>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <BoxView HeightRequest="20" Color="Transparent"/>
+
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

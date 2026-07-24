@@ -9,6 +9,7 @@
     xmlns:users="clr-namespace:ClinicApp.Views.UsersRelated"
     xmlns:appt="clr-namespace:ClinicApp.Views.AppointmentRelated"
     xmlns:views="clr-namespace:ClinicApp.Views"
+    xmlns:transact="clr-namespace:ClinicApp.Views.TransactionRelated" 
     Shell.FlyoutBehavior="Disabled"
     Shell.TabBarBackgroundColor="{StaticResource PageBg}"
     Shell.TabBarTitleColor="{StaticResource PrimaryGreen}"

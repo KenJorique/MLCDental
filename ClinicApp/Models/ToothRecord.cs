@@ -29,4 +29,7 @@ public class ToothRecord
 
     [Column("LastUpdated")]
     public string LastUpdated { get; set; } = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
+    [Column("DateUpdated")]
+    public string DateUpdated { get; set; } = DateTime.UtcNow.ToString("yyyy-MM-dd");
 }

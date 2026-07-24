@@ -9,6 +9,7 @@ using ClinicApp.Views.AppointmentRelated;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Core.Platform;
 using Microsoft.Maui.Graphics;
+using ClinicApp.Views.TransactionRelated;
 
 namespace ClinicApp
 {
@@ -43,7 +44,10 @@ namespace ClinicApp
 
             Routing.RegisterRoute(nameof(GoogleSignInPage), typeof(GoogleSignInPage));
 
-            Routing.RegisterRoute(nameof(TransactionPage), typeof(TransactionPage));
+            Routing.RegisterRoute(nameof(Views.TransactionPage), typeof(Views.TransactionPage));
+            Routing.RegisterRoute(nameof(Views.CreateBillPage), typeof(Views.CreateBillPage));
+            Routing.RegisterRoute(nameof(Views.CreateBillPage), typeof(Views.CreateBillPage));
+            Routing.RegisterRoute(nameof(ReceiptPage), typeof(ReceiptPage));
         }
 
         protected override void OnAppearing()

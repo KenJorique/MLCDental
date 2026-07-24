@@ -1052,4 +1052,12 @@ public class DatabaseService
                 $"[DB] ExecuteAsync: {ex.Message}");
         }
     }
+
+    public async Task<Patient?> GetPatientBySupabaseId(string supabaseId)
+    {
+        await Init();
+        return await _database!.Table<Patient>()
+            .Where(p => p.SupabaseId == supabaseId)
+            .FirstOrDefaultAsync();
+    }
 }

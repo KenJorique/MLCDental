@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using ClinicApp.Services;
+using System.Globalization;
 
 namespace ClinicApp.Converters;
 
@@ -113,3 +114,36 @@ public class IntToBoolConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
+public class DecimalNotZeroConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType,
+                          object? parameter, CultureInfo culture)
+        => value is decimal d && d > 0;
+
+    public object ConvertBack(object? value, Type targetType,
+                              object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+public class ToothAwareConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType,
+                          object? parameter, CultureInfo culture)
+        => ToothAwareServices.NeedsTeethInput(value?.ToString() ?? "");
+
+    public object ConvertBack(object? value, Type targetType,
+                              object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+public class InstallmentConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType,
+                          object? parameter, CultureInfo culture)
+        => ToothAwareServices.IsInstallmentEligible(
+               value?.ToString() ?? "");
+
+    public object ConvertBack(object? value, Type targetType,
+                              object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}

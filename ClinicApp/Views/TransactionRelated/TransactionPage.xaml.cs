@@ -1,3 +1,4 @@
+using ClinicApp.ViewModels.TransactionVM;
 using ClinicApp.ViewModels;
 
 namespace ClinicApp.Views
@@ -16,12 +17,9 @@ namespace ClinicApp.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            try { await _vm.LoadDataCommand.ExecuteAsync(null); }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[TransactionPage] {ex.Message}");
-            }
+
+            if (BindingContext is TransactionViewModel vm)
+                await vm.LoadBillsAsync();
         }
     }
 }
