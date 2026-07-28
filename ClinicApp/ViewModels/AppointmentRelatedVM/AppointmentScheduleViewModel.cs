@@ -57,7 +57,6 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private string todayLabel = "Today";
         [ObservableProperty]  private string weekLabel = "This week";
         [ObservableProperty] private bool selectedFromWeekSection;
-        [ObservableProperty] private string weekLabel = "This week";
 
         AppointmentDetailSheet? _detailSheet;
         // Add these properties
@@ -66,8 +65,11 @@ namespace ClinicApp.ViewModels
             OnPropertyChanged(nameof(CanChangeDate));
         }
         public bool IsSelectedApproved =>
-            SelectedAppointment?.Status == "approved" &&
-            SelectedAppointment?.AppointmentDateTimeParsed.Date == DateTime.Today; 
+     SelectedAppointment?.Status == "approved";
+
+        public bool IsSelectedInTransit =>
+            SelectedAppointment?.Status == "in-procedure" ||
+            SelectedAppointment?.Status == "billing";
 
         public bool IsSelectedPending =>
             SelectedAppointment?.Status == "pending" ||
@@ -82,6 +84,7 @@ namespace ClinicApp.ViewModels
         partial void OnSelectedAppointmentChanged(AppointmentEntry? value)
         {
             OnPropertyChanged(nameof(IsSelectedApproved));
+            OnPropertyChanged(nameof(IsSelectedInTransit));
             OnPropertyChanged(nameof(IsSelectedPending));
             OnPropertyChanged(nameof(CanCancel));
             OnPropertyChanged(nameof(CanChangeDate));
@@ -261,15 +264,19 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
-        async Task MarkCompleted()
+        async Task ProceedToBilling()
         {
             if (SelectedAppointment == null) return;
+            System.Diagnostics.Debug.WriteLine(
+    $"[ProceedToBilling] PatientName='{SelectedAppointment.PatientName}' " +
+    $"PatientSupabaseId='{SelectedAppointment.PatientSupabaseId}' " +
+    $"Status='{SelectedAppointment.Status}'");
 
             bool confirm = await Shell.Current.DisplayAlert(
-                "Mark as completed",
-                $"Mark {SelectedAppointment.PatientName}'s appointment as completed?\n" +
-                "You will be redirected to create a bill.",
+                "Start Billing",
+                $"Procedure for {SelectedAppointment.PatientName} is done.\nStart billing now?",
                 "Yes, proceed", "Cancel");
+
             if (!confirm) return;
 
             var appointment = SelectedAppointment;
@@ -277,55 +284,17 @@ namespace ClinicApp.ViewModels
 
             try
             {
-                // Google Tasks complete
-                try
-                {
-                    var token = await _supabaseData.GetFreshAccessTokenAsync();
-                    if (!string.IsNullOrEmpty(token) &&
-                        !string.IsNullOrEmpty(appointment.GoogleTaskId))
-                        await _supabaseData.CompleteGoogleTaskAsync(
-                            token, appointment.GoogleTaskId);
-                }
-                catch { /* silent */ }
-
-                // Remove from both lists immediately — the booking is "done"
-                // from the user's perspective the moment they confirm, even
-                // though actual deletion happens later inside CreateBillViewModel.
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    var todayMatch = TodayAppointments.FirstOrDefault(
-                        a => a.SupabaseBookingId == appointment.SupabaseBookingId);
-                    if (todayMatch != null)
-                    {
-                        TodayAppointments.Remove(todayMatch);
-                        TodayCount = TodayAppointments.Count;
-                    }
-
-                    var weekMatch = WeekAppointments.FirstOrDefault(
-                        a => a.SupabaseBookingId == appointment.SupabaseBookingId);
-                    if (weekMatch != null)
-                    {
-                        WeekAppointments.Remove(weekMatch);
-                        WeekCount = WeekAppointments.Count;
-                    }
-                });
-
-                // Rebuild calendar so the slot clears too
-                BuildCalendarColumns(WeekAppointments.ToList());
-
                 ShowDetail = false;
                 SelectedAppointment = null;
                 await CloseSheetAsync();
 
-                // Navigate to billing — pass appointment entry id
-                // Deletion happens INSIDE CreateBillViewModel.CreateBill()
-                // so going back doesn't lose the appointment
                 await Shell.Current.GoToAsync(
-     $"{nameof(CreateBillPage)}" +
-     $"?patientId={Uri.EscapeDataString(appointment.PatientSupabaseId ?? string.Empty)}" +
-     $"&patientName={Uri.EscapeDataString(appointment.PatientName ?? string.Empty)}" +
-     $"&appointmentEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}" +
-     $"&supabaseEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}");
+                    $"{nameof(CreateBillPage)}" +
+                    $"?patientId={Uri.EscapeDataString(appointment.PatientSupabaseId ?? string.Empty)}" +
+                    $"&patientName={Uri.EscapeDataString(appointment.PatientName ?? string.Empty)}" +
+                    $"&appointmentEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}" +
+                    $"&supabaseEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}" +
+                    $"&supabaseBookingId={Uri.EscapeDataString(appointment.SupabaseBookingId ?? string.Empty)}");
             }
             catch (Exception ex)
             {
@@ -333,7 +302,6 @@ namespace ClinicApp.ViewModels
                 await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
             }
         }
-
         [RelayCommand]
         async Task CancelAppointment()
         {
@@ -413,128 +381,7 @@ namespace ClinicApp.ViewModels
             CalendarNeedsRedraw?.Invoke();
         }
 
-        private async Task FetchAndPopulate()
-        {
-            try
-            {
-                var weekEnd = WeekStart.AddDays(7);
-
-                var bookingsTask = _supabaseData.GetBookingsForWeekAsync(
-                                       WeekStart, weekEnd);
-                var entriesTask = _supabaseData.GetAppointmentEntriesAsync();
-
-                await Task.WhenAll(bookingsTask, entriesTask);
-
-                var bookings = bookingsTask.Result;
-                var entries = entriesTask.Result;
-
-                // ── Convert bookings → AppointmentEntry ──────────────
-                var bookingEntries = bookings.Select(b =>
-                {
-                    // Force UTC kind then convert ONCE to local
-                    var utc = DateTime.SpecifyKind(
-                                    b.AppointmentDate, DateTimeKind.Utc);
-                    var local = utc.ToLocalTime();
-
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[Time] {b.FullName}: UTC={utc:HH:mm} Local={local:HH:mm}");
-
-                    return new AppointmentEntry
-                    {
-                        SupabaseBookingId = b.Id,
-                        PatientName = b.FullName ?? "",
-                        Phone = b.Phone ?? "",
-                        Email = b.Email ?? "",
-                        Notes = b.Notes ?? "",
-                        // Store as LOCAL time string with no timezone info
-                        // AppointmentDateTimeParsed treats unspecified as local
-                        AppointmentDateTime = local.ToString("yyyy-MM-dd HH:mm:ss"),
-                        Status = b.Status
-                    };
-                }).ToList();
-
-                // ── Convert approved entries ──────────────────────────
-                var approvedEntries = entries
-                    .Select(e =>
-                    {
-                        // e.AppointmentDateTime is UTC from Supabase
-                        var utc = DateTime.SpecifyKind(
-                                        e.AppointmentDateTime, DateTimeKind.Utc);
-                        var local = utc.ToLocalTime();
-
-                        return new AppointmentEntry
-                        {
-                            SupabaseBookingId = e.SupabaseBookingId,
-                            PatientName = e.PatientName,
-                            PatientSupabaseId = e.PatientId,
-                            Phone = e.Phone ?? "",
-                            Email = e.Email ?? "",
-                            Notes = e.Notes ?? "",
-                            AppointmentDateTime = local.ToString("yyyy-MM-dd HH:mm:ss"),
-                            Status = e.Status,
-                            GoogleTaskId = e.GoogleTaskId ?? ""
-                        };
-                    })
-                    .Where(e =>
-                    {
-                        // Filter by week AFTER conversion to local
-                        return e.AppointmentDateTimeParsed.Date >= WeekStart.Date &&
-                               e.AppointmentDateTimeParsed.Date < WeekStart.AddDays(7).Date;
-                    })
-                    .ToList();
-
-                // ── Merge — approved takes priority over pending ──────
-                var approvedIds = approvedEntries
-                    .Select(e => e.SupabaseBookingId)
-                    .ToHashSet();
-
-                var pendingOnly = bookingEntries
-                    .Where(b => !approvedIds.Contains(b.SupabaseBookingId))
-                    .ToList();
-
-                var allEntries = approvedEntries
-                    .Concat(pendingOnly)
-                    .OrderBy(e => e.AppointmentDateTimeParsed)
-                    .ToList();
-
-                // ── Today ─────────────────────────────────────────────
-                var todayEntries = allEntries
-                    .Where(e => e.AppointmentDateTimeParsed.Date == DateTime.Today)
-                    .ToList();
-
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    TodayAppointments.Clear();
-                    foreach (var a in todayEntries)
-                        TodayAppointments.Add(a);
-                    TodayCount = TodayAppointments.Count;
-                });
-
-                // ── Week ──────────────────────────────────────────────
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    WeekAppointments.Clear();
-                    foreach (var a in allEntries)
-                        WeekAppointments.Add(a);
-                    WeekCount = WeekAppointments.Count;
-                });
-
-                // ── Pending count for banner ──────────────────────────
-                var pending = await _supabaseData.GetBookingsByStatusAsync("pending");
-                PendingBookingsCount = pending.Count;
-                HasPendingBookings = PendingBookingsCount > 0;
-                OnPropertyChanged(nameof(HasPendingBookings));
-                OnPropertyChanged(nameof(PendingBookingsCount));
-
-                // ── Calendar ──────────────────────────────────────────
-                BuildCalendarColumns(allEntries);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[FetchAndPopulate] ERROR: {ex.Message}");
-            }
-        }
+     
         public async Task LoadAppointments()
         {
             if (IsBusy) return;
@@ -546,13 +393,21 @@ namespace ClinicApp.ViewModels
                 // Schedule page shows APPROVED appointments only.
                 // Pending / rescheduled bookings live exclusively in the
                 // review list (AppointmentPage) — they never appear here.
+                var activeStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            "approved",
+                            "in-procedure",
+                            "billing"
+                        };
+
                 var approvedEntries = entries
-                    .Where(e => e.Status == "approved")
+                    .Where(e => activeStatuses.Contains(e.Status))
                     .Where(e =>
                     {
                         var dt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
                             ? e.AppointmentDateTime.ToLocalTime()
                             : e.AppointmentDateTime;
+
                         return dt.Date >= WeekStart.Date &&
                                dt.Date < WeekStart.AddDays(7).Date;
                     })
@@ -673,6 +528,49 @@ namespace ClinicApp.ViewModels
                 IsBusy = false;
                 IsInitialLoading = false;
             }
+        }
+
+        private async Task UpdateAppointmentStageAsync(string status)
+        {
+            if (SelectedAppointment == null) return;
+
+            try
+            {
+                // Local SQLite id is an int
+                if (SelectedAppointment.Id > 0)
+                    await _db.UpdateAppointmentStatus(SelectedAppointment.Id, status);
+
+                if (!string.IsNullOrWhiteSpace(_selectedSupabaseEntryId))
+                    await _supabaseData.UpdateAppointmentEntryStatusAsync(
+                        _selectedSupabaseEntryId, status);
+
+                if (!string.IsNullOrWhiteSpace(SelectedAppointment.SupabaseBookingId))
+                    await _supabaseData.UpdateBookingStatusAsync(
+                        SelectedAppointment.SupabaseBookingId, status);
+
+                SelectedAppointment.Status = status;
+                await LoadAppointments();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[UpdateAppointmentStage] {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+            }
+        }   
+
+        [RelayCommand]
+        async Task SetInTransit()
+        {
+            if (SelectedAppointment == null) return;
+
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Set In Transit",
+                $"Mark {SelectedAppointment.PatientName} as currently in procedure?",
+                "Yes", "Cancel");
+
+            if (!confirm) return;
+
+            await UpdateAppointmentStageAsync("in-procedure");
         }
 
         private void BuildCalendarColumns(List<AppointmentEntry> entries)

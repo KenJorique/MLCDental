@@ -191,9 +191,12 @@ namespace ClinicApp.Services
             try
             {
                 await EnsureInitializedAsync();
+               
+
                 var result = await _client!
                     .From<SupabaseAppointmentEntry>()
                     .Insert(entry);
+
                 return result.Models.FirstOrDefault();
             }
             catch (Exception ex)
@@ -732,66 +735,98 @@ namespace ClinicApp.Services
             try
             {
                 await EnsureInitializedAsync();
-                var result = await _client!.From<SupabaseBooking>().Get();
 
-                var startUtc = date.Date.ToUniversalTime();
-                var endUtc = startUtc.AddDays(1);
+                var result = await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Get();
+                System.Diagnostics.Debug.WriteLine(
+    $"Appointment Entries Count = {result.Models.Count}");
 
+                foreach (var a in result.Models)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"{a.PatientName} | {a.AppointmentDateTime:o} | {a.Status}");
+                }
                 return result.Models
-                    .Where(b =>
-                        b.AppointmentDate >= startUtc &&
-                        b.AppointmentDate < endUtc &&
-                        b.Status != "rejected" &&
-                        b.Status != "cancelled")
-                    .Select(b => b.AppointmentDate)
+                    .Where(x =>
+                    {
+                        var local = x.AppointmentDateTime.ToLocalTime();
+
+                        return local.Date == date.Date &&
+                               x.Status != "cancelled" &&
+                               x.Status != "completed" &&
+                               x.Status != "rejected";
+                    })
+                    .Select(x => x.AppointmentDateTime)
                     .ToList();
+
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] GetBookedSlots: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(ex);
+
                 return new List<DateTime>();
             }
         }
 
-        public async Task RescheduleBookingAsync(string bookingId, DateTime newUtcTime)
+        public async Task<bool> IsSlotAvailableAsync(DateTime utcTime)
+        {
+            await EnsureInitializedAsync();
+
+            var result = await _client!
+                .From<SupabaseAppointmentEntry>()
+                .Get();
+            System.Diagnostics.Debug.WriteLine(
+    $"Appointment Entries Count = {result.Models.Count}");
+
+            foreach (var a in result.Models)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"{a.PatientName} | {a.AppointmentDateTime:o} | {a.Status}");
+            }
+            return !result.Models.Any(a =>
+            {
+                var dt = a.AppointmentDateTime.ToUniversalTime();
+
+                return dt.Year == utcTime.Year &&
+                       dt.Month == utcTime.Month &&
+                       dt.Day == utcTime.Day &&
+                       dt.Hour == utcTime.Hour &&
+                       dt.Minute == utcTime.Minute &&
+                       a.Status != "cancelled" &&
+                       a.Status != "completed" &&
+                       a.Status != "rejected";
+            });
+        }
+
+        public async Task RescheduleBookingAsync(
+    string appointmentEntryId,
+    DateTime newUtcTime)
         {
             try
             {
                 await EnsureInitializedAsync();
+
                 var result = await _client!
-                    .From<SupabaseBooking>()
-                    .Where(b => b.Id == bookingId)
+                    .From<SupabaseAppointmentEntry>()
+                    .Where(x => x.Id == appointmentEntryId)
                     .Single();
 
-                if (result == null) return;
+                if (result == null)
+                    return;
 
-                result.AppointmentDate = newUtcTime;
+                result.AppointmentDateTime = newUtcTime;
                 result.Status = "rescheduled";
 
-                await _client!.From<SupabaseBooking>().Update(result);
-
-                // Also update appointment_entries if exists
-                var entries = await _client!
+                await _client!
                     .From<SupabaseAppointmentEntry>()
-                    .Where(e => e.SupabaseBookingId == bookingId)
-                    .Get();
-
-                var entry = entries.Models.FirstOrDefault();
-                if (entry != null)
-                {
-                    entry.AppointmentDateTime = newUtcTime;
-                    entry.Status = "rescheduled";
-                    await _client!.From<SupabaseAppointmentEntry>().Update(entry);
-                }
-
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] Rescheduled {bookingId} to {newUtcTime:yyyy-MM-dd HH:mm} UTC");
+                    .Update(result);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] RescheduleBooking: {ex.Message}");
+                    $"[Supabase] Reschedule: {ex.Message}");
+
                 throw;
             }
         }
@@ -801,16 +836,22 @@ namespace ClinicApp.Services
             try
             {
                 await EnsureInitializedAsync();
-                var result = await _client!
-                    .From<SupabasePatient>()
-                    .Where(p => p.Phone == phone)
-                    .Get();
-                return result.Models.FirstOrDefault();
+
+                var digitsOnly = new string((phone ?? "").Where(char.IsDigit).ToArray());
+                if (string.IsNullOrEmpty(digitsOnly))
+                    return null;
+
+                var result = await _client!.From<SupabasePatient>().Get();
+                var patients = result.Models ?? new List<SupabasePatient>();
+
+                return patients.FirstOrDefault(p =>
+                    !string.IsNullOrEmpty(p.Phone) &&
+                    new string(p.Phone.Where(char.IsDigit).ToArray())
+                        .EndsWith(digitsOnly.Length >= 7 ? digitsOnly[^7..] : digitsOnly));
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] GetPatientByPhone: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetPatientByPhone: {ex.Message}");
                 return null;
             }
         }
@@ -841,34 +882,26 @@ namespace ClinicApp.Services
 
         public async Task<SupabaseBill?> CreateBillAsync(SupabaseBill bill)
         {
-            try
+            await EnsureInitializedAsync();
+
+            bill.Balance = bill.TotalAmount - bill.AmountPaid;
+            bill.BillNumber = $"B-{DateTime.Now:yyyy}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
+
+            System.Diagnostics.Debug.WriteLine("===== INSERTING BILL =====");
+
+            var result = await _client!
+                .From<SupabaseBill>()
+                .Insert(bill);
+
+            System.Diagnostics.Debug.WriteLine($"Models Count = {result.Models.Count}");
+
+            foreach (var b in result.Models)
             {
-                await EnsureInitializedAsync();
-
-                // Calculate balance before insert — no generated column
-                bill.Balance = bill.TotalAmount - bill.AmountPaid;
-                bill.BillNumber = $"B-{DateTime.Now:yyyy}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
-
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] Creating bill: {bill.PatientName} " +
-                    $"total={bill.TotalAmount} balance={bill.Balance}");
-
-                var result = await _client!
-                    .From<SupabaseBill>()
-                    .Insert(bill);
-
-                var saved = result.Models.FirstOrDefault();
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] Bill created: {saved?.Id ?? "NULL - INSERT FAILED"}");
-
-                return saved;
+                System.Diagnostics.Debug.WriteLine($"Returned Id = {b.Id}");
+                System.Diagnostics.Debug.WriteLine($"Returned BillNo = {b.BillNumber}");
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] CreateBill ERROR: {ex.Message}");
-                throw;
-            }
+
+            return result.Models.FirstOrDefault();
         }
         public async Task AddBillItemAsync(SupabaseBillItemInsert item)
         {
@@ -893,27 +926,83 @@ namespace ClinicApp.Services
             }
         }
 
-        public async Task<List<SupabaseBill>> GetBillsForPatientAsync(  
-            string patientId)
+        public async Task<SupabaseBill?> GetBillByIdAsync(string billId)
         {
             try
             {
                 await EnsureInitializedAsync();
+                return await _client!
+                    .From<SupabaseBill>()
+                    .Where(b => b.Id == billId)
+                    .Single();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetBillById: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<SupabaseBill>> GetBillsForPatientAsync(string patientId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
                 var result = await _client!
                     .From<SupabaseBill>()
-                    .Where(b => b.PatientId == patientId)
-                    .Order("visit_date",
-                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Order("visit_date", Supabase.Postgrest.Constants.Ordering.Descending)
                     .Get();
-                return result.Models ?? new List<SupabaseBill>();
+
+                var bills = result.Models ?? new List<SupabaseBill>();
+
+                var matches = bills.Where(b => b.PatientId == patientId).ToList();
+                if (matches.Any())
+                    return matches;
+
+                // Walk-in fallback: match by patient name instead of ID
+                var patientResult = await _client!
+                    .From<SupabasePatient>()
+                    .Where(p => p.Id == patientId)
+                    .Get();
+
+                var patient = patientResult.Models?.FirstOrDefault();
+                if (patient == null)
+                    return new List<SupabaseBill>();
+
+                var fullName = $"{patient.FirstName} {patient.LastName}".Trim();
+
+                return bills
+                    .Where(b => string.Equals(b.PatientName?.Trim(), fullName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetBillsForPatient: {ex.Message}");
+                return new List<SupabaseBill>();
+            }
+        }
+        public async Task<SupabaseBooking?> AddBookingAsync(SupabaseBooking booking)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var result = await _client!
+                    .From<SupabaseBooking>()
+                    .Insert(booking);
+
+                return result.Models.FirstOrDefault();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] GetBillsForPatient: {ex.Message}");
-                return new List<SupabaseBill>();
+                    $"[Supabase] AddBooking: {ex.Message}");
+
+                return null;
             }
         }
+
 
         public async Task<List<SupabaseBillItem>> GetBillItemsAsync(string billId)
         {
@@ -971,7 +1060,7 @@ namespace ClinicApp.Services
 
                 var payment = new SupabasePayment
                 {
-                    Id = Guid.NewGuid().ToString(),   // ← make sure Id is actually generated
+                    Id = Guid.NewGuid().ToString(),  
                     BillId = billId,
                     Amount = amount,
                     PaymentDate = DateTime.UtcNow,
@@ -981,8 +1070,23 @@ namespace ClinicApp.Services
 
                 billResult.AmountPaid += amount;
                 billResult.Balance = billResult.TotalAmount - billResult.AmountPaid;
-                billResult.Status = billResult.AmountPaid >= billResult.TotalAmount
-                    ? "paid" : billResult.AmountPaid > 0 ? "partial" : "unpaid";
+
+
+                billResult.LastPaymentDate = payment.PaymentDate;
+
+                if (billResult.AmountPaid >= billResult.TotalAmount)
+                {
+                    billResult.Status = "paid";
+                    billResult.DueDate = null;
+                }
+                else
+                {
+                    billResult.Status = billResult.AmountPaid > 0 ? "partial" : "unpaid";
+
+                    // Next due date for installment plans: one month after the latest payment
+                    if (billResult.IsInstallment)
+                        billResult.DueDate = payment.PaymentDate.AddMonths(1);
+                }
 
                 await _client!.From<SupabaseBill>().Update(billResult);
                 return (true, null);
@@ -1034,5 +1138,7 @@ namespace ClinicApp.Services
                 return new List<SupabaseBill>();
             }
         }
+
+
     }
 }

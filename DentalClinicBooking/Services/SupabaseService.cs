@@ -75,22 +75,25 @@ namespace DentalClinicBooking.Services
         {
             try
             {
-                var (startOfDay, endOfDay) = PhDayWindowUtc(date);
+                var result = await _client.From<Booking>().Get();
 
-                var result = await _client
-                    .From<Booking>()
-                    .Get();
+                var phTimeZone = TimeZoneInfo.FindSystemTimeZoneById(
+                    "Asia/Manila") ??
+                    TimeZoneInfo.CreateCustomTimeZone(
+                        "PH", TimeSpan.FromHours(8), "PH", "PH");
 
                 return result.Models
                     .Where(b =>
-                        b.AppointmentDate >= startOfDay &&
-                        b.AppointmentDate < endOfDay &&
                         b.Status != "rejected" &&
-                        b.Status != "cancelled")
-                    // Explicit PH conversion — not server-dependent .ToLocalTime()
-                    .Select(b => TimeZoneInfo.ConvertTimeFromUtc(
-                        DateTime.SpecifyKind(b.AppointmentDate, DateTimeKind.Utc),
-                        PhTimeZone))
+                        b.Status != "cancelled" &&
+                        b.AppointmentDate != default)
+                    .Select(b =>
+                    {
+                        var utc = DateTime.SpecifyKind(
+                                      b.AppointmentDate, DateTimeKind.Utc);
+                        return TimeZoneInfo.ConvertTimeFromUtc(utc, phTimeZone);
+                    })
+                    .Where(local => local.Date == date.Date)
                     .ToList();
             }
             catch (Exception ex)

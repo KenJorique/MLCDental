@@ -3,7 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ClinicApp.ViewModels.TransactionVM"
              xmlns:models="clr-namespace:ClinicApp.Models"
+             x:DataType="vm:CreateBillViewModel"
              x:Class="ClinicApp.Views.CreateBillPage"
+             Shell.NavBarIsVisible="True"
              BackgroundColor="#F5F5F5">
 
     <ContentPage.Title>
@@ -31,7 +33,7 @@
                     </VerticalStackLayout>
                 </Frame>
 
-                <!-- Selected services -->
+                <!-- Selected services (bound to SelectedServices: ServiceLineItem) -->
                 <Frame BackgroundColor="White" BorderColor="#E0E0E0"
                        CornerRadius="12" Padding="14" HasShadow="False"
                        IsVisible="{Binding SelectedServices.Count,
@@ -47,15 +49,13 @@
                             <DataTemplate x:DataType="vm:ServiceLineItem">
                                 <VerticalStackLayout Spacing="0" Margin="0,0,0,12">
 
-                                    <Grid ColumnDefinitions="*,30,22,30,30"
+                                    <Grid ColumnDefinitions="*,Auto,Auto"
                       ColumnSpacing="4">
                                         <VerticalStackLayout Grid.Column="0" Spacing="2">
                                             <Label Text="{Binding ServiceName}"
                                FontSize="13" FontAttributes="Bold"
                                TextColor="#222"
                                LineBreakMode="WordWrap"/>
-                                            <Label Text="{Binding UnitPriceDisplay}"
-                               FontSize="11" TextColor="#4A4A8A"/>
                                             <Label Text="{Binding TeethDisplay}"
                                FontSize="11" TextColor="#2E7D32"
                                FontAttributes="Italic"
@@ -63,30 +63,38 @@
                                    Converter={StaticResource StringNotEmptyConverter}}"/>
                                         </VerticalStackLayout>
 
-                                        <Button Grid.Column="1" Text="−"
-                            FontSize="14" BackgroundColor="#E0E0E0"
-                            TextColor="#333" CornerRadius="6"
-                            HeightRequest="30" WidthRequest="30" Padding="0"
-                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                      Path=BindingContext.DecreaseQtyCommand}"
-                            CommandParameter="{Binding .}"/>
+                                        <!-- Quantity controls: only shown for tooth-required services -->
+                                        <HorizontalStackLayout Grid.Column="1"
+                            Spacing="4"
+                            VerticalOptions="Center"
+                            IsVisible="{Binding ShowTeethInput}">
 
-                                        <Label Grid.Column="2"
-                           Text="{Binding Quantity}"
-                           FontSize="14" FontAttributes="Bold"
-                           TextColor="#333"
-                           VerticalOptions="Center"
-                           HorizontalOptions="Center"/>
+                                            <Button Text="−"
+                                FontSize="14" BackgroundColor="#E0E0E0"
+                                TextColor="#333" CornerRadius="6"
+                                HeightRequest="30" WidthRequest="30" Padding="0"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                          Path=BindingContext.DecreaseQtyCommand}"
+                                CommandParameter="{Binding .}"/>
 
-                                        <Button Grid.Column="3" Text="+"
-                            FontSize="14" BackgroundColor="#4A4A8A"
-                            TextColor="White" CornerRadius="6"
-                            HeightRequest="30" WidthRequest="30" Padding="0"
-                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                      Path=BindingContext.IncreaseQtyCommand}"
-                            CommandParameter="{Binding .}"/>
+                                            <Label Text="{Binding Quantity}"
+                               FontSize="14" FontAttributes="Bold"
+                               TextColor="#333"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center"
+                               WidthRequest="22"
+                               HorizontalTextAlignment="Center"/>
 
-                                        <Button Grid.Column="4" Text="✕"
+                                            <Button Text="+"
+                                FontSize="14" BackgroundColor="#4A4A8A"
+                                TextColor="White" CornerRadius="6"
+                                HeightRequest="30" WidthRequest="30" Padding="0"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                          Path=BindingContext.IncreaseQtyCommand}"
+                                CommandParameter="{Binding .}"/>
+                                        </HorizontalStackLayout>
+
+                                        <Button Grid.Column="2" Text="✕"
                             FontSize="12" BackgroundColor="Transparent"
                             TextColor="#C62828"
                             HeightRequest="30" WidthRequest="30" Padding="0"
@@ -146,8 +154,6 @@
 
                                     <BoxView HeightRequest="0.5" Color="#E0E0E0"
                          Margin="0,8,0,0"/>
-                                    
-                                    
 
                                 </VerticalStackLayout>
                             </DataTemplate>
@@ -169,28 +175,9 @@
                                    TextColor="#4A4A8A"/>
                 </Grid>
 
-                <!-- Installment toggle — show if eligible service added -->
-                <Frame BackgroundColor="#FFF8E1" BorderColor="#FFE082"
-                       CornerRadius="12" Padding="14" HasShadow="False"
-                       IsVisible="{Binding HasInstallmentService}">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <VerticalStackLayout Grid.Column="0" Spacing="2">
-                            <Label Text="Set as Installment"
-                                   FontSize="14" FontAttributes="Bold"
-                                   TextColor="#333"/>
-                            <Label Text="Patient can make partial payments anytime until balance is zero"
-                                   FontSize="11" TextColor="#888"
-                                   LineHeight="1.4"/>
-                        </VerticalStackLayout>
-                        <Switch Grid.Column="1"
-                                IsToggled="{Binding IsInstallment}"
-                                ThumbColor="#4A4A8A"
-                                OnColor="#B0B8D8"
-                                VerticalOptions="Center"/>
-                    </Grid>
-                </Frame>
 
-                <!-- Available services -->
+
+                <!-- Available services (bound to FilteredServices: AvailableServiceItem) -->
                 <Frame BackgroundColor="White" BorderColor="#E0E0E0"
        CornerRadius="12" Padding="14" HasShadow="False">
                     <VerticalStackLayout Spacing="10">
@@ -232,7 +219,7 @@
             BindableLayout.ItemsSource="{Binding FilteredServices}"
             Spacing="0">
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="models:SupabaseService">
+                                <DataTemplate x:DataType="vm:AvailableServiceItem">
                                     <VerticalStackLayout Spacing="0">
                                         <Grid ColumnDefinitions="*,Auto"
                               Padding="4,8" ColumnSpacing="8">
@@ -245,8 +232,7 @@
                                        FontAttributes="Bold"/>
                                                 <Label Text="🦷 Requires tooth numbers"
                                        FontSize="10" TextColor="#1565C0"
-                                       IsVisible="{Binding Name,
-                                           Converter={StaticResource ToothAwareConverter}}"/>
+                                       IsVisible="{Binding RequiresTeeth}"/>
                                                 <Label Text="⭐ Installment available"
                                        FontSize="10" TextColor="#F57F17"
                                        IsVisible="{Binding Name,
@@ -263,7 +249,16 @@
                                     Padding="0"
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                               Path=BindingContext.AddServiceCommand}"
-                                    CommandParameter="{Binding .}"/>
+                                    CommandParameter="{Binding .}">
+                                                <Button.Triggers>
+                                                    <DataTrigger TargetType="Button" Binding="{Binding IsAddDisabled}" Value="True">
+                                                        <Setter Property="IsEnabled" Value="False"/>
+                                                        <Setter Property="Text" Value="Added"/>
+                                                        <Setter Property="BackgroundColor" Value="#BBBBBB"/>
+                                                        <Setter Property="Opacity" Value="0.7"/>
+                                                    </DataTrigger>
+                                                </Button.Triggers>
+                                            </Button>
                                         </Grid>
                                         <BoxView HeightRequest="0.5" Color="#F0F0F0"/>
                                     </VerticalStackLayout>
@@ -295,17 +290,17 @@
                            FontSize="12" TextColor="#C62828"/>
                 </Frame>
 
-                <Button Text="Create Bill"
-                        BackgroundColor="{Binding CanCreateBill,
-                            Converter={StaticResource BoolToColorConverter},
-                            ConverterParameter='#4A4A8A|#BBBBBB'}"
-                        TextColor="White"
-                        CornerRadius="12"
-                        HeightRequest="50"
-                        FontSize="15"
-                        FontAttributes="Bold"
-                        IsEnabled="{Binding CanCreateBill}"
-                        Command="{Binding CreateBillCommand}"/>
+                <Button Text="Proceed"
+        BackgroundColor="{Binding CanCreateBill,
+            Converter={StaticResource BoolToColorConverter},
+            ConverterParameter='#4A4A8A|#BBBBBB'}"
+        TextColor="White"
+        CornerRadius="12"
+        HeightRequest="50"
+        FontSize="15"
+        FontAttributes="Bold"
+        IsEnabled="{Binding CanCreateBill}"
+        Command="{Binding CreateBillCommand}"/>
 
                 <Button Text="Cancel"
                         BackgroundColor="Transparent"
@@ -319,99 +314,7 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Payment overlay -->
-        <Grid IsVisible="{Binding ShowPayment}"
-              BackgroundColor="#80000000" ZIndex="10">
-            <Frame Margin="16,80,16,80" CornerRadius="16"
-                   Padding="0" BackgroundColor="White" HasShadow="False">
-                <Grid RowDefinitions="Auto,*,Auto">
 
-                    <Grid Grid.Row="0" BackgroundColor="#2E7D32"
-                          Padding="14,12">
-                        <Label Text="Record Payment"
-                               FontSize="15" FontAttributes="Bold"
-                               TextColor="White"
-                               HorizontalOptions="Center"/>
-                    </Grid>
-
-                    <VerticalStackLayout Grid.Row="1" Padding="20" Spacing="14">
-
-                        <!-- Bill summary -->
-                        <Frame BackgroundColor="#F5F5F5"
-                               BorderColor="#E0E0E0"
-                               CornerRadius="10" Padding="14">
-                            <VerticalStackLayout Spacing="6">
-                                <Label Text="{Binding PatientName}"
-                                       FontSize="15" FontAttributes="Bold"
-                                       TextColor="#222"/>
-                                <Label Text="{Binding TotalAmount,
-                                           StringFormat='Total Bill: ₱{0:N2}'}"
-                                       FontSize="13" TextColor="#555"/>
-                                <Label Text="{Binding CreatedBillNumber,
-                                           StringFormat='Bill No: {0}'}"
-                                       FontSize="11" TextColor="#888"
-                                       IsVisible="{Binding CreatedBillNumber,
-                                           Converter={StaticResource StringNotEmptyConverter}}"/>
-                            </VerticalStackLayout>
-                        </Frame>
-
-                        <!-- Installment note -->
-                        <Frame BackgroundColor="#FFF8E1"
-                               BorderColor="#FFE082"
-                               CornerRadius="8" Padding="10"
-                               HasShadow="False"
-                               IsVisible="{Binding IsInstallment}">
-                            <Label Text="⭐ Installment bill — patient can pay any amount. Balance tracked automatically."
-                                   FontSize="11" TextColor="#F57F17"/>
-                        </Frame>
-
-                        <Label Text="Amount Received Today (₱)"
-                               FontSize="13" TextColor="#555"
-                               FontAttributes="Bold"/>
-
-                        <Entry Text="{Binding PaymentAmount}"
-                               Keyboard="Numeric"
-                               FontSize="22" FontAttributes="Bold"
-                               TextColor="#222"
-                               PlaceholderColor="#AAAAAA"
-                               HorizontalTextAlignment="Center"/>
-
-                        <Label Text="Enter 0 to skip payment for now"
-                               FontSize="11" TextColor="#888"
-                               HorizontalOptions="Center"/>
-
-                    </VerticalStackLayout>
-
-                    <VerticalStackLayout Grid.Row="2"
-                                         Padding="16,12" Spacing="8">
-
-                        <Label Text="{Binding ErrorMessage}"
-           FontSize="12" TextColor="#C62828"
-           HorizontalOptions="Center"
-           IsVisible="{Binding HasError}"/>
-
-                  
-                        
-                        <Button Text="✓ Confirm Payment"
-                                BackgroundColor="#2E7D32"
-                                TextColor="White"
-                                CornerRadius="10"
-                                HeightRequest="48"
-                                FontSize="14"
-                                Command="{Binding RecordPaymentCommand}"/>
-                        <Button Text="Skip — Pay Later"
-                                BackgroundColor="Transparent"
-                                BorderColor="#E0E0E0" BorderWidth="1"
-                                TextColor="#888"
-                                CornerRadius="10"
-                                HeightRequest="40"
-                                FontSize="13"
-                                Command="{Binding SkipPaymentCommand}"/>
-                    </VerticalStackLayout>
-
-                </Grid>
-            </Frame>
-        </Grid>
 
         <!-- Loading overlay -->
         <Grid IsVisible="{Binding IsBusy}"

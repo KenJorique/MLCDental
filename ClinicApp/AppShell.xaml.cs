@@ -19,18 +19,23 @@ namespace ClinicApp
         {
             InitializeComponent();
 
+            //Patients
             Routing.RegisterRoute(nameof(AddPatientPage), typeof(AddPatientPage));
             Routing.RegisterRoute(nameof(PatientDetailsPage), typeof(PatientDetailsPage));
             Routing.RegisterRoute(nameof(DentalChartPage), typeof(DentalChartPage));
             Routing.RegisterRoute(nameof(TreatmentHistoryPage), typeof(TreatmentHistoryPage));
             Routing.RegisterRoute(nameof(CephalometricPage), typeof(CephalometricPage));
+            Routing.RegisterRoute( nameof(VisitDetailsPage), typeof(VisitDetailsPage));
 
+            //Services
             Routing.RegisterRoute(nameof(ServiceListPage), typeof(ServiceListPage));
             Routing.RegisterRoute(nameof(AddServicePage), typeof(AddServicePage));
 
+            //Users
             Routing.RegisterRoute(nameof(UserListPage), typeof(UserListPage));
             Routing.RegisterRoute(nameof(AddUserPage), typeof(AddUserPage));
 
+            //Supply
             Routing.RegisterRoute(nameof(SupplyListPage), typeof(SupplyListPage));
             Routing.RegisterRoute(nameof(AddSupplyPage), typeof(AddSupplyPage));
             Routing.RegisterRoute(nameof(SupplyInfoPage), typeof(SupplyInfoPage));
@@ -38,16 +43,22 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(ReduceStockPage), typeof(ReduceStockPage));
             Routing.RegisterRoute(nameof(StockHistoryPage), typeof(StockHistoryPage));
 
+            //Appointments
             Routing.RegisterRoute(nameof(AppointmentPage), typeof(AppointmentPage));
             Routing.RegisterRoute(nameof(ReschedulePage), typeof(ReschedulePage));
             Routing.RegisterRoute(nameof(WalkInBookingPage),  typeof(WalkInBookingPage));
 
+            //Google Sign In
             Routing.RegisterRoute(nameof(GoogleSignInPage), typeof(GoogleSignInPage));
 
-            Routing.RegisterRoute(nameof(Views.TransactionPage), typeof(Views.TransactionPage));
-            Routing.RegisterRoute(nameof(Views.CreateBillPage), typeof(Views.CreateBillPage));
-            Routing.RegisterRoute(nameof(Views.CreateBillPage), typeof(Views.CreateBillPage));
+            //Transactions
+            Routing.RegisterRoute(nameof(TransactionPage), typeof(TransactionPage));
+            Routing.RegisterRoute(nameof(CreateBillPage), typeof(CreateBillPage));
             Routing.RegisterRoute(nameof(ReceiptPage), typeof(ReceiptPage));
+            Routing.RegisterRoute(nameof(ServiceSummaryPage), typeof(ServiceSummaryPage));
+            Routing.RegisterRoute(nameof(BillSummaryPage), typeof(BillSummaryPage));
+            Routing.RegisterRoute(nameof(PaymentPage), typeof(PaymentPage));
+            Routing.RegisterRoute(nameof(BillDetailsPage), typeof(BillDetailsPage));
         }
 
         protected override void OnAppearing()

@@ -1,5 +1,8 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Services;
+using ClinicApp.ViewModels.PatientsRelatedVM;
+using ClinicApp.Views;
+using ClinicApp.Views.PatientsRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -9,11 +12,17 @@ namespace ClinicApp.ViewModels.TransactionVM
     [QueryProperty(nameof(BillId), "billId")]
     [QueryProperty(nameof(PatientName), "patientName")]
     [QueryProperty(nameof(PatientId), "patientId")]
+    [QueryProperty(nameof(AppointmentEntryId), "appointmentEntryId")]
+    [QueryProperty(nameof(SupabaseEntryId), "supabaseEntryId")]
+    [QueryProperty(nameof(SupabaseBookingId), "supabaseBookingId")]
     public partial class ReceiptViewModel : ObservableObject
     {
         readonly SupabaseDataService _supabase;
 
         [ObservableProperty] string billId = string.Empty;
+        [ObservableProperty] string appointmentEntryId = string.Empty;
+        [ObservableProperty] string supabaseEntryId = string.Empty;
+        [ObservableProperty] string supabaseBookingId = string.Empty;
         [ObservableProperty] string patientName = string.Empty;
         [ObservableProperty] string patientId = string.Empty;
         [ObservableProperty] bool isBusy;
@@ -48,6 +57,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         {
             IsBusy = true;
             NotFound = false;
+
             try
             {
                 var items = await _supabase.GetBillItemsAsync(BillId);
@@ -77,16 +87,14 @@ namespace ClinicApp.ViewModels.TransactionVM
                 Payments.Clear();
                 foreach (var p in payments) Payments.Add(p);
 
-                var bills = await _supabase.GetAllBillsAsync();
-                Bill = bills.FirstOrDefault(b => b.Id == BillId);
+                Bill = await _supabase.GetBillByIdAsync(BillId);
 
-                if (Bill == null)
+                if (Bill != null)
                 {
-                    NotFound = true;
-                    var idsPreview = string.Join(" | ", bills.Take(3).Select(b => b.Id));
-                    DebugInfo = $"Looking for: '{BillId}' (len={BillId?.Length}) | " +
-                                $"Found {bills.Count} bills | First IDs: {idsPreview}";
+                    DebugInfo = $"Bill loaded: {Bill.BillNumberDisplay}";
                 }
+
+              
             }
             catch (Exception ex)
             {
@@ -108,6 +116,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         async Task ConfirmAdditionalPayment()
         {
             if (AdditionalPayment <= 0 || Bill == null) return;
+
             IsBusy = true;
             try
             {
@@ -117,6 +126,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                     await Shell.Current.DisplayAlert("Payment Failed", error ?? "Unknown error", "OK");
                     return;
                 }
+
                 ShowAddPayment = false;
                 await LoadReceiptAsync();
             }
@@ -125,7 +135,10 @@ namespace ClinicApp.ViewModels.TransactionVM
                 System.Diagnostics.Debug.WriteLine($"[ReceiptVM] Payment: {ex.Message}");
                 await Shell.Current.DisplayAlert("Payment Failed", ex.Message, "OK");
             }
-            finally { IsBusy = false; }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         [RelayCommand]
@@ -134,19 +147,22 @@ namespace ClinicApp.ViewModels.TransactionVM
         [RelayCommand]
         async Task Done()
         {
-            if (!string.IsNullOrEmpty(PatientId))
+            try
             {
-                // Absolute navigation — resets the stack and always lands on
-                // PatientDetailsPage regardless of whether we arrived here via
-                // TransactionPage or AppointmentSchedulePage.
+                if (!string.IsNullOrWhiteSpace(AppointmentEntryId))
+                    await _supabase.DeleteAppointmentEntryAsync(AppointmentEntryId);
+
+                if (!string.IsNullOrWhiteSpace(SupabaseBookingId))
+                    await _supabase.DeleteBookingAsync(SupabaseBookingId);
+
                 await Shell.Current.GoToAsync(
-                    $"//{nameof(Views.PatientsRelated.PatientDetailsPage)}" +
-                    $"?patientId={Uri.EscapeDataString(PatientId)}" );
+                    $"//PatientListPage/{nameof(TransactionPage)}" +
+                    $"?patientId={Uri.EscapeDataString(PatientId)}" +
+                    $"&patientName={Uri.EscapeDataString(PatientName)}");
             }
-            else
+            catch (Exception ex)
             {
-                // Fallback if PatientId wasn't passed for some reason
-                await Shell.Current.GoToAsync("..");
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
             }
         }
     }

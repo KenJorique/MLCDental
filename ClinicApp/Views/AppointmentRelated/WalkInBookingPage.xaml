@@ -270,7 +270,5 @@
 	</ScrollView>
 
 	<!-- Loading overlay -->
-	<ContentPage.Content>
-	</ContentPage.Content>
 
 </ContentPage>

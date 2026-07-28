@@ -77,31 +77,68 @@ namespace DentalClinicBooking.Controller
             if (!DateTime.TryParse(date, out var selectedDate))
                 return BadRequest("Invalid date");
 
-            var bookedSlots = await _supabase.GetBookedTimeSlotsAsync(selectedDate);
-
-            var allSlots = new[] { 10, 11, 12, 13, 14, 15 }
-                .Select(h => new DateTime(
-                    selectedDate.Year, selectedDate.Month,
-                    selectedDate.Day, h, 0, 0));
-
-            var slots = allSlots.Select(slot =>
+            try
             {
-                var count = bookedSlots.Count(b =>
-                    b.Hour == slot.Hour && b.Minute == slot.Minute);
-                return new
+                // Get ALL non-cancelled/rejected bookings for this date
+                var allBookings = await _supabase.Client
+                    .From<DentalClinicBooking.Models.Booking>()
+                    .Get();
+
+                // Date from picker is local Philippine time (no timezone)
+                // Bookings are stored as UTC — convert both to same basis
+                var phTimeZone = TimeZoneInfo.FindSystemTimeZoneById(
+                    "Asia/Manila") ??
+                    TimeZoneInfo.CreateCustomTimeZone(
+                        "PH", TimeSpan.FromHours(8), "PH", "PH");
+
+                var bookedHours = allBookings.Models
+                    .Where(b =>
+                        b.Status != "rejected" &&
+                        b.Status != "cancelled" &&
+                        b.AppointmentDate != default)
+                    .Select(b =>
+                    {
+                        // Convert stored UTC to Philippine time
+                        var utc = DateTime.SpecifyKind(
+                                        b.AppointmentDate, DateTimeKind.Utc);
+                        var local = TimeZoneInfo.ConvertTimeFromUtc(utc, phTimeZone);
+                        return local;
+                    })
+                    .Where(local => local.Date == selectedDate.Date)
+                    .Select(local => local.Hour)
+                    .ToList();
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Availability] Date={selectedDate:yyyy-MM-dd} " +
+                    $"BookedHours=[{string.Join(",", bookedHours)}]");
+
+                var allSlots = new[] { 10, 11, 12, 13, 14, 15 }
+                    .Select(h => new
+                    {
+                        time = $"{h:00}:00",
+                        display = h > 12
+                            ? $"{h - 12}:00 PM"
+                            : h == 12 ? "12:00 PM" : $"{h}:00 AM",
+                        count = bookedHours.Count(bh => bh == h),
+                        full = bookedHours.Any(bh => bh == h) // 1 per slot
+                    });
+
+                var dayCount = bookedHours.Distinct().Count();
+                var dayFull = dayCount >= 6;
+
+                return Json(new { dayCount, dayFull, slots = allSlots });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Availability] Error: {ex.Message}");
+                return Json(new
                 {
-                    time = slot.ToString("HH:mm"),
-                    display = slot.ToString("h:00 tt"),
-                    count,
-                    full = count >= 1  // ← 1 patient per slot max
-                };
-            });
-
-            // Day is full when all 6 slots are taken (6 patients max per day)
-            var dayCount = bookedSlots.Select(b => b.Hour).Distinct().Count();
-            var dayFull = dayCount >= 6;
-
-            return Json(new { dayCount, dayFull, slots });
+                    dayCount = 0,
+                    dayFull = false,
+                    slots = Array.Empty<object>()
+                });
+            }
         }
 
         [HttpGet]

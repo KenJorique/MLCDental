@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:ClinicApp.Models"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels.TransactionVM"
+    x:Class="ClinicApp.Views.TransactionRelated.ServiceSummaryPage"
+    Title="Service Summary"
+    BackgroundColor="#F5F5F5">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="14">
+
+            <Frame BackgroundColor="White" BorderColor="#E0E0E0" CornerRadius="12" Padding="14" HasShadow="False">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Service Summary" FontSize="18" FontAttributes="Bold" TextColor="#222"/>
+                    <Label Text="{Binding PatientName}" FontSize="14" TextColor="#666"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame BackgroundColor="White" BorderColor="#E0E0E0" CornerRadius="12" Padding="14" HasShadow="False">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Added Services" FontSize="14" FontAttributes="Bold" TextColor="#222"/>
+
+                    <CollectionView ItemsSource="{Binding Services}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ServiceLineItem">
+                                <VerticalStackLayout Spacing="6" Margin="0,0,0,10">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                            <Label Text="{Binding ServiceName}" FontSize="13" FontAttributes="Bold" TextColor="#222"/>
+                                            <Label Text="{Binding UnitPriceDisplay}" FontSize="11" TextColor="#4A4A8A"/>
+                                            <Label Text="{Binding TeethDisplay}" FontSize="11" TextColor="#2E7D32"
+                                                   IsVisible="{Binding TeethDisplay, Converter={StaticResource StringNotEmptyConverter}}"/>
+                                        </VerticalStackLayout>
+
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Quantity, StringFormat='Qty: {0}'}"
+                                               VerticalOptions="Center"
+                                               TextColor="#555"/>
+
+                                        <Button Grid.Column="2"
+                                                Text="✕"
+                                                BackgroundColor="Transparent"
+                                                TextColor="#C62828"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveServiceCommand}"
+                                                CommandParameter="{Binding .}"/>
+                                    </Grid>
+
+                                    <Label Text="{Binding SubtotalDisplay}"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           TextColor="#4A4A8A"
+                                           HorizontalOptions="End"/>
+                                    <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+            <Frame BackgroundColor="#FFF8E1"
+                   BorderColor="#FFE082"
+                   CornerRadius="10"
+                   Padding="10"
+                   HasShadow="False"
+                   IsVisible="{Binding IsInstallment}">     
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="Installment Plan"
+                           FontAttributes="Bold"
+                           TextColor="#F57F17"/>
+                    <Label Text="{Binding InstallmentSummary}"
+                           FontSize="12"
+                           TextColor="#F57F17"/>        
+                </VerticalStackLayout>
+            </Frame>
+
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Text="Subtotal" FontSize="16" FontAttributes="Bold" TextColor="#222"/>
+                <Label Grid.Column="1" Text="{Binding Subtotal, StringFormat='₱{0:N2}'}" FontSize="18" FontAttributes="Bold" TextColor="#4A4A8A"/>
+            </Grid>
+
+            <Button Text="Continue"
+                    BackgroundColor="#4A4A8A"
+                    TextColor="White"
+                    CornerRadius="12"
+                    HeightRequest="48"
+                    Command="{Binding ContinueCommand}"/>
+
+            <Button Text="Back"
+                    BackgroundColor="Transparent"
+                    BorderColor="#E0E0E0"
+                    BorderWidth="1"
+                    TextColor="#888"
+                    CornerRadius="12"
+                    HeightRequest="44"
+                    Command="{Binding BackCommand}"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

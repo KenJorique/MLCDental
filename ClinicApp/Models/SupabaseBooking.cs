@@ -38,16 +38,7 @@ namespace ClinicApp.Models
 
         [Column("existing_patient_id")]
         public string? ExistingPatientId { get; set; }
-        //public string AppointmentDateDisplay
-        //{
-        //    get
-        //    {
-        //        var utc = AppointmentDate.Kind == DateTimeKind.Utc
-        //            ? AppointmentDate
-        //            : DateTime.SpecifyKind(AppointmentDate, DateTimeKind.Utc);
-        //        return utc.ToLocalTime().ToString("MMM dd, yyyy  h:mm tt");
-        //    }
-        //}
+
 
     }
 

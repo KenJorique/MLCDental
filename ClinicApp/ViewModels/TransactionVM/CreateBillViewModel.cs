@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Helpers;
+using ClinicApp.Models;
 using ClinicApp.Services;
 using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -10,29 +11,32 @@ namespace ClinicApp.ViewModels.TransactionVM
     [QueryProperty(nameof(PatientId), "patientId")]
     [QueryProperty(nameof(PatientName), "patientName")]
     [QueryProperty(nameof(AppointmentEntryId), "appointmentEntryId")]
+    [QueryProperty(nameof(SupabaseBookingId), "supabaseBookingId")]
     [QueryProperty(nameof(SupabaseEntryId), "supabaseEntryId")]
     public partial class CreateBillViewModel : ObservableObject
     {
         readonly SupabaseDataService _supabase;
-        readonly DatabaseService _db;
+            readonly BillDraftService _draft;
 
+
+        BillDraft Draft = new();
         public ObservableCollection<ServiceLineItem> SelectedServices { get; } = new();
-        public ObservableCollection<SupabaseService> AvailableServices { get; } = new();
+        public ObservableCollection<AvailableServiceItem> AvailableServices { get; } = new();
 
         [ObservableProperty] string patientId = string.Empty;
         [ObservableProperty] string patientName = string.Empty;
         [ObservableProperty] string appointmentEntryId = string.Empty;
         [ObservableProperty] bool isBusy;
         [ObservableProperty] bool hasError;
+        [ObservableProperty] string supabaseBookingId = string.Empty;
         [ObservableProperty] string errorMessage = string.Empty;
         [ObservableProperty] decimal totalAmount;
         [ObservableProperty] string notes = string.Empty;
         [ObservableProperty] string createdBillId = string.Empty;
         [ObservableProperty] string createdBillNumber = string.Empty;
+        [ObservableProperty] string phone = string.Empty;
 
         // Payment overlay
-        [ObservableProperty] bool showPayment;
-        [ObservableProperty] decimal paymentAmount;
         [ObservableProperty] bool hasInstallmentService;
         [ObservableProperty] bool isInstallment;
         [ObservableProperty] string supabaseEntryId = string.Empty;
@@ -42,14 +46,14 @@ namespace ClinicApp.ViewModels.TransactionVM
             SelectedServices.Count > 0 && !IsBusy;
 
         public CreateBillViewModel(
-            SupabaseDataService supabase,
-            DatabaseService db)
+       SupabaseDataService supabase,
+       BillDraftService draft)
         {
             _supabase = supabase;
-            _db = db;
+            _draft = draft;
         }
 
-        public ObservableCollection<SupabaseService> FilteredServices { get; } = new();
+        public ObservableCollection<AvailableServiceItem> FilteredServices { get; } = new();
 
         partial void OnServiceSearchChanged(string value)
         {
@@ -74,6 +78,7 @@ namespace ClinicApp.ViewModels.TransactionVM
             if (AvailableServices.Count > 0)
             {
                 FilterServices(ServiceSearch);
+                RefreshAddButtonStates();
                 return;
             }
 
@@ -88,9 +93,11 @@ namespace ClinicApp.ViewModels.TransactionVM
                     FilteredServices.Clear();
                     foreach (var s in services)
                     {
-                        AvailableServices.Add(s);
-                        FilteredServices.Add(s);
+                        var item = new AvailableServiceItem(s);
+                        AvailableServices.Add(item);
+                        FilteredServices.Add(item);
                     }
+                    RefreshAddButtonStates();
                 });
             }
             catch (Exception ex)
@@ -108,44 +115,34 @@ namespace ClinicApp.ViewModels.TransactionVM
                     await LoadServicesAsync());
         }
 
-      
 
         [RelayCommand]
-        void AddService(SupabaseService service)
+        void AddService(AvailableServiceItem serviceItem)
         {
-            if (service == null) return;
+            if (serviceItem == null) return;
+            var service = serviceItem.Service;
 
-            var existing = SelectedServices
-                .FirstOrDefault(s => s.ServiceId == service.Id);
-
+            var existing = SelectedServices.FirstOrDefault(s => s.ServiceId == service.Id);
             if (existing != null)
-            {
-                existing.Quantity++;
-                existing.RefreshSubtotal();
-            }
-            else
-            {
-                var item = new ServiceLineItem
-                {
-                    ServiceId = service.Id,
-                    ServiceName = service.Name,
-                    UnitPrice = service.BasePrice,
-                    Quantity = 1,
-                    ShowTeethInput = ToothAwareServices
-                                              .NeedsTeethInput(service.Name),
-                    IsInstallmentEligible = ToothAwareServices
-                                              .IsInstallmentEligible(service.Name)
-                };
-                item.RefreshSubtotal();
-                SelectedServices.Add(item);
-            }
+                return; // already added — use the +/- in the list above to change quantity
 
-            // Check if any installment-eligible service was added
-            HasInstallmentService = SelectedServices
-                .Any(s => s.IsInstallmentEligible);
+            var item = new ServiceLineItem
+            {
+                ServiceId = service.Id,
+                ServiceName = service.Name,
+                UnitPrice = service.BasePrice,
+                Quantity = 1,
+                ShowTeethInput = serviceItem.RequiresTeeth,
+                IsInstallmentEligible = ToothAwareServices.IsInstallmentEligible(service.Name)
+            };
+            item.RefreshSubtotal();
+            SelectedServices.Add(item);
+
+            HasInstallmentService = SelectedServices.Any(s => s.IsInstallmentEligible);
 
             RecalculateTotal();
             OnPropertyChanged(nameof(CanCreateBill));
+            RefreshAddButtonStates();
         }
 
         [RelayCommand]
@@ -153,12 +150,22 @@ namespace ClinicApp.ViewModels.TransactionVM
         {
             if (item == null) return;
             SelectedServices.Remove(item);
-            HasInstallmentService = SelectedServices
-                .Any(s => s.IsInstallmentEligible);
+            HasInstallmentService = SelectedServices.Any(s => s.IsInstallmentEligible);
             RecalculateTotal();
             OnPropertyChanged(nameof(CanCreateBill));
+            RefreshAddButtonStates();
         }
 
+        private void RefreshAddButtonStates()
+        {
+            var addedIds = SelectedServices.Select(s => s.ServiceId).ToHashSet();
+
+            foreach (var item in AvailableServices)
+                item.IsAddDisabled = addedIds.Contains(item.Id);
+        }
+
+
+         
         [RelayCommand]
         void IncreaseQty(ServiceLineItem item)
         {
@@ -185,9 +192,9 @@ namespace ClinicApp.ViewModels.TransactionVM
         [RelayCommand]
         async Task CreateBill()
         {
-            if (!CanCreateBill) return;
+            if (!CanCreateBill)
+                return;
 
-            // Validate teeth input for tooth-aware services
             var missingTeeth = SelectedServices
                 .Where(s => s.ShowTeethInput &&
                             string.IsNullOrWhiteSpace(s.ToothNumbers))
@@ -197,314 +204,60 @@ namespace ClinicApp.ViewModels.TransactionVM
             {
                 var names = string.Join(", ",
                     missingTeeth.Select(s => s.ServiceName));
+
                 bool proceed = await Shell.Current.DisplayAlert(
                     "Missing Tooth Numbers",
-                    $"No teeth entered for:\n{names}\n\n" +
-                    "Proceed without tooth numbers?",
+                    $"No teeth entered for:\n{names}\n\nProceed without tooth numbers?",
                     "Proceed", "Cancel");
-                if (!proceed) return;
+
+                if (!proceed)
+                    return;
             }
 
             IsBusy = true;
             HasError = false;
+
             try
             {
-                // 1. Create bill
-                var bill = new SupabaseBill
-                {
-                    PatientId = PatientId,
-                    PatientName = PatientName,
-                    AppointmentEntryId = AppointmentEntryId,
-                    TotalAmount = TotalAmount,
-                    AmountPaid = 0,
-                    Status = "unpaid",
-                    IsInstallment = IsInstallment,
-                    VisitDate = DateTime.UtcNow,
-                    Notes = Notes
-                };
+                Draft.PatientId = PatientId;
+                Draft.PatientId = PatientId;
+                Draft.Phone = Phone;
+                Draft.PatientName = PatientName;
+                Draft.IsInstallment = IsInstallment;
+                Draft.Notes = Notes;
+                Draft.AppointmentEntryId = AppointmentEntryId;
+                Draft.SupabaseEntryId = SupabaseEntryId;
+                Draft.Subtotal = SelectedServices.Sum(x => x.Subtotal);
+                Draft.DiscountPercent = 0m;
+                Draft.DiscountAmount = 0m;
+                Draft.Total = Draft.Subtotal;
+                Draft.SupabaseBookingId = SupabaseBookingId;
+                Draft.Services.Clear();
 
-                var saved = await _supabase.CreateBillAsync(bill);
-                if (saved == null)
-                {
-                    HasError = true;
-                    ErrorMessage = "Failed to create bill.";
-                    return;
-                }
-
-                // 2. If this bill came from a booked appointment, clean that up.
-                //    This must NOT gate the rest of the flow below.
-                if (!string.IsNullOrEmpty(SupabaseEntryId))
-                {
-                    try
-                    {
-                        await _supabase.DeleteAppointmentEntryAsync(SupabaseEntryId);
-
-                        // Find booking linked to this entry
-                        var entries = await _supabase.GetAppointmentEntriesAsync();
-                        var entry = entries.FirstOrDefault(
-                            e => e.Id == SupabaseEntryId);
-                        if (entry != null &&
-                            !string.IsNullOrEmpty(entry.SupabaseBookingId))
-                            await _supabase.DeleteBookingAsync(entry.SupabaseBookingId);
-                    }
-                    catch (Exception deleteEx)
-                    {
-                        System.Diagnostics.Debug.WriteLine(
-                            $"[CreateBill] Delete entry: {deleteEx.Message}");
-                        // Don't fail the bill for this
-                    }
-                }
-
-                CreatedBillId = saved.Id;
-                CreatedBillNumber = saved.BillNumber ?? "";
-
-                // 3. Save bill items + apply to dental chart
                 foreach (var item in SelectedServices)
-                {
-                    var billItem = new SupabaseBillItemInsert
-                    {
-                        Id = Guid.NewGuid().ToString(),
+                    Draft.Services.Add(item);
 
-                        BillId = saved.Id,
+                BillDraftStore.Current = Draft;
 
-                        ServiceId = item.ServiceId,
-
-                        ServiceName = item.ServiceName,
-
-                        UnitPrice = item.UnitPrice,
-
-                        Quantity = item.Quantity,
-
-                        ToothNumbers = string.IsNullOrWhiteSpace(item.ToothNumbers)
-         ? null
-         : item.ToothNumbers,
-
-                        AffectsTeeth =
-         item.ShowTeethInput &&
-         item.ParsedTeethNumbers.Count > 0
-                    };
-
-
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[CreateBill] Saving item: {billItem.ServiceName} " +
-                        $"Qty={billItem.Quantity} " +
-                        $"Price={billItem.UnitPrice} ");
-
-
-                    await _supabase.AddBillItemAsync(billItem);
-
-
-                    // Dental chart update
-                    if (item.ShowTeethInput &&
-                        item.ParsedTeethNumbers.Count > 0)
-                    {
-                        await ApplyToothConditionsAsync(
-                            item.ServiceName,
-                            item.ParsedTeethNumbers);
-                    }
-                    else
-                    {
-                        await LogGeneralServiceAsync(
-                            item.ServiceName);
-                    }
-                }
-
-                // 4. Show payment overlay
-                PaymentAmount = TotalAmount;
-                ShowPayment = true;
+                await Shell.Current.GoToAsync(nameof(ServiceSummaryPage));
             }
             catch (Exception ex)
             {
                 HasError = true;
                 ErrorMessage = ex.Message;
-                System.Diagnostics.Debug.WriteLine(
-                    $"[CreateBill] {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[CreateBill] {ex.Message}");
             }
-            finally { IsBusy = false; }
-        }
-
-        // Apply conditions to dental chart and treatment history
-        // Apply conditions to dental chart and treatment history
-        private async Task ApplyToothConditionsAsync(
-            string serviceName, List<int> teethNumbers)
-        {
-            try
+            finally
             {
-                var condition = ToothAwareServices.GetCondition(serviceName);
-                var localPatientId = await GetLocalPatientIdAsync();
-
-                if (localPatientId <= 0) return;
-
-                // Look up the hex color for this condition, same palette
-                // used by DentalChartViewModel, so history entries match
-                // the chart's color-coding.
-                var hex = ClinicApp.ViewModels.DentalChart.DentalChartViewModel
-                    .ConditionColors.TryGetValue(condition, out var c) ? c : "#FFFFFF";
-
-                foreach (var toothNum in teethNumbers)
-                {
-                    // Save tooth record
-                    var record = new ToothRecord
-                    {
-                        PatientId = localPatientId,
-                        ToothNumber = toothNum,
-                        Condition = condition,
-                        Color = hex,
-                        Notes = $"{serviceName} — {DateTime.Now:MMM dd, yyyy}",
-                        DateUpdated = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-                    };
-                    await _db.SaveToothRecord(record);
-
-                    // Add ONE treatment history entry PER tooth, with ToothNumber
-                    // and Color set correctly (previously defaulted to 0 / white).
-                    var history = new TreatmentHistory
-                    {
-                        PatientId = localPatientId,
-                        ToothNumber = toothNum,
-                        ToothName = new ClinicApp.ViewModels.DentalChart.ToothViewModel
-                        {
-                            ToothNumber = toothNum
-                        }.ToothName,
-                        Condition = condition,
-                        Color = hex,
-                        Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        Description = $"{serviceName} — Tooth #{toothNum}",
-                        Notes = $"Condition applied: {condition}",
-                        ActionType = "Added"
-                    };
-                    await _db.AddTreatmentHistory(history);
-                }
-
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Chart] Applied '{condition}' to teeth: {string.Join(", ", teethNumbers)}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ApplyTeeth] {ex.Message}");
+                IsBusy = false;
             }
         }
 
-        private async Task LogGeneralServiceAsync(string serviceName)
-        {
-            try
-            {
-                var localPatientId = await GetLocalPatientIdAsync();
-                if (localPatientId <= 0)
-                    return;
 
-                var history = new TreatmentHistory
-                {
-                    PatientId = localPatientId,
 
-                    // Indicates this isn't tied to a tooth
-                    ToothNumber = 0,
-                    ToothName = string.Empty,
 
-                    // Store the service name
-                    Condition = serviceName,
-                    Description = serviceName,
 
-                    Color = "#3B82F6",
 
-                    Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-
-                    Notes = "Service rendered",
-
-                    ActionType = "Service"
-                };
-
-                await _db.AddTreatmentHistory(history);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[LogGeneralService] {ex.Message}");
-            }
-        }
-        private async Task<int> GetLocalPatientIdAsync()
-        {
-            try
-            {
-                if (!string.IsNullOrEmpty(PatientId))
-                {
-                    var p = await _db.GetPatientBySupabaseId(PatientId);
-
-                    if (p != null)
-                        return p.PatientID;
-                }
-
-                // fallback using patient name/phone if UUID link missing
-                var patients = await _db.GetPatients();
-
-                var match = patients.FirstOrDefault(p =>
-                    $"{p.FirstName} {p.LastName}".Trim()
-                    .Equals(PatientName.Trim(),
-                            StringComparison.OrdinalIgnoreCase));
-
-                return match?.PatientID ?? 0;
-            }
-            catch
-            {
-                return 0;
-            }
-        }
-
-        [RelayCommand]
-        async Task RecordPayment()
-        {
-            if (string.IsNullOrEmpty(CreatedBillId)) return;
-
-            IsBusy = true;
-            HasError = false;
-            try
-            {
-                // Treat 0 as "skip payment for now"
-                if (PaymentAmount <= 0)
-                {
-                    ShowPayment = false;
-                    await Shell.Current.GoToAsync(
-       $"{nameof(ReceiptPage)}" +
-       $"?billId={CreatedBillId}" +
-       $"&patientName={Uri.EscapeDataString(PatientName)}" +
-       $"&patientId={Uri.EscapeDataString(PatientId)}");
-                    return;
-                }
-
-                var (success, error) = await _supabase.RecordPaymentAsync(
-                    CreatedBillId, PaymentAmount);
-
-                if (!success)
-                {
-                    HasError = true;
-                    ErrorMessage = error ?? "Failed to record payment.";
-                    return;
-                }
-
-                ShowPayment = false;
-
-                await Shell.Current.GoToAsync(
-     $"{nameof(ReceiptPage)}" +
-     $"?billId={CreatedBillId}" +
-     $"&patientName={Uri.EscapeDataString(PatientName)}" +
-     $"&patientId={Uri.EscapeDataString(PatientId)}");
-            }
-            catch (Exception ex)
-            {
-                HasError = true;
-                ErrorMessage = ex.Message;
-            }
-            finally { IsBusy = false; }
-        }
-
-        [RelayCommand]
-        async Task SkipPayment()
-        {
-            ShowPayment = false;
-            await Shell.Current.GoToAsync(
-        $"{nameof(ReceiptPage)}" +
-        $"?billId={CreatedBillId}" +
-        $"&patientName={Uri.EscapeDataString(PatientName)}" +
-        $"&patientId={Uri.EscapeDataString(PatientId)}");
-        }
 
         [RelayCommand]
         async Task Cancel() =>
@@ -554,7 +307,22 @@ namespace ClinicApp.ViewModels.TransactionVM
         partial void OnToothNumbersChanged(string value) =>
             OnPropertyChanged(nameof(TeethDisplay));
     }
+    public partial class AvailableServiceItem : ObservableObject
+    {
+        public SupabaseService Service { get; }
+        public string Id => Service.Id;
+        public string Name => Service.Name;
+        public string PriceDisplay => Service.PriceDisplay;
+        public bool RequiresTeeth { get; }
 
+        [ObservableProperty] bool isAddDisabled;
+
+        public AvailableServiceItem(SupabaseService service)
+        {
+            Service = service;
+            RequiresTeeth = ToothAwareServices.NeedsTeethInput(service.Name);
+        }
+    }
 
 }
 

@@ -292,17 +292,19 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                                 $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
                     },
                  // Find the ActionSheet Option inside OpenActionSheet method and update its target:
-                    new ActionSheetOption
-                    {
-                        Icon = "\ue8f1",
-                        Label = "Transaction History",
-                        Subtitle = "View billing balance & history logs",
-                        IconBackgroundColor = Color.FromArgb("#E8F5E9"), // changed from gray to green active asset styling
-                        IconColor = Color.FromArgb("#1A6B2F"),
-                        OnTapped = async () =>
-                            await Shell.Current.GoToAsync(
-                                $"{nameof(TransactionPage)}?patientId={card.Patient.SupabaseId}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
-                    },
+               new ActionSheetOption
+{
+    Icon = "\ue8f1",
+    Label = "Patient Ledger",
+    Subtitle = "View bills, payments and balances",
+    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+    IconColor = Color.FromArgb("#1A6B2F"),
+    OnTapped = async () =>
+        await Shell.Current.GoToAsync(
+            $"{nameof(TransactionPage)}" +
+            $"?patientId={card.Patient.SupabaseId}" +
+            $"&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
+},
                     new ActionSheetOption
                     {
                         Icon = "\ue872",

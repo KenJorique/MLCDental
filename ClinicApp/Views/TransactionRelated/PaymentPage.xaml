@@ -1,0 +1,186 @@
+<ContentPage
+    x:Class="ClinicApp.Views.TransactionRelated.PaymentPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    BackgroundColor="#F5F5F5"
+    Title="Payment">
+
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="14">
+
+                <Frame BackgroundColor="#4A4A8A"
+                       BorderColor="#4A4A8A"
+                       CornerRadius="12"
+                       Padding="16"
+                       HasShadow="False">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="{Binding PatientName}"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="White"/>
+                        <Label Text="{Binding BillNumber, StringFormat='Bill #: {0}'}"
+                               FontSize="12"
+                               TextColor="#D9D9FF"/>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <Frame BackgroundColor="#FFF8E1"
+       BorderColor="#FFE082"
+       CornerRadius="12"
+       Padding="12"
+       HasShadow="False"
+       IsVisible="{Binding Bill.IsInstallment}">
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Installment Plan"
+               FontAttributes="Bold"
+               TextColor="#F57F17"/>
+                        <Label Text="{Binding Bill.InstallmentDisplay}"
+               FontSize="12"
+               TextColor="#F57F17"/>
+                        <Frame BackgroundColor="{Binding Bill.DueStatusColor}"
+       CornerRadius="20"
+       Padding="8,4"
+       HasShadow="False"
+       IsVisible="{Binding Bill.IsInstallment}">
+                            <Label Text="{Binding Bill.DueStatusText}"
+           FontSize="10"
+           TextColor="White"
+           FontAttributes="Bold"/>
+                        </Frame>
+                        
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Last Payment"
+                   FontSize="12"
+                   TextColor="#666"/>
+                            <Label Grid.Column="1"
+                   Text="{Binding LastPaymentDateDisplay}"
+                   FontSize="12"
+                   FontAttributes="Bold"
+                   TextColor="#333"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Next Due"
+                   FontSize="12"
+                   TextColor="#666"/>
+                            <Label Grid.Column="1"
+                   Text="{Binding DueDateDisplay}"
+                   FontSize="12"
+                   FontAttributes="Bold"
+                   TextColor="#C62828"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <Frame BackgroundColor="White"
+                       BorderColor="#E0E0E0"
+                       CornerRadius="12"
+                       Padding="14"
+                       HasShadow="False">
+                    <VerticalStackLayout Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Subtotal" FontSize="13" TextColor="#555"/>
+                            <Label Grid.Column="1" Text="{Binding SubtotalDisplay}" FontSize="13" FontAttributes="Bold" TextColor="#555"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Discount" FontSize="13" TextColor="#555"/>
+                            <Label Grid.Column="1" Text="{Binding DiscountDisplay}" FontSize="13" FontAttributes="Bold" TextColor="#C62828"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Total" FontSize="15" FontAttributes="Bold" TextColor="#222"/>
+                            <Label Grid.Column="1" Text="{Binding TotalDisplay}" FontSize="15" FontAttributes="Bold" TextColor="#222"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Paid" FontSize="13" TextColor="#2E7D32"/>
+                            <Label Grid.Column="1" Text="{Binding PaidDisplay}" FontSize="13" FontAttributes="Bold" TextColor="#2E7D32"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Balance" FontSize="13" FontAttributes="Bold" TextColor="#C62828"/>
+                            <Label Grid.Column="1" Text="{Binding BalanceDisplay}" FontSize="13" FontAttributes="Bold" TextColor="#C62828"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <Frame BackgroundColor="White"
+                       BorderColor="#E0E0E0"
+                       CornerRadius="12"
+                       Padding="14"
+                       HasShadow="False">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Amount Received Today (₱)"
+                               FontSize="13"
+                               TextColor="#555"
+                               FontAttributes="Bold"/>
+
+                        <Entry Text="{Binding PaymentAmount}"
+                               Keyboard="Numeric"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="#222"
+                               HorizontalTextAlignment="Center"/>
+
+                        <Label Text="Enter 0 to skip payment for now"
+                               FontSize="11"
+                               TextColor="#888"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <Frame BackgroundColor="#FCEAEA"
+                       BorderColor="#FFCDD2"
+                       CornerRadius="12"
+                       Padding="12"
+                       HasShadow="False"
+                       IsVisible="{Binding HasError}">
+                    <Label Text="{Binding ErrorMessage}"
+                           FontSize="12"
+                           TextColor="#C62828"/>
+                </Frame>
+
+                <Button Text="✓ Record Payment"
+                        BackgroundColor="#2E7D32"
+                        TextColor="White"
+                        CornerRadius="12"
+                        HeightRequest="48"
+                        FontSize="14"
+                        Command="{Binding RecordPaymentCommand}"/>
+
+                <Button Text="Skip — Pay Later"
+                        BackgroundColor="Transparent"
+                        BorderColor="#E0E0E0"
+                        BorderWidth="1"
+                        TextColor="#888"
+                        CornerRadius="12"
+                        HeightRequest="44"
+                        FontSize="13"
+                        Command="{Binding SkipPaymentCommand}"/>
+
+                <BoxView HeightRequest="20" Color="Transparent"/>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid IsVisible="{Binding IsBusy}"
+              BackgroundColor="#80000000"
+              ZIndex="20">
+            <VerticalStackLayout VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="12">
+                <ActivityIndicator IsRunning="True"
+                                   Color="White"
+                                   WidthRequest="40"
+                                   HeightRequest="40"/>
+                <Label Text="Loading..."
+                       TextColor="White"
+                       FontSize="14"
+                       HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>
