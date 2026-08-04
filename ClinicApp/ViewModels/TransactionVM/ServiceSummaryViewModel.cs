@@ -19,8 +19,13 @@ public partial class ServiceSummaryViewModel : ObservableObject
 
     public decimal Subtotal => Services.Sum(x => x.Subtotal);
 
+    public int TotalItems => Services.Count;
+
+    public bool HasServices => Services.Count > 0;
+
     public ServiceSummaryViewModel()
     {
+        Services.CollectionChanged += (_, _) => RefreshDerivedState();
         LoadDraft();
     }
 
@@ -30,41 +35,71 @@ public partial class ServiceSummaryViewModel : ObservableObject
 
         var draft = BillDraftStore.Current;
         if (draft == null)
+        {
+            RefreshDerivedState();
             return;
+        }
 
         PatientName = draft.PatientName;
 
         foreach (var item in draft.Services)
             Services.Add(item);
 
+        RefreshDerivedState();
+    }
+
+    void RefreshDerivedState()
+    {
         OnPropertyChanged(nameof(Subtotal));
+        OnPropertyChanged(nameof(TotalItems));
+        OnPropertyChanged(nameof(HasServices));
+        ContinueCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand]
-    void RemoveService(ServiceLineItem item)
+    async Task RemoveService(ServiceLineItem item)
     {
         if (item == null)
             return;
 
+        bool confirm = await Shell.Current.CurrentPage.DisplayAlert(
+            "Remove Service",
+            $"Remove \"{item.ServiceName}\" from this bill?",
+            "Remove",
+            "Cancel");
+
+        if (!confirm)
+            return;
+
         Services.Remove(item);
-
         BillDraftStore.Current?.Services.Remove(item);
-
-        OnPropertyChanged(nameof(Subtotal));
+        // RefreshDerivedState() fires automatically via CollectionChanged
     }
 
-    [RelayCommand]
+    bool CanContinue() => HasServices;
+
+    [RelayCommand(CanExecute = nameof(CanContinue))]
     async Task Continue()
     {
         if (BillDraftStore.Current == null)
+        {
+            await Shell.Current.DisplayAlert("Debug", "BillDraftStore.Current is null", "OK");
             return;
+        }
 
-        BillDraftStore.Current.Services.Clear();
+        try
+        {
+            BillDraftStore.Current.Services.Clear();
 
-        foreach (var item in Services)
-            BillDraftStore.Current.Services.Add(item);
+            foreach (var item in Services)
+                BillDraftStore.Current.Services.Add(item);
 
-        await Shell.Current.GoToAsync(nameof(BillSummaryPage));
+            await Shell.Current.GoToAsync(nameof(BillSummaryPage));
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Navigation failed", ex.Message, "OK");
+        }
     }
 
     [RelayCommand]

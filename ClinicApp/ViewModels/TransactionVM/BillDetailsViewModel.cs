@@ -48,14 +48,14 @@ public partial class BillDetailsViewModel : ObservableObject
     public ObservableCollection<SupabasePayment> Payments { get; }
         = new();
 
-    partial void OnBillIdChanged(string value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            MainThread.BeginInvokeOnMainThread(async () =>
-                await LoadAsync());
-        }
-    }
+    // NOTE: BillId is set by Shell's QueryProperty before OnAppearing()
+    // runs, and BillDetailsPage.OnAppearing() already calls LoadAsync()
+    // explicitly. Also triggering LoadAsync() here on every BillId change
+    // meant two concurrent loads raced: both cleared Items/Payments, both
+    // awaited their own fetch, then both appended -- producing duplicate
+    // rows whenever the second load's Clear() ran after the first load's
+    // Add() had already started. Removed so there's a single, predictable
+    // trigger (OnAppearing) per page visit.
 
     public async Task LoadAsync()
     {

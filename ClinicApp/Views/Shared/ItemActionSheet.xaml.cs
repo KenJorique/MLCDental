@@ -1,18 +1,35 @@
 using The49.Maui.BottomSheet;
-
 namespace ClinicApp.Views.Shared;
 
 public partial class ItemActionSheet : BottomSheet
 {
+    private bool _isFullyShown = false;
+
     public ItemActionSheet()
     {
         InitializeComponent();
 
+        // Block backdrop-tap-to-dismiss until the open animation completes
+        IsCancelable = false;
+
         Showing += (s, e) =>
         {
+            _isFullyShown = false;
+            IsCancelable = false;
 #if ANDROID
             Controller?.Behavior?.DisableShapeAnimations();
 #endif
+        };
+
+        Shown += (s, e) =>
+        {
+            _isFullyShown = true;
+            IsCancelable = true; // now safe to dismiss via backdrop
+        };
+
+        Dismissed += (s, e) =>
+        {
+            _isFullyShown = false;
         };
     }
 
@@ -21,9 +38,7 @@ public partial class ItemActionSheet : BottomSheet
         TitleLabel.Text = title;
         SubtitleLabel.Text = subtitle;
         SubtitleLabel.IsVisible = !string.IsNullOrWhiteSpace(subtitle);
-
         ActionsContainer.Children.Clear();
-
         foreach (var option in options)
             ActionsContainer.Children.Add(BuildRow(option));
     }
@@ -39,7 +54,6 @@ public partial class ItemActionSheet : BottomSheet
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
         };
-
         var iconContainer = new Border
         {
             BackgroundColor = option.IconBackgroundColor,
@@ -49,7 +63,6 @@ public partial class ItemActionSheet : BottomSheet
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 22 },
             Content = iconLabel,
         };
-
         var mainLabel = new Label
         {
             Text = option.Label,
@@ -58,7 +71,6 @@ public partial class ItemActionSheet : BottomSheet
             TextColor = option.LabelColor,
             VerticalOptions = LayoutOptions.Center,
         };
-
         var subtitleLabel = new Label
         {
             Text = option.Subtitle,
@@ -67,7 +79,6 @@ public partial class ItemActionSheet : BottomSheet
             IsVisible = !string.IsNullOrWhiteSpace(option.Subtitle),
             VerticalOptions = LayoutOptions.Center,
         };
-
         var textStack = new VerticalStackLayout
         {
             Margin = new Thickness(12, 0, 0, 0),
@@ -75,7 +86,6 @@ public partial class ItemActionSheet : BottomSheet
             VerticalOptions = LayoutOptions.Center,
             Children = { mainLabel, subtitleLabel },
         };
-
         var chevron = new Label
         {
             Text = "\ue5cc",
@@ -84,7 +94,6 @@ public partial class ItemActionSheet : BottomSheet
             TextColor = Color.FromArgb("#BDBDBD"),
             VerticalOptions = LayoutOptions.Center,
         };
-
         var grid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitionCollection
@@ -98,7 +107,6 @@ public partial class ItemActionSheet : BottomSheet
         grid.Add(iconContainer, 0);
         grid.Add(textStack, 1);
         grid.Add(chevron, 2);
-
         var row = new Border
         {
             Margin = new Thickness(16, 0, 16, 10),
@@ -113,12 +121,12 @@ public partial class ItemActionSheet : BottomSheet
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (s, e) =>
         {
+            if (!_isFullyShown) return; // ignore taps mid open-animation
             await DismissAsync();
             if (option.OnTapped is not null)
                 await option.OnTapped();
         };
         row.GestureRecognizers.Add(tap);
-
         return row;
     }
 }

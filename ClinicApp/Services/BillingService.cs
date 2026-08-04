@@ -53,7 +53,7 @@ public class BillingService
                 DiscountPercent = draft.DiscountPercent,
                 DiscountAmount = draft.DiscountAmount,
                 TotalAmount = draft.Total,
-
+                Balance = draft.Total,
                 IsInstallment = draft.IsInstallment,
                 InstallmentMonths = draft.IsInstallment ? draft.InstallmentMonths : 0,
                 MonthlyPayment = draft.IsInstallment ? draft.MonthlyPayment : 0,

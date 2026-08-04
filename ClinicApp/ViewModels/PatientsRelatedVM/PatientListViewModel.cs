@@ -236,88 +236,102 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         }
 
         // Opens the bottom action sheet when a card is tapped
+        private bool _isSheetOpen = false;
+
+        // Opens the bottom action sheet when a card is tapped
         [RelayCommand]
         async Task OpenActionSheet(PatientCardViewModel card)
         {
-            if (card is null) return;
+            if (card is null || _isSheetOpen) return;
+            _isSheetOpen = true;
 
-            var sheet = new ItemActionSheet();
-            sheet.Configure(
-                title: card.Patient.FullName,
-                subtitle: $"Patient ID: {card.Patient.PatientID:D3}",
-                options: new[]
+            try
+            {
+                var sheet = new ItemActionSheet();
+                sheet.Configure(
+                    title: card.Patient.FullName,
+                    subtitle: $"Patient ID: {card.Patient.PatientID:D3}",
+                    options: new[]
+                    {
+                new ActionSheetOption
                 {
-                    new ActionSheetOption
-                    {
-                        Icon = "\ue09e",
-                        Label = "Patient Records",
-                        Subtitle = "View full patient details",
-                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
-                        IconColor = Color.FromArgb("#1A6B2F"),
-                        OnTapped = async () =>
-                            await Shell.Current.GoToAsync(
-                                $"{nameof(PatientDetailsPage)}?id={card.Patient.PatientID}"),
-                    },
-                    new ActionSheetOption
-                    {
-                        Icon = "\ue0a6",
-                        Label = "Dental Chart",
-                        Subtitle = "View dental chart",
-                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
-                        IconColor = Color.FromArgb("#1A6B2F"),
-                        OnTapped = async () =>
-                            await Shell.Current.GoToAsync(
-                                $"{nameof(DentalChartPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
-                    },
-                    new ActionSheetOption
-                    {
-                        Icon = "\ue0aa",
-                        Label = "Cephalometric",
-                        Subtitle = "View cephalometric analysis",
-                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
-                        IconColor = Color.FromArgb("#1A6B2F"),
-                        OnTapped = async () =>
-                            await Shell.Current.GoToAsync(
-                                $"{nameof(CephalometricPage)}?PatientId={card.Patient.PatientID}&PatientName={Uri.EscapeDataString(card.Patient.FullName)}"),
-                    },
-                    new ActionSheetOption
-                    {
-                        Icon = "\ue889",
-                        Label = "Treatment History",
-                        Subtitle = "View past treatments",
-                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
-                        IconColor = Color.FromArgb("#1A6B2F"),
-                        OnTapped = async () =>
-                            await Shell.Current.GoToAsync(
-                                $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
-                    },
-                 // Find the ActionSheet Option inside OpenActionSheet method and update its target:
-               new ActionSheetOption
-{
-    Icon = "\ue8f1",
-    Label = "Patient Ledger",
-    Subtitle = "View bills, payments and balances",
-    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
-    IconColor = Color.FromArgb("#1A6B2F"),
-    OnTapped = async () =>
-        await Shell.Current.GoToAsync(
-            $"{nameof(TransactionPage)}" +
-            $"?patientId={card.Patient.SupabaseId}" +
-            $"&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
-},
-                    new ActionSheetOption
-                    {
-                        Icon = "\ue872",
-                        Label = "Delete Patient",
-                        Subtitle = "Remove from records",
-                        LabelColor = Colors.Crimson,
-                        IconBackgroundColor = Color.FromArgb("#FFEBEE"),
-                        IconColor = Colors.Crimson,
-                        OnTapped = async () => await DeletePatient(card),
-                    },
-                });
+                    Icon = "\ue09e",
+                    Label = "Patient Records",
+                    Subtitle = "View full patient details",
+                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                    IconColor = Color.FromArgb("#1A6B2F"),
+                    OnTapped = async () =>
+                        await Shell.Current.GoToAsync(
+                            $"{nameof(PatientDetailsPage)}?id={card.Patient.PatientID}"),
+                },
+                new ActionSheetOption
+                {
+                    Icon = "\ue0a6",
+                    Label = "Dental Chart",
+                    Subtitle = "View dental chart",
+                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                    IconColor = Color.FromArgb("#1A6B2F"),
+                    OnTapped = async () =>
+                        await Shell.Current.GoToAsync(
+                            $"{nameof(DentalChartPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
+                },
+                new ActionSheetOption
+                {
+                    Icon = "\ue0aa",
+                    Label = "Cephalometric",
+                    Subtitle = "View cephalometric analysis",
+                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                    IconColor = Color.FromArgb("#1A6B2F"),
+                    OnTapped = async () =>
+                        await Shell.Current.GoToAsync(
+                            $"{nameof(CephalometricPage)}?PatientId={card.Patient.PatientID}&PatientName={Uri.EscapeDataString(card.Patient.FullName)}"),
+                },
+                new ActionSheetOption
+                {
+                    Icon = "\ue889",
+                    Label = "Treatment History",
+                    Subtitle = "View past treatments",
+                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                    IconColor = Color.FromArgb("#1A6B2F"),
+                    OnTapped = async () =>
+                        await Shell.Current.GoToAsync(
+                            $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
+                },
+                new ActionSheetOption
+                {
+                    Icon = "\ue8f1",
+                    Label = "Patient Ledger",
+                    Subtitle = "View bills, payments and balances",
+                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                    IconColor = Color.FromArgb("#1A6B2F"),
+                    OnTapped = async () =>
+                        await Shell.Current.GoToAsync(
+                            $"{nameof(TransactionPage)}" +
+                            $"?patientId={card.Patient.SupabaseId}" +
+                            $"&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
+                },
+                new ActionSheetOption
+                {
+                    Icon = "\ue872",
+                    Label = "Delete Patient",
+                    Subtitle = "Remove from records",
+                    LabelColor = Colors.Crimson,
+                    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
+                    IconColor = Colors.Crimson,
+                    OnTapped = async () => await DeletePatient(card),
+                },
+                    });
 
-            await sheet.ShowAsync();
+                await sheet.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[OpenActionSheet] {ex.Message}");
+            }
+            finally
+            {
+                _isSheetOpen = false;
+            }
         }
 
         // Call button — opens phone dialer

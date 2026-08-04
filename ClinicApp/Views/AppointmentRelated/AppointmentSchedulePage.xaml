@@ -50,45 +50,85 @@
 
 		</Grid>
 
-		<!-- ══ ROW 1: PENDING BOOKINGS BANNER ══ -->
-		<Border Grid.Row="1"
-                BackgroundColor="#FFDC143C"
-                IsVisible="{Binding HasPendingBookings}"
-                Padding="12,8">
-			<Border.GestureRecognizers>
-				<TapGestureRecognizer Command="{Binding GoToPendingCommand}"/>
-			</Border.GestureRecognizers>
-			<Grid ColumnDefinitions="Auto,*,Auto">
-				<!-- Warning icon from MaterialSymbolsRounded -->
-				<Label Grid.Column="0"
-                       FontFamily="MaterialSymbolsRounded"
-                       Text="&#xe002;"
-                       FontSize="16" TextColor="White"
-                       VerticalOptions="Center" Margin="0,0,6,0"/>
-				<Label Grid.Column="1"
-                       TextColor="White" FontSize="13"
-                       VerticalOptions="Center">
-					<Label.FormattedText>
-						<FormattedString>
-							<Span Text="{Binding PendingBookingsCount}" TextColor="White" FontAttributes="Bold"/>
-							<Span Text=" booking(s) waiting for approval" TextColor="White" FontAttributes="Bold"/>
-						</FormattedString>
-					</Label.FormattedText>
-				</Label>
-				<HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
-					<Label Text="Review"
-                           TextColor="White"
-                           FontSize="13" FontAttributes="Bold"
-                           VerticalOptions="Center"/>
-					<Label FontFamily="MaterialSymbolsRoundedFilled"
-                           Text="&#xe941;"
-                           FontSize="16" TextColor="White"
-                           VerticalOptions="Center"/>
-				</HorizontalStackLayout>
-			</Grid>
-		</Border>
+        <!-- ══ ROW 1: BANNERS (pending review + active queue) ══ -->
+        <VerticalStackLayout Grid.Row="1" Spacing="1">
 
-		<!-- ══ ROW 2: WEEK NAVIGATION ══
+            <!-- Pending bookings banner -->
+            <Border BackgroundColor="#FFDC143C"
+            IsVisible="{Binding HasPendingBookings}"
+            Padding="12,8">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding GoToPendingCommand}"/>
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Label Grid.Column="0"
+                   FontFamily="MaterialSymbolsRounded"
+                   Text="&#xe002;"
+                   FontSize="16" TextColor="White"
+                   VerticalOptions="Center" Margin="0,0,6,0"/>
+                    <Label Grid.Column="1"
+                   TextColor="White" FontSize="13"
+                   VerticalOptions="Center">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="{Binding PendingBookingsCount}" TextColor="White" FontAttributes="Bold"/>
+                                <Span Text=" booking(s) waiting for approval" TextColor="White" FontAttributes="Bold"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
+                        <Label Text="Review"
+                       TextColor="White"
+                       FontSize="13" FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+                        <Label FontFamily="MaterialSymbolsRoundedFilled"
+                       Text="&#xe941;"
+                       FontSize="16" TextColor="White"
+                       VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Grid>
+            </Border>
+
+            <!-- Active queue banner: in-procedure + billing -->
+            <Border BackgroundColor="#2563EB"
+            IsVisible="{Binding HasInProcedureQueue}"
+            Padding="12,8">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding GoToInProcedureCommand}"/>
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Label Grid.Column="0"
+                   FontFamily="MaterialSymbolsRounded"
+                   Text="&#xe425;"
+                   FontSize="16" TextColor="White"
+                   VerticalOptions="Center" Margin="0,0,6,0"/>
+                    <Label Grid.Column="1"
+                   TextColor="White" FontSize="13"
+                   VerticalOptions="Center">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="{Binding InProcedureQueueCount}" TextColor="White" FontAttributes="Bold"/>
+                                <Span Text=" patient(s) in procedure" TextColor="White" FontAttributes="Bold"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
+                        <Label Text="View"
+                       TextColor="White"
+                       FontSize="13" FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+                        <Label FontFamily="MaterialSymbolsRoundedFilled"
+                       Text="&#xe941;"
+                       FontSize="16" TextColor="White"
+                       VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Grid>
+            </Border>
+
+        </VerticalStackLayout>
+
+
+        <!-- ══ ROW 2: WEEK NAVIGATION ══
              Arrow buttons go gray when disabled (CanGoPrevious = false) -->
 		<Grid Grid.Row="2" ColumnDefinitions="36,*,36"
               BackgroundColor="{StaticResource Secondary}"

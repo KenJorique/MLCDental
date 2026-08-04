@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClinicApp.ViewModels"
+             xmlns:models="clr-namespace:ClinicApp.Models"
+             x:Class="ClinicApp.Views.AppointmentRelated.InProcedurePage"
+             x:DataType="vm:InProcedureViewModel"
+             Title="Procedure Queue"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#F5F6FA">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Segmented tab header with live counts -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,*" Margin="16,12,16,8" ColumnSpacing="10">
+            <Border Grid.Column="0"
+                    x:Name="InProcTabBorder"
+                    Stroke="Transparent"
+                    BackgroundColor="{Binding IsInProcedureTabActive, Converter={StaticResource BoolToTabColorConverter}}"
+                    StrokeShape="RoundRectangle 12">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SwitchTabCommand}" CommandParameter="in-procedure" />
+                </Border.GestureRecognizers>
+                <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Padding="0,10" Spacing="6">
+                    <Label Text="In Procedure" FontAttributes="Bold" FontSize="14" />
+                    <Border BackgroundColor="#FFA726" StrokeShape="RoundRectangle 10" Padding="7,2">
+                        <Label Text="{Binding InProcedureCount}" TextColor="White" FontSize="12" FontAttributes="Bold" />
+                    </Border>
+                </StackLayout>
+            </Border>
+
+            <!--<Border Grid.Column="1"
+                    Stroke="Transparent"
+                    BackgroundColor="{Binding IsBillingTabActive, Converter={StaticResource BoolToTabColorConverter}}"
+                    StrokeShape="RoundRectangle 12">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SwitchTabCommand}" CommandParameter="billing" />
+                </Border.GestureRecognizers>
+                <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Padding="0,10" Spacing="6">
+                    <Label Text="Billing" FontAttributes="Bold" FontSize="14" />
+                    <Border BackgroundColor="#2563EB" StrokeShape="RoundRectangle 10" Padding="7,2">
+                        <Label Text="{Binding BillingCount}" TextColor="White" FontSize="12" FontAttributes="Bold" />
+                    </Border>
+                </StackLayout>
+            </Border>-->
+        </Grid>
+
+        <!-- Content -->
+        <Grid Grid.Row="1">
+
+            <!-- Initial load skeleton -->
+            <ActivityIndicator IsRunning="{Binding IsInitialLoading}"
+                                IsVisible="{Binding IsInitialLoading}"
+                                Color="#2563EB"
+                                VerticalOptions="Center" />
+
+            <!-- Global empty state -->
+            <StackLayout IsVisible="{Binding HasNone}"
+                         VerticalOptions="Center"
+                         HorizontalOptions="Center"
+                         Spacing="8">
+                <Label Text="🪑" FontSize="48" HorizontalOptions="Center" />
+                <Label Text="No active patients right now" FontSize="15" TextColor="#6B7280" HorizontalOptions="Center" />
+            </StackLayout>
+
+            <!-- In Procedure list -->
+            <RefreshView IsRefreshing="{Binding IsRefreshing}"
+                         Command="{Binding RefreshCommand}"
+                         IsVisible="{Binding IsInProcedureTabActive}">
+                <CollectionView ItemsSource="{Binding InProcedureList}"
+                                 SelectionMode="None"
+                                 Margin="16,4">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:AppointmentEntry">
+                            <Border Stroke="#E5E7EB" StrokeShape="RoundRectangle 14" Padding="14" BackgroundColor="White">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:InProcedureViewModel}}, Path=SelectEntryCommand}"
+                                                           CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                    <Label Grid.Row="0" Grid.Column="0" Text="{Binding PatientName}" FontAttributes="Bold" FontSize="16" />
+                                    <Border Grid.Row="0" Grid.Column="1" BackgroundColor="#FFF3E0" StrokeShape="RoundRectangle 8" Padding="8,3">
+                                        <Label Text="In Procedure" TextColor="#F57C00" FontSize="11" FontAttributes="Bold" />
+                                    </Border>
+                                    <Label Grid.Row="1" Grid.Column="0" Text="{Binding AppointmentDateTime}" TextColor="#6B7280" FontSize="13" />
+                                    <ImageButton Grid.Row="1" Grid.Column="1"
+                                                 Source="call_icon.png"
+                                                 WidthRequest="28" HeightRequest="28"
+                                                 BackgroundColor="Transparent"
+                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:InProcedureViewModel}}, Path=CallPatientCommand}"
+                                                 CommandParameter="{Binding Phone}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+
+            <!-- Billing list -->
+            <!--<RefreshView IsRefreshing="{Binding IsRefreshing}"
+                         Command="{Binding RefreshCommand}"
+                         IsVisible="{Binding IsBillingTabActive}">
+                <CollectionView ItemsSource="{Binding BillingList}"
+                                 SelectionMode="None"
+                                 Margin="16,4">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:AppointmentEntry">
+                            <Border Stroke="#E5E7EB" StrokeShape="RoundRectangle 14" Padding="14" BackgroundColor="White">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:InProcedureViewModel}}, Path=SelectEntryCommand}"
+                                                           CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                    <Label Grid.Row="0" Grid.Column="0" Text="{Binding PatientName}" FontAttributes="Bold" FontSize="16" />
+                                    <Border Grid.Row="0" Grid.Column="1" BackgroundColor="#E8EFFD" StrokeShape="RoundRectangle 8" Padding="8,3">
+                                        <Label Text="Billing" TextColor="#2563EB" FontSize="11" FontAttributes="Bold" />
+                                    </Border>
+                                    <Label Grid.Row="1" Grid.Column="0" Text="{Binding AppointmentDateTime}" TextColor="#6B7280" FontSize="13" />
+                                    <ImageButton Grid.Row="1" Grid.Column="1"
+                                                 Source="call_icon.png"
+                                                 WidthRequest="28" HeightRequest="28"
+                                                 BackgroundColor="Transparent"
+                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:InProcedureViewModel}}, Path=CallPatientCommand}"
+                                                 CommandParameter="{Binding Phone}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>-->
+
+        </Grid>
+    </Grid>
+</ContentPage>

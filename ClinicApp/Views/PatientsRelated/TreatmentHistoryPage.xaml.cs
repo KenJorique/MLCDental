@@ -1,4 +1,4 @@
-using ClinicApp.ViewModels.DentalChart;
+
 using ClinicApp.ViewModels.PatientsRelatedVM;
 
 namespace ClinicApp.Views.PatientsRelated;

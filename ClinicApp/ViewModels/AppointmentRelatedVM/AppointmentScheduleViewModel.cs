@@ -1,5 +1,4 @@
-﻿
-using ClinicApp.Models;
+﻿using ClinicApp.Models;
 using ClinicApp.Services;
 using ClinicApp.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -15,21 +14,17 @@ namespace ClinicApp.ViewModels
         readonly DatabaseService _db;
         readonly SupabaseDataService _supabaseData;
 
-        // Add this field to track the Supabase appointment_entries UUID
         private string _selectedSupabaseEntryId = string.Empty;
 
-        // Calendar drawable — GraphicsView renders this
         public CalendarDrawable CalendarDrawable { get; } = new();
         public event Action? CalendarNeedsRedraw;
         public ObservableCollection<AppointmentEntry> TodayAppointments { get; } = new();
         public ObservableCollection<AppointmentEntry> WeekAppointments { get; } = new();
 
-        // Grouped by specific date — one chronological list, Mon–Sat, Today included in its
-        // normal weekday position (see LoadAppointments for the grouping logic).
+        // Grouped by specific date — one chronological list, Mon–Sat
         public ObservableCollection<AppointmentDateGroup> GroupedWeekAppointments { get; } = new();
         [ObservableProperty] private bool hasNoWeekAppointments = true;
 
-        // Calendar grid — 7 days x time slots
         public ObservableCollection<CalendarDayColumn> WeekColumns { get; } = new();
         [ObservableProperty] private bool canGoPrevious = true;
         [ObservableProperty] private bool isListView = true;
@@ -39,13 +34,11 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private bool isBusy;
         [ObservableProperty] private bool isInitialLoading = true;
 
-        /// <summary>List content (including its "no appointments" text) is hidden only during the
-        /// very first load — not on every refresh/week-nav, so the list doesn't disappear and
-        /// get replaced by the big spinner on every quick tap.</summary>
         public bool ShowListContent => IsListView && !IsInitialLoading;
 
         partial void OnIsInitialLoadingChanged(bool value) => OnPropertyChanged(nameof(ShowListContent));
         partial void OnIsListViewChanged(bool value) => OnPropertyChanged(nameof(ShowListContent));
+
         [ObservableProperty] private DateTime currentDate = DateTime.Today;
         [ObservableProperty] private string dateRangeLabel = string.Empty;
         [ObservableProperty] private AppointmentEntry? selectedAppointment;
@@ -54,18 +47,25 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private int weekCount;
         [ObservableProperty] private int pendingBookingsCount;
         [ObservableProperty] private bool hasPendingBookings;
+
+        // From File 2 — in-procedure queue badge
+        [ObservableProperty] private int inProcedureQueueCount;
+        [ObservableProperty] private bool hasInProcedureQueue;
+
         [ObservableProperty] private string todayLabel = "Today";
         [ObservableProperty] private string weekLabel = "This week";
 
         AppointmentDetailSheet? _detailSheet;
 
-        // Complete only makes sense for an appointment happening today; reschedule only for
-        // one that isn't (Ken's rule — kept, but derived from the date directly instead of a
-        // separately-tracked "selected from week" flag, since Today now lives inside the same
-        // single chronological list rather than a separate section).
+        // File 1: Complete/Mark button only shows for today's approved appointments
         public bool IsSelectedApproved =>
             SelectedAppointment?.Status == "approved" &&
             SelectedAppointment?.AppointmentDateTimeParsed.Date == DateTime.Today;
+
+        // File 2: In-procedure/billing status check
+        public bool IsSelectedInTransit =>
+            SelectedAppointment?.Status == "in-procedure" ||
+            SelectedAppointment?.Status == "billing";
 
         public bool IsSelectedPending =>
             SelectedAppointment?.Status == "pending" ||
@@ -76,13 +76,14 @@ namespace ClinicApp.ViewModels
             SelectedAppointment?.Status == "pending" ||
             SelectedAppointment?.Status == "rescheduled";
 
+        // Agreed: reschedule allowed for any approved appointment
         public bool CanChangeDate =>
-            SelectedAppointment?.Status == "approved" &&
-            SelectedAppointment?.AppointmentDateTimeParsed.Date != DateTime.Today;
+            SelectedAppointment?.Status == "approved";
 
         partial void OnSelectedAppointmentChanged(AppointmentEntry? value)
         {
             OnPropertyChanged(nameof(IsSelectedApproved));
+            OnPropertyChanged(nameof(IsSelectedInTransit));
             OnPropertyChanged(nameof(IsSelectedPending));
             OnPropertyChanged(nameof(CanCancel));
             OnPropertyChanged(nameof(CanChangeDate));
@@ -94,7 +95,22 @@ namespace ClinicApp.ViewModels
             await Shell.Current.GoToAsync(nameof(AppointmentPage));
         }
 
-        // always start from Sunday of the CURRENT week
+        // From File 2 — navigate to in-procedure queue page
+        [RelayCommand]
+        async Task GoToInProcedure()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[GoToInProcedure] navigating...");
+                await Shell.Current.GoToAsync(nameof(InProcedurePage));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[GoToInProcedure] {ex}");
+                await Shell.Current.DisplayAlert("Nav error", ex.Message, "OK");
+            }
+        }
+
         public DateTime WeekStart
         {
             get
@@ -137,8 +153,6 @@ namespace ClinicApp.ViewModels
         {
             IsListView = false;
             IsCalendarView = true;
-
-            // Force load and redraw
             await LoadAppointments();
             CalendarNeedsRedraw?.Invoke();
         }
@@ -147,13 +161,7 @@ namespace ClinicApp.ViewModels
         async Task PreviousWeek()
         {
             var newDate = CurrentDate.AddDays(-7);
-
-            // Prevent going before current week
-            if (newDate.Date < DateTime.Today.AddDays(-6)) // Allow current week only
-            {
-                return;
-            }
-
+            if (newDate.Date < DateTime.Today.AddDays(-6)) return;
             CurrentDate = newDate;
             UpdateDateLabel();
             await LoadAppointments();
@@ -182,7 +190,7 @@ namespace ClinicApp.ViewModels
 
         private void UpdateCanGoPrevious()
         {
-            CanGoPrevious = WeekStart.Date >= DateTime.Today.AddDays(-6); // Current week or future
+            CanGoPrevious = WeekStart.Date >= DateTime.Today.AddDays(-6);
         }
 
         private void UpdateListLabels()
@@ -190,29 +198,24 @@ namespace ClinicApp.ViewModels
             var weekStartDate = WeekStart.Date;
             var today = DateTime.Today.Date;
 
-            if (weekStartDate == today.AddDays(-(int)today.DayOfWeek).Date) // Current week
+            if (weekStartDate == today.AddDays(-(int)today.DayOfWeek).Date)
             {
                 TodayLabel = DateTime.Today.ToString("dddd, MMMM d");
                 WeekLabel = "This week";
             }
-            else if (weekStartDate > today) // Future week
+            else if (weekStartDate > today)
             {
                 TodayLabel = weekStartDate.ToString("dddd");
                 WeekLabel = "Week of " + weekStartDate.ToString("MMMM d");
             }
-            else // Past week
+            else
             {
                 TodayLabel = weekStartDate.ToString("dddd");
                 WeekLabel = "Week of " + weekStartDate.ToString("MMMM d");
             }
         }
 
-        // Single selection command — matches the one chronological list in the XAML.
-        // (Ken's version had separate SelectTodayAppointment/SelectWeekAppointment commands
-        // tracking a "SelectedFromWeekSection" flag, left over from before Today and the rest
-        // of the week were merged into one list. That flag is no longer meaningful now that
-        // there's only one list to select from, so IsSelectedApproved/CanChangeDate above
-        // derive the same "is this today?" distinction directly from the date instead.)
+        // Single unified select — used by list, calendar tap, and today tap
         [RelayCommand]
         async Task SelectAppointment(AppointmentEntry entry)
         {
@@ -237,9 +240,13 @@ namespace ClinicApp.ViewModels
             }
         }
 
-        // Alias used by the calendar view tap handler in AppointmentSchedulePage.xaml.cs
+        // Aliases for calendar and today tap handlers in code-behind
         [RelayCommand]
         async Task SelectWeekAppointment(AppointmentEntry entry) =>
+            await SelectAppointmentCommand.ExecuteAsync(entry);
+
+        [RelayCommand]
+        async Task SelectTodayAppointment(AppointmentEntry entry) =>
             await SelectAppointmentCommand.ExecuteAsync(entry);
 
         [RelayCommand]
@@ -262,16 +269,70 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // From File 2 — shared helper for updating appointment stage
+        private async Task UpdateAppointmentStageAsync(string status)
+        {
+            if (SelectedAppointment == null) return;
+
+            try
+            {
+                if (SelectedAppointment.Id > 0)
+                    await _db.UpdateAppointmentStatus(SelectedAppointment.Id, status);
+
+                if (!string.IsNullOrWhiteSpace(_selectedSupabaseEntryId))
+                    await _supabaseData.UpdateAppointmentEntryStatusAsync(
+                        _selectedSupabaseEntryId, status);
+
+                if (!string.IsNullOrWhiteSpace(SelectedAppointment.SupabaseBookingId))
+                    await _supabaseData.UpdateBookingStatusAsync(
+                        SelectedAppointment.SupabaseBookingId, status);
+
+                SelectedAppointment.Status = status;
+                await LoadAppointments();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[UpdateAppointmentStage] {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+            }
+        }
+
+        // From File 2 — moves patient to in-procedure queue
         [RelayCommand]
-        async Task MarkCompleted()
+        async Task SetInTransit()
         {
             if (SelectedAppointment == null) return;
 
             bool confirm = await Shell.Current.DisplayAlert(
-                "Mark as completed",
-                $"Mark {SelectedAppointment.PatientName}'s appointment as completed?\n" +
-                "You will be redirected to create a bill.",
+                "Set In Transit",
+                $"Mark {SelectedAppointment.PatientName} as currently in procedure?",
+                "Yes", "Cancel");
+
+            if (!confirm) return;
+
+            ShowDetail = false;
+            SelectedAppointment = null;
+            await CloseSheetAsync();
+
+            await UpdateAppointmentStageAsync("in-procedure");
+        }
+
+        // From File 2 — called from InProcedurePage to go to billing
+        [RelayCommand]
+        async Task ProceedToBilling()
+        {
+            if (SelectedAppointment == null) return;
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[ProceedToBilling] PatientName='{SelectedAppointment.PatientName}' " +
+                $"PatientSupabaseId='{SelectedAppointment.PatientSupabaseId}' " +
+                $"Status='{SelectedAppointment.Status}'");
+
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Start Billing",
+                $"Procedure for {SelectedAppointment.PatientName} is done.\nStart billing now?",
                 "Yes, proceed", "Cancel");
+
             if (!confirm) return;
 
             var appointment = SelectedAppointment;
@@ -279,42 +340,21 @@ namespace ClinicApp.ViewModels
 
             try
             {
-                // Google Tasks complete
-                try
-                {
-                    var token = await _supabaseData.GetFreshAccessTokenAsync();
-                    if (!string.IsNullOrEmpty(token) &&
-                        !string.IsNullOrEmpty(appointment.GoogleTaskId))
-                        await _supabaseData.CompleteGoogleTaskAsync(
-                            token, appointment.GoogleTaskId);
-                }
-                catch { /* silent */ }
-
                 ShowDetail = false;
                 SelectedAppointment = null;
                 await CloseSheetAsync();
 
-                // BUGFIX: the removal used to only touch TodayAppointments/WeekAppointments —
-                // two legacy collections the current XAML doesn't actually display anymore
-                // (it's bound to GroupedWeekAppointments). That meant a just-completed
-                // appointment wouldn't visually disappear until the next full reload.
-                // A full LoadAppointments() rebuilds GroupedWeekAppointments (and the calendar)
-                // correctly, same as CancelAppointment/DeleteAppointment already do.
-                await LoadAppointments();
-
-                // Navigate to billing — pass appointment entry id.
-                // Deletion happens INSIDE CreateBillViewModel.CreateBill()
-                // so going back doesn't lose the appointment.
                 await Shell.Current.GoToAsync(
                     $"{nameof(CreateBillPage)}" +
                     $"?patientId={Uri.EscapeDataString(appointment.PatientSupabaseId ?? string.Empty)}" +
                     $"&patientName={Uri.EscapeDataString(appointment.PatientName ?? string.Empty)}" +
                     $"&appointmentEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}" +
-                    $"&supabaseEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}");
+                    $"&supabaseEntryId={Uri.EscapeDataString(supabaseEntryId ?? string.Empty)}" +
+                    $"&supabaseBookingId={Uri.EscapeDataString(appointment.SupabaseBookingId ?? string.Empty)}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MarkCompleted] {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ProceedToBilling] {ex.Message}");
                 await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
             }
         }
@@ -333,19 +373,13 @@ namespace ClinicApp.ViewModels
 
             try
             {
-                // 1. Update local SQLite status
-                await _db.UpdateAppointmentStatus(
-                    SelectedAppointment.Id, "cancelled");
+                await _db.UpdateAppointmentStatus(SelectedAppointment.Id, "cancelled");
 
-                // 2. Delete from Supabase appointment_entries
                 if (!string.IsNullOrEmpty(_selectedSupabaseEntryId))
-                    await _supabaseData.DeleteAppointmentEntryAsync(
-                        _selectedSupabaseEntryId);
+                    await _supabaseData.DeleteAppointmentEntryAsync(_selectedSupabaseEntryId);
 
-                // 3. Delete from Supabase bookings
                 if (!string.IsNullOrEmpty(SelectedAppointment.SupabaseBookingId))
-                    await _supabaseData.DeleteBookingAsync(
-                        SelectedAppointment.SupabaseBookingId);
+                    await _supabaseData.DeleteBookingAsync(SelectedAppointment.SupabaseBookingId);
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[CancelAppointment] Cleaned up booking {SelectedAppointment.SupabaseBookingId}");
@@ -370,10 +404,8 @@ namespace ClinicApp.ViewModels
             ShowDetail = false;
             await CloseSheetAsync();
 
-            var currentDt = SelectedAppointment.AppointmentDateTimeParsed
-                != DateTime.MinValue
-                ? SelectedAppointment.AppointmentDateTimeParsed
-                      .ToString("MMM dd, yyyy h:mm tt")
+            var currentDt = SelectedAppointment.AppointmentDateTimeParsed != DateTime.MinValue
+                ? SelectedAppointment.AppointmentDateTimeParsed.ToString("MMM dd, yyyy h:mm tt")
                 : "Unknown";
 
             await Shell.Current.GoToAsync(
@@ -405,9 +437,15 @@ namespace ClinicApp.ViewModels
             {
                 var entries = await _supabaseData.GetAppointmentEntriesAsync();
 
-                // Schedule page shows APPROVED appointments only.
+                // From File 2 — track in-procedure/billing queue count for banner
+                InProcedureQueueCount = entries.Count(e =>
+                    string.Equals(e.Status, "in-procedure", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(e.Status, "billing", StringComparison.OrdinalIgnoreCase));
+                HasInProcedureQueue = InProcedureQueueCount > 0;
+
+                // Schedule shows APPROVED only
                 var approvedEntries = entries
-                    .Where(e => e.Status == "approved")
+                    .Where(e => string.Equals(e.Status, "approved", StringComparison.OrdinalIgnoreCase))
                     .Where(e =>
                     {
                         var dt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
@@ -421,7 +459,6 @@ namespace ClinicApp.ViewModels
                         var localDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
                             ? e.AppointmentDateTime.ToLocalTime()
                             : e.AppointmentDateTime;
-
                         return new AppointmentEntry
                         {
                             SupabaseBookingId = e.SupabaseBookingId,
@@ -440,7 +477,7 @@ namespace ClinicApp.ViewModels
                     .OrderBy(e => e.AppointmentDateTimeParsed)
                     .ToList();
 
-                // ── Force round to nearest hour (no :30) ─────────────────
+                // Round to nearest hour
                 foreach (var entry in allEntries)
                 {
                     var dt = entry.AppointmentDateTimeParsed;
@@ -451,7 +488,6 @@ namespace ClinicApp.ViewModels
                     }
                 }
 
-                // ── Populate Today (kept for backward-compat; no longer drives its own UI section) ──
                 var todayEntries = allEntries
                     .Where(e => e.AppointmentDateTimeParsed.Date == DateTime.Today)
                     .ToList();
@@ -459,22 +495,17 @@ namespace ClinicApp.ViewModels
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     TodayAppointments.Clear();
-                    foreach (var a in todayEntries)
-                        TodayAppointments.Add(a);
+                    foreach (var a in todayEntries) TodayAppointments.Add(a);
                     TodayCount = TodayAppointments.Count;
                 });
 
-                // ── Populate Week (kept as-is; no longer bound in the list UI,
-                //    left in case anything else reads WeekAppointments/WeekCount) ──
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     WeekAppointments.Clear();
-                    foreach (var a in allEntries)
-                        WeekAppointments.Add(a);
+                    foreach (var a in allEntries) WeekAppointments.Add(a);
                     WeekCount = WeekAppointments.Count;
                 });
 
-                // ── Populate GroupedWeekAppointments — ONE chronological list, Mon–Sat.
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     GroupedWeekAppointments.Clear();
@@ -485,10 +516,7 @@ namespace ClinicApp.ViewModels
                     for (int d = 0; d < 7; d++)
                     {
                         var day = WeekStart.AddDays(d).Date;
-                        if (day.DayOfWeek == DayOfWeek.Sunday) continue; // Clinic closed Sundays
-
-                        // Only when viewing the CURRENT week: hide days already passed, so
-                        // Today is always first. Intentionally-browsed past weeks still show fully.
+                        if (day.DayOfWeek == DayOfWeek.Sunday) continue;
                         if (isCurrentWeek && day < DateTime.Today.Date) continue;
 
                         bool isToday = day == DateTime.Today;
@@ -508,7 +536,6 @@ namespace ClinicApp.ViewModels
                     HasNoWeekAppointments = GroupedWeekAppointments.Count == 0;
                 });
 
-                // ── Build calendar
                 BuildCalendarColumns(allEntries);
                 UpdateListLabels();
 
@@ -539,7 +566,6 @@ namespace ClinicApp.ViewModels
             {
                 var day = WeekStart.AddDays(d).Date;
                 var dayEntries = entries.Where(a => a.AppointmentDateTimeParsed.Date == day).ToList();
-
                 var slots = new ObservableCollection<CalendarSlot>();
 
                 foreach (var h in hours)
@@ -580,18 +606,13 @@ namespace ClinicApp.ViewModels
 
             try
             {
-                // 1. Delete from local SQLite
                 await _db.DeleteAppointmentEntry(SelectedAppointment);
 
-                // 2. Delete from Supabase appointment_entries
                 if (!string.IsNullOrEmpty(_selectedSupabaseEntryId))
-                    await _supabaseData.DeleteAppointmentEntryAsync(
-                        _selectedSupabaseEntryId);
+                    await _supabaseData.DeleteAppointmentEntryAsync(_selectedSupabaseEntryId);
 
-                // 3. Delete from Supabase bookings
                 if (!string.IsNullOrEmpty(SelectedAppointment.SupabaseBookingId))
-                    await _supabaseData.DeleteBookingAsync(
-                        SelectedAppointment.SupabaseBookingId);
+                    await _supabaseData.DeleteBookingAsync(SelectedAppointment.SupabaseBookingId);
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[DeleteAppointment] Fully deleted booking {SelectedAppointment.SupabaseBookingId}");
@@ -616,17 +637,12 @@ namespace ClinicApp.ViewModels
                 await Shell.Current.DisplayAlert("Error", "No phone number available for this patient.", "OK");
                 return;
             }
-
             try
             {
                 if (PhoneDialer.Default.IsSupported)
-                {
                     PhoneDialer.Default.Open(phoneNumber);
-                }
                 else
-                {
                     await Shell.Current.DisplayAlert("Not Supported", "Phone dialing is not supported on this device.", "OK");
-                }
             }
             catch (Exception ex)
             {
@@ -643,7 +659,6 @@ namespace ClinicApp.ViewModels
                 await Shell.Current.DisplayAlert("Error", "No email address available for this patient.", "OK");
                 return;
             }
-
             try
             {
                 var message = new EmailMessage { To = new List<string> { email } };
@@ -655,7 +670,6 @@ namespace ClinicApp.ViewModels
                 await Shell.Current.DisplayAlert("Error", "Unable to open email app.", "OK");
             }
         }
-
     }
 
     public class AppointmentDateGroup
@@ -673,8 +687,6 @@ namespace ClinicApp.ViewModels
         public string DayNum { get; set; } = "";
         public bool IsToday { get; set; }
         public ObservableCollection<CalendarSlot> Slots { get; set; } = new();
-
-        // For day header circle color
         public Color CircleBg => IsToday ? Color.FromArgb("#4A4A8A") : Colors.Transparent;
         public Color NumColor => IsToday ? Colors.White : Color.FromArgb("#333333");
     }

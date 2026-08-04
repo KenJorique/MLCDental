@@ -5,7 +5,8 @@
              xmlns:models="clr-namespace:ClinicApp.Models"
              x:Class="ClinicApp.Views.TransactionRelated.ReceiptPage"
              Title="Receipt"
-             BackgroundColor="#F5F5F5">
+             BackgroundColor="#F5F5F5"
+             Shell.TabBarIsVisible="False">
 
     <Grid>
         <ScrollView>

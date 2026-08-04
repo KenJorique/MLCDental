@@ -1,155 +1,242 @@
 <?xml version="1.0" encoding="utf-8" ?>
-
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:models="clr-namespace:ClinicApp.Models"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels.TransactionVM"
     x:Class="ClinicApp.Views.TransactionRelated.BillSummaryPage"
-    Title="Bill Summary">
+    Title="Bill Summary"
+    Shell.TabBarIsVisible="False"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#F5F5F5">
 
-    <VerticalStackLayout Padding="20"
-                         Spacing="16">
+    <Grid RowDefinitions="*,Auto">
 
-        <Label Text="{Binding PatientName}"
-               FontSize="22"
-               FontAttributes="Bold"/>
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="16" Spacing="14">
 
-        <CollectionView ItemsSource="{Binding Services}">
+                <!-- Header: back + patient info + item count -->
+                <Frame BackgroundColor="White" BorderColor="#E0E0E0" CornerRadius="12" Padding="14" HasShadow="False">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Button Grid.Column="0"
+                                Text="←"
+                                FontSize="18"
+                                BackgroundColor="Transparent"
+                                TextColor="#4A4A8A"
+                                Padding="0"
+                                WidthRequest="36"
+                                HeightRequest="36"
+                                Command="{Binding BackCommand}"/>
 
-            <CollectionView.ItemTemplate>
-
-                <DataTemplate>
-
-                    <Grid ColumnDefinitions="*,Auto">
-
-                        <VerticalStackLayout>
-
-                            <Label Text="{Binding ServiceName}"
-                                   FontAttributes="Bold"/>
-
-                            <Label Text="{Binding Quantity,
-                                          StringFormat='Qty: {0}'}"/>
-
+                        <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                            <Label Text="Bill Summary" FontSize="18" FontAttributes="Bold" TextColor="#222"/>
+                            <Label Text="{Binding PatientName}" FontSize="14" TextColor="#666"/>
                         </VerticalStackLayout>
 
-                        <Label Grid.Column="1"
-                               Text="{Binding SubtotalDisplay}"/>
-
+                        <Frame Grid.Column="2"
+                               BackgroundColor="#EEEEFA"
+                               BorderColor="Transparent"
+                               CornerRadius="10"
+                               Padding="8,4"
+                               HasShadow="False"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding HasServices}">
+                            <Label Text="{Binding TotalItems, StringFormat='{0} item(s)'}"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="#4A4A8A"/>
+                        </Frame>
                     </Grid>
+                </Frame>
 
-                </DataTemplate>
+                <!-- Services list -->
+                <Frame BackgroundColor="White" BorderColor="#E0E0E0" CornerRadius="12" Padding="14" HasShadow="False"
+                       IsVisible="{Binding HasServices}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Services" FontSize="14" FontAttributes="Bold" TextColor="#222"/>
 
-            </CollectionView.ItemTemplate>
+                        <CollectionView ItemsSource="{Binding Services}" SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ServiceLineItem">
+                                    <SwipeView>
+                                        <SwipeView.RightItems>
+                                            <SwipeItems>
+                                                <SwipeItem Text="Remove"
+                                                           BackgroundColor="#C62828"
+                                                           Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveServiceCommand}"
+                                                           CommandParameter="{Binding .}"/>
+                                            </SwipeItems>
+                                        </SwipeView.RightItems>
 
-        </CollectionView>
+                                        <VerticalStackLayout Spacing="4" Margin="0,0,0,10" BackgroundColor="White">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <VerticalStackLayout Grid.Column="0">
+                                                    <Label Text="{Binding ServiceName}" FontSize="13" FontAttributes="Bold" TextColor="#222"/>
+                                                    <Label Text="{Binding Quantity, StringFormat='Qty: {0}'}" FontSize="11" TextColor="#666"/>
+                                                </VerticalStackLayout>
 
-        <Grid ColumnDefinitions="*,Auto">
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding SubtotalDisplay}"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#4A4A8A"
+                                                       VerticalOptions="Center"/>
+                                            </Grid>
+                                            <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
+                                        </VerticalStackLayout>
+                                    </SwipeView>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
 
-            <Label Text="Subtotal"/>
-
-            <Label Grid.Column="1"
-                   Text="{Binding SubtotalDisplay}"/>
-
-        </Grid>
-
-        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
-            <Label Text="Discount"
-           FontAttributes="Bold"
-           VerticalOptions="Center"/>
-
-            <Picker Grid.Column="1"
-            SelectedIndexChanged="DiscountChanged"
-            WidthRequest="160">
-                <Picker.Items>
-                    <x:String>None</x:String>
-                    <x:String>Senior (20%)</x:String>
-                    <x:String>PWD (20%)</x:String>
-                </Picker.Items>
-            </Picker>
-        </Grid>
-
-        <Grid ColumnDefinitions="*,Auto">
-
-            <Label Text="TOTAL"
-                   FontAttributes="Bold"/>
-
-            <Label Grid.Column="1"
-                   FontAttributes="Bold"
-                   Text="{Binding TotalDisplay}"/>
-
-        </Grid>
-
-        <Frame BackgroundColor="#FFF8E1"
-       BorderColor="#FFE082"
-       CornerRadius="12"
-       Padding="14"
-       HasShadow="False"
-       IsVisible="{Binding HasInstallmentService}">
-
-            <VerticalStackLayout Spacing="10">
-
-                <Grid ColumnDefinitions="*,Auto">
-                    <VerticalStackLayout Grid.Column="0" Spacing="2">
-                        <Label Text="Set as Installment"
-                       FontSize="14"
-                       FontAttributes="Bold"
-                       TextColor="#333"/>
-                        <Label Text="Patient can pay the total in monthly installments"
-                       FontSize="11"
-                       TextColor="#888"/>
+                        <Label Text="Swipe left on a service to remove it"
+                               FontSize="10"
+                               TextColor="#AAA"
+                               HorizontalOptions="Center"/>
                     </VerticalStackLayout>
+                </Frame>
 
-                    <Switch Grid.Column="1"
-                    IsToggled="{Binding IsInstallment}"
-                    ThumbColor="#4A4A8A"
-                    OnColor="#B0B8D8"
-                    VerticalOptions="Center"/>
-                </Grid>
+                <!-- Totals card -->
+                <Frame BackgroundColor="White" BorderColor="#E0E0E0" CornerRadius="12" Padding="14" HasShadow="False">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Subtotal" TextColor="#444"/>
+                            <Label Grid.Column="1" Text="{Binding SubtotalDisplay}" TextColor="#444"/>
+                        </Grid>
 
-                <Grid IsVisible="{Binding IsInstallment}" ColumnDefinitions="*,Auto">
-                    <Label Text="Months"
-                   VerticalOptions="Center"
-                   TextColor="#555"/>
+                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                            <Label Text="Discount"
+                                   TextColor="#444"
+                                   VerticalOptions="Center"/>
 
-                    <Picker Grid.Column="1"
-                    SelectedIndexChanged="InstallmentMonthsChanged"
-                    WidthRequest="140">
-                        <Picker.Items>
-                            <x:String>1 month</x:String>
-                            <x:String>3 months</x:String>
-                            <x:String>6 months</x:String>
-                            <x:String>12 months</x:String>
-                        </Picker.Items>
-                    </Picker>
-                </Grid>
+                            <Picker Grid.Column="1"
+                                    SelectedIndexChanged="DiscountChanged"
+                                    WidthRequest="160"
+                                    TextColor="#4A4A8A">
+                                <Picker.Items>
+                                    <x:String>None</x:String>
+                                    <x:String>Senior (20%)</x:String>
+                                    <x:String>PWD (20%)</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </Grid>
 
-                <Frame BackgroundColor="White"
-               BorderColor="#E0E0E0"
-               CornerRadius="10"
-               Padding="10"
-               HasShadow="False"
-               IsVisible="{Binding IsInstallment}">
-                    <VerticalStackLayout Spacing="2">
-                        <Label Text="Installment Plan"
-                       FontAttributes="Bold"
-                       TextColor="#F57F17"/>
-                        <Label Text="{Binding InstallmentSummary}"
-                       FontSize="12"
-                       TextColor="#F57F17"/>
+                        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasDiscount}">
+                            <Label Text="Discount Amount" TextColor="#2E7D32" FontSize="12"/>
+                            <Label Grid.Column="1" Text="{Binding DiscountDisplay}" TextColor="#2E7D32" FontSize="12"/>
+                        </Grid>
+
+                        <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="TOTAL" FontSize="16" FontAttributes="Bold" TextColor="#222"/>
+                            <Label Grid.Column="1"
+                                   FontSize="18"
+                                   FontAttributes="Bold"
+                                   TextColor="#4A4A8A"
+                                   Text="{Binding TotalDisplay}"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Installment options -->
+                <Frame BackgroundColor="#FFF8E1"
+                       BorderColor="#FFE082"
+                       CornerRadius="12"
+                       Padding="14"
+                       HasShadow="False"
+                       IsVisible="{Binding HasInstallmentService}">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="Set as Installment"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#333"/>
+                                <Label Text="Patient can pay the total in monthly installments"
+                                       FontSize="11"
+                                       TextColor="#888"/>
+                            </VerticalStackLayout>
+
+                            <Switch Grid.Column="1"
+                                    IsToggled="{Binding IsInstallment}"
+                                    ThumbColor="#4A4A8A"
+                                    OnColor="#B0B8D8"
+                                    VerticalOptions="Center"/>
+                        </Grid>
+
+                        <Grid IsVisible="{Binding IsInstallment}" ColumnDefinitions="*,Auto">
+                            <Label Text="Months"
+                                   VerticalOptions="Center"
+                                   TextColor="#555"/>
+
+                            <Picker Grid.Column="1"
+                                    SelectedIndexChanged="InstallmentMonthsChanged"
+                                    WidthRequest="140">
+                                <Picker.Items>
+                                    <x:String>1 months</x:String>
+                                    <x:String>3 months</x:String>
+                                    <x:String>6 months</x:String>
+                                    <x:String>12 months</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </Grid>
+
+                        <Frame BackgroundColor="White"
+                               BorderColor="#E0E0E0"
+                               CornerRadius="10"
+                               Padding="10"
+                               HasShadow="False"
+                               IsVisible="{Binding IsInstallment}">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Installment Plan"
+                                       FontAttributes="Bold"
+                                       TextColor="#F57F17"/>
+                                <Label Text="{Binding InstallmentSummary}"
+                                       FontSize="12"
+                                       TextColor="#F57F17"/>
+                            </VerticalStackLayout>
+                        </Frame>
+
                     </VerticalStackLayout>
                 </Frame>
 
             </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Sticky bottom bar: total + Proceed -->
+        <Frame Grid.Row="1"
+               BackgroundColor="White"
+               BorderColor="#E0E0E0"
+               CornerRadius="0"
+               Padding="16,12"
+               HasShadow="True">
+            <VerticalStackLayout Spacing="10">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Text="Total Due" FontSize="14" TextColor="#666"/>
+                    <Label Grid.Column="1" Text="{Binding TotalDisplay}" FontSize="18" FontAttributes="Bold" TextColor="#4A4A8A"/>
+                </Grid>
+
+                <Grid>
+                    <Button Text="Proceed to Payment"
+                            BackgroundColor="#4A4A8A"
+                            TextColor="White"
+                            CornerRadius="12"
+                            HeightRequest="48"
+                            IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                            Command="{Binding ProceedCommand}"/>
+
+                    <HorizontalStackLayout Spacing="8"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            IsVisible="{Binding IsBusy}">
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" Color="#4A4A8A"/>
+                        <Label Text="Processing..." TextColor="#4A4A8A" VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Grid>
+            </VerticalStackLayout>
         </Frame>
 
-        <Button
-            Text="Proceed to Payment"
-            Command="{Binding ProceedCommand}"/>
-
-        <Button
-            Text="Back"
-            Command="{Binding BackCommand}"/>
-
-    </VerticalStackLayout>
-
+    </Grid>
 </ContentPage>

@@ -94,7 +94,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                     DebugInfo = $"Bill loaded: {Bill.BillNumberDisplay}";
                 }
 
-              
+
             }
             catch (Exception ex)
             {
@@ -154,6 +154,17 @@ namespace ClinicApp.ViewModels.TransactionVM
 
                 if (!string.IsNullOrWhiteSpace(SupabaseBookingId))
                     await _supabase.DeleteBookingAsync(SupabaseBookingId);
+
+                // This whole billing flow (CreateBill -> ServiceSummary ->
+                // BillSummary -> Payment -> Receipt) was pushed onto the
+                // Appointment tab's own navigation stack, since that's
+                // where "In Procedure -> Complete" kicked it off. Switching
+                // tabs below does NOT clear that stack -- Shell keeps a
+                // separate back stack per tab -- so without this, the
+                // Appointment tab would still have this ReceiptPage on
+                // top the next time it's tapped. Pop it back to its root
+                // first so the tab is clean before we leave it.
+                await Shell.Current.Navigation.PopToRootAsync(false);
 
                 await Shell.Current.GoToAsync(
                     $"//PatientListPage/{nameof(TransactionPage)}" +

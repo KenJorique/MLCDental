@@ -12,6 +12,20 @@ namespace ClinicApp.ViewModels
     [QueryProperty(nameof(CurrentDateTime), "currentDateTime")]
     public partial class RescheduleViewModel : ObservableObject
     {
+        private static readonly TimeZoneInfo PhZone = GetPhilippineZone();
+
+        private static TimeZoneInfo GetPhilippineZone()
+        {
+            foreach (var id in new[] { "Asia/Manila", "Philippine Standard Time", "UTC+8" })
+            {
+                try { return TimeZoneInfo.FindSystemTimeZoneById(id); }
+                catch { }
+            }
+            // Fallback: manually create UTC+8
+            return TimeZoneInfo.CreateCustomTimeZone(
+                "PST", TimeSpan.FromHours(8), "Philippine Standard Time", "PST");
+        }
+
         readonly SupabaseDataService _supabaseData;
 
         [ObservableProperty] private string bookingId = string.Empty;
@@ -175,11 +189,9 @@ namespace ClinicApp.ViewModels
             try
             {
                 // Convert Philippine time to UTC for storage
-                var utcTime = TimeZoneInfo.ConvertTimeToUtc(
-                    _selectedSlot.SlotDateTime,
-                    TimeZoneInfo.FindSystemTimeZoneById(
-                        "Asia/Manila") ??
-                    TimeZoneInfo.Utc);
+                var localSlot = DateTime.SpecifyKind(
+                    _selectedSlot.SlotDateTime, DateTimeKind.Unspecified);
+                var utcTime = TimeZoneInfo.ConvertTimeToUtc(localSlot, PhZone);
 
                 // TEMP DIAGNOSTIC — remove once the reschedule time-shift bug is found.
                 System.Diagnostics.Debug.WriteLine(
