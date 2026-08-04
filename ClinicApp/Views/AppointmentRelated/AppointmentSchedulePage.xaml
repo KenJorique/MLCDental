@@ -186,7 +186,7 @@
 															<Frame.GestureRecognizers>
 																<TapGestureRecognizer
                                                                     Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                                              Path=BindingContext.SelectAppointmentCommand}"
+                                                                              Path=BindingContext.SelectWeekAppointmentCommand}"
                                                                     CommandParameter="{Binding .}"/>
 															</Frame.GestureRecognizers>
 															<Label Text="{Binding PatientName}"

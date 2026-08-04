@@ -174,6 +174,10 @@ namespace ClinicApp.ViewModels
             FullName = result.FullName;
             Phone = result.ContactNo;
             Email = result.Email;
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                _existingPatient = await _supabase.GetPatientByPhoneAsync(result.ContactNo);
+            });
             IsExistingPatient = true;
             IsNewPatient = false;
             SearchResults.Clear();
@@ -264,7 +268,10 @@ namespace ClinicApp.ViewModels
                     foreach (var h in hours)
                     {
                         var slotTime = new DateTime(date.Year, date.Month, date.Day, h, 0, 0);
-                        var isTaken = allBooked.Any(b => b.ToLocalTime().Hour == h);
+                        var slotUtc = slotTime.ToUniversalTime();
+
+                        var isTaken = booked.Any(b =>
+                            b == slotUtc);
 
                         TimeSlots.Add(new TimeSlotItem
                         {
@@ -327,7 +334,8 @@ namespace ClinicApp.ViewModels
         [RelayCommand]
         async Task ConfirmBooking()
         {
-            if (!CanConfirm || _selectedSlot == null) return;
+            if (!CanConfirm || _selectedSlot == null)
+                return;
 
             HasError = false;
             IsBusy = true;
@@ -337,73 +345,151 @@ namespace ClinicApp.ViewModels
                 var localTime = _selectedSlot.SlotDateTime;
                 var utcTime = localTime.ToUniversalTime();
 
-                if (!IsExistingPatient)
-                {
-                    var parts = FullName.Trim().Split(' ', 2);
-                    var p = new Patient
-                    {
-                        FirstName = parts.Length > 0 ? parts[0] : FullName,
-                        LastName = parts.Length > 1 ? parts[1] : "",
-                        MobileNo = Phone,
-                        Email = Email,
-                        DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
-                    };
-                    await _db.AddPatient(p);
+                // =====================================================
+                // CHECK SLOT FIRST
+                // =====================================================
+                var available = await _supabase.IsSlotAvailableAsync(utcTime);
 
-                    var sp = new SupabasePatient
-                    {
-                        FirstName = p.FirstName,
-                        LastName = p.LastName,
-                        Phone = Phone,
-                        Email = Email,
-                        ReferredBy = "Walk-in",
-                        DateRegistered = DateTime.UtcNow
-                    };
-                    await _supabase.AddPatientAsync(sp);
+                if (!available)
+                {
+                    await Shell.Current.DisplayAlert(
+                        "Slot Taken",
+                        "This time slot has already been booked. Please choose another time.",
+                        "OK");
+
+                    await LoadSlotsAsync(AppointmentDate);
+
+                    return;
                 }
 
-                var bookingId = Guid.NewGuid().ToString();
+                // =====================================================
+                // CHECK IF PATIENT ALREADY EXISTS
+                // =====================================================
+                if (!IsExistingPatient)
+                {
+                    var existingPatient = (await _db.GetPatients())
+                        .FirstOrDefault(p => p.MobileNo == Phone);
+
+                    if (existingPatient != null)
+                    {
+                        IsExistingPatient = true;
+                        _existingPatient = await _supabase.GetPatientByPhoneAsync(Phone);
+                    }
+                    else
+                    {
+                        var parts = FullName.Trim().Split(' ', 2);
+
+                        var patient = new Patient
+                        {
+                            FirstName = parts.Length > 0 ? parts[0] : FullName,
+                            LastName = parts.Length > 1 ? parts[1] : "",
+                            MobileNo = Phone,
+                            Email = Email,
+                            DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
+                        };
+
+                        await _db.AddPatient(patient);
+
+                        var supabasePatient = new SupabasePatient
+                        {
+                            FirstName = patient.FirstName,
+                            LastName = patient.LastName,
+                            Phone = Phone,
+                            Email = Email,
+                            ReferredBy = "Walk-in",
+                            DateRegistered = DateTime.UtcNow
+                        };
+                        _existingPatient = await _supabase.AddPatientAsync(supabasePatient);
+                        if (_existingPatient != null)
+                        {
+                            patient.SupabaseId = _existingPatient.Id;   
+                            await _db.UpdatePatient(patient);           
+                        }
+                    }
+                }
+                else if (_existingPatient == null)
+                {
+                    // Safety net: SelectPatient() fires this on a background thread and
+                    // may not have finished by the time Confirm is tapped.
+                    _existingPatient = await _supabase.GetPatientByPhoneAsync(Phone);
+                }
+                var resolvedPatientId = _existingPatient?.Id ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(resolvedPatientId))
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[WalkIn] WARNING: no patient ID resolved for '{FullName}' — booking will not link to a ledger.");
+                }
+
+                // =====================================================
+                // CREATE APPOINTMENT ENTRY
+                // =====================================================
+                var appointmentId = Guid.NewGuid().ToString();
 
                 var localEntry = new AppointmentEntry
                 {
-                    SupabaseBookingId = bookingId,
+                    SupabaseBookingId = appointmentId,
                     PatientName = FullName,
+                    PatientSupabaseId = resolvedPatientId,
                     Phone = Phone,
                     Email = Email,
                     Notes = Notes,
                     AppointmentDateTime = localTime.ToString("yyyy-MM-dd HH:mm:ss"),
                     Status = "approved"
                 };
+
                 await _db.AddAppointmentEntry(localEntry);
 
                 var supEntry = new SupabaseAppointmentEntry
                 {
-                    SupabaseBookingId = bookingId,
+                    SupabaseBookingId = appointmentId,
                     PatientName = FullName,
+                    PatientId = resolvedPatientId,
                     Phone = Phone,
                     Email = Email,
                     Notes = Notes,
                     AppointmentDateTime = utcTime,
                     Status = "approved"
                 };
-                await _supabase.AddAppointmentEntryAsync(supEntry);
+
+                var created = await _supabase.AddAppointmentEntryAsync(supEntry);
+
+                if (created == null)
+                {
+                    await Shell.Current.DisplayAlert(
+                        "Error",
+                        "Unable to save appointment.",
+                        "OK");
+                    return;
+                }
+
+                _selectedSlot.IsTaken = true;
+                _selectedSlot.IsSelected = false;
+                _selectedSlot.RefreshColors();
+
+                await LoadSlotsAsync(AppointmentDate);
 
                 try
                 {
                     await _supabase.SyncToGoogleTasksAsync(
-                        "", FullName, "Walk-In Appointment", localTime, Phone, Notes);
+                        "",
+                        FullName,
+                        "Walk-In Appointment",
+                        localTime,
+                        Phone,
+                        Notes);
                 }
-                catch (Exception gEx)
+                catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[WalkIn] Google Tasks: {gEx.Message}");
+                    System.Diagnostics.Debug.WriteLine(ex.Message);
                 }
 
                 await Shell.Current.DisplayAlert(
                     "✓ Booking Confirmed",
                     $"Walk-in appointment booked!\n\n" +
-                    $"Patient:  {FullName}\n" +
-                    $"Date:       {localTime:MMM dd, yyyy}\n" +
-                    $"Time:       {localTime:h:00 tt}",
+                    $"Patient: {FullName}\n" +
+                    $"Date: {localTime:MMM dd, yyyy}\n" +
+                    $"Time: {localTime:h:mm tt}",
                     "Done");
 
                 await Shell.Current.GoToAsync("..");
@@ -413,7 +499,10 @@ namespace ClinicApp.ViewModels
                 HasError = true;
                 ErrorMessage = $"Booking failed: {ex.Message}";
             }
-            finally { IsBusy = false; }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         [RelayCommand]

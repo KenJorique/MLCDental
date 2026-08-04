@@ -281,27 +281,32 @@
             await loadAvailability(val);
         });
 
-        async function loadAvailability(dateStr) {
-            // Show loading
-            slotLoading.classList.remove('d-none');
-            slotGrid.innerHTML = '';
-            noDateSel.classList.add('d-none');
-            dayCapacity.classList.add('d-none');
-            dayFullAlert.classList.add('d-none');
-            selectedTime = null;
-            hiddenDt.value = '';
-
+               async function loadAvailability(dateStr) {
             try {
-                const res  = await fetch(`/Booking/GetAvailability?date=${dateStr}`);
+                slotLoading.classList.remove('d-none');
+                slotGrid.innerHTML = '';
+                noDateSel.classList.add('d-none');
+                dayCapacity.classList.add('d-none');
+                dayFullAlert.classList.add('d-none');
+                selectedTime = null;
+                hiddenDt.value = '';
+
+                // Pass date as Philippine local date (yyyy-MM-dd)
+                const res  = await fetch(
+                    `/Booking/GetAvailability?date=${dateStr}`);
                 const data = await res.json();
 
-                // Day capacity bar
-                       // In loadAvailability(), replace the capacity text line:
-        const availableSlots = data.slots.filter(s => !s.full).length;
-        dayCapText.textContent =
-            `${availableSlots} of 6 time slots still available`;
-        dayProgress.style.width =
-            Math.round(((6 - availableSlots) / 6) * 100) + '%';
+                console.log('Availability:', data); // debug
+
+                const pct = Math.round(((6 - data.slots.filter(s => !s.full).length) / 6) * 100);
+                dayProgress.style.width = pct + '%';
+                dayProgress.className   = 'progress-bar ' +
+                    (pct >= 100 ? 'bg-danger' :
+                     pct >= 66  ? 'bg-warning' : 'bg-success');
+
+                const available = data.slots.filter(s => !s.full).length;
+                dayCapText.textContent = `${available} of 6 time slots available`;
+                dayCapacity.classList.remove('d-none');
 
                 if (data.dayFull) {
                     dayFullAlert.classList.remove('d-none');
@@ -315,13 +320,13 @@
                     renderSlots(dateStr, data.slots);
                 }
             } catch (err) {
+                console.error('Availability error:', err);
                 slotGrid.innerHTML =
-                    '<p class="text-danger small">Failed to load availability.</p>';
+                    '<p class="text-danger small">Failed to load slots.</p>';
             } finally {
                 slotLoading.classList.add('d-none');
             }
         }
-
                  function renderSlots(dateStr, slots) {
         slotGrid.innerHTML = '';
 

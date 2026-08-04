@@ -1,6 +1,7 @@
 ﻿using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 using Newtonsoft.Json;
+using CommunityToolkit.Mvvm.ComponentModel;
 using SQLite;
 using Table = Supabase.Postgrest.Attributes.TableAttribute;
 using PrimaryKey = Supabase.Postgrest.Attributes.PrimaryKeyAttribute;
@@ -9,7 +10,7 @@ using Column = Supabase.Postgrest.Attributes.ColumnAttribute;
 namespace ClinicApp.Models
 {
     [Table("bill_items")]
-    public class SupabaseBillItem : BaseModel
+    public partial class SupabaseBillItem : BaseModel
     {
         [PrimaryKey("id")]
         public string Id { get; set; } = string.Empty;
@@ -58,5 +59,30 @@ namespace ClinicApp.Models
 
         [JsonIgnore]
         public string UnitPriceDisplay => $"₱{UnitPrice:N2}";
+
+        [Ignore]
+        [JsonIgnore]
+        public bool IsExpanded { get; set; }
+
+        [Ignore]
+        [JsonIgnore]
+        public string QuantityDisplay =>
+            $"Quantity: {Quantity}";
+
+        [Ignore]
+        [JsonIgnore]
+        public string LineTotalDisplay =>
+            $"Line Total: ₱{Subtotal:N2}";
+
+        [Ignore]
+        [JsonIgnore]
+        public bool HasNotes =>
+            !string.IsNullOrWhiteSpace(Notes);
+
+        [Ignore]
+        [JsonIgnore]
+        public bool HasToothNumbers =>
+            !string.IsNullOrWhiteSpace(ToothNumbers);
+
     }
 }

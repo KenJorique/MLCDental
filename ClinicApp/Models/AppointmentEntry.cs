@@ -67,12 +67,14 @@ namespace ClinicApp.Models
         [Ignore]
         public Color StatusColor => Status switch
         {
-            "pending" => Color.FromArgb("#E65100"),
-            "approved" => Color.FromArgb("#2E7D32"), // changed: blue → green
-            "completed" => Color.FromArgb("#2E7D32"),
-            "cancelled" => Color.FromArgb("#C62828"),
-            "rescheduled" => Color.FromArgb("#C8A84B"), // changed: purple → gold
-            _ => Color.FromArgb("#888780")
+            "approved" => Color.FromArgb("#2E7D32"),
+            "in-transit" => Color.FromArgb("#F59E0B"),
+            "billing" => Color.FromArgb("#7C3AED"),
+            "completed" => Color.FromArgb("#2563EB"),
+            "pending" => Color.FromArgb("#D97706"),
+            "rescheduled" => Color.FromArgb("#0284C7"),
+            "cancelled" => Color.FromArgb("#DC2626"),
+            _ => Color.FromArgb("#6B7280")
         };
 
         [Ignore]
@@ -89,11 +91,13 @@ namespace ClinicApp.Models
         [Ignore]
         public string StatusLabel => Status switch
         {
-            "pending" => "Pending",
             "approved" => "Approved",
+            "in-transit" => "In Transit",
+            "billing" => "Billing",
             "completed" => "Completed",
-            "cancelled" => "Cancelled",
+            "pending" => "Pending",
             "rescheduled" => "Rescheduled",
+            "cancelled" => "Cancelled",
             _ => Status
         };
     }

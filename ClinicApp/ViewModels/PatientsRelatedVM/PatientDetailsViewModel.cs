@@ -7,7 +7,7 @@ using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels.PatientsRelatedVM;
 
-[QueryProperty(nameof(PatientId), "patientId")]
+[QueryProperty(nameof(PatientId), "id")]
 public partial class PatientDetailsViewModel : ObservableObject
 {
     readonly DatabaseService _db;
@@ -23,20 +23,47 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] bool isMedicalTabActive = false;
 
     [RelayCommand]
-    void SelectPersonalTab()
+    async Task SelectPersonalTab()
     {
+        if (IsMedicalEditMode)
+        {
+            bool discard = await Shell.Current.DisplayAlert(
+                "Discard changes?",
+                "You have unsaved changes in Medical Record. Switching tabs will discard them.",
+                "Discard", "Keep editing");
+            if (!discard) return;
+
+            IsMedicalEditMode = false;
+            if (PatientId > 0)
+            {
+                await LoadPatientAsync(PatientId);
+                await LoadConditionsAsync();
+            }
+        }
+
         IsPersonalTabActive = true;
         IsMedicalTabActive = false;
         IsPersonalEditMode = false;
-        IsMedicalEditMode = false;
     }
 
     [RelayCommand]
-    void SelectMedicalTab()
+    async Task SelectMedicalTab()
     {
+        if (IsPersonalEditMode)
+        {
+            bool discard = await Shell.Current.DisplayAlert(
+                "Discard changes?",
+                "You have unsaved changes in Personal Info. Switching tabs will discard them.",
+                "Discard", "Keep editing");
+            if (!discard) return;
+
+            IsPersonalEditMode = false;
+            if (PatientId > 0)
+                await LoadPatientAsync(PatientId);
+        }
+
         IsPersonalTabActive = false;
         IsMedicalTabActive = true;
-        IsPersonalEditMode = false;
         IsMedicalEditMode = false;
     }
 
@@ -145,13 +172,13 @@ public partial class PatientDetailsViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadPatient()
     {
-        IsBusy = false;
         if (PatientId > 0)
             await LoadPatientAsync(PatientId);
     }
 
     private async Task LoadPatientAsync(int id)
     {
+        if (IsBusy) return;
         IsBusy = true;
         try
         {

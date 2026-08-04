@@ -85,8 +85,8 @@
 					<RoundRectangle CornerRadius="14"/>
 				</Border.StrokeShape>
 				<Border.GestureRecognizers>
-					<TapGestureRecognizer Command="{Binding MarkCompletedCommand}"/>
-				</Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SetInTransitCommand}"/>
+                </Border.GestureRecognizers>
 				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
 					<Border Grid.Column="0" BackgroundColor="#E8F5E9" StrokeThickness="0"
                             HeightRequest="44" WidthRequest="44">
@@ -98,9 +98,9 @@
                                HorizontalOptions="Center" VerticalOptions="Center"/>
 					</Border>
 					<VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-						<Label Text="Complete"
+						<Label Text="In Procedure"
                                FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Gray800}"/>
-						<Label Text="Mark appointment as completed"
+						<Label Text="Patient In Procedure"
                                FontSize="12" TextColor="{StaticResource Gray400}"/>
 					</VerticalStackLayout>
 					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
@@ -108,6 +108,72 @@
                            VerticalOptions="Center"/>
 				</Grid>
 			</Border>
+
+            <Border BackgroundColor="White"
+        StrokeThickness="1"
+        Stroke="{StaticResource Gray200}"
+        Padding="14,12"
+        IsVisible="{Binding IsSelectedInTransit}">
+
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14"/>
+                </Border.StrokeShape>
+
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer
+            Command="{Binding ProceedToBillingCommand}" />
+                </Border.GestureRecognizers>
+
+                <Grid ColumnDefinitions="Auto,*,Auto"
+          ColumnSpacing="12">
+
+                    <Border Grid.Column="0"
+                BackgroundColor="#E8F5E9"
+                StrokeThickness="0"
+                HeightRequest="44"
+                WidthRequest="44">
+
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="22"/>
+                        </Border.StrokeShape>
+
+                        <Label
+                FontFamily="MaterialSymbolsRounded"
+                Text="&#xe5ca;"
+                FontSize="22"
+                TextColor="#1A6B2F"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"/>
+
+                    </Border>
+
+                    <VerticalStackLayout Grid.Column="1"
+                             Spacing="2"
+                             VerticalOptions="Center">
+
+                        <Label
+                Text="Mark Complete"
+                FontSize="15"
+                FontAttributes="Bold"
+                TextColor="{StaticResource Gray800}" />
+
+                        <Label
+                Text="Proceed to billing"
+                FontSize="12"
+                TextColor="{StaticResource Gray400}" />
+
+                    </VerticalStackLayout>
+
+                    <Label Grid.Column="2"
+               FontFamily="MaterialSymbolsRounded"
+               Text="&#xe5cc;"
+               FontSize="20"
+               TextColor="{StaticResource Gray300}"
+               VerticalOptions="Center"/>
+
+                </Grid>
+
+            </Border>
 
 			<!-- Reschedule -->
 			<Border BackgroundColor="White" StrokeThickness="1" Stroke="{StaticResource Gray200}"

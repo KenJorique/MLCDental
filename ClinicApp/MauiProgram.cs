@@ -44,7 +44,8 @@ namespace ClinicApp
             builder.Services.AddSingleton<SupabaseRealtimeService>(sp =>
                 new SupabaseRealtimeService(
                     sp.GetRequiredService<DatabaseService>()));
-
+            builder.Services.AddSingleton<BillDraftService>();
+            builder.Services.AddSingleton<BillingService>();
             // ── App ───────────────────────────────────────────────
             builder.Services.AddSingleton<App>(sp => new App(
                 sp.GetRequiredService<SupabaseDataService>(),
@@ -113,6 +114,8 @@ namespace ClinicApp
             builder.Services.AddTransient<TreatmentHistoryViewModel>();
             builder.Services.AddTransient<CephalometricPage>();
             builder.Services.AddTransient<CephalometricViewModel>();
+            builder.Services.AddTransient<VisitDetailsViewModel>();
+            builder.Services.AddTransient<VisitDetailsPage>();
 
             // ── Services ──────────────────────────────────────────
             builder.Services.AddSingleton<ServiceViewModel>();
@@ -126,7 +129,7 @@ namespace ClinicApp
             builder.Services.AddTransient<AddUserPage>();
             builder.Services.AddTransient<AddUserViewModel>();
 
-            // Transactions
+            // Transactions  ─────────────────────────────────────────────
             builder.Services.AddTransient<TransactionViewModel>(s =>
                 new TransactionViewModel(
                     s.GetRequiredService<SupabaseDataService>(),
@@ -135,13 +138,22 @@ namespace ClinicApp
             builder.Services.AddTransient<CreateBillViewModel>(sp =>
                     new CreateBillViewModel(
                  sp.GetRequiredService<SupabaseDataService>(),
-                 sp.GetRequiredService<DatabaseService>()));
+                 sp.GetRequiredService<BillDraftService>()));
             builder.Services.AddTransient<Views.CreateBillPage>();
 
             builder.Services.AddTransient<ReceiptViewModel>(sp =>
                 new ReceiptViewModel(
                     sp.GetRequiredService<SupabaseDataService>()));
             builder.Services.AddTransient<ReceiptPage>();
+
+            builder.Services.AddTransient<ServiceSummaryViewModel>();
+            builder.Services.AddTransient<ServiceSummaryPage>();
+            builder.Services.AddTransient<BillSummaryPage>();
+            builder.Services.AddTransient<BillSummaryViewModel>();
+            builder.Services.AddTransient<PaymentViewModel>();
+            builder.Services.AddTransient<PaymentPage>();
+            builder.Services.AddTransient<BillDetailsViewModel>();
+            builder.Services.AddTransient<BillDetailsPage>();
 
             // ── Supply ────────────────────────────────────────────
             builder.Services.AddTransient<SupplyListPage>();

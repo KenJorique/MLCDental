@@ -114,16 +114,24 @@ namespace ClinicApp.ViewModels
                     var slotTime = new DateTime(
                         date.Year, date.Month, date.Day, h, 0, 0);
 
-                    var isTaken = allBooked.Any(b => b.ToLocalTime().Hour == h);
+                    // Check if this slot is already taken
+                    var slotUtc = slotTime.ToUniversalTime();
 
-                    TimeSlots.Add(new TimeSlotItem
+                    var isTaken = bookedSlots.Any(b =>
+                        b == slotUtc);
+
+                    var item = new TimeSlotItem
                     {
                         Hour = h,
                         SlotDateTime = slotTime,
                         Display = slotTime.ToString("h:00 tt"),
                         IsTaken = isTaken,
                         IsSelected = false
-                    });
+                    };
+
+                    item.RefreshColors();
+
+                    TimeSlots.Add(item);
                 }
 
                 HasNoSlots = !TimeSlots.Any();

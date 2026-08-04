@@ -237,7 +237,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
-        // Used by the Calendar view tap handler — same behaviour as SelectAppointment
+        // Alias used by the calendar view tap handler in AppointmentSchedulePage.xaml.cs
         [RelayCommand]
         async Task SelectWeekAppointment(AppointmentEntry entry) =>
             await SelectAppointmentCommand.ExecuteAsync(entry);
@@ -406,8 +406,6 @@ namespace ClinicApp.ViewModels
                 var entries = await _supabaseData.GetAppointmentEntriesAsync();
 
                 // Schedule page shows APPROVED appointments only.
-                // Pending / rescheduled bookings live exclusively in the
-                // review list (AppointmentPage) — they never appear here.
                 var approvedEntries = entries
                     .Where(e => e.Status == "approved")
                     .Where(e =>
@@ -477,10 +475,6 @@ namespace ClinicApp.ViewModels
                 });
 
                 // ── Populate GroupedWeekAppointments — ONE chronological list, Mon–Sat.
-                //    Today gets a "Today, <date>" header instead of the weekday name, and always
-                //    shows (even with 0 appointments) — but ONLY when the week being viewed is the
-                //    current week, since "day == DateTime.Today" can only be true for a day that's
-                //    actually inside WeekStart..WeekStart+6. Other days are skipped when empty. ──
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     GroupedWeekAppointments.Clear();

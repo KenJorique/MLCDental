@@ -1,5 +1,7 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Helpers;
+using ClinicApp.Models;
 using ClinicApp.Services;
+using ClinicApp.Views.PatientsRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -20,6 +22,8 @@ public partial class TreatmentHistoryViewModel : ObservableObject
 
 
     public ObservableCollection<TreatmentHistoryItemViewModel> History { get; } = new();
+    public ObservableCollection<TreatmentVisitGroup> Visits { get; }
+    = new();
 
     public TreatmentHistoryViewModel(DatabaseService db)
     {
@@ -34,31 +38,65 @@ public partial class TreatmentHistoryViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadHistoryAsync()
     {
-        if (PatientId <= 0 || IsBusy) return; // Prevent concurrent loads
+        if (PatientId <= 0 || IsBusy) return;
 
         IsBusy = true;
         try
         {
             var entries = await _db.GetTreatmentHistoryForPatient(PatientId);
 
-            // Clear and add on the Main Thread to be safe
-            MainThread.BeginInvokeOnMainThread(() => {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
                 History.Clear();
+                Visits.Clear();
+
                 foreach (var entry in entries)
                     History.Add(new TreatmentHistoryItemViewModel(entry));
 
+                foreach (var group in entries
+                    .OrderByDescending(x => DateTime.Parse(x.Timestamp))
+                    .GroupBy(x => DateTime.Parse(x.Timestamp).Date))
+                {
+                    var visit = new TreatmentVisitGroup
+                    {
+                        VisitDate = group.Key
+                    };
+
+                    foreach (var item in group)
+                        visit.Treatments.Add(item);
+
+                    Visits.Add(visit);
+                }
+
                 IsHistoryEmpty = History.Count == 0;
-                HistoryCountText = History.Count == 1 ? "1 record" : $"{History.Count} records";
+                HistoryCountText = History.Count == 1
+                    ? "1 record"
+                    : $"{History.Count} records";
             });
         }
-        finally { IsBusy = false; }
+        finally
+        {
+            IsBusy = false;
+        }
     }
+
+    [RelayCommand]
+    async Task OpenVisit(TreatmentVisitGroup visit)
+    {
+        if (visit == null)
+            return;
+
+        VisitHistoryStore.Current = visit;
+
+        await Shell.Current.GoToAsync(nameof(VisitDetailsPage));
+    }
+
 }
 
 /// <summary>
 /// Per-row display wrapper for a TreatmentHistory record.
 /// </summary>
-public class TreatmentHistoryItemViewModel
+public class TreatmentHistoryItemViewModel: ObservableObject
 {
     public TreatmentHistory Record { get; }
 
