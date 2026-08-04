@@ -887,6 +887,7 @@ namespace ClinicApp.Services
             bill.Balance = bill.TotalAmount - bill.AmountPaid;
             bill.BillNumber = $"B-{DateTime.Now:yyyy}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
 
+
             System.Diagnostics.Debug.WriteLine("===== INSERTING BILL =====");
 
             var result = await _client!
@@ -1045,7 +1046,7 @@ namespace ClinicApp.Services
         }
 
         public async Task<(bool Success, string? Error)> RecordPaymentAsync(
-       string billId, decimal amount, string? notes = null)
+     string billId, decimal amount, string? notes = null)
         {
             try
             {
@@ -1060,7 +1061,7 @@ namespace ClinicApp.Services
 
                 var payment = new SupabasePayment
                 {
-                    Id = Guid.NewGuid().ToString(),  
+                    Id = Guid.NewGuid().ToString(),
                     BillId = billId,
                     Amount = amount,
                     PaymentDate = DateTime.UtcNow,
@@ -1070,8 +1071,6 @@ namespace ClinicApp.Services
 
                 billResult.AmountPaid += amount;
                 billResult.Balance = billResult.TotalAmount - billResult.AmountPaid;
-
-
                 billResult.LastPaymentDate = payment.PaymentDate;
 
                 if (billResult.AmountPaid >= billResult.TotalAmount)
@@ -1083,12 +1082,22 @@ namespace ClinicApp.Services
                 {
                     billResult.Status = billResult.AmountPaid > 0 ? "partial" : "unpaid";
 
-                    // Next due date for installment plans: one month after the latest payment
                     if (billResult.IsInstallment)
                         billResult.DueDate = payment.PaymentDate.AddMonths(1);
                 }
 
-                await _client!.From<SupabaseBill>().Update(billResult);
+                var updateResult = await _client!.From<SupabaseBill>().Update(billResult);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] RecordPayment UPDATE rows returned: {updateResult.Models.Count}");
+
+                if (updateResult.Models.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[Supabase] WARNING: Update affected 0 rows — check RLS UPDATE policy on 'bills' table.");
+                    return (false, "Payment saved but bill status wasn't updated. Check permissions.");
+                }
+
                 return (true, null);
             }
             catch (Exception ex)

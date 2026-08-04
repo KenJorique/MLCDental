@@ -1,5 +1,4 @@
-﻿
-using ClinicApp.Models;
+﻿using ClinicApp.Models;
 using ClinicApp.Services;
 using ClinicApp.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -54,8 +53,10 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private int weekCount;
         [ObservableProperty] private int pendingBookingsCount;
         [ObservableProperty] private bool hasPendingBookings;
+        [ObservableProperty] private int inProcedureQueueCount;
+        [ObservableProperty] private bool hasInProcedureQueue;
         [ObservableProperty] private string todayLabel = "Today";
-        [ObservableProperty]  private string weekLabel = "This week";
+        [ObservableProperty] private string weekLabel = "This week";
         [ObservableProperty] private bool selectedFromWeekSection;
 
         AppointmentDetailSheet? _detailSheet;
@@ -94,6 +95,21 @@ namespace ClinicApp.ViewModels
         async Task GoToPending()
         {
             await Shell.Current.GoToAsync(nameof(AppointmentPage));
+        }
+
+        [RelayCommand]
+        async Task GoToInProcedure()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[GoToInProcedure] navigating...");
+                await Shell.Current.GoToAsync(nameof(InProcedurePage));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[GoToInProcedure] {ex}");
+                await Shell.Current.DisplayAlert("Nav error", ex.Message, "OK");
+            }
         }
         // always start from Sunday of the CURRENT week
         public DateTime WeekStart
@@ -381,7 +397,7 @@ namespace ClinicApp.ViewModels
             CalendarNeedsRedraw?.Invoke();
         }
 
-     
+
         public async Task LoadAppointments()
         {
             if (IsBusy) return;
@@ -390,14 +406,22 @@ namespace ClinicApp.ViewModels
             {
                 var entries = await _supabaseData.GetAppointmentEntriesAsync();
 
+                // In-procedure / billing patients move OUT of the schedule the
+                // moment SetInTransit() fires — they now live exclusively in
+                // InProcedurePage's queue, surfaced here via the banner.
+                InProcedureQueueCount = entries.Count(e =>
+                    string.Equals(e.Status, "in-procedure", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(e.Status, "billing", StringComparison.OrdinalIgnoreCase));
+                HasInProcedureQueue = InProcedureQueueCount > 0;
+
                 // Schedule page shows APPROVED appointments only.
                 // Pending / rescheduled bookings live exclusively in the
-                // review list (AppointmentPage) — they never appear here.
+                // review list (AppointmentPage); in-procedure / billing live
+                // exclusively in the active queue (InProcedurePage) — neither
+                // appears here.
                 var activeStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                         {
-                            "approved",
-                            "in-procedure",
-                            "billing"
+                            "approved"
                         };
 
                 var approvedEntries = entries
@@ -556,7 +580,7 @@ namespace ClinicApp.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[UpdateAppointmentStage] {ex.Message}");
                 await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
             }
-        }   
+        }
 
         [RelayCommand]
         async Task SetInTransit()

@@ -1,6 +1,7 @@
 ﻿using ClinicApp.Helpers;
 using ClinicApp.Models;
 using ClinicApp.Services;
+using ClinicApp.Behaviors;
 using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -16,7 +17,7 @@ namespace ClinicApp.ViewModels.TransactionVM
     public partial class CreateBillViewModel : ObservableObject
     {
         readonly SupabaseDataService _supabase;
-            readonly BillDraftService _draft;
+        readonly BillDraftService _draft;
 
 
         BillDraft Draft = new();
@@ -41,7 +42,8 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] bool isInstallment;
         [ObservableProperty] string supabaseEntryId = string.Empty;
         [ObservableProperty] string serviceSearch = string.Empty;
-            
+        [ObservableProperty] int scrollTrigger;
+
         public bool CanCreateBill =>
             SelectedServices.Count > 0 && !IsBusy;
 
@@ -143,6 +145,7 @@ namespace ClinicApp.ViewModels.TransactionVM
             RecalculateTotal();
             OnPropertyChanged(nameof(CanCreateBill));
             RefreshAddButtonStates();
+            ScrollTrigger++;
         }
 
         [RelayCommand]
@@ -165,7 +168,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         }
 
 
-         
+
         [RelayCommand]
         void IncreaseQty(ServiceLineItem item)
         {
@@ -325,4 +328,3 @@ namespace ClinicApp.ViewModels.TransactionVM
     }
 
 }
-

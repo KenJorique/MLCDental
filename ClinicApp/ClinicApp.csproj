@@ -120,6 +120,9 @@
 	  </MauiXaml>  
 	  <MauiXaml Update="Views\AppointmentRelated\AppointmentPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>  
+	  <MauiXaml Update="Views\AppointmentRelated\InProcedurePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentRelated\ReschedulePage.xaml">
 	    <Generator>MSBuild:Compile</Generator>

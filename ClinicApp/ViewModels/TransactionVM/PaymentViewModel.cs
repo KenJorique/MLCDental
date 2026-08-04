@@ -50,10 +50,30 @@ public partial class PaymentViewModel : ObservableObject
     private string errorMessage = string.Empty;
 
     public string DueDateDisplay =>
-    Bill?.DueDateDisplay ?? "—";
+        Bill?.DueDateDisplay ?? "—";
 
     public string LastPaymentDateDisplay =>
         Bill?.LastPaymentDateDisplay ?? "—";
+
+    // ── NEW: live "remaining after this payment" feedback ──
+    public string RemainingAfterPaymentDisplay
+    {
+        get
+        {
+            if (Bill == null) return "₱0.00";
+            var remaining = Bill.Balance - PaymentAmount;
+            if (remaining < 0) remaining = 0;
+            return $"₱{remaining:N2}";
+        }
+    }
+
+    // ── NEW: warns staff if typed amount exceeds the balance ──
+    public bool IsOverpaying =>
+        Bill != null && PaymentAmount > Bill.Balance;
+
+    // ── NEW: lets the UI highlight "Full Balance" chip when it matches ──
+    public bool IsFullPaymentSelected =>
+        Bill != null && PaymentAmount == Bill.Balance && PaymentAmount > 0;
 
     partial void OnBillIdChanged(string value)
     {
@@ -82,6 +102,18 @@ public partial class PaymentViewModel : ObservableObject
         OnPropertyChanged(nameof(BillNumber));
         OnPropertyChanged(nameof(DueDateDisplay));
         OnPropertyChanged(nameof(LastPaymentDateDisplay));
+        OnPropertyChanged(nameof(RemainingAfterPaymentDisplay));
+        OnPropertyChanged(nameof(IsOverpaying));
+        OnPropertyChanged(nameof(IsFullPaymentSelected));
+    }
+
+    // ── NEW: keep the live preview in sync as the staff types ──
+    partial void OnPaymentAmountChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(RemainingAfterPaymentDisplay));
+        OnPropertyChanged(nameof(IsOverpaying));
+        OnPropertyChanged(nameof(IsFullPaymentSelected));
+        if (HasError) HasError = false;
     }
 
     private async Task LoadBillAsync()
@@ -115,6 +147,28 @@ public partial class PaymentViewModel : ObservableObject
 
     public string BalanceDisplay =>
         Bill == null ? "₱0.00" : $"₱{Bill.Balance:N2}";
+
+    // ── NEW: quick-fill commands ──
+    [RelayCommand]
+    private void SetQuarterAmount()
+    {
+        if (Bill == null) return;
+        PaymentAmount = Math.Round(Bill.Balance * 0.25m, 2);
+    }
+
+    [RelayCommand]
+    private void SetHalfAmount()
+    {
+        if (Bill == null) return;
+        PaymentAmount = Math.Round(Bill.Balance * 0.5m, 2);
+    }
+
+    [RelayCommand]
+    private void SetFullAmount()
+    {
+        if (Bill == null) return;
+        PaymentAmount = Bill.Balance;
+    }
 
     [RelayCommand]
     private async Task RecordPayment()

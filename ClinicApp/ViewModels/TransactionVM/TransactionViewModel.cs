@@ -18,8 +18,34 @@ public partial class TransactionViewModel : ObservableObject
     public ObservableCollection<LedgerItem> Ledger { get; }
     = new();
 
+    public ObservableCollection<LedgerItem> PendingPayments { get; }
+    = new();
+
+    const int HistoryPreviewCount = 4;
+
     public ObservableCollection<SupabaseBill> Bills { get; } = new();
     public ObservableCollection<SupabaseBill> UnpaidBills { get; } = new();
+
+    [ObservableProperty]
+    bool isHistoryExpanded;
+
+    public IEnumerable<LedgerItem> VisibleHistory =>
+        IsHistoryExpanded ? Ledger : Ledger.Take(HistoryPreviewCount);
+
+    public bool HasMoreHistory =>
+        Ledger.Count > HistoryPreviewCount;
+
+    public string HistoryToggleLabel =>
+        IsHistoryExpanded ? "Show less" : $"Show all history ({Ledger.Count})";
+
+    partial void OnIsHistoryExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(VisibleHistory));
+        OnPropertyChanged(nameof(HistoryToggleLabel));
+    }
+
+    [RelayCommand]
+    void ToggleHistory() => IsHistoryExpanded = !IsHistoryExpanded;
 
     [ObservableProperty]
     string patientId = string.Empty;
@@ -118,62 +144,37 @@ public partial class TransactionViewModel : ObservableObject
             foreach (var b in all)
                 System.Diagnostics.Debug.WriteLine(
                     $"[TransactionVM]   Bill Id={b.Id} PatientId={b.PatientId} Total={b.TotalAmount}");
-            
+
             Ledger.Clear();
+            PendingPayments.Clear();
+            IsHistoryExpanded = false;
             Bills.Clear();
             foreach (var bill in all)
                 Bills.Add(bill);          // ← was missing entirely
 
-            var items = new List<LedgerItem>();
-
-            var paymentTasks = all.ToDictionary(
-                bill => bill.Id,
-                bill => _supabase.GetPaymentsForBillAsync(bill.Id));
-
-            await Task.WhenAll(paymentTasks.Values);
-
-            foreach (var bill in all)
+            var items = all.Select(bill => new LedgerItem
             {
-                items.Add(new LedgerItem
-                {
-                    BillId = bill.Id,
-                    IsBill = true,
-                    IsOverdue = bill.IsOverdue,
-                    Title = "Bill Created",
-                    Subtitle = bill.VisitDate.ToString("MMM dd, yyyy hh:mm tt"),
-                    Reference = bill.BillNumber ?? bill.Id,
-                    Amount = bill.TotalAmount,
-                    RemainingBalance = bill.TotalAmount,
-                    Date = bill.VisitDate
-                });
-
-                var payments = paymentTasks[bill.Id].Result;
-                var runningBalance = bill.TotalAmount;
-
-                foreach (var payment in payments.OrderBy(p => p.PaymentDate))
-                {
-                    runningBalance -= payment.Amount;
-                    if (runningBalance < 0)
-                        runningBalance = 0;
-
-                    items.Add(new LedgerItem
-                    {
-                        BillId = bill.Id,
-                        PaymentId = payment.Id,
-                        IsPayment = true,
-                        IsOverdue = bill.IsOverdue,
-                        Title = "Payment",
-                        Subtitle = payment.PaymentDate.ToString("MMM dd, yyyy hh:mm tt"),
-                        Reference = bill.BillNumber ?? bill.Id,
-                        Amount = payment.Amount,
-                        RemainingBalance = runningBalance,
-                        Date = payment.PaymentDate
-                    });
-                }
-            }
+                BillId = bill.Id,
+                IsBill = true,
+                IsOverdue = bill.IsOverdue,
+                Title = "Bill Created",
+                Subtitle = bill.VisitDate.ToString("MMM dd, yyyy hh:mm tt"),
+                Reference = bill.BillNumber ?? bill.Id,
+                Amount = bill.TotalAmount,
+                RemainingBalance = bill.Balance,
+                Date = bill.VisitDate
+            }).ToList();
 
             foreach (var item in items.OrderByDescending(x => x.Date))
                 Ledger.Add(item);
+
+            var pending = items
+                .Where(x => x.ShowPayAction)
+                .OrderByDescending(x => x.IsOverdue)
+                .ThenBy(x => x.Date);
+
+            foreach (var item in pending)
+                PendingPayments.Add(item);
 
             TotalBilled = Bills.Sum(x => x.TotalAmount);
             TotalPaid = Bills.Sum(x => x.AmountPaid);
@@ -209,6 +210,9 @@ public partial class TransactionViewModel : ObservableObject
             OnPropertyChanged(nameof(NextDueDisplay));
             OnPropertyChanged(nameof(OverdueBillsCount));
             OnPropertyChanged(nameof(OverdueSummary));
+            OnPropertyChanged(nameof(VisibleHistory));
+            OnPropertyChanged(nameof(HasMoreHistory));
+            OnPropertyChanged(nameof(HistoryToggleLabel));
         }
         catch (Exception ex)
         {
@@ -218,7 +222,7 @@ public partial class TransactionViewModel : ObservableObject
         {
             IsBusy = false;
             IsRefreshing = false;
-        }   
+        }
     }
 
     [RelayCommand]
@@ -257,20 +261,23 @@ public partial class TransactionViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task OpenLedgerItem(LedgerItem item)
+    private async Task PayNow(LedgerItem item)
     {
         if (item == null)
             return;
 
-        if (item.IsPayment)
-        {
-            await Shell.Current.GoToAsync(
-                $"{nameof(ReceiptPage)}" +
-                $"?billId={item.BillId}" +
-                $"&patientId={Uri.EscapeDataString(PatientId)}" +
-                $"&patientName={Uri.EscapeDataString(PatientName)}");
+        await Shell.Current.GoToAsync(
+            $"{nameof(PaymentPage)}" +
+            $"?billId={item.BillId}" +
+            $"&patientId={Uri.EscapeDataString(PatientId)}" +
+            $"&patientName={Uri.EscapeDataString(PatientName)}");
+    }
+
+    [RelayCommand]
+    private async Task OpenLedgerItem(LedgerItem item)
+    {
+        if (item == null)
             return;
-        }
 
         await Shell.Current.GoToAsync(
             $"{nameof(BillDetailsPage)}" +

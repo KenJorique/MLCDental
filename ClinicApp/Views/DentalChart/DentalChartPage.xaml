@@ -204,37 +204,112 @@
                 </Frame>
 
                 <!-- ── Legend card ── -->
-                <Frame BackgroundColor="White" CornerRadius="12"
-                       HasShadow="True" Padding="16,12" Margin="0,0,0,12">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="LEGEND" FontSize="12" FontAttributes="Bold"
-                               TextColor="Black" Margin="0,0,0,4"/>
+                <Frame BackgroundColor="White"
+       CornerRadius="12"
+       HasShadow="True"
+       Padding="16,14"
+       Margin="0,0,0,12">
 
-                        <HorizontalStackLayout Spacing="10">
-                            <Ellipse WidthRequest="16" HeightRequest="16" Fill="#FFFFFF"
-                                     Stroke="#AAAAAA" StrokeThickness="1"/>
-                            <Label Text="Normal / Untreated" FontSize="13" TextColor="#374151" VerticalTextAlignment="Center"/>
-                        </HorizontalStackLayout>
+                    <VerticalStackLayout Spacing="10">
 
-                        <HorizontalStackLayout Spacing="10">
-                            <Ellipse WidthRequest="16" HeightRequest="16" Fill="#0000FF"/>
-                            <Label Text="Existing Restoration (Filling)" FontSize="13" TextColor="#374151" VerticalTextAlignment="Center"/>
-                        </HorizontalStackLayout>
+                        <Label Text="LEGEND"
+               FontSize="12"
+               FontAttributes="Bold"
+               TextColor="#1E293B"/>
 
-                        <HorizontalStackLayout Spacing="10">
-                            <Ellipse WidthRequest="16" HeightRequest="16" Fill="#FF0000"/>
-                            <Label Text="Active Decay (Caries)" FontSize="13" TextColor="#374151" VerticalTextAlignment="Center"/>
-                        </HorizontalStackLayout>
+                        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="10">
 
-                        <HorizontalStackLayout Spacing="10">
-                            <Ellipse WidthRequest="16" HeightRequest="16" Fill="#00FF00"/>
-                            <Label Text="Completed Treatment" FontSize="13" TextColor="#374151" VerticalTextAlignment="Center"/>
-                        </HorizontalStackLayout>
+                            <Ellipse WidthRequest="16"
+                     HeightRequest="16"
+                     Fill="White"
+                     Stroke="#AAAAAA"
+                     StrokeThickness="1"/>
 
-                        <HorizontalStackLayout Spacing="10">
-                            <Ellipse WidthRequest="16" HeightRequest="16" Fill="#000000"/>
-                            <Label Text="Missing / Extracted" FontSize="13" TextColor="#374151" VerticalTextAlignment="Center"/>
-                        </HorizontalStackLayout>
+                            <Label Grid.Column="1"
+                   Text="Normal / Untreated"
+                   FontSize="13"
+                   TextColor="#374151"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="10">
+
+                            <Ellipse WidthRequest="16"
+                     HeightRequest="16"
+                     Fill="#0000FF"/>
+
+                            <Label Grid.Column="1"
+                   Text="Filling / Restoration"
+                   FontSize="13"
+                   TextColor="#374151"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="10">
+
+                            <Ellipse WidthRequest="16"
+                     HeightRequest="16"
+                     Fill="#FF0000"/>
+
+                            <Label Grid.Column="1"
+                   Text="Active Decay / Caries"
+                   FontSize="13"
+                   TextColor="#374151"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="10">
+
+                            <Ellipse WidthRequest="16"
+                     HeightRequest="16"
+                     Fill="#00AA00"/>
+
+                            <Label Grid.Column="1"
+                   Text="Completed Treatment"
+                   FontSize="13"
+                   TextColor="#374151"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="10">
+
+                            <Ellipse WidthRequest="16"
+                     HeightRequest="16"
+                     Fill="#000000"/>
+
+                            <Label Grid.Column="1"
+                   Text="Missing / Extracted"
+                   FontSize="13"
+                   TextColor="#374151"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="10">
+
+                            <Ellipse WidthRequest="16"
+                     HeightRequest="16"
+                     Fill="#F97316"/>
+
+                            <Label Grid.Column="1"
+                   Text="Root Canal Treatment"
+                   FontSize="13"
+                   TextColor="#374151"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="10">
+
+                            <Ellipse WidthRequest="16"
+                     HeightRequest="16"
+                     Fill="#A855F7"/>
+
+                            <Label Grid.Column="1"
+                   Text="Crown / Bridge / Prosthetic"
+                   FontSize="13"
+                   TextColor="#374151"/>
+                        </Grid>
+
                     </VerticalStackLayout>
                 </Frame>
 

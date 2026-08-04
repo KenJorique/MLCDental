@@ -41,10 +41,17 @@ public partial class BillSummaryViewModel : ObservableObject
 
     [ObservableProperty]
     string createdBillNumber = "";
+
     [ObservableProperty] int installmentMonths = 3;
     [ObservableProperty] decimal monthlyPayment;
+    public bool HasDiscount => DiscountPercent > 0;
+
     public bool HasInstallmentService =>
-    Services.Any(x => x.IsInstallmentEligible);
+        Services.Any(x => x.IsInstallmentEligible);
+
+    public bool HasServices => Services.Count > 0;
+
+    public int TotalItems => Services.Count;
 
     public string InstallmentSummary =>
         IsInstallment && InstallmentMonths > 0
@@ -78,6 +85,7 @@ public partial class BillSummaryViewModel : ObservableObject
 
         CalculateTotals();
     }
+
     partial void OnIsInstallmentChanged(bool value)
     {
         CalculateTotals();
@@ -123,16 +131,28 @@ public partial class BillSummaryViewModel : ObservableObject
         OnPropertyChanged(nameof(TotalDisplay));
         OnPropertyChanged(nameof(InstallmentSummary));
         OnPropertyChanged(nameof(HasInstallmentService));
+        OnPropertyChanged(nameof(HasServices));
+        OnPropertyChanged(nameof(TotalItems));
+        OnPropertyChanged(nameof(HasDiscount));
+        ProceedCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand]
-    void RemoveService(ServiceLineItem item)
+    async Task RemoveService(ServiceLineItem item)
     {
         if (item == null)
             return;
 
-        Services.Remove(item);
+        bool confirm = await Shell.Current.CurrentPage.DisplayAlert(
+            "Remove Service",
+            $"Remove \"{item.ServiceName}\" from this bill?",
+            "Remove",
+            "Cancel");
 
+        if (!confirm)
+            return;
+
+        Services.Remove(item);
         BillDraftStore.Current?.Services.Remove(item);
 
         CalculateTotals();
@@ -144,49 +164,61 @@ public partial class BillSummaryViewModel : ObservableObject
         await Shell.Current.GoToAsync("..");
     }
 
-    [RelayCommand]
+    bool CanProceed() => HasServices && !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanProceed))]
     async Task Proceed()
     {
         if (BillDraftStore.Current == null)
             return;
 
-        var draft = BillDraftStore.Current;
+        IsBusy = true;
+        ProceedCommand.NotifyCanExecuteChanged();
 
-        var result = await _billing.CreateBillAsync(
-            draft,
-            draft.AppointmentEntryId,
-            draft.SupabaseEntryId);
-
-        if (!result.Success)
+        try
         {
-            await Shell.Current.DisplayAlert(
-                "This shows",
-                result.ErrorMessage ?? "Unable to create bill again....",
-                "OK");
+            var draft = BillDraftStore.Current;
 
-            return;
+            var result = await _billing.CreateBillAsync(
+                draft,
+                draft.AppointmentEntryId,
+                draft.SupabaseEntryId);
+
+            if (!result.Success)
+            {
+                await Shell.Current.DisplayAlert(
+                    "Billing Error",
+                    result.ErrorMessage ?? "Unable to create the bill. Please try again.",
+                    "OK");
+
+                return;
+            }
+
+            if (result.Bill == null)
+            {
+                await Shell.Current.DisplayAlert(
+                    "Billing Error",
+                    "Bill was not returned from Supabase.",
+                    "OK");
+
+                return;
+            }
+
+            CreatedBillStore.Current = result.Bill;
+
+            await Shell.Current.GoToAsync(
+                $"{nameof(PaymentPage)}" +
+                $"?billId={result.Bill.Id}" +
+                $"&patientId={Uri.EscapeDataString(result.Bill.PatientId)}" +
+                $"&patientName={Uri.EscapeDataString(result.Bill.PatientName)}" +
+                $"&appointmentEntryId={Uri.EscapeDataString(draft.AppointmentEntryId ?? string.Empty)}" +
+                $"&supabaseEntryId={Uri.EscapeDataString(draft.SupabaseEntryId ?? string.Empty)}" +
+                $"&supabaseBookingId={Uri.EscapeDataString(draft.SupabaseBookingId ?? string.Empty)}");
         }
-
-        if (result.Bill == null)
+        finally
         {
-            await Shell.Current.DisplayAlert(
-                "Billing Error",
-                "Bill was not returned from Supabase.",
-                "OK");
-
-            return;
+            IsBusy = false;
+            ProceedCommand.NotifyCanExecuteChanged();
         }
-
-        // ADD THIS LINE — stash the freshly created bill
-        CreatedBillStore.Current = result.Bill;
-
-        await Shell.Current.GoToAsync(
-            $"{nameof(PaymentPage)}" +
-            $"?billId={result.Bill.Id}" +
-            $"&patientId={Uri.EscapeDataString(result.Bill.PatientId)}" +
-            $"&patientName={Uri.EscapeDataString(result.Bill.PatientName)}" +
-            $"&appointmentEntryId={Uri.EscapeDataString(draft.AppointmentEntryId ?? string.Empty)}" +
-            $"&supabaseEntryId={Uri.EscapeDataString(draft.SupabaseEntryId ?? string.Empty)}" +
-            $"&supabaseBookingId={Uri.EscapeDataString(draft.SupabaseBookingId ?? string.Empty)}");
     }
 }

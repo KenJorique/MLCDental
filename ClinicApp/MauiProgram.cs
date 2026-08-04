@@ -84,6 +84,15 @@ namespace ClinicApp
                                 sp.GetRequiredService<SupabaseDataService>()
                             ));
             builder.Services.AddTransient<ReschedulePage>();
+            builder.Services.AddTransient<InProcedurePage>( sp =>
+                            new InProcedurePage(
+                                sp.GetRequiredService<InProcedureViewModel>(),
+                                sp.GetRequiredService<SupabaseRealtimeService>()
+                            ));
+            builder.Services.AddTransient<InProcedureViewModel>(sp =>
+                new InProcedureViewModel(
+                    sp.GetRequiredService<SupabaseDataService>()
+                ));
 
             builder.Services.AddTransient<WalkInBookingViewModel>(sp =>
     new WalkInBookingViewModel(
@@ -110,7 +119,7 @@ namespace ClinicApp
             builder.Services.AddTransient<PatientDetailsViewModel>();
             builder.Services.AddTransient<DentalChartPage>();
             builder.Services.AddTransient<DentalChartViewModel>();
-            builder.Services.AddTransient<TreatmentHistoryPage>();
+            builder.Services.AddTransient<Views.PatientsRelated.TreatmentHistoryPage>();
             builder.Services.AddTransient<TreatmentHistoryViewModel>();
             builder.Services.AddTransient<CephalometricPage>();
             builder.Services.AddTransient<CephalometricViewModel>();
