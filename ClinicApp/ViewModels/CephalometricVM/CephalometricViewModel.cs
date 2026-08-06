@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Config;
+using ClinicApp.Models;
 using ClinicApp.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -10,27 +11,40 @@ namespace ClinicApp.ViewModels.CephalometricVM;
 public partial class CephalometricViewModel : ObservableObject
 {
     readonly DatabaseService _db;
+    private CephalometricLandmarkDetector? _detector;
 
     public CephalometricViewModel(DatabaseService db)
     {
         _db = db;
+        InitializeDetector();
     }
-
 
     [ObservableProperty] int patientId;
     [ObservableProperty] string? patientName;
     [ObservableProperty] string? imagePath;
-    // True when an image has been uploaded — controls which UI is shown
     [ObservableProperty] bool hasImage;
+    [ObservableProperty] bool isAnalyzing;
+    [ObservableProperty] List<Landmark> detectedLandmarks = new();
+    [ObservableProperty] bool hasLandmarks;
 
-    // Automatically load image when PatientId is set via navigation
     partial void OnPatientIdChanged(int value)
     {
         if (value > 0)
             LoadImage(value);
     }
 
-    // Loads the active cephalometric image for this patient from the database
+    private void InitializeDetector()
+    {
+        try
+        {
+            _detector = new CephalometricLandmarkDetector(ApiConfig.CephalometricApiUrl);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Detector init error: {ex.Message}");
+        }
+    }
+
     private async void LoadImage(int patientId)
     {
         var record = await _db.GetActiveCephalometricImage(patientId);
@@ -46,14 +60,12 @@ public partial class CephalometricViewModel : ObservableObject
         }
     }
 
-    // Opens the image picker to upload a new X-ray image
     [RelayCommand]
     async Task UploadImage()
     {
         await PickAndSaveImage();
     }
 
-    // Asks for confirmation then opens image picker to replace the current image
     [RelayCommand]
     async Task ReplaceImage()
     {
@@ -66,21 +78,91 @@ public partial class CephalometricViewModel : ObservableObject
             await PickAndSaveImage();
     }
 
-    // Analyze Image is disabled for now — placeholder command
     [RelayCommand]
     async Task AnalyzeImage()
     {
-        await Shell.Current.DisplayAlert("Coming Soon", "Image analysis is not available yet.", "OK");
+
+        if (_detector == null)
+        {
+            await Shell.Current.DisplayAlert("Error", "Detector not initialized.", "OK");
+            return;
+        }
+
+        var urlInUse = ApiConfig.CephalometricApiUrl;
+        await Shell.Current.DisplayAlert("Debug", $"Using URL:\n{urlInUse}", "OK");
+
+        if (string.IsNullOrEmpty(ImagePath) || !File.Exists(ImagePath))
+        {
+            await Shell.Current.DisplayAlert("Error", "No image loaded.", "OK");
+            return;
+        }
+
+        if (_detector == null)
+        {
+            await Shell.Current.DisplayAlert("Error", "Detector not initialized.", "OK");
+            return;
+        }
+
+        try
+        {
+            IsAnalyzing = true;
+
+            // Test connection first
+            bool isConnected = await _detector.TestConnectionAsync();
+            if (!isConnected)
+            {
+                await Shell.Current.DisplayAlert(
+                    "Server Not Reachable",
+                    "Could not connect to analysis server. Make sure:\n" +
+                    "1. Python server is running (python server.py)\n" +
+                    "2. IP address is correct in ApiConfig.cs\n" +
+                    "3. Device and server are on same WiFi",
+                    "OK");
+                return;
+            }
+
+            // Run detection
+            var landmarks = await _detector.DetectLandmarksAsync(ImagePath);
+
+            if (landmarks.Count == 0)
+            {
+                await Shell.Current.DisplayAlert(
+                    "No Landmarks",
+                    "No landmarks detected. Try a clearer X-ray image.",
+                    "OK");
+                DetectedLandmarks.Clear();
+                HasLandmarks = false;
+            }
+            else
+            {
+                DetectedLandmarks = landmarks;
+                HasLandmarks = true;
+
+                var summary = string.Join("\n", landmarks.Take(5).Select(l => l.ToString()));
+                if (landmarks.Count > 5)
+                    summary += $"\n... and {landmarks.Count - 5} more";
+
+                await Shell.Current.DisplayAlert(
+                    "Landmarks Detected",
+                    $"Found {landmarks.Count} landmarks:\n\n{summary}",
+                    "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Analysis error: {ex.Message}");
+            await Shell.Current.DisplayAlert("Error", $"Analysis failed: {ex.Message}", "OK");
+        }
+        finally
+        {
+            IsAnalyzing = false;
+        }
     }
 
-    // ─── Helpers ──────────────────────────────────────────────
-
-    // Opens the file picker (JPEG/PNG only), copies file to app storage, saves path to DB
     private async Task PickAndSaveImage()
     {
         try
         {
-            // Open image picker limited to JPEG and PNG
             var result = await MediaPicker.PickPhotoAsync(new MediaPickerOptions
             {
                 Title = "Select Lateral Cephalometric X-ray"
@@ -88,7 +170,6 @@ public partial class CephalometricViewModel : ObservableObject
 
             if (result == null) return;
 
-            // Copy the image to app's local data directory for persistent storage
             string fileName = $"cepha_{PatientId}_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(result.FileName)}";
             string destPath = Path.Combine(FileSystem.AppDataDirectory, fileName);
 
@@ -96,7 +177,6 @@ public partial class CephalometricViewModel : ObservableObject
             using var destStream = File.OpenWrite(destPath);
             await sourceStream.CopyToAsync(destStream);
 
-            // Save the file path to the database (archives the old image automatically)
             var newRecord = new CephalometricImage
             {
                 PatientId = PatientId,
@@ -104,9 +184,10 @@ public partial class CephalometricViewModel : ObservableObject
             };
             await _db.SaveCephalometricImage(newRecord);
 
-            // Update the UI
             ImagePath = destPath;
             HasImage = true;
+            DetectedLandmarks.Clear();
+            HasLandmarks = false;
         }
         catch (Exception ex)
         {
