@@ -36,18 +36,4 @@ public partial class BillSummaryPage : ContentPage
                 break;
         }
     }
-
-    void InstallmentMonthsChanged(object sender, EventArgs e)
-    {
-        var picker = (Picker)sender;
-
-        _vm.InstallmentMonths = picker.SelectedIndex switch
-        {
-            0 => 1,
-            1 => 3,
-            2 => 6,
-            3 => 12,
-            _ => 3
-        };
-    }
 }

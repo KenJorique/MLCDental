@@ -54,6 +54,7 @@ public class BillingService
                 DiscountAmount = draft.DiscountAmount,
                 TotalAmount = draft.Total,
                 Balance = draft.Total,
+                MinimumDueToday = draft.AmountDueToday,
                 IsInstallment = draft.IsInstallment,
                 InstallmentMonths = draft.IsInstallment ? draft.InstallmentMonths : 0,
                 MonthlyPayment = draft.IsInstallment ? draft.MonthlyPayment : 0,
@@ -131,7 +132,18 @@ public class BillingService
 
                     AffectsTeeth =
                         item.ShowTeethInput &&
-                        item.ParsedTeethNumbers.Count > 0
+                        item.ParsedTeethNumbers.Count > 0,
+
+                    // Per-item installment plan — 50% down today, remainder
+                    // when the service is both eligible AND the staff turned
+                    // the toggle on for this specific item.
+                    IsInstallment = item.IsInstallmentEligible && item.IsInstallmentSelected,
+                    InstallmentMonths = item.IsInstallmentSelected ? item.SelectedInstallmentMonths : 0,
+                    DownpaymentAmount = item.DownpaymentAmount,
+                    MonthlyPayment = item.MonthlyPaymentAmount,
+                    Balance = (item.IsInstallmentEligible && item.IsInstallmentSelected)
+                        ? item.Subtotal
+                        : Math.Round(item.Subtotal * (1 - draft.DiscountPercent), 2)
                 };
                 if (localPatientId > 0)
                 {
@@ -169,11 +181,11 @@ public class BillingService
         return result;
     }
 
-    
+
 
     private async Task LogGeneralServiceAsync(
     int patientId,
-    string serviceName) 
+    string serviceName)
     {
         var history = new TreatmentHistory
         {
@@ -199,9 +211,6 @@ public class BillingService
         {
             var condition = ToothAwareServices.GetCondition(serviceName);
 
-            // Look up the hex color for this condition, same palette
-            // used by DentalChartViewModel, so history entries match
-            // the chart's color-coding.
             var hex = ClinicApp.ViewModels.DentalChart.DentalChartViewModel
                 .ConditionColors.TryGetValue(condition, out var c) ? c : "#FFFFFF";
 

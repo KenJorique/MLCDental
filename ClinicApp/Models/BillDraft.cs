@@ -30,6 +30,8 @@ public class BillDraft
     public int InstallmentMonths { get; set; }
     public decimal MonthlyPayment { get; set; }
 
+    public decimal AmountDueToday { get; set; }
+
     public string InstallmentSummary =>
         IsInstallment && InstallmentMonths > 0
             ? $"{InstallmentMonths} months @ ₱{MonthlyPayment:N2}/month"

@@ -7,150 +7,164 @@
     x:Class="ClinicApp.Views.TransactionRelated.ServiceSummaryPage"
     Title="Service Summary"
     Shell.TabBarIsVisible="False"
-    Shell.NavBarIsVisible="False"
+    Shell.NavBarIsVisible="True"
+    Shell.BackgroundColor="{StaticResource Primary}"
+    Shell.ForegroundColor="{StaticResource White}"
+    Shell.TitleColor="{StaticResource White}"
     BackgroundColor="#F5F5F5">
 
-    <Grid RowDefinitions="*,Auto">
+	<Grid RowDefinitions="*,Auto">
 
-        <!-- Scrollable content -->
-        <ScrollView Grid.Row="0">
-            <VerticalStackLayout Padding="16" Spacing="14">
+		<!-- Scrollable content -->
+		<ScrollView Grid.Row="0">
+			<VerticalStackLayout Padding="16" Spacing="14">
 
-                <!-- Header: back + patient info + item count -->
-                <Frame BackgroundColor="White" BorderColor="#E0E0E0" CornerRadius="12" Padding="14" HasShadow="False">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                        <Button Grid.Column="0"
-                                Text="←"
-                                FontSize="18"
-                                BackgroundColor="Transparent"
-                                TextColor="#4A4A8A"
-                                Padding="0"
-                                WidthRequest="36"
-                                HeightRequest="36"
-                                Command="{Binding BackCommand}"/>
+				<!-- Patient info card -->
+				<Frame BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray100}" CornerRadius="12" Padding="14" HasShadow="False">
+					<Grid ColumnDefinitions="*,Auto">
+						<Label Grid.Column="0"
+                               Text="{Binding PatientName}"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Black}"
+                               VerticalOptions="Center"/>
 
-                        <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-                            <Label Text="Service Summary" FontSize="18" FontAttributes="Bold" TextColor="#222"/>
-                            <Label Text="{Binding PatientName}" FontSize="14" TextColor="#666"/>
-                        </VerticalStackLayout>
-
-                        <Frame Grid.Column="2"
-                               BackgroundColor="#EEEEFA"
+						<Frame Grid.Column="1"
+                               BackgroundColor="{StaticResource Secondary}"
                                BorderColor="Transparent"
                                CornerRadius="10"
                                Padding="8,4"
                                HasShadow="False"
                                VerticalOptions="Center"
                                IsVisible="{Binding HasServices}">
-                            <Label Text="{Binding TotalItems, StringFormat='{0} item(s)'}"
+							<Label Text="{Binding TotalItems, StringFormat='{0} service(s)'}"
                                    FontSize="11"
                                    FontAttributes="Bold"
-                                   TextColor="#4A4A8A"/>
-                        </Frame>
-                    </Grid>
-                </Frame>
+                                   TextColor="{StaticResource Primary}"/>
+						</Frame>
+					</Grid>
+				</Frame>
 
-                <!-- Empty state -->
-                <Frame BackgroundColor="White" BorderColor="#E0E0E0" CornerRadius="12" Padding="24" HasShadow="False"
+				<!-- Empty state -->
+				<Frame BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray100}" CornerRadius="12" Padding="24" HasShadow="False"
                        IsVisible="{Binding HasServices, Converter={StaticResource InvertedBoolConverter}}">
-                    <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                        <Label Text="🦷" FontSize="34" HorizontalOptions="Center"/>
-                        <Label Text="No services added yet"
+					<VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+						<Label Text="🦷" FontSize="34" HorizontalOptions="Center"/>
+						<Label Text="No services added yet"
                                FontSize="15"
                                FontAttributes="Bold"
-                               TextColor="#444"
+                               TextColor="{StaticResource Gray700}"
                                HorizontalOptions="Center"/>
-                        <Label Text="Go back and add a service to build this bill."
+						<Label Text="Go back and add a service to build this bill."
                                FontSize="12"
-                               TextColor="#888"
+                               TextColor="{StaticResource Gray400}"
                                HorizontalTextAlignment="Center"/>
-                    </VerticalStackLayout>
-                </Frame>
+					</VerticalStackLayout>
+				</Frame>
 
-                <!-- Services list -->
-                <Frame BackgroundColor="White" BorderColor="#E0E0E0" CornerRadius="12" Padding="14" HasShadow="False"
+				<!-- Services list -->
+				<Frame BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray100}" CornerRadius="12" Padding="14" HasShadow="False"
                        IsVisible="{Binding HasServices}">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Added Services" FontSize="14" FontAttributes="Bold" TextColor="#222"/>
+					<VerticalStackLayout Spacing="10">
+						<Label Text="Added Services" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
 
-                        <CollectionView ItemsSource="{Binding Services}" SelectionMode="None">
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate x:DataType="vm:ServiceLineItem">
-                                    <SwipeView>
-                                        <SwipeView.RightItems>
-                                            <SwipeItems>
-                                                <SwipeItem Text="Remove"
-                                                           BackgroundColor="#C62828"
+						<CollectionView ItemsSource="{Binding Services}" SelectionMode="None">
+							<CollectionView.ItemTemplate>
+								<DataTemplate x:DataType="vm:ServiceLineItem">
+									<SwipeView SwipeEnded="OnSwipeEnded">
+										<SwipeView.RightItems>
+											<SwipeItems>
+												<SwipeItem BackgroundColor="#C62828"
                                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveServiceCommand}"
-                                                           CommandParameter="{Binding .}"/>
-                                            </SwipeItems>
-                                        </SwipeView.RightItems>
+                                                           CommandParameter="{Binding .}">
+													<SwipeItem.IconImageSource>
+														<FontImageSource FontFamily="MaterialSymbolsRounded"
+                                                                         Glyph="&#xe872;"
+                                                                         Color="{StaticResource White}"
+                                                                         Size="22"/>
+													</SwipeItem.IconImageSource>
+												</SwipeItem>
+											</SwipeItems>
+										</SwipeView.RightItems>
 
-                                        <VerticalStackLayout Spacing="6" Margin="0,0,0,10" BackgroundColor="White">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                                    <Label Text="{Binding ServiceName}" FontSize="13" FontAttributes="Bold" TextColor="#222"/>
-                                                    <Label Text="{Binding UnitPriceDisplay}" FontSize="11" TextColor="#4A4A8A"/>
-                                                    <Label Text="{Binding TeethDisplay}" FontSize="11" TextColor="#2E7D32"
-                                                           IsVisible="{Binding TeethDisplay, Converter={StaticResource StringNotEmptyConverter}}"/>
-                                                </VerticalStackLayout>
+										<VerticalStackLayout Spacing="4" Margin="0,0,0,10" BackgroundColor="{StaticResource White}">
 
-                                                <Label Grid.Column="1"
-                                                       Text="{Binding Quantity, StringFormat='Qty: {0}'}"
-                                                       VerticalOptions="Center"
-                                                       TextColor="#555"/>
-                                            </Grid>
-
-                                            <Label Text="{Binding SubtotalDisplay}"
-                                                   FontSize="12"
+											<!-- Row 1: service name only -->
+											<Label Text="{Binding ServiceName}"
+                                                   FontSize="14"
                                                    FontAttributes="Bold"
-                                                   TextColor="#4A4A8A"
-                                                   HorizontalOptions="End"/>
-                                            <BoxView HeightRequest="0.5" Color="#E0E0E0"/>
-                                        </VerticalStackLayout>
-                                    </SwipeView>
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+                                                   TextColor="{StaticResource Black}"/>
 
-                        <Label Text="Swipe left on a service to remove it"
+											<!-- Row 2: Qty: # x unit price .......... bold total -->
+											<Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+												<Label Grid.Column="0"
+                                                       FontSize="12"
+                                                       TextColor="{StaticResource Gray500}"
+                                                       VerticalOptions="Center">
+													<Label.Text>
+														<MultiBinding StringFormat="Qty: {0} x {1}">
+															<Binding Path="Quantity"/>
+															<Binding Path="UnitPriceDisplay"/>
+														</MultiBinding>
+													</Label.Text>
+												</Label>
+												<Label Grid.Column="1"
+                                                       Text="{Binding SubtotalDisplay}"
+                                                       FontSize="14"
+                                                       FontAttributes="Bold" Margin="5, 0"
+                                                       TextColor="{StaticResource Primary}"
+                                                       VerticalOptions="Center"/>
+											</Grid>
+
+											<!-- Optional teeth info, only when applicable -->
+											<Label Text="{Binding TeethDisplay}" FontSize="11" TextColor="{StaticResource Primary}"
+                                                   IsVisible="{Binding TeethDisplay, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+											<BoxView HeightRequest="0.5" Color="{StaticResource Gray100}"/>
+										</VerticalStackLayout>
+									</SwipeView>
+								</DataTemplate>
+							</CollectionView.ItemTemplate>
+						</CollectionView>
+
+						<Label Text="Swipe left on a service to remove it"
                                FontSize="10"
-                               TextColor="#AAA"
+                               TextColor="{StaticResource Gray300}"
                                HorizontalOptions="Center"/>
-                    </VerticalStackLayout>
-                </Frame>
+					</VerticalStackLayout>
+				</Frame>
 
-            </VerticalStackLayout>
-        </ScrollView>
+			</VerticalStackLayout>
+		</ScrollView>
 
-        <!-- Sticky bottom bar: subtotal + Continue -->
-        <Frame Grid.Row="1"
-               BackgroundColor="White"
-               BorderColor="#E0E0E0"
+		<!-- Sticky bottom bar: subtotal + Continue -->
+		<Frame Grid.Row="1"
+               BackgroundColor="{StaticResource White}"
+               BorderColor="{StaticResource Gray100}"
                CornerRadius="0"
                Padding="16,12"
                HasShadow="True">
-            <VerticalStackLayout Spacing="10">
-                <Grid ColumnDefinitions="*,Auto">
-                    <Label Text="Subtotal" FontSize="16" FontAttributes="Bold" TextColor="#222"/>
-                    <Label Grid.Column="1" Text="{Binding Subtotal, StringFormat='₱{0:N2}'}" FontSize="18" FontAttributes="Bold" TextColor="#4A4A8A"/>
-                </Grid>
+			<VerticalStackLayout Spacing="10">
+				<Grid ColumnDefinitions="*,Auto">
+					<Label Text="Subtotal" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
+					<Label Grid.Column="1" Text="{Binding Subtotal, StringFormat='₱{0:N2}'}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
+				</Grid>
 
-                <Button Text="Continue"
-                        BackgroundColor="#4A4A8A"
-                        TextColor="White"
+				<Button Text="Continue"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="{StaticResource White}"
                         CornerRadius="12"
                         HeightRequest="48"
                         Command="{Binding ContinueCommand}">
-                    <Button.Triggers>
-                        <DataTrigger TargetType="Button" Binding="{Binding HasServices}" Value="False">
-                            <Setter Property="BackgroundColor" Value="#CCCCCC"/>
-                            <Setter Property="TextColor" Value="#888888"/>
-                        </DataTrigger>
-                    </Button.Triggers>
-                </Button>
-            </VerticalStackLayout>
-        </Frame>
+					<Button.Triggers>
+						<DataTrigger TargetType="Button" Binding="{Binding HasServices}" Value="False">
+							<Setter Property="BackgroundColor" Value="{StaticResource Gray300}"/>
+							<Setter Property="TextColor" Value="{StaticResource Gray500}"/>
+						</DataTrigger>
+					</Button.Triggers>
+				</Button>
+			</VerticalStackLayout>
+		</Frame>
 
-    </Grid>
+	</Grid>
 </ContentPage>

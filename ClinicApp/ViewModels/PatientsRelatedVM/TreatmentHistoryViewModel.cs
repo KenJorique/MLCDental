@@ -67,8 +67,12 @@ public partial class TreatmentHistoryViewModel : ObservableObject
     public ObservableCollection<TreatmentHistoryItemViewModel> History { get; }
         = new();
 
-    public ObservableCollection<TreatmentVisitGroup> Visits { get; }
-        = new();
+    public ObservableCollection<TreatmentVisitGroup> Visits { get; } = new();
+
+    // New flat grouped collection for the redesigned page
+    public ObservableCollection<TreatmentVisitGroup> VisitGroups { get; } = new();
+
+    [ObservableProperty] private int treatmentCount;
 
 
     // =========================================================
@@ -188,6 +192,13 @@ public partial class TreatmentHistoryViewModel : ObservableObject
 
                     Visits.Add(visit);
                 }
+
+                // Populate VisitGroups for the new UI
+                VisitGroups.Clear();
+                foreach (var v in Visits)
+                    VisitGroups.Add(v);
+
+                TreatmentCount = History.Count;
 
 
                 // =============================================

@@ -31,7 +31,7 @@ public partial class BillSummaryViewModel : ObservableObject
     decimal total;
 
     [ObservableProperty]
-    bool isInstallment;
+    decimal amountDueToday;
 
     [ObservableProperty]
     bool isBusy;
@@ -42,25 +42,17 @@ public partial class BillSummaryViewModel : ObservableObject
     [ObservableProperty]
     string createdBillNumber = "";
 
-    [ObservableProperty] int installmentMonths = 3;
-    [ObservableProperty] decimal monthlyPayment;
     public bool HasDiscount => DiscountPercent > 0;
 
     public bool HasInstallmentService =>
         Services.Any(x => x.IsInstallmentEligible);
 
     public bool HasServices => Services.Count > 0;
-
     public int TotalItems => Services.Count;
-
-    public string InstallmentSummary =>
-        IsInstallment && InstallmentMonths > 0
-            ? $"{InstallmentMonths} months @ ₱{MonthlyPayment:N2}/month"
-            : string.Empty;
-
     public string SubtotalDisplay => $"₱{Subtotal:N2}";
     public string DiscountDisplay => $"₱{DiscountAmount:N2}";
     public string TotalDisplay => $"₱{Total:N2}";
+    public string AmountDueTodayDisplay => $"₱{AmountDueToday:N2}";
 
     public BillSummaryViewModel(BillingService billing)
     {
@@ -76,24 +68,32 @@ public partial class BillSummaryViewModel : ObservableObject
         var draft = BillDraftStore.Current;
 
         PatientName = draft.PatientName;
-        IsInstallment = draft.IsInstallment;
-        InstallmentMonths = draft.InstallmentMonths > 0 ? draft.InstallmentMonths : 3;
+
+        // Unsubscribe from any items left over from a previous load
+        // before clearing, so we don't leak handlers onto stale items.
+        foreach (var old in Services)
+            old.PropertyChanged -= OnServiceItemPropertyChanged;
 
         Services.Clear();
         foreach (var item in draft.Services)
+        {
             Services.Add(item);
+            item.PropertyChanged += OnServiceItemPropertyChanged;
+        }
 
         CalculateTotals();
     }
 
-    partial void OnIsInstallmentChanged(bool value)
+    // Each item's own IsInstallmentSelected / SelectedInstallmentMonths
+    // toggle lives on the item itself (bound directly in the CollectionView template)
+    void OnServiceItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        CalculateTotals();
-    }
-
-    partial void OnInstallmentMonthsChanged(int value)
-    {
-        CalculateTotals();
+        if (e.PropertyName is nameof(ServiceLineItem.IsInstallmentSelected)
+                            or nameof(ServiceLineItem.SelectedInstallmentMonths)
+                            or nameof(ServiceLineItem.Subtotal))
+        {
+            CalculateTotals();
+        }
     }
 
     partial void OnDiscountPercentChanged(decimal value)
@@ -107,13 +107,18 @@ public partial class BillSummaryViewModel : ObservableObject
     private void CalculateTotals()
     {
         Subtotal = Services.Sum(x => x.Subtotal);
-        DiscountAmount = Math.Round(Subtotal * DiscountPercent, 2);
+
+        // Discount only applies to services NOT on an installment plan —
+        var discountEligibleSubtotal = Services
+            .Where(x => !(x.IsInstallmentEligible && x.IsInstallmentSelected))
+            .Sum(x => x.Subtotal);
+
+        DiscountAmount = Math.Round(discountEligibleSubtotal * DiscountPercent, 2);
         Total = Subtotal - DiscountAmount;
 
-        if (IsInstallment && InstallmentMonths > 0)
-            MonthlyPayment = Math.Round(Total / InstallmentMonths, 2);
-        else
-            MonthlyPayment = 0;
+        // Due today = sum of each item's own contribution (full price, or
+        // 50% down if on a plan), minus the discount
+        AmountDueToday = Services.Sum(x => x.AmountDueToday) - DiscountAmount;
 
         if (BillDraftStore.Current != null)
         {
@@ -121,15 +126,23 @@ public partial class BillSummaryViewModel : ObservableObject
             BillDraftStore.Current.DiscountPercent = DiscountPercent;
             BillDraftStore.Current.DiscountAmount = DiscountAmount;
             BillDraftStore.Current.Total = Total;
-            BillDraftStore.Current.IsInstallment = IsInstallment;
-            BillDraftStore.Current.InstallmentMonths = IsInstallment ? InstallmentMonths : 0;
-            BillDraftStore.Current.MonthlyPayment = MonthlyPayment;
+            BillDraftStore.Current.AmountDueToday = AmountDueToday;
+            BillDraftStore.Current.IsInstallment = HasInstallmentService &&
+                Services.Any(x => x.IsInstallmentSelected);
+            BillDraftStore.Current.InstallmentMonths = Services
+                .Where(x => x.IsInstallmentSelected)
+                .Select(x => x.SelectedInstallmentMonths)
+                .DefaultIfEmpty(0)
+                .Max();
+            BillDraftStore.Current.MonthlyPayment = Services
+                .Where(x => x.IsInstallmentSelected)
+                .Sum(x => x.MonthlyPaymentAmount);
         }
 
         OnPropertyChanged(nameof(SubtotalDisplay));
         OnPropertyChanged(nameof(DiscountDisplay));
         OnPropertyChanged(nameof(TotalDisplay));
-        OnPropertyChanged(nameof(InstallmentSummary));
+        OnPropertyChanged(nameof(AmountDueTodayDisplay));
         OnPropertyChanged(nameof(HasInstallmentService));
         OnPropertyChanged(nameof(HasServices));
         OnPropertyChanged(nameof(TotalItems));
@@ -152,6 +165,7 @@ public partial class BillSummaryViewModel : ObservableObject
         if (!confirm)
             return;
 
+        item.PropertyChanged -= OnServiceItemPropertyChanged;
         Services.Remove(item);
         BillDraftStore.Current?.Services.Remove(item);
 

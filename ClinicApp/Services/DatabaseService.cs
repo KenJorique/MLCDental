@@ -92,6 +92,8 @@ public class DatabaseService
 
             try { await _database.CreateTableAsync<TreatmentHistory>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] TreatmentHistory table: {ex.Message}"); }
+            try { await _database.ExecuteAsync("ALTER TABLE TreatmentHistory ADD COLUMN IsGeneralService INTEGER DEFAULT 0"); } catch { }
+            System.Diagnostics.Debug.WriteLine("[DB] TreatmentHistory migration ran");
 
             try { await _database.CreateTableAsync<SupplyStockLog>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] SupplyStockLog table: {ex.Message}"); }

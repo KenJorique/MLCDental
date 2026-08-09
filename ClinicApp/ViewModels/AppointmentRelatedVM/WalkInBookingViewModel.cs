@@ -229,6 +229,7 @@ namespace ClinicApp.ViewModels
         // ── Load time slots ───────────────────────────────────
         public async Task LoadSlotsAsync(DateTime date)
         {
+
             if (date.DayOfWeek == DayOfWeek.Sunday)
             {
                 TimeSlots.Clear();

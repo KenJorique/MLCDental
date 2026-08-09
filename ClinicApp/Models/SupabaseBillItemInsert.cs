@@ -40,5 +40,21 @@ namespace ClinicApp.Models
 
         [Column("affects_teeth")]
         public bool AffectsTeeth { get; set; }
+
+        // ── Per-item installment plan (requires migration_bill_items_installment.sql to be run first) ──
+        [Column("is_installment")]
+        public bool IsInstallment { get; set; }
+
+        [Column("installment_months")]
+        public int InstallmentMonths { get; set; }
+
+        [Column("downpayment_amount")]
+        public decimal DownpaymentAmount { get; set; }
+
+        [Column("monthly_payment")]
+        public decimal MonthlyPayment { get; set; }
+
+        [Column("balance")]
+        public decimal Balance { get; set; }
     }
 }

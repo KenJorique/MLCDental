@@ -11,8 +11,6 @@ namespace ClinicApp.Services
         private bool _initialized = false;
         private readonly SemaphoreSlim _initLock = new(1, 1);
 
-
-
         public Client Client => _client!;
 
         public SupabaseDataService(string url, string key)
@@ -191,7 +189,7 @@ namespace ClinicApp.Services
             try
             {
                 await EnsureInitializedAsync();
-               
+
 
                 var result = await _client!
                     .From<SupabaseAppointmentEntry>()
@@ -1004,7 +1002,6 @@ namespace ClinicApp.Services
             }
         }
 
-
         public async Task<List<SupabaseBillItem>> GetBillItemsAsync(string billId)
         {
             try
@@ -1045,6 +1042,85 @@ namespace ClinicApp.Services
             }
         }
 
+        // Computes what's actually due THIS visit
+        public async Task<decimal> GetMinimumDueForBillAsync(string billId)
+        {
+            try
+            {
+                var items = await GetBillItemsAsync(billId);
+                decimal minimum = 0;
+
+                foreach (var item in items)
+                {
+                    if (item.Balance <= 0) continue;
+
+                    if (!item.IsInstallment)
+                    {
+                        // Non-installment items are always due in full.
+                        minimum += item.Balance;
+                    }
+                    else if (item.AmountPaid <= 0)
+                    {
+                        // Nothing paid on this item yet — the 50% downpayment is due.
+                        minimum += Math.Min(item.DownpaymentAmount, item.Balance);
+                    }
+                    else
+                    {
+                        // Downpayment already covered — next month's installment is due.
+                        minimum += Math.Min(item.MonthlyPayment, item.Balance);
+                    }
+                }
+
+                return minimum;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetMinimumDueForBill: {ex.Message}");
+                return 0;
+            }
+        }
+
+        // Distributes a payment across this bill's items instead of just the
+        // bill-level total: non-installment items are paid off first (always
+        // due in full), then installment items in due-date order
+        private async Task AllocatePaymentToBillItemsAsync(
+            string billId, decimal amount, DateTime paymentDate)
+        {
+            try
+            {
+                var items = await GetBillItemsAsync(billId);
+                var remaining = amount;
+
+                var ordered = items
+                    .Where(i => i.Balance > 0)
+                    .OrderBy(i => i.IsInstallment ? 1 : 0)
+                    .ThenBy(i => i.DueDate ?? DateTime.MinValue)
+                    .ToList();
+
+                foreach (var item in ordered)
+                {
+                    if (remaining <= 0) break;
+
+                    var applied = Math.Min(item.Balance, remaining);
+
+                    item.AmountPaid += applied;
+                    item.Balance -= applied;
+                    item.LastPaymentDate = paymentDate;
+                    item.DueDate = item.Balance <= 0
+                        ? null
+                        : (item.IsInstallment ? paymentDate.AddMonths(1) : item.DueDate);
+
+                    await _client!.From<SupabaseBillItem>().Update(item);
+
+                    remaining -= applied;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] AllocatePaymentToBillItems: {ex.Message}");
+            }
+        }
+
         public async Task<(bool Success, string? Error)> RecordPaymentAsync(
      string billId, decimal amount, string? notes = null)
         {
@@ -1068,6 +1144,8 @@ namespace ClinicApp.Services
                     Notes = notes
                 };
                 await _client!.From<SupabasePayment>().Insert(payment);
+
+                await AllocatePaymentToBillItemsAsync(billId, amount, payment.PaymentDate);
 
                 billResult.AmountPaid += amount;
                 billResult.Balance = billResult.TotalAmount - billResult.AmountPaid;

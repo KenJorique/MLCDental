@@ -156,7 +156,7 @@
                                     TextColor="{StaticResource TextPrimary}"/>
 					</Border>
 
-					<!-- Sunday warning -->
+					<!-- Sunday warning. temp close
 					<Border BackgroundColor="#FCEAEA"
                             Stroke="#FFCDD2"
                             StrokeThickness="1"
@@ -167,6 +167,7 @@
 						<Label Text="⚠ Clinic is closed on Sundays."
                                FontSize="12" TextColor="#C62828"/>
 					</Border>
+					 -->
 
 					<!-- Time slots -->
 					<Label Text="Select Time Slot" Style="{StaticResource FormFieldLabel}"

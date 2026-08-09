@@ -92,6 +92,14 @@ namespace ClinicApp.ViewModels
         [RelayCommand]
         async Task GoToPending()
         {
+            if (!HasPendingBookings)
+            {
+                await Shell.Current.DisplayAlert(
+                    "No Pending Bookings",
+                    "There are no bookings waiting for approval.",
+                    "OK");
+                return;
+            }
             await Shell.Current.GoToAsync(nameof(AppointmentPage));
         }
 
@@ -288,6 +296,11 @@ namespace ClinicApp.ViewModels
                         SelectedAppointment.SupabaseBookingId, status);
 
                 SelectedAppointment.Status = status;
+
+                ShowDetail = false;
+                SelectedAppointment = null;
+                await CloseSheetAsync();
+
                 await LoadAppointments();
             }
             catch (Exception ex)
@@ -297,7 +310,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
-        // From File 2 — moves patient to in-procedure queue
+        // Moves patient to in-procedure queue
         [RelayCommand]
         async Task SetInTransit()
         {
@@ -309,10 +322,6 @@ namespace ClinicApp.ViewModels
                 "Yes", "Cancel");
 
             if (!confirm) return;
-
-            ShowDetail = false;
-            SelectedAppointment = null;
-            await CloseSheetAsync();
 
             await UpdateAppointmentStageAsync("in-procedure");
         }
@@ -401,17 +410,20 @@ namespace ClinicApp.ViewModels
         {
             if (SelectedAppointment == null) return;
 
-            ShowDetail = false;
-            await CloseSheetAsync();
-
+            // Capture all values BEFORE closing the sheet
+            var bookingId = SelectedAppointment.SupabaseBookingId ?? string.Empty;
+            var patientName = SelectedAppointment.PatientName ?? string.Empty;
             var currentDt = SelectedAppointment.AppointmentDateTimeParsed != DateTime.MinValue
                 ? SelectedAppointment.AppointmentDateTimeParsed.ToString("MMM dd, yyyy h:mm tt")
                 : "Unknown";
 
+            ShowDetail = false;
+            await CloseSheetAsync();
+
             await Shell.Current.GoToAsync(
                 $"{nameof(ReschedulePage)}" +
-                $"?bookingId={Uri.EscapeDataString(SelectedAppointment.SupabaseBookingId)}" +
-                $"&patientName={Uri.EscapeDataString(SelectedAppointment.PatientName)}" +
+                $"?bookingId={Uri.EscapeDataString(bookingId)}" +
+                $"&patientName={Uri.EscapeDataString(patientName)}" +
                 $"&currentDateTime={Uri.EscapeDataString(currentDt)}");
         }
 

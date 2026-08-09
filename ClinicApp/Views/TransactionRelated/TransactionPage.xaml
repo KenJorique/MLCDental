@@ -8,129 +8,129 @@
              x:DataType="vm:TransactionViewModel"
              BackgroundColor="#F5F5F5">
 
-    <ContentPage.Title>
-        <Binding Path="PatientName" StringFormat="Patient Ledger — {0}"/>
-    </ContentPage.Title>
+	<ContentPage.Title>
+		<Binding Path="PatientName" StringFormat="Patient Ledger — {0}"/>
+	</ContentPage.Title>
 
-    <ContentPage.Resources>
-        <DataTemplate x:Key="LedgerItemTemplate" x:DataType="models:LedgerItem">
-            <Grid Padding="0,0,0,16"
+	<ContentPage.Resources>
+		<DataTemplate x:Key="LedgerItemTemplate" x:DataType="models:LedgerItem">
+			<Grid Padding="0,0,0,16"
                   ColumnDefinitions="40,*">
 
-                <!-- Timeline / Icon -->
-                <Grid>
-                    <BoxView WidthRequest="2"
-                             BackgroundColor="#DDDDDD"
+				<!-- Timeline / Icon -->
+				<Grid>
+					<BoxView WidthRequest="2"
+                             BackgroundColor="{StaticResource Gray100}"
                              HorizontalOptions="Center"
                              VerticalOptions="Fill"/>
 
-                    <Border WidthRequest="36"
+					<Border WidthRequest="36"
                             HeightRequest="36"
                             BackgroundColor="{Binding IconBackground}"
                             StrokeThickness="0"
                             HorizontalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="18"/>
-                        </Border.StrokeShape>
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="18"/>
+						</Border.StrokeShape>
 
-                        <Label Text="{Binding Icon}"
+						<Label Text="{Binding Icon}"
                                FontFamily="MaterialSymbolsRounded"
                                TextColor="{Binding IconColor}"
                                FontSize="20"
                                HorizontalOptions="Center"
                                VerticalOptions="Center"/>
-                    </Border>
-                </Grid>
+					</Border>
+				</Grid>
 
-                <!-- Card -->
-                <Border Grid.Column="1"
+				<!-- Card -->
+				<Border Grid.Column="1"
                         Margin="10,0,0,0"
                         Padding="16"
-                        BackgroundColor="White"
+                        BackgroundColor="{StaticResource White}"
                         StrokeThickness="0">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="14"/>
-                    </Border.StrokeShape>
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="14"/>
+					</Border.StrokeShape>
 
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer
                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                               Path=BindingContext.OpenLedgerItemCommand}"
                             CommandParameter="{Binding .}"/>
-                    </Border.GestureRecognizers>
+					</Border.GestureRecognizers>
 
-                    <VerticalStackLayout Spacing="0">
-                        <Grid ColumnDefinitions="*,Auto,Auto"
+					<VerticalStackLayout Spacing="0">
+						<Grid ColumnDefinitions="*,Auto,Auto"
                           ColumnSpacing="12">
 
-                            <VerticalStackLayout Spacing="2">
-                                <Label Text="{Binding EntryKind}"
+							<VerticalStackLayout Spacing="2">
+								<Label Text="{Binding EntryKind}"
                                    FontAttributes="Bold"
                                    FontSize="14"
-                                   TextColor="#222"/>
-                                <Label Text="{Binding Subtitle}"
+                                   TextColor="{StaticResource Black}"/>
+								<Label Text="{Binding Subtitle}"
                                    FontSize="12"
                                    TextColor="Gray"/>
-                                <Label Text="{Binding Reference}"
+								<Label Text="{Binding Reference}"
                                    FontSize="12"
-                                   TextColor="#555"/>
+                                   TextColor="{StaticResource Gray500}"/>
 
-                                <Frame BackgroundColor="#FFF1F2"
+								<Frame BackgroundColor="#FFF1F2"
                                    BorderColor="#FECACA"
                                    CornerRadius="20"
                                    Padding="6,2"
                                    HasShadow="False"
                                    IsVisible="{Binding IsOverdue}">
-                                    <Label Text="{Binding DueStatusText}"
+									<Label Text="{Binding DueStatusText}"
                                        FontSize="10"
                                        TextColor="#B91C1C"
                                        FontAttributes="Bold"/>
-                                </Frame>
-                            </VerticalStackLayout>
+								</Frame>
+							</VerticalStackLayout>
 
-                            <VerticalStackLayout Grid.Column="1"
+							<VerticalStackLayout Grid.Column="1"
                                              Spacing="2"
                                              HorizontalOptions="End">
-                                <Label Text="{Binding AmountDisplay}"
+								<Label Text="{Binding AmountDisplay}"
                                    FontAttributes="Bold"
                                    HorizontalTextAlignment="End"
                                    TextColor="{Binding AmountColor}"/>
-                                <Label Text="{Binding RemainingDisplay}"
+								<Label Text="{Binding RemainingDisplay}"
                                    FontSize="12"
                                    HorizontalTextAlignment="End"
                                    TextColor="Gray"/>
-                            </VerticalStackLayout>
+							</VerticalStackLayout>
 
-                            <Label Grid.Column="2"
+							<Label Grid.Column="2"
                                FontFamily="MaterialSymbolsRounded"
                                Text="&#xe5cc;"
                                FontSize="20"
                                TextColor="#9CA3AF"
                                VerticalOptions="Center"
                                Margin="8,0,0,0"/>
-                        </Grid>
+						</Grid>
 
-                        <!-- Balance due strip — only for bills with money still owed -->
-                        <Border BackgroundColor="#FFF4E5"
+						<!-- Balance due strip — only for bills with money still owed -->
+						<Border BackgroundColor="#FFF4E5"
                             StrokeThickness="0"
                             Padding="12,8"
                             Margin="0,10,0,0"
                             IsVisible="{Binding ShowPayAction}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10"/>
-                            </Border.StrokeShape>
+							<Border.StrokeShape>
+								<RoundRectangle CornerRadius="10"/>
+							</Border.StrokeShape>
 
-                            <Grid ColumnDefinitions="*,Auto">
-                                <Label Text="{Binding BalanceDueDisplay}"
+							<Grid ColumnDefinitions="*,Auto">
+								<Label Text="{Binding BalanceDueDisplay}"
                                    FontSize="12"
                                    FontAttributes="Bold"
                                    TextColor="#8A4B00"
                                    VerticalOptions="Center"/>
 
-                                <Button Grid.Column="1"
+								<Button Grid.Column="1"
                                     Text="Add payment"
-                                    BackgroundColor="#2E7D32"
-                                    TextColor="White"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="{StaticResource White}"
                                     CornerRadius="8"
                                     Padding="12,0"
                                     HeightRequest="32"
@@ -138,53 +138,53 @@
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                                       Path=BindingContext.PayNowCommand}"
                                     CommandParameter="{Binding .}"/>
-                            </Grid>
-                        </Border>
-                    </VerticalStackLayout>
-                </Border>
-            </Grid>
-        </DataTemplate>
-    </ContentPage.Resources>
+							</Grid>
+						</Border>
+					</VerticalStackLayout>
+				</Border>
+			</Grid>
+		</DataTemplate>
+	</ContentPage.Resources>
 
-    <Grid>
-        <RefreshView Command="{Binding RefreshCommand}"
+	<Grid>
+		<RefreshView Command="{Binding RefreshCommand}"
                      IsRefreshing="{Binding IsRefreshing}">
-            <ScrollView>
-                <VerticalStackLayout Padding="16" Spacing="14">
+			<ScrollView>
+				<VerticalStackLayout Padding="16" Spacing="14">
 
-                    <!-- Summary -->
-                    <Border BackgroundColor="White"
+					<!-- Summary -->
+					<Border BackgroundColor="{StaticResource White}"
                             StrokeThickness="0"
                             Padding="18"
                             Margin="0,0,0,4">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16"/>
-                        </Border.StrokeShape>
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="16"/>
+						</Border.StrokeShape>
 
-                        <VerticalStackLayout Spacing="14">
-                            <Label Text="{Binding PatientName}"
+						<VerticalStackLayout Spacing="14">
+							<Label Text="{Binding PatientName}"
                                    FontSize="22"
                                    FontAttributes="Bold"
-                                   TextColor="#222"/>
+                                   TextColor="{StaticResource Black}"/>
 
-                            <!--<Label Text="{Binding LedgerSummary}"
+							<!--<Label Text="{Binding LedgerSummary}"
                                    FontSize="13"
                                    TextColor="Gray"/>-->
 
-                            <BoxView HeightRequest="1"
-                                     Color="#EEEEEE"/>
+							<BoxView HeightRequest="1"
+                                     Color="{StaticResource Gray100}"/>
 
-                            <Grid ColumnDefinitions="*,Auto"
+							<Grid ColumnDefinitions="*,Auto"
                                   RowDefinitions="Auto,Auto"
                                   ColumnSpacing="12"
                                   RowSpacing="8">
-                                <Label Grid.Row="0"
+								<Label Grid.Row="0"
                                        Grid.Column="0"
                                        Text="Outstanding Balance"
                                        FontSize="12"
                                        TextColor="Gray"/>
 
-                                <!--<Border Grid.Row="0"
+								<!--<Border Grid.Row="0"
                                         Grid.Column="1"
                                         BackgroundColor="#FFF4E5"
                                         Stroke="#FFA726"
@@ -194,21 +194,23 @@
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="18"/>
                                     </Border.StrokeShape>
-                                    --><!--<Label Text="{Binding PaymentStatus}"
+                                    -->
+								<!--<Label Text="{Binding PaymentStatus}"
                                            TextColor="#E65100"
-                                           FontAttributes="Bold"/>--><!--
+                                           FontAttributes="Bold"/>-->
+								<!--
                                 </Border>-->
 
-                                <Label Grid.Row="1"
+								<Label Grid.Row="1"
                                        Grid.Column="0"
                                        Grid.ColumnSpan="2"
                                        Text="{Binding OutstandingDisplay}"
                                        FontSize="30"
                                        FontAttributes="Bold"
                                        TextColor="#1A6B2F"/>
-                            </Grid>
+							</Grid>
 
-                            <!--<Grid ColumnDefinitions="*,Auto">
+							<!--<Grid ColumnDefinitions="*,Auto">
                                 <Label Text="Next Due"
                                        FontSize="12"
                                        TextColor="Gray"/>
@@ -217,97 +219,97 @@
                                        FontAttributes="Bold"/>
                             </Grid>-->
 
-                            <Frame BackgroundColor="#FFF1F2"
+							<Frame BackgroundColor="#FFF1F2"
                                    BorderColor="#FECACA"
                                    CornerRadius="12"
                                    Padding="12"
                                    HasShadow="False"
                                    IsVisible="{Binding OverdueBillsCount, Converter={StaticResource IntNotEqualZeroConverter}}">
-                                <VerticalStackLayout Spacing="2">
-                                    <Label Text="Overdue Installments"
+								<VerticalStackLayout Spacing="2">
+									<Label Text="Overdue Installments"
                                            FontAttributes="Bold"
                                            TextColor="#B91C1C"/>
-                                    <Label Text="{Binding OverdueSummary}"
+									<Label Text="{Binding OverdueSummary}"
                                            FontSize="12"
                                            TextColor="#B91C1C"/>
-                                </VerticalStackLayout>
-                            </Frame>
+								</VerticalStackLayout>
+							</Frame>
 
-                            <Grid ColumnDefinitions="*,*">
-                                <VerticalStackLayout Spacing="4">
-                                    <Label Text="Last Payment"
+							<Grid ColumnDefinitions="*,*">
+								<VerticalStackLayout Spacing="4">
+									<Label Text="Last Payment"
                                            FontSize="12"
                                            TextColor="Gray"/>
-                                    <Label Text="{Binding LastPaymentDisplay}"
+									<Label Text="{Binding LastPaymentDisplay}"
                                            FontAttributes="Bold"/>
-                                </VerticalStackLayout>
+								</VerticalStackLayout>
 
-                                <VerticalStackLayout Grid.Column="1"
+								<VerticalStackLayout Grid.Column="1"
                                                      Spacing="4">
-                                    <Label Text="Due Date"
+									<Label Text="Due Date"
                                            FontSize="12"
                                            TextColor="Gray"/>
-                                    <Label Text="{Binding DueDateDisplay}"
+									<Label Text="{Binding DueDateDisplay}"
                                            FontAttributes="Bold"/>
-                                </VerticalStackLayout>
-                            </Grid>
-                        </VerticalStackLayout>
-                    </Border>
+								</VerticalStackLayout>
+							</Grid>
+						</VerticalStackLayout>
+					</Border>
 
-                    <!-- Add bill button -->
-                    <!--<Button Text="+ Create New Bill"
-                            BackgroundColor="#4A4A8A"
-                            TextColor="White"
+					<!-- Add bill button -->
+					<!--<Button Text="+ Create New Bill"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="{StaticResource White}"
                             CornerRadius="10"
                             HeightRequest="44"
                             FontSize="13"
                             Command="{Binding CreateNewBillCommand}"/>-->
 
-                    <!-- Needs payment — prioritized above the history log -->
-                    <Label Text="Needs Payment"
+					<!-- Needs payment — prioritized above the history log -->
+					<Label Text="Needs Payment"
                            FontSize="14"
                            FontAttributes="Bold"
                            TextColor="#8A4B00"
                            Margin="0,8,0,0"
                            IsVisible="{Binding PendingPayments.Count, Converter={StaticResource IntNotEqualZeroConverter}}"/>
 
-                    <CollectionView ItemsSource="{Binding PendingPayments}"
+					<CollectionView ItemsSource="{Binding PendingPayments}"
                                     ItemTemplate="{StaticResource LedgerItemTemplate}"
                                     SelectionMode="None"
                                     IsVisible="{Binding PendingPayments.Count, Converter={StaticResource IntNotEqualZeroConverter}}"/>
 
-                    <!-- Billing history header -->
-                    <Label Text="Billing History"
+					<!-- Billing history header -->
+					<Label Text="Billing History"
                            FontSize="14"
                            FontAttributes="Bold"
-                           TextColor="#333"
+                           TextColor="{StaticResource Gray700}"
                            Margin="0,8,0,0"/>
 
-                    <Label Text="No billing records yet"
+					<Label Text="No billing records yet"
                            FontSize="12"
-                           TextColor="#999"
+                           TextColor="{StaticResource Gray400}"
                            IsVisible="{Binding Ledger.Count, Converter={StaticResource IntEqualZeroConverter}}"/>
 
-                    <!-- Ledger timeline (collapsed to a preview, expandable) -->
-                    <CollectionView ItemsSource="{Binding VisibleHistory}"
+					<!-- Ledger timeline (collapsed to a preview, expandable) -->
+					<CollectionView ItemsSource="{Binding VisibleHistory}"
                                     ItemTemplate="{StaticResource LedgerItemTemplate}"
                                     SelectionMode="None"/>
 
-                    <Button Text="{Binding HistoryToggleLabel}"
+					<Button Text="{Binding HistoryToggleLabel}"
                             BackgroundColor="Transparent"
-                            TextColor="#4A4A8A"
+                            TextColor="{StaticResource Primary}"
                             FontSize="13"
                             FontAttributes="Bold"
-                            BorderColor="#4A4A8A"
+                            BorderColor="{StaticResource Primary}"
                             BorderWidth="1"
                             CornerRadius="10"
                             HeightRequest="40"
                             IsVisible="{Binding HasMoreHistory}"
                             Command="{Binding ToggleHistoryCommand}"/>
 
-                    <BoxView HeightRequest="20" Color="Transparent"/>
-                </VerticalStackLayout>
-            </ScrollView>
-        </RefreshView>
-    </Grid>
+					<BoxView HeightRequest="20" Color="Transparent"/>
+				</VerticalStackLayout>
+			</ScrollView>
+		</RefreshView>
+	</Grid>
 </ContentPage>

@@ -55,23 +55,18 @@ public partial class PaymentViewModel : ObservableObject
     public string LastPaymentDateDisplay =>
         Bill?.LastPaymentDateDisplay ?? "—";
 
-    // ── NEW: live "remaining after this payment" feedback ──
     public string RemainingAfterPaymentDisplay
     {
         get
         {
             if (Bill == null) return "₱0.00";
-            var remaining = Bill.Balance - PaymentAmount;
+            var toRecord = PaymentAmount > MinimumDueToday ? MinimumDueToday : PaymentAmount;
+            var remaining = Bill.Balance - toRecord;
             if (remaining < 0) remaining = 0;
             return $"₱{remaining:N2}";
         }
     }
 
-    // ── NEW: warns staff if typed amount exceeds the balance ──
-    public bool IsOverpaying =>
-        Bill != null && PaymentAmount > Bill.Balance;
-
-    // ── NEW: lets the UI highlight "Full Balance" chip when it matches ──
     public bool IsFullPaymentSelected =>
         Bill != null && PaymentAmount == Bill.Balance && PaymentAmount > 0;
 
@@ -90,9 +85,13 @@ public partial class PaymentViewModel : ObservableObject
         }
     }
 
+    [ObservableProperty]
+    private decimal liveMinimumDue;
+
     partial void OnBillChanged(SupabaseBill? value)
     {
-        PaymentAmount = value?.Balance ?? 0;
+        // Starts at 0, not pre-filled — staff types the amount received.
+        PaymentAmount = 0;
 
         OnPropertyChanged(nameof(SubtotalDisplay));
         OnPropertyChanged(nameof(DiscountDisplay));
@@ -103,16 +102,70 @@ public partial class PaymentViewModel : ObservableObject
         OnPropertyChanged(nameof(DueDateDisplay));
         OnPropertyChanged(nameof(LastPaymentDateDisplay));
         OnPropertyChanged(nameof(RemainingAfterPaymentDisplay));
-        OnPropertyChanged(nameof(IsOverpaying));
         OnPropertyChanged(nameof(IsFullPaymentSelected));
+
+        // Fetched fresh here (not in LoadBillAsync) because Bill can also
+        // get set via the "just created" fast path in OnBillIdChanged,
+        // which skips LoadBillAsync entirely — this covers both paths.
+        if (value != null)
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                LiveMinimumDue = await _supabase.GetMinimumDueForBillAsync(value.Id);
+                OnPropertyChanged(nameof(MinimumDueToday));
+                OnPropertyChanged(nameof(MinimumDueTodayDisplay));
+                OnPropertyChanged(nameof(IsBelowMinimum));
+                OnPropertyChanged(nameof(RemainingAfterPaymentDisplay));
+            });
+        }
+        else
+        {
+            LiveMinimumDue = 0;
+        }
+
+        OnPropertyChanged(nameof(MinimumDueToday));
+        OnPropertyChanged(nameof(MinimumDueTodayDisplay));
+        OnPropertyChanged(nameof(IsBelowMinimum));
     }
 
-    // ── NEW: keep the live preview in sync as the staff types ──
+    public decimal MinimumDueToday =>
+        Bill == null ? 0 : LiveMinimumDue > 0 ? LiveMinimumDue : Bill.Balance;
+
+    public string MinimumDueTodayDisplay => $"₱{MinimumDueToday:N2}";
+
+    // Blocks ANY amount below the minimum
+    public bool IsBelowMinimum =>
+        Bill != null && PaymentAmount < MinimumDueToday;
+
+    // Anything typed beyond the minimum isn't recorded as extra payment —
+    // it's handled like a cash register: the excess is Change, and only
+    // MinimumDueToday actually gets recorded. Staff use the separate
+    // "Add Payment" flow (on Bill Details / Receipt) if the patient
+    // genuinely wants to pay more toward the balance.
+    public decimal Change =>
+        PaymentAmount > MinimumDueToday ? PaymentAmount - MinimumDueToday : 0;
+
+    public string ChangeDisplay => $"₱{Change:N2}";
+
+    public bool HasChange => Change > 0;
+
+    // ── keep the live preview in sync as the staff types ──
     partial void OnPaymentAmountChanged(decimal value)
     {
+        // Block negative amounts — Keyboard="Numeric" mostly prevents this
+        // on-screen, but this covers pasted input / physical keyboards too.
+        if (value < 0)
+        {
+            PaymentAmount = 0;
+            return;
+        }
+
         OnPropertyChanged(nameof(RemainingAfterPaymentDisplay));
-        OnPropertyChanged(nameof(IsOverpaying));
         OnPropertyChanged(nameof(IsFullPaymentSelected));
+        OnPropertyChanged(nameof(IsBelowMinimum));
+        OnPropertyChanged(nameof(Change));
+        OnPropertyChanged(nameof(ChangeDisplay));
+        OnPropertyChanged(nameof(HasChange));
         if (HasError) HasError = false;
     }
 
@@ -148,28 +201,6 @@ public partial class PaymentViewModel : ObservableObject
     public string BalanceDisplay =>
         Bill == null ? "₱0.00" : $"₱{Bill.Balance:N2}";
 
-    // ── NEW: quick-fill commands ──
-    [RelayCommand]
-    private void SetQuarterAmount()
-    {
-        if (Bill == null) return;
-        PaymentAmount = Math.Round(Bill.Balance * 0.25m, 2);
-    }
-
-    [RelayCommand]
-    private void SetHalfAmount()
-    {
-        if (Bill == null) return;
-        PaymentAmount = Math.Round(Bill.Balance * 0.5m, 2);
-    }
-
-    [RelayCommand]
-    private void SetFullAmount()
-    {
-        if (Bill == null) return;
-        PaymentAmount = Bill.Balance;
-    }
-
     [RelayCommand]
     private async Task RecordPayment()
     {
@@ -181,21 +212,21 @@ public partial class PaymentViewModel : ObservableObject
 
         try
         {
-            if (PaymentAmount <= 0)
+            // No more "0 = skip payment" exception — every submission,
+            // including 0, is checked against the minimum below.
+            if (IsBelowMinimum)
             {
-                await Shell.Current.GoToAsync(
-     $"{nameof(ReceiptPage)}" +
-     $"?billId={Bill.Id}" +
-     $"&patientName={Uri.EscapeDataString(PatientName)}" +
-     $"&patientId={Uri.EscapeDataString(PatientId)}" +
-     $"&appointmentEntryId={Uri.EscapeDataString(AppointmentEntryId)}" +
-     $"&supabaseEntryId={Uri.EscapeDataString(SupabaseEntryId)}" +
-     $"&supabaseBookingId={Uri.EscapeDataString(SupabaseBookingId)}");
+                HasError = true;
+                ErrorMessage = $"Minimum payment today is {MinimumDueTodayDisplay}.";
                 return;
             }
 
+            // Whatever staff typed beyond the minimum is Change, not part
+            // of the recorded payment — see the Change property above.
+            var amountToRecord = MinimumDueToday;
+
             var (success, error) =
-                await _supabase.RecordPaymentAsync(Bill.Id, PaymentAmount);
+                await _supabase.RecordPaymentAsync(Bill.Id, amountToRecord);
 
             if (!success)
             {

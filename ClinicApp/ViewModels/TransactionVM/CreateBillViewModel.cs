@@ -2,6 +2,7 @@
 using ClinicApp.Models;
 using ClinicApp.Services;
 using ClinicApp.Behaviors;
+using ClinicApp.Views;
 using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,8 +20,12 @@ namespace ClinicApp.ViewModels.TransactionVM
         readonly SupabaseDataService _supabase;
         readonly BillDraftService _draft;
 
+        // Set by CreateBillPage right after it creates + shows the sheet, so
+        // CreateBill()/Cancel() below can dismiss it before navigating away.
+        public CreateBillSummarySheet? Sheet { get; set; }
 
         BillDraft Draft = new();
+
         public ObservableCollection<ServiceLineItem> SelectedServices { get; } = new();
         public ObservableCollection<AvailableServiceItem> AvailableServices { get; } = new();
 
@@ -159,6 +164,35 @@ namespace ClinicApp.ViewModels.TransactionVM
             RefreshAddButtonStates();
         }
 
+        // Single entry point for the +/- toggle button on CreateBillPage. Always takes the
+        // AvailableServiceItem (never a plain string), so the Button's Command/CommandParameter
+        // never need to switch types via DataTrigger — only Text/BackgroundColor do. Switching
+        // Command *type* via DataTrigger was the cause of the ArgumentException: MAUI doesn't
+        // apply Command and CommandParameter as one atomic unit, so there's a moment where the
+        // old parameter is checked against the new command's expected type.
+        [RelayCommand]
+        void ToggleService(AvailableServiceItem serviceItem)
+        {
+            if (serviceItem == null) return;
+
+            if (serviceItem.IsAddDisabled)
+                RemoveServiceById(serviceItem.Id);
+            else
+                AddService(serviceItem);
+        }
+
+        // Used by the +/- toggle button on the Available Services list (CreateBillPage) —
+        // that button only has the AvailableServiceItem (with its service Id), not the
+        // actual SelectedServices ServiceLineItem, so it removes by matching ServiceId.
+        [RelayCommand]
+        void RemoveServiceById(string serviceId)
+        {
+            if (string.IsNullOrEmpty(serviceId)) return;
+            var item = SelectedServices.FirstOrDefault(s => s.ServiceId == serviceId);
+            if (item == null) return;
+            RemoveService(item);
+        }
+
         private void RefreshAddButtonStates()
         {
             var addedIds = SelectedServices.Select(s => s.ServiceId).ToHashSet();
@@ -242,6 +276,14 @@ namespace ClinicApp.ViewModels.TransactionVM
 
                 BillDraftStore.Current = Draft;
 
+                // Fully close the sheet before navigating — it shouldn't stay open
+                // underneath the next page.
+                if (Sheet != null)
+                {
+                    await Sheet.DismissAsync();
+                    Sheet = null;
+                }
+
                 await Shell.Current.GoToAsync(nameof(ServiceSummaryPage));
             }
             catch (Exception ex)
@@ -263,8 +305,15 @@ namespace ClinicApp.ViewModels.TransactionVM
 
 
         [RelayCommand]
-        async Task Cancel() =>
+        async Task Cancel()
+        {
+            if (Sheet != null)
+            {
+                await Sheet.DismissAsync();
+                Sheet = null;
+            }
             await Shell.Current.GoToAsync("..");
+        }
     }
 
     public partial class ServiceLineItem : ObservableObject
@@ -279,6 +328,80 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] string toothNumbers = string.Empty;
         [ObservableProperty] bool showTeethInput;
         [ObservableProperty] bool isInstallmentEligible;
+
+        // ── Per-service installment plan ──
+        // Each installment-eligible service carries its own plan now,
+        // instead of one plan for the whole bill. Rule: 50% down today,
+        // remaining 50% split evenly over 1–4 months.
+        [ObservableProperty] bool isInstallmentSelected;
+        [ObservableProperty] int selectedInstallmentMonths = 1;
+
+        public decimal DownpaymentAmount =>
+            IsInstallmentEligible && IsInstallmentSelected
+                ? Math.Round(Subtotal * 0.5m, 2)
+                : 0m;
+
+        public decimal RemainingAfterDownpayment =>
+            Subtotal - DownpaymentAmount;
+
+        public decimal MonthlyPaymentAmount =>
+            IsInstallmentEligible && IsInstallmentSelected && SelectedInstallmentMonths > 0
+                ? Math.Round(RemainingAfterDownpayment / SelectedInstallmentMonths, 2)
+                : 0m;
+
+        // What this service actually adds to "due today" — full price if
+        // not on a plan, just the 50% downpayment if it is.
+        public decimal AmountDueToday =>
+            IsInstallmentEligible && IsInstallmentSelected
+                ? DownpaymentAmount
+                : Subtotal;
+
+        public string DownpaymentDisplay => $"₱{DownpaymentAmount:N2}";
+        public string MonthlyPaymentDisplay => $"₱{MonthlyPaymentAmount:N2}";
+        public string AmountDueTodayDisplay => $"₱{AmountDueToday:N2}";
+        public string RemainingAfterDownpaymentDisplay => $"₱{RemainingAfterDownpayment:N2}";
+
+        // Preview amounts for each of the 4 grid buttons — these show what
+        // the monthly payment WOULD be for that option, independent of
+        // which one is currently selected (so all 4 can be shown at once).
+        public string MonthlyFor(int months) =>
+            months > 0 ? $"₱{Math.Round(RemainingAfterDownpayment / months, 2):N2}" : "₱0.00";
+
+        public string MonthlyFor1Display => MonthlyFor(1);
+        public string MonthlyFor2Display => MonthlyFor(2);
+        public string MonthlyFor3Display => MonthlyFor(3);
+        public string MonthlyFor4Display => MonthlyFor(4);
+
+        [RelayCommand]
+        void SelectMonths(int months) => SelectedInstallmentMonths = months;
+
+        public string InstallmentPlanSummary =>
+            IsInstallmentSelected
+                ? $"{DownpaymentDisplay} down, then {MonthlyPaymentDisplay} x {SelectedInstallmentMonths} mo."
+                : string.Empty;
+
+        partial void OnIsInstallmentSelectedChanged(bool value) =>
+            RaiseInstallmentDisplaysChanged();
+
+        partial void OnSelectedInstallmentMonthsChanged(int value) =>
+            RaiseInstallmentDisplaysChanged();
+
+        void RaiseInstallmentDisplaysChanged()
+        {
+            OnPropertyChanged(nameof(DownpaymentAmount));
+            OnPropertyChanged(nameof(RemainingAfterDownpayment));
+            OnPropertyChanged(nameof(MonthlyPaymentAmount));
+            OnPropertyChanged(nameof(AmountDueToday));
+            OnPropertyChanged(nameof(DownpaymentDisplay));
+            OnPropertyChanged(nameof(MonthlyPaymentDisplay));
+            OnPropertyChanged(nameof(AmountDueTodayDisplay));
+            OnPropertyChanged(nameof(RemainingAfterDownpaymentDisplay));
+            OnPropertyChanged(nameof(MonthlyFor1Display));
+            OnPropertyChanged(nameof(MonthlyFor2Display));
+            OnPropertyChanged(nameof(MonthlyFor3Display));
+            OnPropertyChanged(nameof(MonthlyFor4Display));
+            OnPropertyChanged(nameof(InstallmentPlanSummary));
+        }
 
         // Parsed tooth list
         public List<int> ParsedTeethNumbers =>
@@ -302,6 +425,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         public void RefreshSubtotal()
         {
             Subtotal = UnitPrice * Quantity;
+            RaiseInstallmentDisplaysChanged();
         }
 
         partial void OnQuantityChanged(int value) =>
