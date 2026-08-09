@@ -878,6 +878,64 @@ namespace ClinicApp.Services
             }
         }
 
+        public async Task<SupabaseService?> AddServiceAsync(SupabaseService service)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseService>().Insert(service);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] AddService: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateServiceAsync(SupabaseService service)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                if (string.IsNullOrEmpty(service.Id))
+                {
+                    System.Diagnostics.Debug.WriteLine("[Supabase] UpdateService: Id is empty — cannot update");
+                    return false;
+                }
+
+                var result = await _client!.From<SupabaseService>().Update(service);
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateService done. Rows: {result.Models.Count}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateService FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
+        // Soft delete — flips is_active to false instead of removing the row
+        public async Task<bool> DeleteServiceAsync(string serviceId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                await _client!
+                    .From<SupabaseService>()
+                    .Where(s => s.Id == serviceId)
+                    .Set(s => s.IsActive, false)
+                    .Update();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] DeleteService FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
         // ── Bills ─────────────────────────────────────────────────────
 
         public async Task<SupabaseBill?> CreateBillAsync(SupabaseBill bill)
