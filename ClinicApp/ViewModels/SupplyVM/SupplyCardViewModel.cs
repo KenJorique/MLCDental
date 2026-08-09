@@ -5,10 +5,10 @@ namespace ClinicApp.ViewModels.SupplyVM;
 
 public partial class SupplyCardViewModel : ObservableObject
 {
-    [ObservableProperty] private SupplyItem _supply;
+    [ObservableProperty] private SupabaseSupplyItem _supply;
     [ObservableProperty] private bool _isExpanded;
 
-    public SupplyCardViewModel(SupplyItem supply) => _supply = supply;
+    public SupplyCardViewModel(SupabaseSupplyItem supply) => _supply = supply;
 
     public string StockDisplay => Supply.QuantityDisplay;
     public bool IsLowStock => Supply.IsLowStock;
@@ -20,8 +20,8 @@ public partial class SupplyCardViewModel : ObservableObject
     public string StockStatusColor => Supply.IsOutOfStock ? "#D32F2F"
                                     : Supply.IsLowStock ? "#F57C00"
                                     : "#388E3C";
-    public string ExpirationDisplay => Supply.HasExpiration && !string.IsNullOrWhiteSpace(Supply.ExpirationDate)
-                                        ? Supply.ExpirationDate : "—";
+    public string ExpirationDisplay => Supply.HasExpiration && !string.IsNullOrWhiteSpace(Supply.ExpirationDateDisplay)
+                                        ? Supply.ExpirationDateDisplay : "—";
 
     public void Refresh()
     {

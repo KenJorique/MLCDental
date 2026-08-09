@@ -1,23 +1,6 @@
-﻿//using ClinicApp.Views;
-
-//namespace ClinicApp
-//{
-//    public partial class App : Application
-//    {
-//        public App()
-//        {
-//            InitializeComponent();
-
-//            UserAppTheme = AppTheme.Light;
-
-//            MainPage = new AppShell();
-//        }
-//    }
-//}
-
-
-using ClinicApp.Views;
+﻿using ClinicApp.Views;
 using ClinicApp.Services;
+using ClinicApp.ViewModels.PatientsRelatedVM;
 
 namespace ClinicApp
 {
@@ -27,8 +10,11 @@ namespace ClinicApp
 
         readonly SupabaseDataService _supabaseData;
         readonly DatabaseService _db;
+        readonly SupabaseRealtimeService _realtime;
+        readonly PatientListViewModel _patientListVm;
 
-        public App(SupabaseDataService supabaseData, DatabaseService db)
+        public App(SupabaseDataService supabaseData, DatabaseService db,
+                   SupabaseRealtimeService realtime, PatientListViewModel patientListVm)
         {
             MauiExceptions.Initialize();
             // ── Global crash handler — catches silent crashes ──────────
@@ -60,8 +46,11 @@ namespace ClinicApp
 
             _supabaseData = supabaseData;
             _db = db;
+            _realtime = realtime;
+            _patientListVm = patientListVm;
 
             _ = RunStartupCleanupAsync();
+            _ = _patientListVm.StartRealtimeAsync();   // ← starts realtime listening app-wide
         }
 
         private async Task RunStartupCleanupAsync()

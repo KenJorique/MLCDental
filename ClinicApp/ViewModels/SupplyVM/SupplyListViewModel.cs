@@ -10,7 +10,7 @@ namespace ClinicApp.ViewModels.SupplyVM;
 
 public partial class SupplyListViewModel : ObservableObject
 {
-    private readonly DatabaseService _db;
+    private readonly SupabaseDataService _supabase;
 
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isRefreshing;
@@ -24,7 +24,7 @@ public partial class SupplyListViewModel : ObservableObject
     public ObservableCollection<SupplyCardViewModel> AllCards { get; } = new();
     public ObservableCollection<SupplyCardViewModel> FilteredCards { get; } = new();
 
-    public SupplyListViewModel(DatabaseService db) => _db = db;
+    public SupplyListViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
     partial void OnSearchTextChanged(string value) => ApplyFilter();
     partial void OnCurrentSortChanged(string value) => ApplyFilter();
@@ -36,7 +36,7 @@ public partial class SupplyListViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            var list = await _db.GetSupplyItems();
+            var list = await _supabase.GetSuppliesAsync();
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 AllCards.Clear();
@@ -60,16 +60,14 @@ public partial class SupplyListViewModel : ObservableObject
 
         var source = AllCards.AsEnumerable();
 
-        // Apply search
         if (!string.IsNullOrEmpty(q))
             source = source.Where(c => c.Supply.Name.ToLowerInvariant().Contains(q));
 
-        // Apply sort/filter
         source = CurrentSort switch
         {
             "Low Stock" => source.Where(c => c.IsLowStock && !c.IsOutOfStock),
             "Out of Stock" => source.Where(c => c.IsOutOfStock),
-            _ => source  // "All" — no extra filter
+            _ => source
         };
 
         foreach (var card in source)
@@ -91,9 +89,7 @@ public partial class SupplyListViewModel : ObservableObject
     async Task ShowSortOptions()
     {
         var result = await Shell.Current.DisplayActionSheet(
-            "Filter by Stock Status",
-            "Cancel",
-            null,
+            "Filter by Stock Status", "Cancel", null,
             "All", "Low Stock", "Out of Stock");
 
         if (result is null || result == "Cancel") return;
@@ -112,6 +108,37 @@ public partial class SupplyListViewModel : ObservableObject
     }
 
     [RelayCommand]
+    async Task Refresh()
+    {
+        IsRefreshing = true;
+        try { await LoadSuppliesAsync(); }
+        finally { IsRefreshing = false; }
+    }
+
+    [RelayCommand]
+    async Task QuickAddStock(SupplyCardViewModel card)
+    {
+        if (card is null) return;
+        await Shell.Current.GoToAsync(
+            $"{nameof(AddStockPage)}?supplyId={card.Supply.Id}&hasExpiration={card.Supply.HasExpiration}");
+    }
+
+    [RelayCommand]
+    async Task QuickReduceStock(SupplyCardViewModel card)
+    {
+        if (card is null) return;
+
+        if (card.Supply.QuantityInPieces <= 0)
+        {
+            await Shell.Current.DisplayAlert("No Stock",
+                $"\"{card.Supply.Name}\" has no stock to reduce.", "OK");
+            return;
+        }
+
+        await Shell.Current.GoToAsync(
+            $"{nameof(ReduceStockPage)}?supplyId={card.Supply.Id}&currentStock={card.Supply.QuantityInPieces}");
+    }
+    [RelayCommand]
     async Task ShowActionSheet(SupplyCardViewModel card)
     {
         if (card is null) return;
@@ -119,38 +146,56 @@ public partial class SupplyListViewModel : ObservableObject
         var sheet = new ItemActionSheet();
         sheet.Configure(
             title: card.Supply.Name,
-            subtitle: string.Empty,
+            subtitle: $"Currently {card.Supply.QuantityDisplay}",
             options: new[]
             {
-                new ActionSheetOption
-                {
-                    Icon = "\ue88e",
-                    Label = "View Info",
-                    Subtitle = "See full supply details",
-                    IconBackgroundColor = Color.FromArgb("#E3F2FD"),
-                    IconColor = Color.FromArgb("#1565C0"),
-                    OnTapped = async () =>
-                        await Shell.Current.GoToAsync($"{nameof(SupplyInfoPage)}?supplyId={card.Supply.Id}"),
-                },
-                new ActionSheetOption
-                {
-                    Icon = "\ue3c9",
-                    Label = "Edit",
-                    Subtitle = "Update supply information",
-                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
-                    IconColor = Color.FromArgb("#2E7D32"),
-                    OnTapped = async () =>
-                        await Shell.Current.GoToAsync($"{nameof(AddSupplyPage)}?supplyId={card.Supply.Id}"),
-                },
-                new ActionSheetOption
-                {
-                    Icon = "\ue872",
-                    Label = "Delete",
-                    Subtitle = "Hide from supply list",
-                    LabelColor = Colors.Crimson,
-                    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
-                    OnTapped = async () => await DeleteSupplyAsync(card),
-                },
+            new ActionSheetOption
+            {
+                Icon = "\ue145",  // add
+                Label = "Add Stock",
+                Subtitle = "Restock this item",
+                IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                IconColor = Color.FromArgb("#2E7D32"),
+                OnTapped = async () => await QuickAddStock(card),
+            },
+            new ActionSheetOption
+            {
+                Icon = "\ue15b",  // remove
+                Label = "Reduce Stock",
+                Subtitle = "Log usage, damage, or expiry",
+                IconBackgroundColor = Color.FromArgb("#FFF3E0"),
+                IconColor = Color.FromArgb("#E65100"),
+                OnTapped = async () => await QuickReduceStock(card),
+            },
+            new ActionSheetOption
+            {
+                Icon = "\ue88e",
+                Label = "View Info",
+                Subtitle = "See full supply details & history",
+                IconBackgroundColor = Color.FromArgb("#E3F2FD"),
+                IconColor = Color.FromArgb("#1565C0"),
+                OnTapped = async () =>
+                    await Shell.Current.GoToAsync($"{nameof(SupplyInfoPage)}?supplyId={card.Supply.Id}"),
+            },
+            new ActionSheetOption
+            {
+                Icon = "\ue3c9",
+                Label = "Edit Details",
+                Subtitle = "Name, unit, minimum stock — not quantity",
+                IconBackgroundColor = Color.FromArgb("#F3E5F5"),
+                IconColor = Color.FromArgb("#6A1B9A"),
+                OnTapped = async () =>
+                    await Shell.Current.GoToAsync($"{nameof(AddSupplyPage)}?supplyId={card.Supply.Id}"),
+            },
+            new ActionSheetOption
+            {
+                Icon = "\ue872",
+                Label = "Delete",
+                Subtitle = "Hide from supply list",
+                LabelColor = Colors.Crimson,
+                IconBackgroundColor = Color.FromArgb("#FFEBEE"),
+                OnTapped = async () => await DeleteSupplyAsync(card),
+            },
             });
 
         await sheet.ShowAsync();
@@ -167,7 +212,13 @@ public partial class SupplyListViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            await _db.DeleteSupplyItem(card.Supply);
+            var success = await _supabase.DeleteSupplyAsync(card.Supply.Id);
+            if (!success)
+            {
+                await Shell.Current.DisplayAlert("Error", "Could not delete item. Try again.", "OK");
+                return;
+            }
+
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 var inAll = AllCards.FirstOrDefault(c => c.Supply.Id == card.Supply.Id);

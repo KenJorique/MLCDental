@@ -4,6 +4,7 @@ using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.UsersRelated;
+using ClinicApp.ViewModels.PatientsRelatedVM;
 using ClinicApp.Views.SupplyRelated;
 using ClinicApp.Views.AppointmentRelated;
 using CommunityToolkit.Maui.Core;

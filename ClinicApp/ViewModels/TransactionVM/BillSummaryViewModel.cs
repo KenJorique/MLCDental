@@ -12,45 +12,25 @@ namespace ClinicApp.ViewModels.TransactionVM;
 public partial class BillSummaryViewModel : ObservableObject
 {
     readonly BillingService _billing;
+    readonly SupabaseDataService _supabase;
 
     public ObservableCollection<ServiceLineItem> Services { get; } = new();
 
-    [ObservableProperty]
-    string patientName = "";
-
-    [ObservableProperty]
-    decimal subtotal;
-
-    [ObservableProperty]
-    decimal discountPercent;
-
-    [ObservableProperty]
-    decimal discountAmount;
-
-    [ObservableProperty]
-    decimal total;
-
-    [ObservableProperty]
-    bool isInstallment;
-
-    [ObservableProperty]
-    bool isBusy;
-
-    [ObservableProperty]
-    string createdBillId = "";
-
-    [ObservableProperty]
-    string createdBillNumber = "";
-
+    [ObservableProperty] string patientName = "";
+    [ObservableProperty] decimal subtotal;
+    [ObservableProperty] decimal discountPercent;
+    [ObservableProperty] decimal discountAmount;
+    [ObservableProperty] decimal total;
+    [ObservableProperty] bool isInstallment;
+    [ObservableProperty] bool isBusy;
+    [ObservableProperty] string createdBillId = "";
+    [ObservableProperty] string createdBillNumber = "";
     [ObservableProperty] int installmentMonths = 3;
     [ObservableProperty] decimal monthlyPayment;
+
     public bool HasDiscount => DiscountPercent > 0;
-
-    public bool HasInstallmentService =>
-        Services.Any(x => x.IsInstallmentEligible);
-
+    public bool HasInstallmentService => Services.Any(x => x.IsInstallmentEligible);
     public bool HasServices => Services.Count > 0;
-
     public int TotalItems => Services.Count;
 
     public string InstallmentSummary =>
@@ -62,9 +42,10 @@ public partial class BillSummaryViewModel : ObservableObject
     public string DiscountDisplay => $"₱{DiscountAmount:N2}";
     public string TotalDisplay => $"₱{Total:N2}";
 
-    public BillSummaryViewModel(BillingService billing)
+    public BillSummaryViewModel(BillingService billing, SupabaseDataService supabase)
     {
         _billing = billing;
+        _supabase = supabase;
         LoadDraft();
     }
 
@@ -86,15 +67,8 @@ public partial class BillSummaryViewModel : ObservableObject
         CalculateTotals();
     }
 
-    partial void OnIsInstallmentChanged(bool value)
-    {
-        CalculateTotals();
-    }
-
-    partial void OnInstallmentMonthsChanged(int value)
-    {
-        CalculateTotals();
-    }
+    partial void OnIsInstallmentChanged(bool value) => CalculateTotals();
+    partial void OnInstallmentMonthsChanged(int value) => CalculateTotals();
 
     partial void OnDiscountPercentChanged(decimal value)
     {
@@ -140,29 +114,22 @@ public partial class BillSummaryViewModel : ObservableObject
     [RelayCommand]
     async Task RemoveService(ServiceLineItem item)
     {
-        if (item == null)
-            return;
+        if (item == null) return;
 
         bool confirm = await Shell.Current.CurrentPage.DisplayAlert(
             "Remove Service",
             $"Remove \"{item.ServiceName}\" from this bill?",
-            "Remove",
-            "Cancel");
+            "Remove", "Cancel");
 
-        if (!confirm)
-            return;
+        if (!confirm) return;
 
         Services.Remove(item);
         BillDraftStore.Current?.Services.Remove(item);
-
         CalculateTotals();
     }
 
     [RelayCommand]
-    async Task Back()
-    {
-        await Shell.Current.GoToAsync("..");
-    }
+    async Task Back() => await Shell.Current.GoToAsync("..");
 
     bool CanProceed() => HasServices && !IsBusy;
 
@@ -190,7 +157,6 @@ public partial class BillSummaryViewModel : ObservableObject
                     "Billing Error",
                     result.ErrorMessage ?? "Unable to create the bill. Please try again.",
                     "OK");
-
                 return;
             }
 
@@ -200,11 +166,27 @@ public partial class BillSummaryViewModel : ObservableObject
                     "Billing Error",
                     "Bill was not returned from Supabase.",
                     "OK");
-
                 return;
             }
 
             CreatedBillStore.Current = result.Bill;
+
+            // ── Auto-deduct linked supplies for every service on this bill ──
+            var lowStockItems = new List<string>();
+            foreach (var service in draft.Services)
+            {
+                var (_, insufficient) = await _supabase.DeductSuppliesForServiceAsync(
+                    service.ServiceId, draft.PatientId, draft.PatientName, service.Quantity);
+                lowStockItems.AddRange(insufficient);
+            }
+
+            if (lowStockItems.Count > 0)
+            {
+                await Shell.Current.DisplayAlert(
+                    "Low Stock Warning",
+                    $"These items are now low/out of stock: {string.Join(", ", lowStockItems.Distinct())}",
+                    "OK");
+            }
 
             await Shell.Current.GoToAsync(
                 $"{nameof(PaymentPage)}" +

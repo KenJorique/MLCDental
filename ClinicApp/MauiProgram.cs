@@ -47,9 +47,12 @@ namespace ClinicApp
             builder.Services.AddSingleton<BillDraftService>();
             builder.Services.AddSingleton<BillingService>();
             // ── App ───────────────────────────────────────────────
+            // ── App ───────────────────────────────────────────────
             builder.Services.AddSingleton<App>(sp => new App(
                 sp.GetRequiredService<SupabaseDataService>(),
-                sp.GetRequiredService<DatabaseService>()
+                sp.GetRequiredService<DatabaseService>(),
+                sp.GetRequiredService<SupabaseRealtimeService>(),
+                sp.GetRequiredService<PatientListViewModel>()
             ));
 
             // ── Main pages ────────────────────────────────────────

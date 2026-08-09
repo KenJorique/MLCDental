@@ -1,5 +1,4 @@
-﻿using ClinicApp.Models;
-using ClinicApp.Services;
+﻿using ClinicApp.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -9,9 +8,9 @@ namespace ClinicApp.ViewModels.SupplyVM;
 [QueryProperty(nameof(SupplyId), "supplyId")]
 public partial class StockHistoryViewModel : ObservableObject
 {
-    private readonly DatabaseService _db;
+    private readonly SupabaseDataService _supabase;
 
-    [ObservableProperty] private int supplyId;
+    [ObservableProperty] private string supplyId = string.Empty;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private string supplyName = string.Empty;
     [ObservableProperty] private string stockDisplay = string.Empty;
@@ -20,24 +19,23 @@ public partial class StockHistoryViewModel : ObservableObject
 
     public ObservableCollection<StockLogRowViewModel> Logs { get; } = new();
 
-    public StockHistoryViewModel(DatabaseService db) => _db = db;
+    public StockHistoryViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
-    partial void OnSupplyIdChanged(int value)
+    partial void OnSupplyIdChanged(string value)
     {
-        if (value > 0)
+        if (!string.IsNullOrWhiteSpace(value))
             MainThread.BeginInvokeOnMainThread(async () => await LoadAsync());
     }
 
     [RelayCommand]
     public async Task LoadAsync()
     {
-        if (SupplyId <= 0 || IsBusy) return;
+        if (string.IsNullOrWhiteSpace(SupplyId) || IsBusy) return;
         IsBusy = true;
         try
         {
-            var item = await _db.GetSupplyItemById(SupplyId);
+            var item = await _supabase.GetSupplyByIdAsync(SupplyId);
             if (item is null) return;
-
             SupplyName = item.Name;
             StockDisplay = item.QuantityDisplay;
             StockStatus = item.IsOutOfStock ? "Out of Stock"
@@ -47,7 +45,7 @@ public partial class StockHistoryViewModel : ObservableObject
                              : item.IsLowStock ? "#F57C00"
                              : "#388E3C";
 
-            var logs = await _db.GetLogsForSupplyItem(SupplyId);
+            var logs = await _supabase.GetLogsForSupplyAsync(SupplyId);
             Logs.Clear();
             foreach (var log in logs)
                 Logs.Add(new StockLogRowViewModel(log));
