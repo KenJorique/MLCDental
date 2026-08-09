@@ -179,6 +179,12 @@ namespace ClinicApp
             builder.Services.AddTransient<StockHistoryViewModel>();
             builder.Services.AddTransient<AdjustStockSheet>();
 
+            // ── Cephalometric ─────────────────────────────
+            builder.Services.AddTransient<Views.CephalometricRelated.CephalometricMeasurementsPage>();
+            builder.Services.AddTransient<CephalometricMeasurementsViewModel>();
+
+
+
             builder
                 .UseMauiApp<App>()
                 .UseBottomSheet()

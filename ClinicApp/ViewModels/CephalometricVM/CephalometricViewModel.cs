@@ -77,20 +77,9 @@ public partial class CephalometricViewModel : ObservableObject
         if (confirm)
             await PickAndSaveImage();
     }
-
     [RelayCommand]
     async Task AnalyzeImage()
     {
-
-        if (_detector == null)
-        {
-            await Shell.Current.DisplayAlert("Error", "Detector not initialized.", "OK");
-            return;
-        }
-
-        var urlInUse = ApiConfig.CephalometricApiUrl;
-        await Shell.Current.DisplayAlert("Debug", $"Using URL:\n{urlInUse}", "OK");
-
         if (string.IsNullOrEmpty(ImagePath) || !File.Exists(ImagePath))
         {
             await Shell.Current.DisplayAlert("Error", "No image loaded.", "OK");
@@ -107,50 +96,45 @@ public partial class CephalometricViewModel : ObservableObject
         {
             IsAnalyzing = true;
 
-            // Test connection first
+            System.Diagnostics.Debug.WriteLine("🔍 Testing connection...");
             bool isConnected = await _detector.TestConnectionAsync();
             if (!isConnected)
             {
                 await Shell.Current.DisplayAlert(
                     "Server Not Reachable",
-                    "Could not connect to analysis server. Make sure:\n" +
-                    "1. Python server is running (python server.py)\n" +
-                    "2. IP address is correct in ApiConfig.cs\n" +
-                    "3. Device and server are on same WiFi",
+                    "Could not connect to analysis server.",
                     "OK");
                 return;
             }
 
-            // Run detection
+            System.Diagnostics.Debug.WriteLine("📤 Running detection...");
             var landmarks = await _detector.DetectLandmarksAsync(ImagePath);
+
+            System.Diagnostics.Debug.WriteLine($"📊 Detected {landmarks.Count} landmarks");
 
             if (landmarks.Count == 0)
             {
                 await Shell.Current.DisplayAlert(
                     "No Landmarks",
-                    "No landmarks detected. Try a clearer X-ray image.",
+                    "No landmarks detected.",
                     "OK");
                 DetectedLandmarks.Clear();
                 HasLandmarks = false;
+                return;
             }
-            else
-            {
-                DetectedLandmarks = landmarks;
-                HasLandmarks = true;
 
-                var summary = string.Join("\n", landmarks.Take(5).Select(l => l.ToString()));
-                if (landmarks.Count > 5)
-                    summary += $"\n... and {landmarks.Count - 5} more";
+            DetectedLandmarks = landmarks;
+            HasLandmarks = true;
 
-                await Shell.Current.DisplayAlert(
-                    "Landmarks Detected",
-                    $"Found {landmarks.Count} landmarks:\n\n{summary}",
-                    "OK");
-            }
+            NavigationData.PendingLandmarks = landmarks;
+            NavigationData.PendingPatientId = PatientId;
+            NavigationData.PendingPatientName = PatientName;
+
+            await Shell.Current.GoToAsync("measurements");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Analysis error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ Error: {ex.Message}");
             await Shell.Current.DisplayAlert("Error", $"Analysis failed: {ex.Message}", "OK");
         }
         finally
@@ -158,7 +142,6 @@ public partial class CephalometricViewModel : ObservableObject
             IsAnalyzing = false;
         }
     }
-
     private async Task PickAndSaveImage()
     {
         try

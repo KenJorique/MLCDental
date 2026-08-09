@@ -137,6 +137,9 @@
 	  <MauiXaml Update="Views\AppointmentRelated\WalkInBookingPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Views\CephalometricRelated\CephalometricMeasurementsPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Views\CephalometricRelated\CephalometricPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

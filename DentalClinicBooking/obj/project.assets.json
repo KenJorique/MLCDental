@@ -7701,23 +7701,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Kenny\\.nuget\\packages\\": {},
+    "C:\\Users\\elaiza mae\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Kenny\\source\\repos\\MLCDental\\cliniccc\\DentalClinicBooking\\DentalClinicBooking.csproj",
+      "projectUniqueName": "C:\\Users\\elaiza mae\\Source\\Repos\\MLCDental\\Clinic\\DentalClinicBooking\\DentalClinicBooking.csproj",
       "projectName": "DentalClinicBooking",
-      "projectPath": "C:\\Users\\Kenny\\source\\repos\\MLCDental\\cliniccc\\DentalClinicBooking\\DentalClinicBooking.csproj",
-      "packagesPath": "C:\\Users\\Kenny\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Kenny\\source\\repos\\MLCDental\\cliniccc\\DentalClinicBooking\\obj\\",
+      "projectPath": "C:\\Users\\elaiza mae\\Source\\Repos\\MLCDental\\Clinic\\DentalClinicBooking\\DentalClinicBooking.csproj",
+      "packagesPath": "C:\\Users\\elaiza mae\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\elaiza mae\\Source\\Repos\\MLCDental\\Clinic\\DentalClinicBooking\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\Kenny\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\elaiza mae\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -7725,7 +7725,6 @@
         "net8.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
@@ -7797,7 +7796,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.312/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
