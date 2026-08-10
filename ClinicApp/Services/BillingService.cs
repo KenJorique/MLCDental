@@ -84,30 +84,16 @@ public class BillingService
             var localPatientId = await GetLocalPatientIdAsync(
     draft.PatientId,
     draft.PatientName);
-            if (!string.IsNullOrWhiteSpace(supabaseEntryId))
-            {
-                try
-                {
-                    await _supabase.DeleteAppointmentEntryAsync(supabaseEntryId);
 
-                    var entries = await _supabase.GetAppointmentEntriesAsync();
+            // BUGFIX: this used to delete the appointment_entries row (and its
+            // linked booking) right here — the moment the bill was CREATED,
+            // i.e. as soon as staff tapped "Proceed to Payment" on Bill
+            // Summary. That meant a patient vanished from "In Procedure" even
+            // if the payment flow was abandoned/backed-out-of before ever
+            // reaching Receipt. ReceiptViewModel.Done() already performs this
+            // exact same cleanup at the point the flow is genuinely
+            // finished — that's the only place it should happen.
 
-                    var entry = entries.FirstOrDefault(x =>
-                        x.Id == supabaseEntryId);
-
-                    if (entry != null &&
-                        !string.IsNullOrWhiteSpace(entry.SupabaseBookingId))
-                    {
-                        await _supabase.DeleteBookingAsync(
-                            entry.SupabaseBookingId);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[BillingService] Appointment cleanup: {ex.Message}");
-                }
-            }
             result.Bill = saved;
             foreach (var item in draft.Services)
             {
@@ -135,12 +121,25 @@ public class BillingService
                         item.ParsedTeethNumbers.Count > 0,
 
                     // Per-item installment plan — 50% down today, remainder
+                    // split over the chosen number of months. Only meaningful
                     // when the service is both eligible AND the staff turned
                     // the toggle on for this specific item.
                     IsInstallment = item.IsInstallmentEligible && item.IsInstallmentSelected,
                     InstallmentMonths = item.IsInstallmentSelected ? item.SelectedInstallmentMonths : 0,
                     DownpaymentAmount = item.DownpaymentAmount,
                     MonthlyPayment = item.MonthlyPaymentAmount,
+                    // Balance starts at the FULL subtotal, not just the
+                    // remaining-after-downpayment — the downpayment itself
+                    // still needs to be recorded as a payment against this
+                    // item (see the payment-allocation note for your teammate).
+                    // Non-installment items' balance must reflect the discount
+                    // (discount only ever applies to non-installment items —
+                    // see BillSummaryViewModel.CalculateTotals). Installment
+                    // items keep their full undiscounted subtotal as balance,
+                    // matching DownpaymentAmount/MonthlyPayment which are also
+                    // always based on full price. Without this, the sum of
+                    // per-item balances wouldn't match the bill's actual
+                    // (discounted) TotalAmount whenever a discount applies.
                     Balance = (item.IsInstallmentEligible && item.IsInstallmentSelected)
                         ? item.Subtotal
                         : Math.Round(item.Subtotal * (1 - draft.DiscountPercent), 2)
@@ -211,6 +210,9 @@ public class BillingService
         {
             var condition = ToothAwareServices.GetCondition(serviceName);
 
+            // Look up the hex color for this condition, same palette
+            // used by DentalChartViewModel, so history entries match
+            // the chart's color-coding.
             var hex = ClinicApp.ViewModels.DentalChart.DentalChartViewModel
                 .ConditionColors.TryGetValue(condition, out var c) ? c : "#FFFFFF";
 

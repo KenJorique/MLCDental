@@ -55,18 +55,7 @@ public partial class PaymentViewModel : ObservableObject
     public string LastPaymentDateDisplay =>
         Bill?.LastPaymentDateDisplay ?? "—";
 
-    public string RemainingAfterPaymentDisplay
-    {
-        get
-        {
-            if (Bill == null) return "₱0.00";
-            var toRecord = PaymentAmount > MinimumDueToday ? MinimumDueToday : PaymentAmount;
-            var remaining = Bill.Balance - toRecord;
-            if (remaining < 0) remaining = 0;
-            return $"₱{remaining:N2}";
-        }
-    }
-
+    // ── lets the UI highlight "Full Balance" chip when it matches ──
     public bool IsFullPaymentSelected =>
         Bill != null && PaymentAmount == Bill.Balance && PaymentAmount > 0;
 
@@ -88,10 +77,14 @@ public partial class PaymentViewModel : ObservableObject
     [ObservableProperty]
     private decimal liveMinimumDue;
 
+    [ObservableProperty]
+    private bool hasLoadedMinimumDue;
+
     partial void OnBillChanged(SupabaseBill? value)
     {
         // Starts at 0, not pre-filled — staff types the amount received.
         PaymentAmount = 0;
+        HasLoadedMinimumDue = false;
 
         OnPropertyChanged(nameof(SubtotalDisplay));
         OnPropertyChanged(nameof(DiscountDisplay));
@@ -101,7 +94,6 @@ public partial class PaymentViewModel : ObservableObject
         OnPropertyChanged(nameof(BillNumber));
         OnPropertyChanged(nameof(DueDateDisplay));
         OnPropertyChanged(nameof(LastPaymentDateDisplay));
-        OnPropertyChanged(nameof(RemainingAfterPaymentDisplay));
         OnPropertyChanged(nameof(IsFullPaymentSelected));
 
         // Fetched fresh here (not in LoadBillAsync) because Bill can also
@@ -112,10 +104,11 @@ public partial class PaymentViewModel : ObservableObject
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 LiveMinimumDue = await _supabase.GetMinimumDueForBillAsync(value.Id);
+                HasLoadedMinimumDue = true;
                 OnPropertyChanged(nameof(MinimumDueToday));
                 OnPropertyChanged(nameof(MinimumDueTodayDisplay));
                 OnPropertyChanged(nameof(IsBelowMinimum));
-                OnPropertyChanged(nameof(RemainingAfterPaymentDisplay));
+                OnPropertyChanged(nameof(IsNothingDue));
             });
         }
         else
@@ -126,24 +119,54 @@ public partial class PaymentViewModel : ObservableObject
         OnPropertyChanged(nameof(MinimumDueToday));
         OnPropertyChanged(nameof(MinimumDueTodayDisplay));
         OnPropertyChanged(nameof(IsBelowMinimum));
+        OnPropertyChanged(nameof(IsNothingDue));
     }
 
+    // Live-fetched per visit — see OnBillChanged. Before the fetch
+    // completes, falls back to Bill.Balance so staff don't briefly see a
+    // ₱0 minimum while it's loading. Once loaded, 0 is trusted as genuine
+    // (bill fully paid, or next installment not due yet) — it does NOT
+    // fall back to Balance anymore, since that was the actual bug: it let
+    // staff record a payment for an amount that wasn't really due.
     public decimal MinimumDueToday =>
-        Bill == null ? 0 : LiveMinimumDue > 0 ? LiveMinimumDue : Bill.Balance;
+        Bill == null ? 0 : HasLoadedMinimumDue ? LiveMinimumDue : Bill.Balance;
 
     public string MinimumDueTodayDisplay => $"₱{MinimumDueToday:N2}";
 
-    // Blocks ANY amount below the minimum
+    public string PaymentAmountDisplay => $"₱{PaymentAmount:N2}";
+
+    // True once we've genuinely confirmed nothing is owed right now —
+    // either the bill is fully paid, or (for installment bills) the next
+    // payment simply isn't due yet. Blocks RecordPayment entirely; this is
+    // what stops the "go back to Payment page after already paying and
+    // submit again" bug, regardless of what amount gets typed.
+    public bool IsNothingDue =>
+        Bill != null && HasLoadedMinimumDue &&
+        (Bill.Balance <= 0 || MinimumDueToday <= 0);
+
+    // Blocks ANY amount below the minimum, including 0 — there's no
+    // "enter 0 to skip payment for now" escape hatch. No longer disables
+    // the button — the check happens as an alert on tap instead (see
+    // RecordPayment), rather than a persistent banner while typing.
     public bool IsBelowMinimum =>
-        Bill != null && PaymentAmount < MinimumDueToday;
+        Bill != null && !IsNothingDue && PaymentAmount < MinimumDueToday;
+
+    // Flags amounts that exceed the WHOLE bill balance — almost always a
+    // typo (an extra zero, etc.) rather than a genuine intent to overpay.
+    public bool IsAmountTooLarge =>
+        Bill != null && PaymentAmount > Bill.Balance;
 
     // Anything typed beyond the minimum isn't recorded as extra payment —
     // it's handled like a cash register: the excess is Change, and only
     // MinimumDueToday actually gets recorded. Staff use the separate
     // "Add Payment" flow (on Bill Details / Receipt) if the patient
-    // genuinely wants to pay more toward the balance.
+    // genuinely wants to pay more toward the balance. Suppressed when the
+    // amount is flagged as too large — the warning takes over instead of
+    // showing a huge, likely-mistaken Change figure.
     public decimal Change =>
-        PaymentAmount > MinimumDueToday ? PaymentAmount - MinimumDueToday : 0;
+        PaymentAmount > MinimumDueToday && !IsAmountTooLarge
+            ? PaymentAmount - MinimumDueToday
+            : 0;
 
     public string ChangeDisplay => $"₱{Change:N2}";
 
@@ -160,9 +183,10 @@ public partial class PaymentViewModel : ObservableObject
             return;
         }
 
-        OnPropertyChanged(nameof(RemainingAfterPaymentDisplay));
+        OnPropertyChanged(nameof(PaymentAmountDisplay));
         OnPropertyChanged(nameof(IsFullPaymentSelected));
         OnPropertyChanged(nameof(IsBelowMinimum));
+        OnPropertyChanged(nameof(IsAmountTooLarge));
         OnPropertyChanged(nameof(Change));
         OnPropertyChanged(nameof(ChangeDisplay));
         OnPropertyChanged(nameof(HasChange));
@@ -207,23 +231,57 @@ public partial class PaymentViewModel : ObservableObject
         if (Bill == null)
             return;
 
+        // Blocks re-submitting after already fully paying, or before the
+        // next installment is genuinely due (e.g. going back to this page
+        // right after paying the downpayment, same visit, same day).
+        if (IsNothingDue)
+        {
+            var message = Bill.Balance <= 0
+                ? "This bill is already fully paid."
+                : $"Nothing is due right now. Next payment is due {DueDateDisplay}.";
+
+            await Shell.Current.DisplayAlert("Nothing Due", message, "OK");
+            return;
+        }
+
+        // No more "0 = skip payment" exception — every submission,
+        // including 0, is checked against the minimum. Shown as an alert
+        // on tap now, not a persistent banner while typing (that was
+        // redundant with the "Minimum due today" hint already on screen).
+        if (IsBelowMinimum)
+        {
+            await Shell.Current.DisplayAlert(
+                "Payment Too Low",
+                $"Minimum payment today is {MinimumDueTodayDisplay}.",
+                "OK");
+            return;
+        }
+
+        // Amounts beyond the whole bill balance are almost always a typo
+        // (an extra zero, etc.) — ask for confirmation rather than
+        // silently recording it or showing an oddly huge "Change" figure.
+        if (IsAmountTooLarge)
+        {
+            bool proceed = await Shell.Current.DisplayAlert(
+                "Check Amount",
+                $"You entered {PaymentAmountDisplay}, but the total balance " +
+                $"is only {BalanceDisplay}. Continue anyway?",
+                "Yes, Continue", "Cancel");
+
+            if (!proceed)
+                return;
+        }
+
         IsBusy = true;
         HasError = false;
 
         try
         {
-            // No more "0 = skip payment" exception — every submission,
-            // including 0, is checked against the minimum below.
-            if (IsBelowMinimum)
-            {
-                HasError = true;
-                ErrorMessage = $"Minimum payment today is {MinimumDueTodayDisplay}.";
-                return;
-            }
-
             // Whatever staff typed beyond the minimum is Change, not part
             // of the recorded payment — see the Change property above.
-            var amountToRecord = MinimumDueToday;
+            // Capped at Bill.Balance too, defensively, so this can never
+            // record more than what's genuinely still owed.
+            var amountToRecord = Math.Min(MinimumDueToday, Bill.Balance);
 
             var (success, error) =
                 await _supabase.RecordPaymentAsync(Bill.Id, amountToRecord);
@@ -235,8 +293,15 @@ public partial class PaymentViewModel : ObservableObject
                 return;
             }
 
+            // ".." pops THIS page (Payment) off the back-stack as part of
+            // navigating to Receipt, so the back button from Receipt skips
+            // right past Payment instead of ever landing back on it — that
+            // was the actual ask: prevent back-navigation reuse, not gate
+            // by date. (IsNothingDue above is a separate safety net for
+            // when Payment page is reached fresh from elsewhere, like
+            // Pay Now on the ledger, before anything is genuinely due.)
             await Shell.Current.GoToAsync(
-    $"{nameof(ReceiptPage)}" +
+    $"../{nameof(ReceiptPage)}" +
     $"?billId={Bill.Id}" +
     $"&patientName={Uri.EscapeDataString(PatientName)}" +
     $"&patientId={Uri.EscapeDataString(PatientId)}" +

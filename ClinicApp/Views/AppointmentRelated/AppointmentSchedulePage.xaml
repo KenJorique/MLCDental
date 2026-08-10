@@ -274,16 +274,16 @@
 			</VerticalStackLayout>
 
 			<!-- CALENDAR VIEW -->
-			<VerticalStackLayout IsVisible="{Binding IsCalendarView}" Spacing="0">
-				<GraphicsView x:Name="CalendarGraphics"
-                              Drawable="{Binding CalendarDrawable}"
-                              HeightRequest="300"
-                              BackgroundColor="{StaticResource PageBg}">
-					<GraphicsView.GestureRecognizers>
-						<TapGestureRecognizer Tapped="OnCalendarTapped"/>
-					</GraphicsView.GestureRecognizers>
-				</GraphicsView>
-			</VerticalStackLayout>
+			<GraphicsView x:Name="CalendarGraphics"
+                          IsVisible="{Binding IsCalendarView}"
+                          Drawable="{Binding CalendarDrawable}"
+                          HeightRequest="420"
+                          VerticalOptions="Start"
+                          BackgroundColor="White">
+				<GraphicsView.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnCalendarTapped"/>
+				</GraphicsView.GestureRecognizers>
+			</GraphicsView>
 
 			<!-- FAB — Book Appointment (green, same style as Patient page) -->
 			<Button Text="+ Book Appointment"

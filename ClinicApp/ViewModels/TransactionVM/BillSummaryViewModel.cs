@@ -27,8 +27,24 @@ public partial class BillSummaryViewModel : ObservableObject
     [ObservableProperty]
     decimal discountAmount;
 
+    // Special: a flat peso amount off (e.g. ₱150 off) rather than a
+    // percentage. When on, DiscountPercent is unused — the entered amount
+    // becomes the discount directly (capped so it can't exceed what's
+    // actually eligible for discount).
+    [ObservableProperty]
+    bool isSpecialDiscount;
+
+    [ObservableProperty]
+    decimal specialDiscountAmount;
+
     [ObservableProperty]
     decimal total;
+
+    // NOTE: installment is now a PER-SERVICE decision (see ServiceLineItem.
+    // IsInstallmentSelected / SelectedInstallmentMonths) rather than one
+    // toggle for the whole bill. The old bill-wide IsInstallment/
+    // InstallmentMonths/MonthlyPayment properties are gone from here —
+    // "AmountDueToday" below is the sum of each item's own contribution.
 
     [ObservableProperty]
     decimal amountDueToday;
@@ -42,13 +58,15 @@ public partial class BillSummaryViewModel : ObservableObject
     [ObservableProperty]
     string createdBillNumber = "";
 
-    public bool HasDiscount => DiscountPercent > 0;
+    public bool HasDiscount => DiscountPercent > 0 || SpecialDiscountAmount > 0;
 
     public bool HasInstallmentService =>
         Services.Any(x => x.IsInstallmentEligible);
 
     public bool HasServices => Services.Count > 0;
+
     public int TotalItems => Services.Count;
+
     public string SubtotalDisplay => $"₱{Subtotal:N2}";
     public string DiscountDisplay => $"₱{DiscountAmount:N2}";
     public string TotalDisplay => $"₱{Total:N2}";
@@ -85,7 +103,10 @@ public partial class BillSummaryViewModel : ObservableObject
     }
 
     // Each item's own IsInstallmentSelected / SelectedInstallmentMonths
-    // toggle lives on the item itself (bound directly in the CollectionView template)
+    // toggle lives on the item itself (bound directly in the CollectionView
+    // template) — ObservableCollection only raises CollectionChanged for
+    // Add/Remove, not for a property changing on an item already inside it,
+    // so we listen to each item directly to know when to recalculate.
     void OnServiceItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(ServiceLineItem.IsInstallmentSelected)
@@ -104,20 +125,39 @@ public partial class BillSummaryViewModel : ObservableObject
         CalculateTotals();
     }
 
+    partial void OnSpecialDiscountAmountChanged(decimal value)
+    {
+        CalculateTotals();
+    }
+
+    partial void OnIsSpecialDiscountChanged(bool value)
+    {
+        CalculateTotals();
+    }
+
     private void CalculateTotals()
     {
         Subtotal = Services.Sum(x => x.Subtotal);
 
-        // Discount only applies to services NOT on an installment plan —
+        // Discount excludes any service that's eligible for installment —
+        // regardless of whether the patient actually chose a plan for it.
+        // (Previously this only excluded items actively toggled ON, which
+        // wrongly let PWD/Senior % apply to an eligible-but-not-selected
+        // service's full price.)
         var discountEligibleSubtotal = Services
-            .Where(x => !(x.IsInstallmentEligible && x.IsInstallmentSelected))
+            .Where(x => !x.IsInstallmentEligible)
             .Sum(x => x.Subtotal);
 
-        DiscountAmount = Math.Round(discountEligibleSubtotal * DiscountPercent, 2);
+        DiscountAmount = IsSpecialDiscount
+            ? Math.Min(SpecialDiscountAmount, discountEligibleSubtotal)
+            : Math.Round(discountEligibleSubtotal * DiscountPercent, 2);
+
         Total = Subtotal - DiscountAmount;
 
         // Due today = sum of each item's own contribution (full price, or
-        // 50% down if on a plan), minus the discount
+        // 50% down if on a plan), minus the discount — which only ever
+        // came from items that ARE due in full today, so it's correct to
+        // net it out here too.
         AmountDueToday = Services.Sum(x => x.AmountDueToday) - DiscountAmount;
 
         if (BillDraftStore.Current != null)
@@ -127,6 +167,13 @@ public partial class BillSummaryViewModel : ObservableObject
             BillDraftStore.Current.DiscountAmount = DiscountAmount;
             BillDraftStore.Current.Total = Total;
             BillDraftStore.Current.AmountDueToday = AmountDueToday;
+
+            // Bridging fields for the bill-level Supabase columns until the
+            // payment-allocation rework moves this fully to bill_items:
+            // "is this bill installment at all" and "sum of monthly
+            // payments across every plan on it" still make sense as
+            // rough bill-level summaries even though the real terms now
+            // live per item.
             BillDraftStore.Current.IsInstallment = HasInstallmentService &&
                 Services.Any(x => x.IsInstallmentSelected);
             BillDraftStore.Current.InstallmentMonths = Services

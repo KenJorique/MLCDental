@@ -28,10 +28,17 @@ public partial class BillSummaryPage : ContentPage
         {
             case 1:
             case 2:
+                _vm.IsSpecialDiscount = false;
                 _vm.DiscountPercent = 0.20m;
                 break;
 
+            case 3:
+                _vm.IsSpecialDiscount = true;
+                _vm.DiscountPercent = 0m;
+                break;
+
             default:
+                _vm.IsSpecialDiscount = false;
                 _vm.DiscountPercent = 0m;
                 break;
         }

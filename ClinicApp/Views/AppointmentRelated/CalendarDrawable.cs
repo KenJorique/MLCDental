@@ -10,9 +10,16 @@ namespace ClinicApp.Views.AppointmentRelated
 
         private const float TimeColW = 50f;
         private const float DayColW = 46f;
-        private const float RowH = 48f;
-        private const float HeaderH = 50f;
-        private readonly int[] _hours = { 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+        private const float RowH = 52f;   // 7 rows × 52 + 54 header = 418px
+        private const float HeaderH = 54f;
+
+        // Clinic hours: 10 AM – 5 PM (17 = 5 PM slot start)
+        private readonly int[] _hours = { 10, 11, 12, 13, 14, 15, 16 };
+
+        // Gold/beige appointment block colors matching the list view cards
+        private static readonly Color AppointmentFill = Color.FromArgb("#F5F0D0");
+        private static readonly Color AppointmentBorder = Color.FromArgb("#C8A84B");
+        private static readonly Color AppointmentText = Color.FromArgb("#1A1A2E");
 
         private readonly List<(RectF rect, AppointmentEntry entry)> _tapRegions = new();
 
@@ -21,7 +28,8 @@ namespace ClinicApp.Views.AppointmentRelated
             _tapRegions.Clear();
             canvas.Antialias = true;
 
-            canvas.FillColor = Color.FromArgb("#F5F5F5");
+            // White background
+            canvas.FillColor = Colors.White;
             canvas.FillRectangle(dirtyRect);
 
             if (Columns == null || Columns.Count == 0)
@@ -29,9 +37,9 @@ namespace ClinicApp.Views.AppointmentRelated
                 canvas.FontSize = 14f;
                 canvas.FontColor = Colors.Gray;
                 canvas.DrawString("No appointments this week",
-     dirtyRect.Width / 2, dirtyRect.Height / 2,
-     dirtyRect.Width, 40,
-     HorizontalAlignment.Center, VerticalAlignment.Center);
+                    dirtyRect.Width / 2, dirtyRect.Height / 2,
+                    dirtyRect.Width, 40,
+                    HorizontalAlignment.Center, VerticalAlignment.Center);
                 return;
             }
 
@@ -46,25 +54,31 @@ namespace ClinicApp.Views.AppointmentRelated
             {
                 var col = Columns[d];
                 float x = TimeColW + d * DayColW;
-                float cx = x + DayColW / 2;
+                float cx = x + DayColW / 2f;
 
+                // Day label (MON, TUE…)
                 canvas.FontSize = 9f;
                 canvas.FontColor = Colors.Gray;
-                canvas.DrawString(col.DayLabel, x, 8, DayColW, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
+                canvas.DrawString(col.DayLabel, x, 6, DayColW, 18,
+                    HorizontalAlignment.Center, VerticalAlignment.Center);
 
+                // Date number — green circle if today, plain otherwise
                 if (col.IsToday)
                 {
-                    canvas.FillColor = Color.FromArgb("#4A4A8A");
-                    canvas.FillCircle(cx, 35, 14);
+                    canvas.FillColor = Color.FromArgb("#2E7D32");
+                    // Circle centred on the day column
+                    canvas.FillCircle(cx, 38f, 14f);
                     canvas.FontColor = Colors.White;
                 }
                 else
                 {
-                    canvas.FontColor = Colors.Black;
+                    canvas.FontColor = Color.FromArgb("#1A1A2E");
                 }
 
                 canvas.FontSize = 13f;
-                canvas.DrawString(col.DayNum, x, 28, DayColW, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
+                // DrawString: x, y, width, height — centred within the column
+                canvas.DrawString(col.DayNum, x, 30f, DayColW, 20f,
+                    HorizontalAlignment.Center, VerticalAlignment.Center);
             }
         }
 
@@ -72,16 +86,23 @@ namespace ClinicApp.Views.AppointmentRelated
         {
             canvas.FontSize = 10f;
             canvas.FontColor = Colors.Gray;
-            canvas.StrokeColor = Color.FromArgb("#E0E0E0");
+            // Light green-tinted grid lines
+            canvas.StrokeColor = Color.FromArgb("#DCEEE0");
             canvas.StrokeSize = 1f;
 
             for (int i = 0; i < _hours.Length; i++)
             {
                 float y = HeaderH + i * RowH;
-                string label = _hours[i] >= 12 ? $"{_hours[i] - 12} PM" : $"{_hours[i]} AM";
 
-                canvas.DrawString(label, 4, y + 8, TimeColW - 8, RowH, HorizontalAlignment.Right, VerticalAlignment.Top);
-                canvas.DrawLine(TimeColW, y, 500, y);
+                // 12 = noon label, otherwise AM/PM
+                string label;
+                if (_hours[i] == 12) label = "12 PM";
+                else if (_hours[i] > 12) label = $"{_hours[i] - 12} PM";
+                else label = $"{_hours[i]} AM";
+
+                canvas.DrawString(label, 4, y + 6, TimeColW - 8, RowH,
+                    HorizontalAlignment.Right, VerticalAlignment.Top);
+                canvas.DrawLine(TimeColW, y, 600, y);
             }
         }
 
@@ -101,36 +122,55 @@ namespace ClinicApp.Views.AppointmentRelated
                     var slot = col.Slots[i];
                     float y = HeaderH + i * RowH;
 
-                   
-
                     if (slot.Entry == null) continue;
 
-                    var rect = new RectF(colX + 3, y + 4, DayColW - 6, RowH - 8);
-                    canvas.FillColor = slot.Entry.StatusColor;
+                    var rect = new RectF(colX + 2, y + 4, DayColW - 4, RowH - 8);
+
+                    // Gold/beige fill matching list view appointment cards
+                    canvas.FillColor = AppointmentFill;
                     canvas.FillRoundedRectangle(rect, 6);
 
-                    // Event text
+                    // Gold border
+                    canvas.StrokeColor = AppointmentBorder;
+                    canvas.StrokeSize = 1.5f;
+                    canvas.DrawRoundedRectangle(rect, 6);
+
+                    // Patient name only — centered vertically in the block
+                    // Wrap at ~10 chars per line to fit the narrow column
+                    var rawName = slot.Entry.PatientName ?? "";
+                    var nameParts = rawName.Split(' ');
+                    // Show first name on line 1, last name initial on line 2
+                    string line1 = nameParts.Length > 0 ? nameParts[0] : rawName;
+                    string line2 = nameParts.Length > 1
+                        ? string.Join(" ", nameParts.Skip(1)) : "";
+
+                    // Truncate if still too long for column
+                    if (line1.Length > 7) line1 = line1.Substring(0, 6) + ".";
+                    if (line2.Length > 7) line2 = line2.Substring(0, 6) + ".";
+
                     canvas.FontSize = 8f;
-                    canvas.FontColor = Colors.White;
-                    canvas.DrawString(slot.HourLabel,
-                        rect.X + 4, rect.Y + 4,
-                        rect.Width - 8, 14,
-                        HorizontalAlignment.Left, VerticalAlignment.Top);
+                    canvas.FontColor = AppointmentText;
 
-                    canvas.FontSize = 7f;
-                    var name = slot.Entry.PatientName.Length > 9
-                        ? slot.Entry.PatientName.Substring(0, 9) + ".."
-                        : slot.Entry.PatientName;
+                    float textY = string.IsNullOrEmpty(line2)
+                        ? rect.Y + (rect.Height / 2) - 6
+                        : rect.Y + (rect.Height / 2) - 12;
 
-                    canvas.DrawString(name,
-                        rect.X + 4, rect.Y + 18,
-                        rect.Width - 8, 14,
-                        HorizontalAlignment.Left, VerticalAlignment.Top);
+                    canvas.DrawString(line1,
+                        rect.X + 2, textY,
+                        rect.Width - 4, 14,
+                        HorizontalAlignment.Center, VerticalAlignment.Top);
+
+                    if (!string.IsNullOrEmpty(line2))
+                        canvas.DrawString(line2,
+                            rect.X + 2, textY + 14,
+                            rect.Width - 4, 14,
+                            HorizontalAlignment.Center, VerticalAlignment.Top);
 
                     _tapRegions.Add((rect, slot.Entry));
                 }
             }
         }
+
         public AppointmentEntry? HitTest(float x, float y)
         {
             foreach (var (rect, entry) in _tapRegions)

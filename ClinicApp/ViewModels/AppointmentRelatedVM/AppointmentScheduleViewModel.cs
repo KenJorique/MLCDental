@@ -137,8 +137,9 @@ namespace ClinicApp.ViewModels
         public AppointmentScheduleViewModel(DatabaseService db, SupabaseDataService supabaseData)
         {
             _db = db;
-            UpdateDateLabel();
             _supabaseData = supabaseData;
+            UpdateDateLabel();
+            UpdateCanGoPrevious();
         }
 
         private void UpdateDateLabel()
@@ -172,6 +173,7 @@ namespace ClinicApp.ViewModels
             if (newDate.Date < DateTime.Today.AddDays(-6)) return;
             CurrentDate = newDate;
             UpdateDateLabel();
+            UpdateCanGoPrevious();
             await LoadAppointments();
             CalendarNeedsRedraw?.Invoke();
         }
@@ -198,7 +200,9 @@ namespace ClinicApp.ViewModels
 
         private void UpdateCanGoPrevious()
         {
-            CanGoPrevious = WeekStart.Date >= DateTime.Today.AddDays(-6);
+            // Gray (false) when already on current week — can't go further back
+            // Green (true) when on a future week — can navigate back
+            CanGoPrevious = WeekStart.Date > DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
         }
 
         private void UpdateListLabels()
@@ -571,7 +575,7 @@ namespace ClinicApp.ViewModels
 
         private void BuildCalendarColumns(List<AppointmentEntry> entries)
         {
-            var hours = new[] { 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            var hours = new[] { 10, 11, 12, 13, 14, 15, 16 };
             var newColumns = new List<CalendarDayColumn>();
 
             for (int d = 0; d < 7; d++)

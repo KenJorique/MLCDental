@@ -1,11 +1,13 @@
-﻿<?xml version = "1.0" encoding = "UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:ClinicApp"
              xmlns:converters="clr-namespace:ClinicApp.Converters"
              x:Class="ClinicApp.App">
+
 	<Application.Resources>
 		<ResourceDictionary>
+			<!-- ── Merged Style Dictionaries ── -->
 			<ResourceDictionary.MergedDictionaries>
 				<ResourceDictionary Source="Resources/Styles/Colors.xaml" />
 				<ResourceDictionary Source="Resources/Styles/Styles.xaml" />
@@ -14,34 +16,37 @@
 				<ResourceDictionary Source="Resources/Styles/FormStyles.xaml" />
 			</ResourceDictionary.MergedDictionaries>
 
-			<converters:BoolToTabColorConverter x:Key="BoolToTabColorConverter" />
-			<converters:BoolToGenderConverter x:Key="BoolToGenderConverter" />
-			<converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
-			<converters:StringEmptyConverter x:Key="StringEmptyConverter" />
-			<converters:StringEqualConverter x:Key="StringEqualConverter" />
-			<converters:StringNotEqualConverter x:Key="StringNotEqualConverter" />
-			<converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
-			<converters:IntEqualZeroConverter x:Key="IntEqualZeroConverter" />
-			<converters:IntNotEqualZeroConverter x:Key="IntNotEqualZeroConverter" />
-			<converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+			<!-- ── Bool Converters ── -->
+			<converters:BoolToTabColorConverter     x:Key="BoolToTabColorConverter" />
+			<converters:BoolToTabBgConverter        x:Key="BoolToTabBgConverter" />
+			<converters:BoolToTabTextConverter      x:Key="BoolToTabTextConverter" />
+			<converters:BoolToFontAttrConverter     x:Key="BoolToFontAttrConverter" />
+			<converters:BoolToColorConverter        x:Key="BoolToColorConverter" />
+			<converters:BoolToStatusColorConverter  x:Key="BoolToStatusColorConverter" />
+			<converters:BoolToStatusTextConverter   x:Key="BoolToStatusTextConverter" />
+			<converters:BoolToGenderConverter       x:Key="BoolToGenderConverter" />
+			<converters:BoolToYesNoConverter        x:Key="BoolToYesNoConverter" />
+			<converters:BoolToEditLabelConverter    x:Key="BoolToEditLabelConverter" />
+			<converters:InvertedBoolConverter       x:Key="InvertedBoolConverter" />
+			<converters:InverseBoolConverter        x:Key="InverseBoolConverter" />
 
-			<converters:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter" />
-			<converters:BoolToStatusTextConverter x:Key="BoolToStatusTextConverter" />
-			<converters:BoolToTabBgConverter x:Key="BoolToTabBgConverter" />
-			<converters:BoolToTabTextConverter x:Key="BoolToTabTextConverter" />
-			<converters:BoolToFontAttrConverter x:Key="BoolToFontAttrConverter" />
-			<converters:BoolToYesNoConverter x:Key="BoolToYesNoConverter" />
-			<converters:BoolToEditLabelConverter x:Key="BoolToEditLabelConverter" />
+			<!-- ── String Converters ── -->
+			<converters:StringNotEmptyConverter     x:Key="StringNotEmptyConverter" />
+			<converters:StringEmptyConverter        x:Key="StringEmptyConverter" />
+			<converters:StringEqualConverter        x:Key="StringEqualConverter" />
+			<converters:StringNotEqualConverter     x:Key="StringNotEqualConverter" />
+			<converters:StringToBoolConverter       x:Key="StringToBoolConverter" />
 
-			<converters:BoolToColorConverter x:Key="BoolToColorConverter" />
-			<converters:IntToBoolConverter x:Key="IntToBoolConverter" />
-			<converters:StringToBoolConverter x:Key="StringToBoolConverter" />
+			<!-- ── Int Converters ── -->
+			<converters:IntEqualZeroConverter       x:Key="IntEqualZeroConverter" />
+			<converters:IntNotEqualZeroConverter    x:Key="IntNotEqualZeroConverter" />
+			<converters:IntToBoolConverter          x:Key="IntToBoolConverter" />
 
-            <converters:DecimalNotZeroConverter x:Key="DecimalNotZeroConverter"/>
+			<converters:DecimalNotZeroConverter     x:Key="DecimalNotZeroConverter" />
+			<converters:ToothAwareConverter         x:Key="ToothAwareConverter" />
+			<converters:InstallmentConverter        x:Key="InstallmentConverter" />
 
-            <converters:ToothAwareConverter   x:Key="ToothAwareConverter"/>
-            <converters:InstallmentConverter  x:Key="InstallmentConverter"/>
-
-        </ResourceDictionary>
+		</ResourceDictionary>
 	</Application.Resources>
+
 </Application>

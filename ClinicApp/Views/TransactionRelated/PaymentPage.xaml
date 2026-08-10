@@ -107,7 +107,7 @@
 					</VerticalStackLayout>
 				</Frame>
 
-				<!-- Amount entry with quick-fill chips -->
+				<!-- Amount entry -->
 				<Frame BackgroundColor="{StaticResource White}"
                        BorderColor="{StaticResource Gray100}"
                        CornerRadius="12"
@@ -130,52 +130,40 @@
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource Primary}"
                                        VerticalOptions="Center"/>
-								<Entry Grid.Column="1"
+								<Entry x:Name="AmountEntry"
+                                       Grid.Column="1"
                                        Style="{StaticResource FormEntry}"
-                                       Text="{Binding PaymentAmount}"
                                        Keyboard="Numeric"
                                        FontSize="26"
                                        FontAttributes="Bold"
-                                       HorizontalTextAlignment="End"/>
+                                       HorizontalTextAlignment="End"
+                                       TextChanged="OnAmountTextChanged"/>
 							</Grid>
 						</Border>
-
-						<!-- Live "remaining after this payment" preview -->
-						<Frame BackgroundColor="{StaticResource Secondary}"
-                               BorderColor="Transparent"
-                               CornerRadius="8"
-                               Padding="10,8"
-                               HasShadow="False">
-							<Grid ColumnDefinitions="*,Auto">
-								<Label Text="Remaining After This Payment"
-                                       FontSize="12"
-                                       TextColor="#444"/>
-								<Label Grid.Column="1"
-                                       Text="{Binding RemainingAfterPaymentDisplay}"
-                                       FontSize="13"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource Primary}"/>
-							</Grid>
-						</Frame>
 					</VerticalStackLayout>
 				</Frame>
 
-				<!-- Below-minimum warning -->
-				<Frame BackgroundColor="#FCEAEA"
-                       BorderColor="#FFCDD2"
+				<!-- Amount too large: shown instead of Change when the entered
+                     amount exceeds the WHOLE bill balance — almost always a
+                     typo (e.g. an extra zero), so it's flagged rather than
+                     silently computing a huge "change" figure. Record Payment
+                     still asks for confirmation before proceeding. -->
+				<Frame BackgroundColor="#FFF3E0"
+                       BorderColor="#FFCC80"
                        CornerRadius="12"
                        Padding="12"
                        HasShadow="False"
-                       IsVisible="{Binding IsBelowMinimum}">
-					<Label Text="{Binding MinimumDueTodayDisplay, StringFormat='This is below the minimum due today ({0}).'}"
+                       IsVisible="{Binding IsAmountTooLarge}">
+					<Label Text="{Binding BalanceDisplay, StringFormat='This is more than the total balance ({0}). Please double-check the amount.'}"
                            FontSize="12"
-                           TextColor="#C62828"/>
+                           TextColor="#E65100"/>
 				</Frame>
 
-				<!-- Change: shown when the entered amount exceeds the minimum.
-                     The excess isn't recorded as extra payment — it's Change,
-                     same as a cash register. Use Add Payment elsewhere if the
-                     patient wants to pay more toward the balance. -->
+				<!-- Change: shown when the entered amount exceeds the minimum
+                     (but not the whole balance). The excess isn't recorded as
+                     extra payment — it's Change, same as a cash register. Use
+                     Add Payment elsewhere if the patient wants to pay more
+                     toward the balance. -->
 				<Frame BackgroundColor="{StaticResource Secondary}"
                        BorderColor="Transparent"
                        CornerRadius="12"
@@ -215,7 +203,6 @@
                         CornerRadius="12"
                         HeightRequest="48"
                         FontSize="14"
-                        IsEnabled="{Binding IsBelowMinimum, Converter={StaticResource InvertedBoolConverter}}"
                         Command="{Binding RecordPaymentCommand}"/>
 
 				<!--<Button Text="Skip — Pay Later"

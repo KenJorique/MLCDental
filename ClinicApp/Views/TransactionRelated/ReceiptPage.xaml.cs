@@ -12,4 +12,12 @@ public partial class ReceiptPage : ContentPage
         _vm = vm;
         BindingContext = vm;
     }
+
+    // Blocks Android's hardware/gesture back button. Hiding the visual
+    // back arrow (see Shell.BackButtonBehavior in the XAML) doesn't stop
+    // this on its own — Done is meant to be the only way off this page.
+    protected override bool OnBackButtonPressed()
+    {
+        return true;
+    }
 }
