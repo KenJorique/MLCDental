@@ -209,5 +209,67 @@ namespace ClinicApp.Services
                     $"[Realtime] SubscribeAppointments error: {ex.Message}");
             }
         }
+
+        public event Action? OnSupplyChanged;
+
+        public async Task SubscribeToSuppliesAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-supplies");
+                channel.Register(new PostgresChangesOptions("public", "supplies"));
+
+                channel.AddPostgresChangeHandler(ListenType.Inserts, (sender, change) =>
+                {
+                    System.Diagnostics.Debug.WriteLine("[Realtime] New supply from another device");
+                    MainThread.BeginInvokeOnMainThread(() => OnSupplyChanged?.Invoke());
+                });
+
+                channel.AddPostgresChangeHandler(ListenType.Updates, (sender, change) =>
+                {
+                    System.Diagnostics.Debug.WriteLine("[Realtime] Supply updated from another device");
+                    MainThread.BeginInvokeOnMainThread(() => OnSupplyChanged?.Invoke());
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine("[Realtime] Subscribed to supplies.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Realtime] SubscribeSupplies error: {ex.Message}");
+            }
+        }
+
+        public event Action? OnServiceChanged;
+
+        public async Task SubscribeToServicesAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-services");
+                channel.Register(new PostgresChangesOptions("public", "services"));
+
+                channel.AddPostgresChangeHandler(ListenType.Inserts, (sender, change) =>
+                {
+                    System.Diagnostics.Debug.WriteLine("[Realtime] New service from another device");
+                    MainThread.BeginInvokeOnMainThread(() => OnServiceChanged?.Invoke());
+                });
+
+                channel.AddPostgresChangeHandler(ListenType.Updates, (sender, change) =>
+                {
+                    System.Diagnostics.Debug.WriteLine("[Realtime] Service updated from another device");
+                    MainThread.BeginInvokeOnMainThread(() => OnServiceChanged?.Invoke());
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine("[Realtime] Subscribed to services.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Realtime] SubscribeServices error: {ex.Message}");
+            }
+        }
     }
 }

@@ -1,12 +1,19 @@
+using ClinicApp.Services;
 using ClinicApp.ViewModels.SupplyVM;
 
 namespace ClinicApp.Views.SupplyRelated;
 
 public partial class SupplyListPage : ContentPage
 {
-    public SupplyListPage(SupplyListViewModel vm)
+    readonly SupplyListViewModel _vm;
+    readonly SupabaseRealtimeService _realtime;
+    bool _subscribed = false;
+
+    public SupplyListPage(SupplyListViewModel vm, SupabaseRealtimeService realtime)
     {
         InitializeComponent();
+        _vm = vm;
+        _realtime = realtime;
         BindingContext = vm;
     }
 
@@ -15,10 +22,13 @@ public partial class SupplyListPage : ContentPage
         base.OnAppearing();
 
         await Task.Delay(100);
+        await _vm.LoadSuppliesAsync();
 
-        if (BindingContext is SupplyListViewModel vm)
+        if (!_subscribed)
         {
-            _ = Task.Run(async () => await vm.LoadSuppliesAsync());
+            _subscribed = true;
+            _realtime.OnSupplyChanged += async () => await _vm.LoadSuppliesAsync();
+            await _realtime.SubscribeToSuppliesAsync();
         }
     }
 }
