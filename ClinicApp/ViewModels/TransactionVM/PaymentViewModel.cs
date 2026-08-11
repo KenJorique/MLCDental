@@ -151,10 +151,16 @@ public partial class PaymentViewModel : ObservableObject
     public bool IsBelowMinimum =>
         Bill != null && !IsNothingDue && PaymentAmount < MinimumDueToday;
 
-    // Flags amounts that exceed the WHOLE bill balance — almost always a
-    // typo (an extra zero, etc.) rather than a genuine intent to overpay.
+    // Flags amounts that are wildly larger than what's owed — a genuine
+    // typo (an extra zero, etc.), not a normal "gave more cash, get change
+    // back" scenario. Comparing directly against Bill.Balance was too
+    // strict: when Balance is close to the minimum (the last installment,
+    // or a simple one-time bill), even a small, completely normal change
+    // amount (e.g. ₱500 over a ₱21,500 minimum) would trip it. Using a
+    // generous multiple of Balance instead means this only fires for
+    // amounts that are actually implausible.
     public bool IsAmountTooLarge =>
-        Bill != null && PaymentAmount > Bill.Balance;
+        Bill != null && Bill.Balance > 0 && PaymentAmount > Bill.Balance * 2;
 
     // Anything typed beyond the minimum isn't recorded as extra payment —
     // it's handled like a cash register: the excess is Change, and only
@@ -283,6 +289,10 @@ public partial class PaymentViewModel : ObservableObject
             // record more than what's genuinely still owed.
             var amountToRecord = Math.Min(MinimumDueToday, Bill.Balance);
 
+            System.Diagnostics.Debug.WriteLine(
+                $"[DIAG-RECORD] MinimumDueToday={MinimumDueToday}, Bill.Balance={Bill.Balance}, " +
+                $"amountToRecord={amountToRecord}, PaymentAmount(typed)={PaymentAmount}");
+
             var (success, error) =
                 await _supabase.RecordPaymentAsync(Bill.Id, amountToRecord);
 
@@ -307,7 +317,9 @@ public partial class PaymentViewModel : ObservableObject
     $"&patientId={Uri.EscapeDataString(PatientId)}" +
     $"&appointmentEntryId={Uri.EscapeDataString(AppointmentEntryId)}" +
     $"&supabaseEntryId={Uri.EscapeDataString(SupabaseEntryId)}" +
-    $"&supabaseBookingId={Uri.EscapeDataString(SupabaseBookingId)}");
+    $"&supabaseBookingId={Uri.EscapeDataString(SupabaseBookingId)}" +
+    $"&amountReceived={PaymentAmount}" +
+    $"&change={Change}");
         }
         catch (Exception ex)
         {
@@ -318,21 +330,5 @@ public partial class PaymentViewModel : ObservableObject
         {
             IsBusy = false;
         }
-    }
-
-    [RelayCommand]
-    private async Task SkipPayment()
-    {
-        if (Bill == null)
-            return;
-
-        await Shell.Current.GoToAsync(
-    $"{nameof(ReceiptPage)}" +
-    $"?billId={Bill.Id}" +
-    $"&patientName={Uri.EscapeDataString(PatientName)}" +
-    $"&patientId={Uri.EscapeDataString(PatientId)}" +
-    $"&appointmentEntryId={Uri.EscapeDataString(AppointmentEntryId)}" +
-    $"&supabaseEntryId={Uri.EscapeDataString(SupabaseEntryId)}" +
-    $"&supabaseBookingId={Uri.EscapeDataString(SupabaseBookingId)}");
     }
 }

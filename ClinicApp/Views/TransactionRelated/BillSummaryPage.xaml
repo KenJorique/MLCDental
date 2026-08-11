@@ -36,7 +36,7 @@
                                HasShadow="False"
                                VerticalOptions="Center"
                                IsVisible="{Binding HasServices}">
-							<Label Text="{Binding TotalItems, StringFormat='{0} item(s)'}"
+							<Label Text="{Binding TotalItems, StringFormat='{0} service(s)'}"
                                    FontSize="11"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Primary}"/>

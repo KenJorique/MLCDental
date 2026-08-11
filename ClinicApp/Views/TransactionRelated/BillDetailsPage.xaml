@@ -179,6 +179,41 @@
                                                     IsVisible="{Binding HasNotes}"
                                                     TextColor="{StaticResource Gray500}"/>
 
+												<BoxView HeightRequest="1" Color="{StaticResource Gray100}" Margin="0,6"/>
+
+												<!-- Per-item payment state — this is what "due today" is
+                                                     actually computed from, so it's the fastest way to
+                                                     confirm whether a payment really landed on this item. -->
+												<Grid ColumnDefinitions="*,Auto">
+													<Label Text="Amount Paid" FontSize="12" TextColor="{StaticResource Gray500}"/>
+													<Label Grid.Column="1" Text="{Binding AmountPaidDisplay}" FontSize="12" TextColor="{StaticResource Primary}"/>
+												</Grid>
+
+												<Grid ColumnDefinitions="*,Auto">
+													<Label Text="Balance" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gray500}"/>
+													<Label Grid.Column="1" Text="{Binding BalanceDisplay}" FontSize="12" FontAttributes="Bold" TextColor="#C62828"/>
+												</Grid>
+
+												<Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsInstallment}">
+													<Label Text="Downpayment" FontSize="12" TextColor="{StaticResource Gray500}"/>
+													<Label Grid.Column="1" Text="{Binding DownpaymentDisplay}" FontSize="12" TextColor="{StaticResource Gray700}"/>
+												</Grid>
+
+												<Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsInstallment}">
+													<Label Text="Monthly Payment" FontSize="12" TextColor="{StaticResource Gray500}"/>
+													<Label Grid.Column="1" Text="{Binding MonthlyPaymentDisplay}" FontSize="12" TextColor="{StaticResource Gray700}"/>
+												</Grid>
+
+												<Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsInstallment}">
+													<Label Text="Next Due Date" FontSize="12" TextColor="{StaticResource Gray500}"/>
+													<Label Grid.Column="1" Text="{Binding DueDateDisplay}" FontSize="12" TextColor="{StaticResource Gray700}"/>
+												</Grid>
+
+												<Grid ColumnDefinitions="*,Auto">
+													<Label Text="Last Payment" FontSize="12" TextColor="{StaticResource Gray500}"/>
+													<Label Grid.Column="1" Text="{Binding LastPaymentDateDisplay}" FontSize="12" TextColor="{StaticResource Gray700}"/>
+												</Grid>
+
 											</VerticalStackLayout>
 
 										</VerticalStackLayout>

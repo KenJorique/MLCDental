@@ -1,4 +1,5 @@
 ﻿using ClinicApp.Models;
+using ClinicApp.Helpers;
 using Supabase;
 
 namespace ClinicApp.Services
@@ -10,6 +11,8 @@ namespace ClinicApp.Services
         private readonly string _key;
         private bool _initialized = false;
         private readonly SemaphoreSlim _initLock = new(1, 1);
+
+
 
         public Client Client => _client!;
 
@@ -1002,6 +1005,7 @@ namespace ClinicApp.Services
             }
         }
 
+
         public async Task<List<SupabaseBillItem>> GetBillItemsAsync(string billId)
         {
             try
@@ -1042,7 +1046,10 @@ namespace ClinicApp.Services
             }
         }
 
-        // Computes what's actually due THIS visit
+        // Computes what's actually due THIS visit, freshly, from the current
+        // state of each bill_item — unlike Bill.MinimumDueToday, which is a
+        // snapshot taken once at bill creation and never updated. Call this
+        // every time the Payment page loads, not just on the first visit.
         public async Task<decimal> GetMinimumDueForBillAsync(string billId)
         {
             try
@@ -1052,24 +1059,57 @@ namespace ClinicApp.Services
 
                 foreach (var item in items)
                 {
-                    if (item.Balance <= 0) continue;
+                    if (item.Balance <= 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: skipped (Balance={item.Balance} <= 0)");
+                        continue;
+                    }
 
                     if (!item.IsInstallment)
                     {
                         // Non-installment items are always due in full.
                         minimum += item.Balance;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: non-installment, contributes full Balance={item.Balance}");
                     }
                     else if (item.AmountPaid <= 0)
                     {
                         // Nothing paid on this item yet — the 50% downpayment is due.
-                        minimum += Math.Min(item.DownpaymentAmount, item.Balance);
+                        var contribution = Math.Min(item.DownpaymentAmount, item.Balance);
+                        minimum += contribution;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: AmountPaid=0, " +
+                            $"DownpaymentAmount={item.DownpaymentAmount}, Balance={item.Balance}, " +
+                            $"contributes={contribution}");
+                    }
+                    else if (!item.DueDate.HasValue || DateTime.UtcNow >= item.DueDate.Value)
+                    {
+                        // Downpayment already covered, and the next cycle's due
+                        // date has actually arrived (or there isn't one stored,
+                        // which shouldn't normally happen once a downpayment has
+                        // posted, but is treated as due to be safe rather than
+                        // silently blocking a legitimate payment).
+                        var contribution = Math.Min(item.MonthlyPayment, item.Balance);
+                        minimum += contribution;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: MonthlyPayment={item.MonthlyPayment}, " +
+                            $"contributes={contribution}");
                     }
                     else
                     {
-                        // Downpayment already covered — next month's installment is due.
-                        minimum += Math.Min(item.MonthlyPayment, item.Balance);
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: not yet due " +
+                            $"(DueDate={item.DueDate}), contributes=0");
                     }
+                    // else: downpayment is covered and the next installment
+                    // genuinely isn't due yet (DueDate is still in the future) —
+                    // this item contributes nothing to today's minimum. This is
+                    // what stops staff from recording next month's installment
+                    // on the same visit/day the downpayment was just paid.
                 }
+
+                System.Diagnostics.Debug.WriteLine($"[DIAG-MINIMUM] TOTAL minimum={minimum}");
 
                 return minimum;
             }
@@ -1082,8 +1122,21 @@ namespace ClinicApp.Services
 
         // Distributes a payment across this bill's items instead of just the
         // bill-level total: non-installment items are paid off first (always
-        // due in full), then installment items in due-date order
-        private async Task AllocatePaymentToBillItemsAsync(
+        // due in full), then installment items in due-date order (items that
+        // haven't started their schedule yet — DueDate null — go first,
+        // since that represents the still-unpaid downpayment stage). Each
+        // item's own balance/amount_paid/due_date gets updated so the NEXT
+        // visit's minimum (see GetMinimumDueForBillAsync above) reflects
+        // what's actually still owed on THAT item, not a stale bill-wide figure.
+        //
+        // FIX: this used to catch-and-log any failure here and carry on —
+        // meaning a payment could "succeed" at the bill level while every
+        // bill_item stayed completely untouched (AmountPaid/Balance never
+        // moved), which is exactly what silently broke "due today" on repeat
+        // visits. Now returns success/error so the caller can stop BEFORE
+        // recording anything else, instead of leaving bill-level and
+        // item-level data out of sync.
+        private async Task<(bool Success, string? Error)> AllocatePaymentToBillItemsAsync(
             string billId, decimal amount, DateTime paymentDate)
         {
             try
@@ -1110,14 +1163,34 @@ namespace ClinicApp.Services
                         ? null
                         : (item.IsInstallment ? paymentDate.AddMonths(1) : item.DueDate);
 
-                    await _client!.From<SupabaseBillItem>().Update(item);
+                    var updateResult = await _client!.From<SupabaseBillItem>().Update(item);
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[DIAG-ALLOCATE] {item.ServiceName}: applied={applied} " +
+                        $"newBalance={item.Balance} IsInstallment={item.IsInstallment} " +
+                        $"computedDueDate={(item.DueDate.HasValue ? item.DueDate.Value.ToString("o") : "NULL")} " +
+                        $"Update() returned {updateResult.Models.Count} row(s).");
+
+                    // A 0-row response means the update didn't actually
+                    // touch anything in the DB (most commonly an RLS policy
+                    // silently blocking the write) — treat that the same as
+                    // a thrown exception, not a success.
+                    if (updateResult.Models.Count == 0)
+                    {
+                        return (false,
+                            $"Update to bill_items for '{item.ServiceName}' affected 0 rows " +
+                            "— check Supabase RLS policies allow UPDATE on bill_items for this user/role.");
+                    }
 
                     remaining -= applied;
                 }
+
+                return (true, null);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Supabase] AllocatePaymentToBillItems: {ex.Message}");
+                return (false, ex.Message);
             }
         }
 
@@ -1135,17 +1208,30 @@ namespace ClinicApp.Services
                 if (billResult == null)
                     return (false, "Bill not found");
 
+                var paymentDate = DateTime.UtcNow;
+
+                // Allocate to bill_items FIRST, before writing anything else.
+                // If this fails, nothing else has been touched yet, so there's
+                // nothing to roll back — the caller gets a clear error instead
+                // of a payment that "succeeded" while items stayed stale.
+                var (allocated, allocError) =
+                    await AllocatePaymentToBillItemsAsync(billId, amount, paymentDate);
+
+                if (!allocated)
+                {
+                    return (false,
+                        $"Payment was not recorded — could not update bill items ({allocError}).");
+                }
+
                 var payment = new SupabasePayment
                 {
                     Id = Guid.NewGuid().ToString(),
                     BillId = billId,
                     Amount = amount,
-                    PaymentDate = DateTime.UtcNow,
+                    PaymentDate = paymentDate,
                     Notes = notes
                 };
                 await _client!.From<SupabasePayment>().Insert(payment);
-
-                await AllocatePaymentToBillItemsAsync(billId, amount, payment.PaymentDate);
 
                 billResult.AmountPaid += amount;
                 billResult.Balance = billResult.TotalAmount - billResult.AmountPaid;
@@ -1168,6 +1254,7 @@ namespace ClinicApp.Services
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[Supabase] RecordPayment UPDATE rows returned: {updateResult.Models.Count}");
+
 
                 if (updateResult.Models.Count == 0)
                 {

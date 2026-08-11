@@ -6,6 +6,7 @@ using ClinicApp.Views.PatientsRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace ClinicApp.ViewModels.TransactionVM
 {
@@ -15,6 +16,8 @@ namespace ClinicApp.ViewModels.TransactionVM
     [QueryProperty(nameof(AppointmentEntryId), "appointmentEntryId")]
     [QueryProperty(nameof(SupabaseEntryId), "supabaseEntryId")]
     [QueryProperty(nameof(SupabaseBookingId), "supabaseBookingId")]
+    [QueryProperty(nameof(AmountReceivedRaw), "amountReceived")]
+    [QueryProperty(nameof(ChangeRaw), "change")]
     public partial class ReceiptViewModel : ObservableObject
     {
         readonly SupabaseDataService _supabase;
@@ -25,16 +28,62 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] string supabaseBookingId = string.Empty;
         [ObservableProperty] string patientName = string.Empty;
         [ObservableProperty] string patientId = string.Empty;
+
+        // Passed from Payment page via navigation params — transient,
+        // specific to this one payment, so no DB column needed for it.
+        [ObservableProperty] string amountReceivedRaw = string.Empty;
+        [ObservableProperty] string changeRaw = string.Empty;
+
+        public decimal AmountReceived =>
+            decimal.TryParse(AmountReceivedRaw, out var v) ? v : 0;
+
+        public decimal Change =>
+            decimal.TryParse(ChangeRaw, out var v) ? v : 0;
+
+        public string AmountReceivedDisplay => $"₱{AmountReceived:N2}";
+        public string ChangeDisplay => $"₱{Change:N2}";
+        public bool HasChange => Change > 0;
+
+        // FIX (bug #3): AmountReceivedRaw/ChangeRaw are set by Shell AFTER
+        // the page/BindingContext is already up, via the QueryProperty
+        // attributes above. AmountReceivedDisplay/Change/ChangeDisplay/
+        // HasChange are computed (get-only) properties, so nothing told the
+        // UI they'd changed when the raw query values arrived — the labels
+        // rendered once with the default "" ("₱0.00") and never updated,
+        // even though the underlying raw values were set correctly. These
+        // two partial methods raise the missing notifications.
+        partial void OnAmountReceivedRawChanged(string value)
+        {
+            OnPropertyChanged(nameof(AmountReceived));
+            OnPropertyChanged(nameof(AmountReceivedDisplay));
+        }
+
+        partial void OnChangeRawChanged(string value)
+        {
+            OnPropertyChanged(nameof(Change));
+            OnPropertyChanged(nameof(ChangeDisplay));
+            OnPropertyChanged(nameof(HasChange));
+        }
+
         [ObservableProperty] bool isBusy;
         [ObservableProperty] SupabaseBill? bill;
-        [ObservableProperty] decimal change;
-
-        // Payment entry
-        [ObservableProperty] bool showAddPayment;
-        [ObservableProperty] decimal additionalPayment;
 
         public ObservableCollection<SupabaseBillItem> Items { get; } = new();
         public ObservableCollection<SupabasePayment> Payments { get; } = new();
+
+        // The "hero" figure on the receipt — what was actually paid THIS
+        // visit, not the bill's cumulative total. Falls back to the bill's
+        // total paid if there's somehow no payment record yet.
+        public string LatestPaymentAmountDisplay =>
+            Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault()?.AmountDisplay
+                ?? Bill?.PaidDisplay
+                ?? "₱0.00";
+
+        public bool HasInstallmentItems =>
+            Items.Any(i => i.IsInstallment);
+
+        public IEnumerable<SupabaseBillItem> InstallmentItems =>
+            Items.Where(i => i.IsInstallment);
 
         public ReceiptViewModel(SupabaseDataService supabase)
         {
@@ -70,9 +119,11 @@ namespace ClinicApp.ViewModels.TransactionVM
                 foreach (var item in items)
                 {
                     System.Diagnostics.Debug.WriteLine(
-                        $"[Receipt] {item.ServiceName} " +
-                        $"Qty={item.Quantity} " +
-                        $"Subtotal={item.Subtotal}");
+                        $"[DIAG-RECEIPT-READ] {item.ServiceName} " +
+                        $"Qty={item.Quantity} Subtotal={item.Subtotal} " +
+                        $"IsInstallment={item.IsInstallment} Balance={item.Balance} " +
+                        $"AmountPaid={item.AmountPaid} " +
+                        $"DueDate={(item.DueDate.HasValue ? item.DueDate.Value.ToString("o") : "NULL")}");
                 }
 
 
@@ -89,6 +140,10 @@ namespace ClinicApp.ViewModels.TransactionVM
 
                 Bill = await _supabase.GetBillByIdAsync(BillId);
 
+                OnPropertyChanged(nameof(LatestPaymentAmountDisplay));
+                OnPropertyChanged(nameof(HasInstallmentItems));
+                OnPropertyChanged(nameof(InstallmentItems));
+
                 if (Bill != null)
                 {
                     DebugInfo = $"Bill loaded: {Bill.BillNumberDisplay}";
@@ -104,45 +159,6 @@ namespace ClinicApp.ViewModels.TransactionVM
             }
             finally { IsBusy = false; }
         }
-
-        [RelayCommand]
-        void OpenAddPayment()
-        {
-            AdditionalPayment = Bill?.Balance ?? 0;
-            ShowAddPayment = true;
-        }
-
-        [RelayCommand]
-        async Task ConfirmAdditionalPayment()
-        {
-            if (AdditionalPayment <= 0 || Bill == null) return;
-
-            IsBusy = true;
-            try
-            {
-                var (success, error) = await _supabase.RecordPaymentAsync(BillId, AdditionalPayment);
-                if (!success)
-                {
-                    await Shell.Current.DisplayAlert("Payment Failed", error ?? "Unknown error", "OK");
-                    return;
-                }
-
-                ShowAddPayment = false;
-                await LoadReceiptAsync();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ReceiptVM] Payment: {ex.Message}");
-                await Shell.Current.DisplayAlert("Payment Failed", ex.Message, "OK");
-            }
-            finally
-            {
-                IsBusy = false;
-            }
-        }
-
-        [RelayCommand]
-        void CloseAddPayment() => ShowAddPayment = false;
 
         [RelayCommand]
         async Task Done()

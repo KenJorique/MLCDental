@@ -21,9 +21,6 @@
                                FontSize="18"
                                FontAttributes="Bold"
                                TextColor="{StaticResource White}"/>
-						<Label Text="{Binding BillNumber, StringFormat='Bill #: {0}'}"
-                               FontSize="12"
-                               TextColor="{StaticResource Secondary}"/>
 					</VerticalStackLayout>
 				</Frame>
 
@@ -80,27 +77,23 @@
 							<Label Grid.Column="1" Text="{Binding TotalDisplay}" FontSize="13" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
 						</Grid>
 
+						<!-- Due Today: last line, biggest and most prominent —
+                             matches Bill Summary's own "Due Today" hero, both
+                             in naming and color, for consistency. Previously
+                             showed the whole bill's remaining Balance, which
+                             was identical to Total on a first payment (hence
+                             redundant) and not what's actually being asked
+                             for today on later/partial visits. -->
 						<Grid ColumnDefinitions="*,Auto"
                               Margin="0,2,0,0"
                               Padding="0,10,0,0">
 							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
-							<Label Text="Paid" FontSize="13" TextColor="{StaticResource Primary}" VerticalOptions="Center" Margin="0,4,0,0"/>
-							<Label Grid.Column="1" Text="{Binding PaidDisplay}" FontSize="13" TextColor="{StaticResource Primary}" VerticalOptions="Center" Margin="0,4,0,0"/>
-						</Grid>
-
-						<!-- Balance Due: last line, biggest and most prominent —
-                             matches the "final figure = the focus" pattern
-                             used on Bill Summary's Due Today. -->
-						<Grid ColumnDefinitions="*,Auto"
-                              Margin="0,2,0,0"
-                              Padding="0,10,0,0">
-							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
-							<Label Text="Balance Due" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center" Margin="0,4,0,0"/>
+							<Label Text="Due Today" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center" Margin="0,4,0,0"/>
 							<Label Grid.Column="1"
-                                   Text="{Binding BalanceDisplay}"
+                                   Text="{Binding MinimumDueTodayDisplay}"
                                    FontSize="26"
                                    FontAttributes="Bold"
-                                   TextColor="#C62828"
+                                   TextColor="{StaticResource Primary}"
                                    VerticalOptions="Center"
                                    Margin="0,4,0,0"/>
 						</Grid>
@@ -118,10 +111,6 @@
                                FontSize="13"
                                TextColor="{StaticResource Gray500}"
                                FontAttributes="Bold"/>
-
-						<Label Text="{Binding MinimumDueTodayDisplay, StringFormat='Minimum due today: {0}'}"
-                               FontSize="11"
-                               TextColor="{StaticResource Primary}"/>
 
 						<Border Style="{StaticResource FormInputBoxTall}">
 							<Grid ColumnDefinitions="Auto,*">
@@ -197,7 +186,7 @@
                            TextColor="#C62828"/>
 				</Frame>
 
-				<Button Text="✓ Record Payment"
+				<Button Text="Record Payment"
                         BackgroundColor="{StaticResource Primary}"
                         TextColor="{StaticResource White}"
                         CornerRadius="12"
@@ -214,8 +203,6 @@
                         HeightRequest="44"
                         FontSize="13"
                         Command="{Binding SkipPaymentCommand}"/>-->
-
-				<BoxView HeightRequest="20" Color="Transparent"/>
 			</VerticalStackLayout>
 		</ScrollView>
 

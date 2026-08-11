@@ -25,7 +25,7 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(DentalChartPage), typeof(DentalChartPage));
             Routing.RegisterRoute(nameof(Views.PatientsRelated.TreatmentHistoryPage), typeof(Views.PatientsRelated.TreatmentHistoryPage));
             Routing.RegisterRoute(nameof(CephalometricPage), typeof(CephalometricPage));
-            Routing.RegisterRoute( nameof(VisitDetailsPage), typeof(VisitDetailsPage));
+            Routing.RegisterRoute(nameof(VisitDetailsPage), typeof(VisitDetailsPage));
 
             //Services
             Routing.RegisterRoute(nameof(ServiceListPage), typeof(ServiceListPage));
@@ -46,7 +46,7 @@ namespace ClinicApp
             //Appointments
             Routing.RegisterRoute(nameof(AppointmentPage), typeof(AppointmentPage));
             Routing.RegisterRoute(nameof(ReschedulePage), typeof(ReschedulePage));
-            Routing.RegisterRoute(nameof(WalkInBookingPage),  typeof(WalkInBookingPage));
+            Routing.RegisterRoute(nameof(WalkInBookingPage), typeof(WalkInBookingPage));
             Routing.RegisterRoute(nameof(InProcedurePage), typeof(InProcedurePage));
 
             //Google Sign In
@@ -66,10 +66,10 @@ namespace ClinicApp
         {
             base.OnAppearing();
 
-        #if ANDROID
-                StatusBar.SetColor(Colors.White);
-                StatusBar.SetStyle(CommunityToolkit.Maui.Core.StatusBarStyle.DarkContent);
-        #endif
+#if ANDROID
+            StatusBar.SetColor(Colors.White);
+            StatusBar.SetStyle(CommunityToolkit.Maui.Core.StatusBarStyle.DarkContent);
+#endif
         }
     }
 }

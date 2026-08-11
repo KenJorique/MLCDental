@@ -31,7 +31,7 @@ namespace ClinicApp.Models
         [Column("quantity")]
         public int Quantity { get; set; } = 1;
 
-        [Column("subtotal")]
+        [Column("subtotal", ignoreOnUpdate: true)]
         [JsonProperty("subtotal")]
         public decimal Subtotal { get; set; }
 
@@ -121,6 +121,17 @@ namespace ClinicApp.Models
         public string BalanceDisplay => $"₱{Balance:N2}";
 
         [JsonIgnore]
+        public string AmountPaidDisplay => $"₱{AmountPaid:N2}";
+
+        [JsonIgnore]
+        public string DueDateDisplay =>
+            DueDate.HasValue ? DueDate.Value.ToLocalSafe().ToString("MMM dd, yyyy") : "—";
+
+        [JsonIgnore]
+        public string LastPaymentDateDisplay =>
+            LastPaymentDate.HasValue ? LastPaymentDate.Value.ToLocalSafe().ToString("MMM dd, yyyy") : "—";
+
+        [JsonIgnore]
         public string InstallmentDisplay =>
             IsInstallment && InstallmentMonths > 0
                 ? $"{DownpaymentDisplay} down, then {MonthlyPaymentDisplay} x {InstallmentMonths} mo."
@@ -142,6 +153,16 @@ namespace ClinicApp.Models
                     : IsOverdue
                         ? "Overdue"
                         : "On Schedule";
+
+        [JsonIgnore]
+        public Color DueStatusColorBg =>
+            !IsInstallment
+                ? Color.FromArgb("#6B7280")
+                : Balance <= 0
+                    ? Color.FromArgb("#16A34A")
+                    : IsOverdue
+                        ? Color.FromArgb("#DC2626")
+                        : Color.FromArgb("#F59E0B");
 
     }
 }

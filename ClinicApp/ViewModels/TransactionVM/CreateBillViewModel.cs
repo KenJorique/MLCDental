@@ -7,6 +7,8 @@ using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ClinicApp.ViewModels.TransactionVM
 {
@@ -20,10 +22,6 @@ namespace ClinicApp.ViewModels.TransactionVM
         readonly SupabaseDataService _supabase;
         readonly BillDraftService _draft;
 
-        // Set by CreateBillPage right after it creates + shows the sheet, so
-        // CreateBill()/Cancel() below can dismiss it before navigating away.
-        public CreateBillSummarySheet? Sheet { get; set; }
-
         BillDraft Draft = new();
 
         public ObservableCollection<ServiceLineItem> SelectedServices { get; } = new();
@@ -32,7 +30,9 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] string patientId = string.Empty;
         [ObservableProperty] string patientName = string.Empty;
         [ObservableProperty] string appointmentEntryId = string.Empty;
-        [ObservableProperty] bool isBusy;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanCreateBill))]
+        bool isBusy;
         [ObservableProperty] bool hasError;
         [ObservableProperty] string supabaseBookingId = string.Empty;
         [ObservableProperty] string errorMessage = string.Empty;
@@ -42,6 +42,14 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] string createdBillNumber = string.Empty;
         [ObservableProperty] string phone = string.Empty;
 
+        // Separate from IsBusy on purpose: IsBusy drives the full-screen "Saving..."
+        // overlay during CreateBill(), while this drives only the small spinner in the
+        // Available Services list during LoadServicesAsync(). They used to share IsBusy,
+        // which meant clicking Proceed lit up both indicators at once.
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanCreateBill))]
+        bool isLoadingServices;
+
         // Payment overlay
         [ObservableProperty] bool hasInstallmentService;
         [ObservableProperty] bool isInstallment;
@@ -49,8 +57,27 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] string serviceSearch = string.Empty;
         [ObservableProperty] int scrollTrigger;
 
+        // Bottom summary panel — plain page content (see CreateBillPage.xaml), not a
+        // separate modal. Drives the tap-to-expand services list; Total/Proceed render
+        // unconditionally regardless of this state.
+        [ObservableProperty] bool isServicesExpanded;
+
+        public bool HasSelectedServices => SelectedServices.Count > 0;
+        public string ServicesCountLabel => $"Added services ({SelectedServices.Count})";
+        public string ToggleLabelText => IsServicesExpanded ? "Hide" : "Show";
+        public string ToggleIconGlyph => IsServicesExpanded ? "\ue5ce" : "\ue5cf"; // expand_less / expand_more
+
+        partial void OnIsServicesExpandedChanged(bool value)
+        {
+            OnPropertyChanged(nameof(ToggleLabelText));
+            OnPropertyChanged(nameof(ToggleIconGlyph));
+        }
+
+        [RelayCommand]
+        void ToggleServicesExpanded() => IsServicesExpanded = !IsServicesExpanded;
+
         public bool CanCreateBill =>
-            SelectedServices.Count > 0 && !IsBusy;
+            SelectedServices.Count > 0 && !IsBusy && !IsLoadingServices;
 
         public CreateBillViewModel(
        SupabaseDataService supabase,
@@ -60,23 +87,42 @@ namespace ClinicApp.ViewModels.TransactionVM
             _draft = draft;
         }
 
-        public ObservableCollection<AvailableServiceItem> FilteredServices { get; } = new();
+        [ObservableProperty] ObservableCollection<AvailableServiceItem> filteredServices = new();
 
+        CancellationTokenSource? _searchDebounce;
+
+        // Debounced: filtering doesn't run until 200ms after the last keystroke, so fast
+        // typing doesn't trigger a rebuild on every single character.
         partial void OnServiceSearchChanged(string value)
         {
-            FilterServices(value);
+            _searchDebounce?.Cancel();
+            _searchDebounce = new CancellationTokenSource();
+            var token = _searchDebounce.Token;
+
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                try
+                {
+                    await Task.Delay(200, token);
+                    if (!token.IsCancellationRequested)
+                        FilterServices(value);
+                }
+                catch (TaskCanceledException) { }
+            });
         }
 
+        // Builds and swaps in a whole new collection rather than Clear()-ing and
+        // Add()-ing one item at a time. BindableLayout isn't virtualized, so each
+        // individual Add() previously forced its own full re-render — swapping the
+        // whole ItemsSource reference is a single update instead of many.
         private void FilterServices(string query)
         {
-            FilteredServices.Clear();
             var results = string.IsNullOrWhiteSpace(query)
                 ? AvailableServices
                 : AvailableServices.Where(s =>
                     s.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
 
-            foreach (var s in results)
-                FilteredServices.Add(s);
+            FilteredServices = new ObservableCollection<AvailableServiceItem>(results);
         }
 
         // Update LoadServicesAsync to also populate FilteredServices:
@@ -89,7 +135,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 return;
             }
 
-            IsBusy = true;
+            IsLoadingServices = true;
             HasError = false;
             try
             {
@@ -97,13 +143,12 @@ namespace ClinicApp.ViewModels.TransactionVM
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     AvailableServices.Clear();
-                    FilteredServices.Clear();
                     foreach (var s in services)
                     {
                         var item = new AvailableServiceItem(s);
                         AvailableServices.Add(item);
-                        FilteredServices.Add(item);
                     }
+                    FilteredServices = new ObservableCollection<AvailableServiceItem>(AvailableServices);
                     RefreshAddButtonStates();
                 });
             }
@@ -112,7 +157,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 HasError = true;
                 ErrorMessage = $"Failed to load services: {ex.Message}";
             }
-            finally { IsBusy = false; }
+            finally { IsLoadingServices = false; }
         }
 
         partial void OnPatientIdChanged(string value)
@@ -149,8 +194,14 @@ namespace ClinicApp.ViewModels.TransactionVM
 
             RecalculateTotal();
             OnPropertyChanged(nameof(CanCreateBill));
+            OnPropertyChanged(nameof(HasSelectedServices));
+            OnPropertyChanged(nameof(ServicesCountLabel));
             RefreshAddButtonStates();
-            ScrollTrigger++;
+
+            // Auto-expand on the very first service, so it's immediately visible instead
+            // of requiring an extra tap right after adding something for the first time.
+            if (SelectedServices.Count == 1)
+                IsServicesExpanded = true;
         }
 
         [RelayCommand]
@@ -161,7 +212,12 @@ namespace ClinicApp.ViewModels.TransactionVM
             HasInstallmentService = SelectedServices.Any(s => s.IsInstallmentEligible);
             RecalculateTotal();
             OnPropertyChanged(nameof(CanCreateBill));
+            OnPropertyChanged(nameof(HasSelectedServices));
+            OnPropertyChanged(nameof(ServicesCountLabel));
             RefreshAddButtonStates();
+
+            if (SelectedServices.Count == 0)
+                IsServicesExpanded = false;
         }
 
         // Single entry point for the +/- toggle button on CreateBillPage. Always takes the
@@ -251,6 +307,29 @@ namespace ClinicApp.ViewModels.TransactionVM
                     return;
             }
 
+            // Separate from the missing-entirely check above: these have *something*
+            // typed, but it's either not a real tooth number (e.g. "100", "-1") or
+            // doesn't match how many were expected for the quantity selected.
+            var invalidTeeth = SelectedServices
+                .Where(s => s.ShowTeethInput &&
+                            !string.IsNullOrWhiteSpace(s.ToothNumbers) &&
+                            s.HasToothValidationMessage)
+                .ToList();
+
+            if (invalidTeeth.Any())
+            {
+                var names = string.Join(", ",
+                    invalidTeeth.Select(s => s.ServiceName));
+
+                bool proceed = await Shell.Current.DisplayAlert(
+                    "Check Tooth Numbers",
+                    $"Tooth numbers look incomplete or invalid for:\n{names}\n\nProceed anyway?",
+                    "Proceed", "Cancel");
+
+                if (!proceed)
+                    return;
+            }
+
             IsBusy = true;
             HasError = false;
 
@@ -276,14 +355,6 @@ namespace ClinicApp.ViewModels.TransactionVM
 
                 BillDraftStore.Current = Draft;
 
-                // Fully close the sheet before navigating — it shouldn't stay open
-                // underneath the next page.
-                if (Sheet != null)
-                {
-                    await Sheet.DismissAsync();
-                    Sheet = null;
-                }
-
                 await Shell.Current.GoToAsync(nameof(ServiceSummaryPage));
             }
             catch (Exception ex)
@@ -298,20 +369,9 @@ namespace ClinicApp.ViewModels.TransactionVM
             }
         }
 
-
-
-
-
-
-
         [RelayCommand]
         async Task Cancel()
         {
-            if (Sheet != null)
-            {
-                await Sheet.DismissAsync();
-                Sheet = null;
-            }
             await Shell.Current.GoToAsync("..");
         }
     }
@@ -414,6 +474,48 @@ namespace ClinicApp.ViewModels.TransactionVM
                 .OrderBy(n => n)
                 .ToList();
 
+        // Raw tokens as typed, before the 1-32 filter above — used to detect entries
+        // like "100" or "-1" that ParsedTeethNumbers silently drops rather than flags.
+        List<string> RawToothTokens =>
+            ToothNumbers
+                .Split(new[] { ',', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(t => t.Trim())
+                .Where(t => t.Length > 0)
+                .ToList();
+
+        public bool HasInvalidToothNumbers =>
+            ShowTeethInput &&
+            RawToothTokens.Any(t => !int.TryParse(t, out var n) || n < 1 || n > 32);
+
+        // True once the count of valid, distinct tooth numbers matches Quantity — the
+        // expected case is one tooth number per unit (e.g. Quantity 2 needs 2 numbers).
+        public bool ToothCountMatchesQuantity =>
+            !ShowTeethInput || ParsedTeethNumbers.Count == Quantity;
+
+        // Single message surfaced under the tooth-number field. Invalid-number check
+        // takes priority over the count check, since fixing invalid entries usually
+        // fixes the count too.
+        public string ToothValidationMessage
+        {
+            get
+            {
+                if (!ShowTeethInput || string.IsNullOrWhiteSpace(ToothNumbers))
+                    return string.Empty;
+
+                if (HasInvalidToothNumbers)
+                    return "Enter valid tooth numbers only (1–32).";
+
+                if (!ToothCountMatchesQuantity)
+                    return ParsedTeethNumbers.Count < Quantity
+                        ? $"Enter {Quantity} tooth number(s) — {ParsedTeethNumbers.Count} entered so far."
+                        : $"Too many tooth numbers — enter exactly {Quantity}.";
+
+                return string.Empty;
+            }
+        }
+
+        public bool HasToothValidationMessage => !string.IsNullOrEmpty(ToothValidationMessage);
+
         public string TeethDisplay =>
             ParsedTeethNumbers.Count == 0
                 ? ""
@@ -428,11 +530,25 @@ namespace ClinicApp.ViewModels.TransactionVM
             RaiseInstallmentDisplaysChanged();
         }
 
-        partial void OnQuantityChanged(int value) =>
+        partial void OnQuantityChanged(int value)
+        {
             RefreshSubtotal();
+            RaiseToothValidationChanged();
+        }
 
-        partial void OnToothNumbersChanged(string value) =>
+        partial void OnToothNumbersChanged(string value)
+        {
             OnPropertyChanged(nameof(TeethDisplay));
+            RaiseToothValidationChanged();
+        }
+
+        void RaiseToothValidationChanged()
+        {
+            OnPropertyChanged(nameof(HasInvalidToothNumbers));
+            OnPropertyChanged(nameof(ToothCountMatchesQuantity));
+            OnPropertyChanged(nameof(ToothValidationMessage));
+            OnPropertyChanged(nameof(HasToothValidationMessage));
+        }
     }
     public partial class AvailableServiceItem : ObservableObject
     {

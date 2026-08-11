@@ -146,7 +146,6 @@ public partial class TransactionViewModel : ObservableObject
                     $"[TransactionVM]   Bill Id={b.Id} PatientId={b.PatientId} Total={b.TotalAmount}");
 
             Ledger.Clear();
-            PendingPayments.Clear();
             IsHistoryExpanded = false;
             Bills.Clear();
             foreach (var bill in all)
@@ -168,13 +167,6 @@ public partial class TransactionViewModel : ObservableObject
             foreach (var item in items.OrderByDescending(x => x.Date))
                 Ledger.Add(item);
 
-            var pending = items
-                .Where(x => x.ShowPayAction)
-                .OrderByDescending(x => x.IsOverdue)
-                .ThenBy(x => x.Date);
-
-            foreach (var item in pending)
-                PendingPayments.Add(item);
 
             TotalBilled = Bills.Sum(x => x.TotalAmount);
             TotalPaid = Bills.Sum(x => x.AmountPaid);

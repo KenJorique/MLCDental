@@ -95,8 +95,37 @@ public class BillingService
             // finished — that's the only place it should happen.
 
             result.Bill = saved;
+
+            // Discount base: ANY installment-ELIGIBLE item is excluded from
+            // the discount, whether or not the patient actually turned the
+            // plan toggle on for it (matches BillSummaryViewModel.CalculateTotals,
+            // which uses the same IsInstallmentEligible-only rule). Computed
+            // once here, outside the loop, and used below to give each
+            // non-eligible item its proportional share of draft.DiscountAmount.
+            //
+            // NOTE: using draft.DiscountAmount (not draft.DiscountPercent) so
+            // this works for BOTH discount types Bill Summary supports —
+            // percent-based (senior/PWD) AND the flat "special discount"
+            // peso amount, which has no percent at all (DiscountPercent is 0
+            // in that case). Previously this only ever multiplied by
+            // DiscountPercent, so a flat special discount never made it into
+            // any item's Balance.
+            var discountEligibleSubtotal = draft.Services
+                .Where(s => !s.IsInstallmentEligible)
+                .Sum(s => s.Subtotal);
+
             foreach (var item in draft.Services)
             {
+                // This item's proportional share of the total discount.
+                // Installment-eligible items get none (see above); among the
+                // rest, each item's share is proportional to its own subtotal.
+                var itemDiscountShare =
+                    (!item.IsInstallmentEligible && discountEligibleSubtotal > 0)
+                        ? Math.Round(
+                            item.Subtotal / discountEligibleSubtotal * draft.DiscountAmount,
+                            2)
+                        : 0m;
+
                 var billItem = new SupabaseBillItemInsert
                 {
                     Id = Guid.NewGuid().ToString(),
@@ -132,17 +161,18 @@ public class BillingService
                     // remaining-after-downpayment — the downpayment itself
                     // still needs to be recorded as a payment against this
                     // item (see the payment-allocation note for your teammate).
-                    // Non-installment items' balance must reflect the discount
-                    // (discount only ever applies to non-installment items —
-                    // see BillSummaryViewModel.CalculateTotals). Installment
-                    // items keep their full undiscounted subtotal as balance,
-                    // matching DownpaymentAmount/MonthlyPayment which are also
-                    // always based on full price. Without this, the sum of
-                    // per-item balances wouldn't match the bill's actual
-                    // (discounted) TotalAmount whenever a discount applies.
-                    Balance = (item.IsInstallmentEligible && item.IsInstallmentSelected)
+                    //
+                    // Eligibility (not selection) decides discount exemption:
+                    // an eligible item is excluded from the discount and due
+                    // in full — same whether it's on a plan or not. Only
+                    // truly non-eligible items get their proportional share
+                    // of draft.DiscountAmount subtracted off. Without this,
+                    // the sum of per-item balances wouldn't match the bill's
+                    // actual (discounted) TotalAmount whenever a discount
+                    // applies.
+                    Balance = item.IsInstallmentEligible
                         ? item.Subtotal
-                        : Math.Round(item.Subtotal * (1 - draft.DiscountPercent), 2)
+                        : Math.Round(item.Subtotal - itemDiscountShare, 2)
                 };
                 if (localPatientId > 0)
                 {
