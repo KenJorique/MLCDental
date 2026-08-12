@@ -27,50 +27,37 @@
 
 					<VerticalStackLayout Spacing="4">
 
-						<Label
-                            Text="{Binding PatientName}"
-                            FontSize="20"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource White}"/>
+						<Grid ColumnDefinitions="*,Auto">
+							<Label
+                                Text="{Binding PatientName}"
+                                FontSize="20"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource White}"
+                                VerticalOptions="Center"/>
+
+							<!-- Status pill — was its own card below; now sits
+                                 right beside the patient name instead. -->
+							<Frame Grid.Column="1"
+                                   BackgroundColor="{Binding Bill.StatusBgColor}"
+                                   BorderColor="Transparent"
+                                   CornerRadius="20"
+                                   Padding="10,4"
+                                   HasShadow="False"
+                                   VerticalOptions="Center"
+                                   HorizontalOptions="End">
+								<Label Text="{Binding Status}"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="{Binding Bill.StatusColor}"/>
+							</Frame>
+						</Grid>
+
 						<Label
                             Text="{Binding BillNumber,StringFormat='Receipt #: {0}'}"
                             FontSize="13"
                             TextColor="{StaticResource Secondary}"/>
-						<Label
-                            Text="{Binding VisitDate}"
-                            FontSize="12"
-                            TextColor="{StaticResource Secondary}"/>
 
 					</VerticalStackLayout>
-
-				</Frame>
-
-
-				<!-- STATUS -->
-				<Frame
-                    CornerRadius="10"
-                    BackgroundColor="{StaticResource White}"
-                    BorderColor="{StaticResource Gray100}"
-                    Padding="14"
-                    HasShadow="False">
-
-					<Grid ColumnDefinitions="Auto,*">
-
-						<Label
-                            Text="Status"
-                            FontSize="13"
-                            TextColor="{StaticResource Gray500}"
-                            FontAttributes="Bold"/>
-
-						<Label
-                            Grid.Column="1"
-                            HorizontalOptions="End"
-                            Text="{Binding Status}"
-                            FontSize="13"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource Primary}"/>
-
-					</Grid>
 
 				</Frame>
 
@@ -456,7 +443,6 @@
                     IsVisible="{Binding HasBalance}"
                     Command="{Binding AddPaymentCommand}"/>
 
-				<BoxView HeightRequest="20" Color="Transparent"/>
 
 			</VerticalStackLayout>
 

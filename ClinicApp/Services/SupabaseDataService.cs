@@ -1050,6 +1050,61 @@ namespace ClinicApp.Services
         // state of each bill_item — unlike Bill.MinimumDueToday, which is a
         // snapshot taken once at bill creation and never updated. Call this
         // every time the Payment page loads, not just on the first visit.
+        // Calculates, purely from an item's stored fields, what it currently
+        // owes according to its fixed schedule — and lets advance payments
+        // net out naturally, since AmountPaid already reflects them.
+        //
+        // - "monthsElapsed" = how many monthly due dates have already
+        //   passed, counting from InstallmentStartDate (the downpayment
+        //   date), capped at InstallmentMonths.
+        // - "totalOwedByNow" = what should have been paid by THIS point in
+        //   the schedule if nothing had been paid early: downpayment, plus
+        //   one MonthlyPayment for every month that's passed.
+        // - AmountDueNow = totalOwedByNow minus whatever's actually been
+        //   paid (AmountPaid) — so if the patient already paid ahead, this
+        //   comes out to 0 (or less than a full MonthlyPayment) automatically,
+        //   without needing to track "advance credit" as a separate number.
+        //
+        // Once every scheduled month has passed (monthsElapsed >=
+        // InstallmentMonths), the schedule is over — whatever's left is
+        // simply owed in full, same as a non-installment item.
+        private static (decimal AmountDueNow, DateTime? NextDueDate) GetInstallmentDueState(
+            SupabaseBillItem item)
+        {
+            if (!item.IsInstallment || item.Balance <= 0)
+                return (0, null);
+
+            // Downpayment not made yet — handled separately by the caller,
+            // not via this schedule math (there's no start date to anchor on).
+            if (item.AmountPaid <= 0 || !item.InstallmentStartDate.HasValue)
+                return (0, null);
+
+            var start = item.InstallmentStartDate.Value;
+            var monthsElapsed = 0;
+
+            while (monthsElapsed < item.InstallmentMonths &&
+                   start.AddMonths(monthsElapsed + 1) <= DateTime.UtcNow)
+            {
+                monthsElapsed++;
+            }
+
+            if (monthsElapsed >= item.InstallmentMonths)
+            {
+                // Full term has elapsed by the calendar — no more "next
+                // monthly due", whatever remains is simply owed in full.
+                return (item.Balance, null);
+            }
+
+            var totalOwedByNow = Math.Min(
+                item.DownpaymentAmount + (item.MonthlyPayment * monthsElapsed),
+                item.Subtotal);
+
+            var amountDueNow = Math.Max(0m, Math.Min(totalOwedByNow - item.AmountPaid, item.Balance));
+            var nextDueDate = start.AddMonths(monthsElapsed + 1);
+
+            return (amountDueNow, nextDueDate);
+        }
+
         public async Task<decimal> GetMinimumDueForBillAsync(string billId)
         {
             try
@@ -1075,7 +1130,8 @@ namespace ClinicApp.Services
                     }
                     else if (item.AmountPaid <= 0)
                     {
-                        // Nothing paid on this item yet — the 50% downpayment is due.
+                        // Nothing paid on this item yet — the downpayment
+                        // is what starts the schedule, still required.
                         var contribution = Math.Min(item.DownpaymentAmount, item.Balance);
                         minimum += contribution;
                         System.Diagnostics.Debug.WriteLine(
@@ -1083,30 +1139,19 @@ namespace ClinicApp.Services
                             $"DownpaymentAmount={item.DownpaymentAmount}, Balance={item.Balance}, " +
                             $"contributes={contribution}");
                     }
-                    else if (!item.DueDate.HasValue || DateTime.UtcNow >= item.DueDate.Value)
-                    {
-                        // Downpayment already covered, and the next cycle's due
-                        // date has actually arrived (or there isn't one stored,
-                        // which shouldn't normally happen once a downpayment has
-                        // posted, but is treated as due to be safe rather than
-                        // silently blocking a legitimate payment).
-                        var contribution = Math.Min(item.MonthlyPayment, item.Balance);
-                        minimum += contribution;
-                        System.Diagnostics.Debug.WriteLine(
-                            $"[DIAG-MINIMUM] {item.ServiceName}: MonthlyPayment={item.MonthlyPayment}, " +
-                            $"contributes={contribution}");
-                    }
                     else
                     {
+                        // Downpayment already made — no forced minimum unless
+                        // a scheduled monthly due date has actually arrived,
+                        // and any advance/early payment already made nets
+                        // straight out of what's owed for that cycle.
+                        var (amountDueNow, nextDueDate) = GetInstallmentDueState(item);
+                        minimum += amountDueNow;
                         System.Diagnostics.Debug.WriteLine(
-                            $"[DIAG-MINIMUM] {item.ServiceName}: not yet due " +
-                            $"(DueDate={item.DueDate}), contributes=0");
+                            $"[DIAG-MINIMUM] {item.ServiceName}: AmountPaid={item.AmountPaid}, " +
+                            $"nextDueDate={(nextDueDate.HasValue ? nextDueDate.Value.ToString("o") : "schedule complete")}, " +
+                            $"contributes={amountDueNow}");
                     }
-                    // else: downpayment is covered and the next installment
-                    // genuinely isn't due yet (DueDate is still in the future) —
-                    // this item contributes nothing to today's minimum. This is
-                    // what stops staff from recording next month's installment
-                    // on the same visit/day the downpayment was just paid.
                 }
 
                 System.Diagnostics.Debug.WriteLine($"[DIAG-MINIMUM] TOTAL minimum={minimum}");
@@ -1155,13 +1200,27 @@ namespace ClinicApp.Services
                     if (remaining <= 0) break;
 
                     var applied = Math.Min(item.Balance, remaining);
+                    var wasUnstarted = item.IsInstallment && item.AmountPaid <= 0;
 
                     item.AmountPaid += applied;
                     item.Balance -= applied;
                     item.LastPaymentDate = paymentDate;
+
+                    // Anchor the schedule ONCE, right when the downpayment
+                    // lands — never touched again after this, so a later
+                    // early/advance payment can't shift it.
+                    if (wasUnstarted && item.InstallmentStartDate == null)
+                        item.InstallmentStartDate = paymentDate;
+
+                    // DueDate is stored purely for display (Bill Details,
+                    // Receipt overdue flags) — always recomputed from the
+                    // fixed schedule, never bumped by "1 month from whenever
+                    // this payment happened" like before.
                     item.DueDate = item.Balance <= 0
                         ? null
-                        : (item.IsInstallment ? paymentDate.AddMonths(1) : item.DueDate);
+                        : (item.IsInstallment
+                            ? GetInstallmentDueState(item).NextDueDate
+                            : item.DueDate);
 
                     var updateResult = await _client!.From<SupabaseBillItem>().Update(item);
 
@@ -1247,7 +1306,21 @@ namespace ClinicApp.Services
                     billResult.Status = billResult.AmountPaid > 0 ? "partial" : "unpaid";
 
                     if (billResult.IsInstallment)
-                        billResult.DueDate = payment.PaymentDate.AddMonths(1);
+                    {
+                        // Bill-level DueDate is just a display rollup — mirror
+                        // whatever the item-level schedule (already recomputed
+                        // and anchored in AllocatePaymentToBillItemsAsync above)
+                        // actually says is next, instead of a flat "+1 month
+                        // from today", which used to push the due date forward
+                        // on every advance/early payment even though the real,
+                        // anchored per-item schedule hadn't moved at all.
+                        var refreshedItems = await GetBillItemsAsync(billId);
+                        billResult.DueDate = refreshedItems
+                            .Where(i => i.Balance > 0 && i.DueDate.HasValue)
+                            .OrderBy(i => i.DueDate)
+                            .Select(i => (DateTime?)i.DueDate)
+                            .FirstOrDefault();
+                    }
                 }
 
                 var updateResult = await _client!.From<SupabaseBill>().Update(billResult);

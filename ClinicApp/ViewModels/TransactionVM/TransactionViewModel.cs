@@ -77,6 +77,26 @@ public partial class TransactionViewModel : ObservableObject
     [ObservableProperty]
     string paymentStatus = string.Empty;
 
+    // Color helpers for the status pill shown beside "Outstanding
+    // Balance" — mirrors SupabaseBill.StatusColor/StatusBgColor, just
+    // keyed off PaymentStatus's own casing ("Paid" / "Partially Paid" /
+    // "Unpaid") since that's already computed in LoadBillsAsync below.
+    public Color PaymentStatusColor => PaymentStatus switch
+    {
+        "Paid" => Color.FromArgb("#2E7D32"),
+        "Partially Paid" => Color.FromArgb("#E65100"),
+        "Unpaid" => Color.FromArgb("#C62828"),
+        _ => Color.FromArgb("#888888")
+    };
+
+    public Color PaymentStatusBgColor => PaymentStatus switch
+    {
+        "Paid" => Color.FromArgb("#E8F5E9"),
+        "Partially Paid" => Color.FromArgb("#FFF3E0"),
+        "Unpaid" => Color.FromArgb("#FCEAEA"),
+        _ => Color.FromArgb("#F5F5F5")
+    };
+
     [ObservableProperty]
     DateTime? lastPaymentDate;
 
@@ -160,7 +180,9 @@ public partial class TransactionViewModel : ObservableObject
                 Subtitle = bill.VisitDate.ToString("MMM dd, yyyy hh:mm tt"),
                 Reference = bill.BillNumber ?? bill.Id,
                 Amount = bill.TotalAmount,
+                PaidAmount = bill.AmountPaid,
                 RemainingBalance = bill.Balance,
+                Status = bill.Status,
                 Date = bill.VisitDate
             }).ToList();
 
@@ -205,6 +227,8 @@ public partial class TransactionViewModel : ObservableObject
             OnPropertyChanged(nameof(VisibleHistory));
             OnPropertyChanged(nameof(HasMoreHistory));
             OnPropertyChanged(nameof(HistoryToggleLabel));
+            OnPropertyChanged(nameof(PaymentStatusColor));
+            OnPropertyChanged(nameof(PaymentStatusBgColor));
         }
         catch (Exception ex)
         {
@@ -258,8 +282,10 @@ public partial class TransactionViewModel : ObservableObject
         if (item == null)
             return;
 
+        // Existing bill, paying down its balance — NOT the same page as
+        // the brand-new-bill flow (see AdditionalPaymentPage for why).
         await Shell.Current.GoToAsync(
-            $"{nameof(PaymentPage)}" +
+            $"{nameof(AdditionalPaymentPage)}" +
             $"?billId={item.BillId}" +
             $"&patientId={Uri.EscapeDataString(PatientId)}" +
             $"&patientName={Uri.EscapeDataString(PatientName)}");

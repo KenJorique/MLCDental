@@ -66,6 +66,13 @@ namespace ClinicApp.Models
         [Column("due_date")]
         public DateTime? DueDate { get; set; }
 
+        // Set ONCE, the moment the downpayment is recorded — never touched
+        // again after that. This is the fixed anchor every future due date
+        // is calculated from (start + N months), so an early/advance
+        // payment never shifts when the NEXT payment is actually due.
+        [Column("installment_start_date")]
+        public DateTime? InstallmentStartDate { get; set; }
+
         [Column("last_payment_date")]
         public DateTime? LastPaymentDate { get; set; }
 

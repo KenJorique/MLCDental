@@ -1,16 +1,16 @@
 <ContentPage
-    x:Class="ClinicApp.Views.TransactionRelated.PaymentPage"
+    x:Class="ClinicApp.Views.TransactionRelated.AdditionalPaymentPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     BackgroundColor="#F5F5F5"
-    Title="Payment"
+    Title="Add Payment"
     Shell.TabBarIsVisible="False">
 
 	<Grid>
 		<ScrollView>
 			<VerticalStackLayout Padding="16" Spacing="14">
 
-				<!-- Header: brand green, matching BillDetailsPage's header treatment -->
+				<!-- Header: same brand-green treatment as PaymentPage -->
 				<Frame BackgroundColor="{StaticResource PrimaryDark}"
                        BorderColor="{StaticResource PrimaryDark}"
                        CornerRadius="12"
@@ -21,34 +21,87 @@
                                FontSize="18"
                                FontAttributes="Bold"
                                TextColor="{StaticResource White}"/>
+						<Label Text="{Binding BillNumber, StringFormat='Bill {0}'}"
+                               FontSize="12"
+                               TextColor="{StaticResource White}"
+                               Opacity="0.85"/>
 					</VerticalStackLayout>
 				</Frame>
 
+				<!-- Installment info — still useful context here even though
+                     nothing on this page forces a minimum against it. -->
 				<Frame BackgroundColor="#FFF8E1"
                        BorderColor="#FFE082"
                        CornerRadius="12"
                        Padding="12"
                        HasShadow="False"
-                       IsVisible="{Binding IsInstallment}">
+                       IsVisible="{Binding Bill.IsInstallment}">
 
 					<VerticalStackLayout Spacing="4">
 						<Label Text="Installment Plan"
                                FontAttributes="Bold"
                                TextColor="#F57F17"/>
-						<Label Text="{Binding InstallmentDisplay}"
+						<Label Text="{Binding Bill.InstallmentDisplay}"
                                FontSize="12"
                                TextColor="#F57F17"/>
 
 						<Grid ColumnDefinitions="*,Auto">
-							<Label Text="Next Due (est.)"
+							<Label Text="Next Due"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}"/>
 							<Label Grid.Column="1"
-                                   Text="{Binding DueDateDisplay}"
+                                   Text="{Binding Bill.DueDateDisplay}"
                                    FontSize="12"
                                    FontAttributes="Bold"
                                    TextColor="#C62828"/>
 						</Grid>
+					</VerticalStackLayout>
+				</Frame>
+
+				<!-- Payment history — every payment recorded on this bill so
+                     far, newest first, not just the latest one. Useful on
+                     installment bills where staff may have made several
+                     advance/partial payments already. -->
+				<Frame BackgroundColor="{StaticResource White}"
+                       BorderColor="{StaticResource Gray100}"
+                       CornerRadius="12"
+                       Padding="14"
+                       HasShadow="False">
+					<VerticalStackLayout Spacing="10">
+						<Label Text="Payment History"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Gray500}"/>
+
+						<Label Text="No previous payments"
+                               FontSize="13"
+                               TextColor="{StaticResource Gray400}"
+                               IsVisible="{Binding HasNoPaymentHistory}"/>
+
+						<CollectionView ItemsSource="{Binding PaymentHistory}"
+                                        IsVisible="{Binding HasPaymentHistory}">
+							<CollectionView.ItemTemplate>
+								<DataTemplate>
+									<Grid ColumnDefinitions="*,Auto"
+                                          Padding="0,6"
+                                          RowDefinitions="Auto">
+										<Label Text="{Binding DateDisplay}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource Black}"
+                                               VerticalOptions="Center"/>
+										<Label Grid.Column="1"
+                                               Text="{Binding AmountDisplay}"
+                                               FontSize="13"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource Primary}"
+                                               VerticalOptions="Center"/>
+									</Grid>
+								</DataTemplate>
+							</CollectionView.ItemTemplate>
+							<CollectionView.ItemsLayout>
+								<LinearItemsLayout Orientation="Vertical" ItemSpacing="0"/>
+							</CollectionView.ItemsLayout>
+						</CollectionView>
 					</VerticalStackLayout>
 				</Frame>
 
@@ -60,37 +113,26 @@
                        HasShadow="False">
 					<VerticalStackLayout Spacing="10">
 						<Grid ColumnDefinitions="*,Auto">
-							<Label Text="Subtotal" FontSize="13" TextColor="{StaticResource Gray500}"/>
-							<Label Grid.Column="1" Text="{Binding SubtotalDisplay}" FontSize="13" TextColor="{StaticResource Gray500}"/>
+							<Label Text="Total" FontSize="13" TextColor="{StaticResource Gray500}"/>
+							<Label Grid.Column="1" Text="{Binding TotalDisplay}" FontSize="13" TextColor="{StaticResource Gray500}"/>
 						</Grid>
 
 						<Grid ColumnDefinitions="*,Auto">
-							<Label Text="Discount" FontSize="13" TextColor="{StaticResource Gray500}"/>
-							<Label Grid.Column="1" Text="{Binding DiscountDisplay}" FontSize="13" TextColor="{StaticResource Gray500}"/>
+							<Label Text="Amount Paid" FontSize="13" TextColor="{StaticResource Gray500}"/>
+							<Label Grid.Column="1" Text="{Binding PaidDisplay}" FontSize="13" TextColor="{StaticResource Gray500}"/>
 						</Grid>
 
+						<!-- Balance: the headline figure for an existing bill —
+                             deliberately NOT "Due Today", since there's no
+                             forced per-visit minimum on this page. This is
+                             simply what's left to collect overall. -->
 						<Grid ColumnDefinitions="*,Auto"
                               Margin="0,2,0,0"
                               Padding="0,10,0,0">
 							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
-							<Label Text="Total" FontSize="13" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
-							<Label Grid.Column="1" Text="{Binding TotalDisplay}" FontSize="13" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
-						</Grid>
-
-						<!-- Due Today: last line, biggest and most prominent —
-                             matches Bill Summary's own "Due Today" hero, both
-                             in naming and color, for consistency. Previously
-                             showed the whole bill's remaining Balance, which
-                             was identical to Total on a first payment (hence
-                             redundant) and not what's actually being asked
-                             for today on later/partial visits. -->
-						<Grid ColumnDefinitions="*,Auto"
-                              Margin="0,2,0,0"
-                              Padding="0,10,0,0">
-							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
-							<Label Text="Due Today" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center" Margin="0,4,0,0"/>
+							<Label Text="Balance" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center" Margin="0,4,0,0"/>
 							<Label Grid.Column="1"
-                                   Text="{Binding MinimumDueTodayDisplay}"
+                                   Text="{Binding BalanceDisplay}"
                                    FontSize="26"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Primary}"
@@ -107,7 +149,7 @@
                        Padding="14"
                        HasShadow="False">
 					<VerticalStackLayout Spacing="12">
-						<Label Text="Amount Received Today"
+						<Label Text="Amount Received"
                                FontSize="13"
                                TextColor="{StaticResource Gray500}"
                                FontAttributes="Bold"/>
@@ -132,11 +174,7 @@
 					</VerticalStackLayout>
 				</Frame>
 
-				<!-- Amount too large: shown instead of Change when the entered
-                     amount exceeds the WHOLE bill balance — almost always a
-                     typo (e.g. an extra zero), so it's flagged rather than
-                     silently computing a huge "change" figure. Record Payment
-                     still asks for confirmation before proceeding. -->
+				<!-- Amount too large -->
 				<Frame BackgroundColor="#FFF3E0"
                        BorderColor="#FFCC80"
                        CornerRadius="12"
@@ -148,11 +186,7 @@
                            TextColor="#E65100"/>
 				</Frame>
 
-				<!-- Change: shown when the entered amount exceeds the minimum
-                     (but not the whole balance). The excess isn't recorded as
-                     extra payment — it's Change, same as a cash register. Use
-                     Add Payment elsewhere if the patient wants to pay more
-                     toward the balance. -->
+				<!-- Change -->
 				<Frame BackgroundColor="{StaticResource Secondary}"
                        BorderColor="Transparent"
                        CornerRadius="12"
@@ -193,16 +227,6 @@
                         HeightRequest="48"
                         FontSize="14"
                         Command="{Binding RecordPaymentCommand}"/>
-
-				<!--<Button Text="Skip — Pay Later"
-                        BackgroundColor="Transparent"
-                        BorderColor="{StaticResource Gray100}"
-                        BorderWidth="1"
-                        TextColor="{StaticResource Gray400}"
-                        CornerRadius="12"
-                        HeightRequest="44"
-                        FontSize="13"
-                        Command="{Binding SkipPaymentCommand}"/>-->
 			</VerticalStackLayout>
 		</ScrollView>
 

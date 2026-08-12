@@ -105,8 +105,10 @@ public partial class BillDetailsViewModel : ObservableObject
         if (Bill == null || Bill.Balance <= 0)
             return;
 
+        // Same reasoning as TransactionViewModel.PayNow — existing bill,
+        // so it goes to AdditionalPaymentPage, not the new-bill PaymentPage.
         await Shell.Current.GoToAsync(
-            $"{nameof(PaymentPage)}" +
+            $"{nameof(AdditionalPaymentPage)}" +
             $"?billId={Bill.Id}" +
             $"&patientId={Uri.EscapeDataString(PatientId)}" +
             $"&patientName={Uri.EscapeDataString(PatientName)}");

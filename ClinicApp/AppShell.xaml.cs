@@ -59,6 +59,7 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(ServiceSummaryPage), typeof(ServiceSummaryPage));
             Routing.RegisterRoute(nameof(BillSummaryPage), typeof(BillSummaryPage));
             Routing.RegisterRoute(nameof(PaymentPage), typeof(PaymentPage));
+            Routing.RegisterRoute(nameof(AdditionalPaymentPage), typeof(AdditionalPaymentPage));
             Routing.RegisterRoute(nameof(BillDetailsPage), typeof(BillDetailsPage));
         }
 

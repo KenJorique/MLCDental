@@ -1,44 +1,39 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Helpers;
+using ClinicApp.Models;
 using ClinicApp.Services;
 using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using static ClinicApp.Helpers.BillDraftStore;
 
 namespace ClinicApp.ViewModels.TransactionVM;
 
-[QueryProperty(nameof(BillId), "billId")]
-[QueryProperty(nameof(PatientId), "patientId")]
-[QueryProperty(nameof(PatientName), "patientName")]
-[QueryProperty(nameof(AppointmentEntryId), "appointmentEntryId")]
-[QueryProperty(nameof(SupabaseEntryId), "supabaseEntryId")]
-[QueryProperty(nameof(SupabaseBookingId), "supabaseBookingId")]
+// First-payment flow ONLY — reached exclusively from
+// BillSummaryViewModel.Proceed(). Nothing about this bill exists in
+// Supabase yet when this page opens: no bills row, no bill_items, no
+// dental chart/tooth records, no treatment history. All of that gets
+// written in ONE place — RecordPayment below, via BillingService.
+// CreateBillAsync — and only once the entered amount actually clears
+// validation and Record Payment is tapped. Simply opening this page and
+// going back to Bill Summary (or backing out of the app entirely) writes
+// nothing at all; there's no draft-vs-database reconciliation to worry
+// about, because there's nothing in the database to reconcile against
+// until payment genuinely happens.
 public partial class PaymentViewModel : ObservableObject
 {
     private readonly SupabaseDataService _supabase;
+    private readonly BillingService _billing;
 
-    public PaymentViewModel(SupabaseDataService supabase)
+    public PaymentViewModel(SupabaseDataService supabase, BillingService billing)
     {
         _supabase = supabase;
+        _billing = billing;
     }
-
-    [ObservableProperty]
-    private string billId = string.Empty;
-
-    [ObservableProperty]
-    private string patientId = string.Empty;
-    [ObservableProperty] string appointmentEntryId = string.Empty;
-    [ObservableProperty] string supabaseEntryId = string.Empty;
-    [ObservableProperty] string supabaseBookingId = string.Empty;
 
     [ObservableProperty]
     private string patientName = string.Empty;
 
     [ObservableProperty]
     private decimal paymentAmount;
-
-    [ObservableProperty]
-    private SupabaseBill? bill;
 
     [ObservableProperty]
     private bool isBusy;
@@ -49,140 +44,95 @@ public partial class PaymentViewModel : ObservableObject
     [ObservableProperty]
     private string errorMessage = string.Empty;
 
-    public string DueDateDisplay =>
-        Bill?.DueDateDisplay ?? "—";
+    // Set the first time CreateBillAsync succeeds within this page's
+    // lifetime. Guards against a narrower version of the old duplicate-bill
+    // bug: if the bill gets created successfully but RecordPaymentAsync
+    // then fails (e.g. a network hiccup) and staff tap Record Payment
+    // again, this makes the retry reuse the bill that already exists
+    // instead of creating a second one.
+    private string? _pendingBillId;
 
-    public string LastPaymentDateDisplay =>
-        Bill?.LastPaymentDateDisplay ?? "—";
-
-    // ── lets the UI highlight "Full Balance" chip when it matches ──
-    public bool IsFullPaymentSelected =>
-        Bill != null && PaymentAmount == Bill.Balance && PaymentAmount > 0;
-
-    partial void OnBillIdChanged(string value)
+    public void LoadDraft()
     {
-        if (CreatedBillStore.Current?.Id == value)
-        {
-            Bill = CreatedBillStore.Current;
-            CreatedBillStore.Current = null;
-            return;
-        }
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            MainThread.BeginInvokeOnMainThread(async () =>
-                await LoadBillAsync());
-        }
-    }
+        var draft = BillDraftStore.Current;
 
-    [ObservableProperty]
-    private decimal liveMinimumDue;
-
-    [ObservableProperty]
-    private bool hasLoadedMinimumDue;
-
-    partial void OnBillChanged(SupabaseBill? value)
-    {
-        // Starts at 0, not pre-filled — staff types the amount received.
         PaymentAmount = 0;
-        HasLoadedMinimumDue = false;
+        HasError = false;
+        _pendingBillId = null;
 
+        PatientName = draft?.PatientName ?? string.Empty;
+
+        OnPropertyChanged(nameof(IsInstallment));
+        OnPropertyChanged(nameof(InstallmentDisplay));
+        OnPropertyChanged(nameof(DueDateDisplay));
         OnPropertyChanged(nameof(SubtotalDisplay));
         OnPropertyChanged(nameof(DiscountDisplay));
         OnPropertyChanged(nameof(TotalDisplay));
-        OnPropertyChanged(nameof(PaidDisplay));
-        OnPropertyChanged(nameof(BalanceDisplay));
-        OnPropertyChanged(nameof(BillNumber));
-        OnPropertyChanged(nameof(DueDateDisplay));
-        OnPropertyChanged(nameof(LastPaymentDateDisplay));
-        OnPropertyChanged(nameof(IsFullPaymentSelected));
-
-        // Fetched fresh here (not in LoadBillAsync) because Bill can also
-        // get set via the "just created" fast path in OnBillIdChanged,
-        // which skips LoadBillAsync entirely — this covers both paths.
-        if (value != null)
-        {
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                LiveMinimumDue = await _supabase.GetMinimumDueForBillAsync(value.Id);
-                HasLoadedMinimumDue = true;
-                OnPropertyChanged(nameof(MinimumDueToday));
-                OnPropertyChanged(nameof(MinimumDueTodayDisplay));
-                OnPropertyChanged(nameof(IsBelowMinimum));
-                OnPropertyChanged(nameof(IsNothingDue));
-            });
-        }
-        else
-        {
-            LiveMinimumDue = 0;
-        }
-
-        OnPropertyChanged(nameof(MinimumDueToday));
         OnPropertyChanged(nameof(MinimumDueTodayDisplay));
-        OnPropertyChanged(nameof(IsBelowMinimum));
-        OnPropertyChanged(nameof(IsNothingDue));
+        OnPropertyChanged(nameof(BalanceDisplay));
     }
 
-    // Live-fetched per visit — see OnBillChanged. Before the fetch
-    // completes, falls back to Bill.Balance so staff don't briefly see a
-    // ₱0 minimum while it's loading. Once loaded, 0 is trusted as genuine
-    // (bill fully paid, or next installment not due yet) — it does NOT
-    // fall back to Balance anymore, since that was the actual bug: it let
-    // staff record a payment for an amount that wasn't really due.
-    public decimal MinimumDueToday =>
-        Bill == null ? 0 : HasLoadedMinimumDue ? LiveMinimumDue : Bill.Balance;
+    private BillDraft? Draft => BillDraftStore.Current;
+
+    public bool IsInstallment => Draft?.IsInstallment ?? false;
+
+    public string InstallmentDisplay => Draft?.InstallmentSummary ?? string.Empty;
+
+    // No real due date exists yet — nothing's been created. This is a
+    // preview only, using the same "+1 month from today" rule
+    // BillingService.CreateBillAsync itself uses when it sets the real
+    // DueDate at creation time, so what's shown here matches what the
+    // bill will actually get once Record Payment is tapped.
+    public string DueDateDisplay =>
+        IsInstallment
+            ? DateTime.Now.AddMonths(1).ToString("MMM dd, yyyy")
+            : "—";
+
+    public string SubtotalDisplay => $"₱{Draft?.Subtotal ?? 0:N2}";
+    public string DiscountDisplay => $"₱{Draft?.DiscountAmount ?? 0:N2}";
+    public string TotalDisplay => $"₱{Draft?.Total ?? 0:N2}";
+
+    // "Due Today" — draft.AmountDueToday is already the exact figure
+    // BillingService.CreateBillAsync will use as the new bill's
+    // MinimumDueToday, computed client-side in BillSummaryViewModel with
+    // no DB round-trip needed (unlike AdditionalPaymentViewModel's
+    // existing-bill case, where it has to be fetched live from bill_items
+    // that already exist in Supabase).
+    public decimal MinimumDueToday => Draft?.AmountDueToday ?? 0;
 
     public string MinimumDueTodayDisplay => $"₱{MinimumDueToday:N2}";
 
+    // Shown only in the "amount too large" warning text — before creation,
+    // Balance and Total are the same thing (nothing's been paid yet).
+    public string BalanceDisplay => TotalDisplay;
+
     public string PaymentAmountDisplay => $"₱{PaymentAmount:N2}";
 
-    // True once we've genuinely confirmed nothing is owed right now —
-    // either the bill is fully paid, or (for installment bills) the next
-    // payment simply isn't due yet. Blocks RecordPayment entirely; this is
-    // what stops the "go back to Payment page after already paying and
-    // submit again" bug, regardless of what amount gets typed.
-    public bool IsNothingDue =>
-        Bill != null && HasLoadedMinimumDue &&
-        (Bill.Balance <= 0 || MinimumDueToday <= 0);
-
-    // Blocks ANY amount below the minimum, including 0 — there's no
-    // "enter 0 to skip payment for now" escape hatch. No longer disables
-    // the button — the check happens as an alert on tap instead (see
-    // RecordPayment), rather than a persistent banner while typing.
+    // No "nothing due yet" case here (unlike AdditionalPaymentViewModel) —
+    // this is always, by definition, the very first payment on a bill
+    // that doesn't exist yet, so the minimum is always genuinely required.
     public bool IsBelowMinimum =>
-        Bill != null && !IsNothingDue && PaymentAmount < MinimumDueToday;
+        MinimumDueToday > 0 && PaymentAmount < MinimumDueToday;
 
-    // Flags amounts that are wildly larger than what's owed — a genuine
-    // typo (an extra zero, etc.), not a normal "gave more cash, get change
-    // back" scenario. Comparing directly against Bill.Balance was too
-    // strict: when Balance is close to the minimum (the last installment,
-    // or a simple one-time bill), even a small, completely normal change
-    // amount (e.g. ₱500 over a ₱21,500 minimum) would trip it. Using a
-    // generous multiple of Balance instead means this only fires for
-    // amounts that are actually implausible.
     public bool IsAmountTooLarge =>
-        Bill != null && Bill.Balance > 0 && PaymentAmount > Bill.Balance * 2;
+        Draft != null && Draft.Total > 0 && PaymentAmount > Draft.Total * 2;
 
-    // Anything typed beyond the minimum isn't recorded as extra payment —
-    // it's handled like a cash register: the excess is Change, and only
-    // MinimumDueToday actually gets recorded. Staff use the separate
-    // "Add Payment" flow (on Bill Details / Receipt) if the patient
-    // genuinely wants to pay more toward the balance. Suppressed when the
-    // amount is flagged as too large — the warning takes over instead of
-    // showing a huge, likely-mistaken Change figure.
+    private decimal RequiredAmount =>
+        MinimumDueToday > 0
+            ? MinimumDueToday
+            : Math.Min(PaymentAmount, Draft?.Total ?? 0);
+
     public decimal Change =>
-        PaymentAmount > MinimumDueToday && !IsAmountTooLarge
-            ? PaymentAmount - MinimumDueToday
+        !IsAmountTooLarge && PaymentAmount > RequiredAmount
+            ? PaymentAmount - RequiredAmount
             : 0;
 
     public string ChangeDisplay => $"₱{Change:N2}";
 
     public bool HasChange => Change > 0;
 
-    // ── keep the live preview in sync as the staff types ──
     partial void OnPaymentAmountChanged(decimal value)
     {
-        // Block negative amounts — Keyboard="Numeric" mostly prevents this
-        // on-screen, but this covers pasted input / physical keyboards too.
         if (value < 0)
         {
             PaymentAmount = 0;
@@ -190,7 +140,6 @@ public partial class PaymentViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(PaymentAmountDisplay));
-        OnPropertyChanged(nameof(IsFullPaymentSelected));
         OnPropertyChanged(nameof(IsBelowMinimum));
         OnPropertyChanged(nameof(IsAmountTooLarge));
         OnPropertyChanged(nameof(Change));
@@ -199,61 +148,22 @@ public partial class PaymentViewModel : ObservableObject
         if (HasError) HasError = false;
     }
 
-    private async Task LoadBillAsync()
-    {
-        IsBusy = true;
-
-        try
-        {
-            Bill = await _supabase.GetBillByIdAsync(BillId);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    public string BillNumber =>
-        Bill?.BillNumber ?? "";
-
-    public string SubtotalDisplay =>
-        Bill == null ? "₱0.00" : $"₱{Bill.Subtotal:N2}";
-
-    public string DiscountDisplay =>
-        Bill == null ? "₱0.00" : $"₱{Bill.DiscountAmount:N2}";
-
-    public string TotalDisplay =>
-        Bill == null ? "₱0.00" : $"₱{Bill.TotalAmount:N2}";
-
-    public string PaidDisplay =>
-        Bill == null ? "₱0.00" : $"₱{Bill.AmountPaid:N2}";
-
-    public string BalanceDisplay =>
-        Bill == null ? "₱0.00" : $"₱{Bill.Balance:N2}";
-
     [RelayCommand]
     private async Task RecordPayment()
     {
-        if (Bill == null)
+        var draft = Draft;
+        if (draft == null)
             return;
 
-        // Blocks re-submitting after already fully paying, or before the
-        // next installment is genuinely due (e.g. going back to this page
-        // right after paying the downpayment, same visit, same day).
-        if (IsNothingDue)
+        if (PaymentAmount <= 0)
         {
-            var message = Bill.Balance <= 0
-                ? "This bill is already fully paid."
-                : $"Nothing is due right now. Next payment is due {DueDateDisplay}.";
-
-            await Shell.Current.DisplayAlert("Nothing Due", message, "OK");
+            await Shell.Current.DisplayAlert(
+                "Enter an Amount",
+                "Enter how much the patient is paying.",
+                "OK");
             return;
         }
 
-        // No more "0 = skip payment" exception — every submission,
-        // including 0, is checked against the minimum. Shown as an alert
-        // on tap now, not a persistent banner while typing (that was
-        // redundant with the "Minimum due today" hint already on screen).
         if (IsBelowMinimum)
         {
             await Shell.Current.DisplayAlert(
@@ -263,9 +173,6 @@ public partial class PaymentViewModel : ObservableObject
             return;
         }
 
-        // Amounts beyond the whole bill balance are almost always a typo
-        // (an extra zero, etc.) — ask for confirmation rather than
-        // silently recording it or showing an oddly huge "Change" figure.
         if (IsAmountTooLarge)
         {
             bool proceed = await Shell.Current.DisplayAlert(
@@ -283,18 +190,34 @@ public partial class PaymentViewModel : ObservableObject
 
         try
         {
-            // Whatever staff typed beyond the minimum is Change, not part
-            // of the recorded payment — see the Change property above.
-            // Capped at Bill.Balance too, defensively, so this can never
-            // record more than what's genuinely still owed.
-            var amountToRecord = Math.Min(MinimumDueToday, Bill.Balance);
+            var billId = _pendingBillId;
 
-            System.Diagnostics.Debug.WriteLine(
-                $"[DIAG-RECORD] MinimumDueToday={MinimumDueToday}, Bill.Balance={Bill.Balance}, " +
-                $"amountToRecord={amountToRecord}, PaymentAmount(typed)={PaymentAmount}");
+            // Only actually create the bill (and everything that comes
+            // with it — bill_items, tooth/chart records, treatment
+            // history) the first time through. If this is a retry after
+            // RecordPaymentAsync failed below on a previous attempt,
+            // _pendingBillId is already set and this whole step is
+            // skipped — the bill already exists from that first attempt.
+            if (billId == null)
+            {
+                var billResult = await _billing.CreateBillAsync(
+                    draft, draft.AppointmentEntryId, draft.SupabaseEntryId);
+
+                if (!billResult.Success || billResult.Bill == null)
+                {
+                    HasError = true;
+                    ErrorMessage = billResult.ErrorMessage ?? "Failed to create bill.";
+                    return;
+                }
+
+                billId = billResult.Bill.Id;
+                _pendingBillId = billId;
+            }
+
+            var amountToRecord = Math.Min(RequiredAmount, draft.Total);
 
             var (success, error) =
-                await _supabase.RecordPaymentAsync(Bill.Id, amountToRecord);
+                await _supabase.RecordPaymentAsync(billId, amountToRecord);
 
             if (!success)
             {
@@ -303,23 +226,20 @@ public partial class PaymentViewModel : ObservableObject
                 return;
             }
 
-            // ".." pops THIS page (Payment) off the back-stack as part of
-            // navigating to Receipt, so the back button from Receipt skips
-            // right past Payment instead of ever landing back on it — that
-            // was the actual ask: prevent back-navigation reuse, not gate
-            // by date. (IsNothingDue above is a separate safety net for
-            // when Payment page is reached fresh from elsewhere, like
-            // Pay Now on the ledger, before anything is genuinely due.)
+            // Done with this draft — clear it so nothing stale lingers if
+            // this ViewModel instance somehow gets revisited.
+            BillDraftStore.Current = null;
+
             await Shell.Current.GoToAsync(
-    $"../{nameof(ReceiptPage)}" +
-    $"?billId={Bill.Id}" +
-    $"&patientName={Uri.EscapeDataString(PatientName)}" +
-    $"&patientId={Uri.EscapeDataString(PatientId)}" +
-    $"&appointmentEntryId={Uri.EscapeDataString(AppointmentEntryId)}" +
-    $"&supabaseEntryId={Uri.EscapeDataString(SupabaseEntryId)}" +
-    $"&supabaseBookingId={Uri.EscapeDataString(SupabaseBookingId)}" +
-    $"&amountReceived={PaymentAmount}" +
-    $"&change={Change}");
+                $"../{nameof(ReceiptPage)}" +
+                $"?billId={billId}" +
+                $"&patientName={Uri.EscapeDataString(draft.PatientName)}" +
+                $"&patientId={Uri.EscapeDataString(draft.PatientId)}" +
+                $"&appointmentEntryId={Uri.EscapeDataString(draft.AppointmentEntryId ?? string.Empty)}" +
+                $"&supabaseEntryId={Uri.EscapeDataString(draft.SupabaseEntryId ?? string.Empty)}" +
+                $"&supabaseBookingId={Uri.EscapeDataString(draft.SupabaseBookingId ?? string.Empty)}" +
+                $"&amountReceived={PaymentAmount}" +
+                $"&change={Change}");
         }
         catch (Exception ex)
         {

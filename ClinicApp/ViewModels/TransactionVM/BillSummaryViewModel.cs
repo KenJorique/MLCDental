@@ -1,6 +1,5 @@
 ﻿using ClinicApp.Helpers;
 using ClinicApp.Models;
-using ClinicApp.Services;
 using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,8 +10,6 @@ namespace ClinicApp.ViewModels.TransactionVM;
 
 public partial class BillSummaryViewModel : ObservableObject
 {
-    readonly BillingService _billing;
-
     public ObservableCollection<ServiceLineItem> Services { get; } = new();
 
     [ObservableProperty]
@@ -52,16 +49,25 @@ public partial class BillSummaryViewModel : ObservableObject
     [ObservableProperty]
     bool isBusy;
 
-    [ObservableProperty]
-    string createdBillId = "";
-
-    [ObservableProperty]
-    string createdBillNumber = "";
-
     public bool HasDiscount => DiscountPercent > 0 || SpecialDiscountAmount > 0;
 
     public bool HasInstallmentService =>
         Services.Any(x => x.IsInstallmentEligible);
+
+    // Discount is only fully disabled when EVERY service on the bill is
+    // installment-eligible — i.e. there'd be nothing left for it to apply
+    // to. A mixed bill (some installment, some not) still allows a
+    // discount; it just applies only to the non-installment item(s), same
+    // as before.
+    public bool CanApplyDiscount =>
+        Services.Any(x => !x.IsInstallmentEligible);
+
+    // Only true on a genuinely mixed bill — some installment, some not —
+    // where the discount is still usable but doesn't cover everything.
+    // Drives the "Excludes installment items" hint text specifically
+    // (separate from the "fully disabled" hint below).
+    public bool HasMixedInstallmentAndRegular =>
+        HasInstallmentService && CanApplyDiscount;
 
     public bool HasServices => Services.Count > 0;
 
@@ -72,9 +78,8 @@ public partial class BillSummaryViewModel : ObservableObject
     public string TotalDisplay => $"₱{Total:N2}";
     public string AmountDueTodayDisplay => $"₱{AmountDueToday:N2}";
 
-    public BillSummaryViewModel(BillingService billing)
+    public BillSummaryViewModel()
     {
-        _billing = billing;
         LoadDraft();
     }
 
@@ -139,25 +144,29 @@ public partial class BillSummaryViewModel : ObservableObject
     {
         Subtotal = Services.Sum(x => x.Subtotal);
 
-        // Discount excludes any service that's eligible for installment —
-        // regardless of whether the patient actually chose a plan for it.
-        // (Previously this only excluded items actively toggled ON, which
-        // wrongly let PWD/Senior % apply to an eligible-but-not-selected
-        // service's full price.)
+        // Discount excludes any service that's eligible for installment,
+        // regardless of whether the patient actually chose a plan for it
+        // (so a discount can't sneak onto an eligible-but-not-selected
+        // service's full price). On a mixed bill this still leaves a
+        // non-zero eligible pool; CanApplyDiscount only forces this to 0
+        // when EVERY service is installment-eligible.
         var discountEligibleSubtotal = Services
             .Where(x => !x.IsInstallmentEligible)
             .Sum(x => x.Subtotal);
 
-        DiscountAmount = IsSpecialDiscount
-            ? Math.Min(SpecialDiscountAmount, discountEligibleSubtotal)
-            : Math.Round(discountEligibleSubtotal * DiscountPercent, 2);
+        DiscountAmount = !CanApplyDiscount
+            ? 0m
+            : IsSpecialDiscount
+                ? Math.Min(SpecialDiscountAmount, discountEligibleSubtotal)
+                : Math.Round(discountEligibleSubtotal * DiscountPercent, 2);
 
         Total = Subtotal - DiscountAmount;
 
         // Due today = sum of each item's own contribution (full price, or
         // 50% down if on a plan), minus the discount — which only ever
-        // came from items that ARE due in full today, so it's correct to
-        // net it out here too.
+        // comes from non-installment items (see discountEligibleSubtotal
+        // above), and those are always due in full today, so it's correct
+        // to net the whole DiscountAmount off AmountDueToday here too.
         AmountDueToday = Services.Sum(x => x.AmountDueToday) - DiscountAmount;
 
         if (BillDraftStore.Current != null)
@@ -191,6 +200,8 @@ public partial class BillSummaryViewModel : ObservableObject
         OnPropertyChanged(nameof(TotalDisplay));
         OnPropertyChanged(nameof(AmountDueTodayDisplay));
         OnPropertyChanged(nameof(HasInstallmentService));
+        OnPropertyChanged(nameof(CanApplyDiscount));
+        OnPropertyChanged(nameof(HasMixedInstallmentAndRegular));
         OnPropertyChanged(nameof(HasServices));
         OnPropertyChanged(nameof(TotalItems));
         OnPropertyChanged(nameof(HasDiscount));
@@ -233,53 +244,16 @@ public partial class BillSummaryViewModel : ObservableObject
         if (BillDraftStore.Current == null)
             return;
 
-        IsBusy = true;
-        ProceedCommand.NotifyCanExecuteChanged();
-
-        try
-        {
-            var draft = BillDraftStore.Current;
-
-            var result = await _billing.CreateBillAsync(
-                draft,
-                draft.AppointmentEntryId,
-                draft.SupabaseEntryId);
-
-            if (!result.Success)
-            {
-                await Shell.Current.DisplayAlert(
-                    "Billing Error",
-                    result.ErrorMessage ?? "Unable to create the bill. Please try again.",
-                    "OK");
-
-                return;
-            }
-
-            if (result.Bill == null)
-            {
-                await Shell.Current.DisplayAlert(
-                    "Billing Error",
-                    "Bill was not returned from Supabase.",
-                    "OK");
-
-                return;
-            }
-
-            CreatedBillStore.Current = result.Bill;
-
-            await Shell.Current.GoToAsync(
-                $"{nameof(PaymentPage)}" +
-                $"?billId={result.Bill.Id}" +
-                $"&patientId={Uri.EscapeDataString(result.Bill.PatientId)}" +
-                $"&patientName={Uri.EscapeDataString(result.Bill.PatientName)}" +
-                $"&appointmentEntryId={Uri.EscapeDataString(draft.AppointmentEntryId ?? string.Empty)}" +
-                $"&supabaseEntryId={Uri.EscapeDataString(draft.SupabaseEntryId ?? string.Empty)}" +
-                $"&supabaseBookingId={Uri.EscapeDataString(draft.SupabaseBookingId ?? string.Empty)}");
-        }
-        finally
-        {
-            IsBusy = false;
-            ProceedCommand.NotifyCanExecuteChanged();
-        }
+        // Bill creation (and everything CreateBillAsync writes alongside
+        // it — bill_items, dental chart/tooth records, treatment history)
+        // is now deferred to the moment Record Payment succeeds on
+        // PaymentPage, not here. This is genuinely just navigation — the
+        // draft in BillDraftStore.Current carries everything PaymentPage
+        // needs (PatientName, Services, totals, appointment/booking ids),
+        // so there's nothing to pass in the URL and nothing written to
+        // Supabase yet. Going back and forth between this page and
+        // Payment before Record Payment is tapped touches the database
+        // not at all.
+        await Shell.Current.GoToAsync(nameof(PaymentPage));
     }
 }

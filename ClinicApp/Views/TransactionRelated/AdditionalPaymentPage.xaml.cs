@@ -2,12 +2,12 @@ using ClinicApp.ViewModels.TransactionVM;
 
 namespace ClinicApp.Views.TransactionRelated;
 
-public partial class PaymentPage : ContentPage
+public partial class AdditionalPaymentPage : ContentPage
 {
-    readonly PaymentViewModel _vm;
+    readonly AdditionalPaymentViewModel _vm;
     bool _formattingInProgress;
 
-    public PaymentPage(PaymentViewModel vm)
+    public AdditionalPaymentPage(AdditionalPaymentViewModel vm)
     {
         InitializeComponent();
 
@@ -19,29 +19,23 @@ public partial class PaymentPage : ContentPage
     {
         base.OnAppearing();
 
-        // No QueryProperty triggers this anymore — PaymentViewModel now
-        // reads straight from BillDraftStore.Current (see LoadDraft),
-        // since there's no real bill/billId to navigate in with yet.
-        _vm.LoadDraft();
-
-        // PaymentAmount resets to 0 each visit (see PaymentViewModel.
-        // LoadDraft) — clear the entry text to match, since it's no
-        // longer bound directly (see OnAmountTextChanged below).
+        // Same reasoning as PaymentPage: PaymentAmount isn't bound
+        // directly to the Entry (comma-formatted text doesn't parse back
+        // into decimal on its own — see OnAmountTextChanged), so clear the
+        // Entry's own text on each visit to match a fresh PaymentAmount.
         AmountEntry.Text = string.Empty;
+        _vm.PaymentAmount = 0;
     }
 
-    // Live thousands-separator formatting as the staff types (e.g. typing
-    // "200000" displays as "200,000"). The Entry's Text is NOT bound
-    // directly to PaymentAmount anymore — comma-formatted text like
-    // "200,000.00" won't parse back into a decimal automatically, so this
-    // strips the formatting to get the real number, updates the ViewModel
-    // directly, then re-displays the formatted version.
+    // Identical live thousands-separator formatting to PaymentPage's
+    // OnAmountTextChanged — duplicated rather than shared because the two
+    // pages' code-behind have no common base to hang a shared helper off
+    // without a bigger refactor, and this logic is small and stable.
     void OnAmountTextChanged(object sender, TextChangedEventArgs e)
     {
         if (_formattingInProgress) return;
         if (sender is not Entry entry) return;
 
-        // Keep only digits and a single decimal point.
         var raw = new string((e.NewTextValue ?? "")
             .Where(c => char.IsDigit(c) || c == '.').ToArray());
 

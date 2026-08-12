@@ -4,13 +4,14 @@
              xmlns:vm="clr-namespace:ClinicApp.ViewModels.TransactionVM"
              xmlns:models="clr-namespace:ClinicApp.Models"
              Shell.TabBarIsVisible="False"
+             Shell.NavBarIsVisible="True"
+             Shell.BackgroundColor="{StaticResource Primary}"
+             Shell.ForegroundColor="{StaticResource White}"
+             Shell.TitleColor="{StaticResource White}"
+             Title="Ledger"
              x:Class="ClinicApp.Views.TransactionPage"
              x:DataType="vm:TransactionViewModel"
              BackgroundColor="#F5F5F5">
-
-	<ContentPage.Title>
-		<Binding Path="PatientName" StringFormat="Patient Ledger — {0}"/>
-	</ContentPage.Title>
 
 	<ContentPage.Resources>
 		<DataTemplate x:Key="LedgerItemTemplate" x:DataType="models:LedgerItem">
@@ -34,7 +35,7 @@
 						</Border.StrokeShape>
 
 						<Label Text="{Binding Icon}"
-                               FontFamily="MaterialSymbolsRounded"
+                               FontFamily="MaterialSymbolsRoundedFilled"
                                TextColor="{Binding IconColor}"
                                FontSize="20"
                                HorizontalOptions="Center"
@@ -60,86 +61,103 @@
 					</Border.GestureRecognizers>
 
 					<VerticalStackLayout Spacing="0">
-						<Grid ColumnDefinitions="*,Auto,Auto"
-                          ColumnSpacing="12">
 
+						<!-- Title + date + chevron -->
+						<Grid ColumnDefinitions="*,Auto,Auto">
 							<VerticalStackLayout Spacing="2">
 								<Label Text="{Binding EntryKind}"
-                                   FontAttributes="Bold"
-                                   FontSize="14"
-                                   TextColor="{StaticResource Black}"/>
+                                       FontAttributes="Bold"
+                                       FontSize="15"
+                                       TextColor="{StaticResource Black}"/>
 								<Label Text="{Binding Subtitle}"
-                                   FontSize="12"
-                                   TextColor="Gray"/>
-								<Label Text="{Binding Reference}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource Gray500}"/>
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}"/>
+							</VerticalStackLayout>
 
-								<Frame BackgroundColor="#FFF1F2"
+							<!-- Overdue flag — only for installment bills past
+                                 their due date, kept from the previous design. -->
+							<Frame Grid.Column="1"
+                                   BackgroundColor="#FFF1F2"
                                    BorderColor="#FECACA"
                                    CornerRadius="20"
-                                   Padding="6,2"
+                                   Padding="8,3"
                                    HasShadow="False"
+                                   VerticalOptions="Start"
                                    IsVisible="{Binding IsOverdue}">
-									<Label Text="{Binding DueStatusText}"
+								<Label Text="{Binding DueStatusText}"
                                        FontSize="10"
                                        TextColor="#B91C1C"
                                        FontAttributes="Bold"/>
-								</Frame>
+							</Frame>
+
+							<Label Grid.Column="2"
+                                   FontFamily="MaterialSymbolsRounded"
+                                   Text="&#xe5cc;"
+                                   FontSize="20"
+                                   TextColor="#9CA3AF"
+                                   VerticalOptions="Center"
+                                   Margin="8,0,0,0"/>
+						</Grid>
+
+						<BoxView HeightRequest="1"
+                                 Margin="0,12,0,12"
+                                 Color="{StaticResource Gray100}"/>
+
+						<!-- Bill Amount / Paid -->
+						<Grid ColumnDefinitions="*,*">
+							<VerticalStackLayout Spacing="4">
+								<Label Text="Bill Amount"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}"/>
+								<Label Text="{Binding AmountDisplay}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Black}"/>
 							</VerticalStackLayout>
 
 							<VerticalStackLayout Grid.Column="1"
-                                             Spacing="2"
-                                             HorizontalOptions="End">
-								<Label Text="{Binding AmountDisplay}"
-                                   FontAttributes="Bold"
-                                   HorizontalTextAlignment="End"
-                                   TextColor="{Binding AmountColor}"/>
-								<Label Text="{Binding RemainingDisplay}"
-                                   FontSize="12"
-                                   HorizontalTextAlignment="End"
-                                   TextColor="Gray"/>
+                                                 Spacing="4"
+                                                 HorizontalOptions="End">
+								<Label Text="Paid"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray500}"
+                                       HorizontalTextAlignment="End"/>
+								<Label Text="{Binding PaidAmountDisplay}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}"
+                                       HorizontalTextAlignment="End"/>
 							</VerticalStackLayout>
-
-							<Label Grid.Column="2"
-                               FontFamily="MaterialSymbolsRounded"
-                               Text="&#xe5cc;"
-                               FontSize="20"
-                               TextColor="#9CA3AF"
-                               VerticalOptions="Center"
-                               Margin="8,0,0,0"/>
 						</Grid>
 
-						<!-- Balance due strip — only for bills with money still owed -->
-						<Border BackgroundColor="#FFF4E5"
-                            StrokeThickness="0"
-                            Padding="12,8"
-                            Margin="0,10,0,0"
-                            IsVisible="{Binding ShowPayAction}">
-							<Border.StrokeShape>
-								<RoundRectangle CornerRadius="10"/>
-							</Border.StrokeShape>
+						<!-- Balance -->
+						<Label Text="Balance"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               Margin="0,14,0,0"/>
 
-							<Grid ColumnDefinitions="*,Auto">
-								<Label Text="{Binding BalanceDueDisplay}"
-                                   FontSize="12"
+						<!-- Balance amount + Add Payment (only when money's owed) -->
+						<Grid ColumnDefinitions="*,Auto"
+                              Margin="0,4,0,0">
+							<Label Text="{Binding RemainingBalance, StringFormat='₱{0:N2}'}"
+                                   FontSize="18"
                                    FontAttributes="Bold"
-                                   TextColor="#8A4B00"
+                                   TextColor="{StaticResource Black}"
                                    VerticalOptions="Center"/>
 
-								<Button Grid.Column="1"
-                                    Text="Add payment"
+							<Button Grid.Column="1"
+                                    Text="Add Payment"
                                     BackgroundColor="{StaticResource Primary}"
                                     TextColor="{StaticResource White}"
                                     CornerRadius="8"
-                                    Padding="12,0"
-                                    HeightRequest="32"
+                                    Padding="14,0"
+                                    HeightRequest="34"
                                     FontSize="12"
+                                    IsVisible="{Binding ShowPayAction}"
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                                       Path=BindingContext.PayNowCommand}"
                                     CommandParameter="{Binding .}"/>
-							</Grid>
-						</Border>
+						</Grid>
 					</VerticalStackLayout>
 				</Border>
 			</Grid>
@@ -180,34 +198,35 @@
                                   RowSpacing="8">
 								<Label Grid.Row="0"
                                        Grid.Column="0"
+                                       Grid.ColumnSpan="2"
                                        Text="Outstanding Balance"
                                        FontSize="12"
                                        TextColor="Gray"/>
 
-								<!--<Border Grid.Row="0"
-                                        Grid.Column="1"
-                                        BackgroundColor="#FFF4E5"
-                                        Stroke="#FFA726"
-                                        Padding="12,6"
-                                        VerticalOptions="Center"
-                                        HorizontalOptions="End">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="18"/>
-                                    </Border.StrokeShape>
-                                    -->
-								<!--<Label Text="{Binding PaymentStatus}"
-                                           TextColor="#E65100"
-                                           FontAttributes="Bold"/>-->
-								<!--
-                                </Border>-->
-
 								<Label Grid.Row="1"
                                        Grid.Column="0"
-                                       Grid.ColumnSpan="2"
                                        Text="{Binding OutstandingDisplay}"
                                        FontSize="30"
                                        FontAttributes="Bold"
-                                       TextColor="#1A6B2F"/>
+                                       TextColor="#1A6B2F"
+                                       VerticalOptions="Center"/>
+
+								<!-- Status pill — Paid / Partial / Unpaid,
+                                     sits right beside the balance figure. -->
+								<Frame Grid.Row="1"
+                                       Grid.Column="1"
+                                       BackgroundColor="{Binding PaymentStatusBgColor}"
+                                       BorderColor="Transparent"
+                                       CornerRadius="20"
+                                       Padding="10,4"
+                                       HasShadow="False"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="End">
+									<Label Text="{Binding PaymentStatus}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{Binding PaymentStatusColor}"/>
+								</Frame>
 							</Grid>
 
 							<!--<Grid ColumnDefinitions="*,Auto">
@@ -285,7 +304,6 @@
                             IsVisible="{Binding HasMoreHistory}"
                             Command="{Binding ToggleHistoryCommand}"/>
 
-					<BoxView HeightRequest="20" Color="Transparent"/>
 				</VerticalStackLayout>
 			</ScrollView>
 		</RefreshView>
