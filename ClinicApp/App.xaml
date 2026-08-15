@@ -42,6 +42,9 @@
             <converters:ToothAwareConverter   x:Key="ToothAwareConverter"/>
             <converters:InstallmentConverter  x:Key="InstallmentConverter"/>
 
+            <converters:FilterChipBgConverter x:Key="FilterChipBgConverter"/>
+            <converters:FilterChipTextConverter x:Key="FilterChipTextConverter"/>
+
         </ResourceDictionary>
 	</Application.Resources>
 </Application>

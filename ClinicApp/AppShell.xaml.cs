@@ -65,6 +65,8 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(BillSummaryPage), typeof(BillSummaryPage));
             Routing.RegisterRoute(nameof(PaymentPage), typeof(PaymentPage));
             Routing.RegisterRoute(nameof(BillDetailsPage), typeof(BillDetailsPage));
+            Routing.RegisterRoute(nameof(BalanceManagementPage), typeof(BalanceManagementPage));
+
         }
 
         protected override void OnAppearing()

@@ -166,6 +166,8 @@ namespace ClinicApp
             builder.Services.AddTransient<PaymentPage>();
             builder.Services.AddTransient<BillDetailsViewModel>();
             builder.Services.AddTransient<BillDetailsPage>();
+            builder.Services.AddTransient<BalanceManagementViewModel>();
+            builder.Services.AddTransient<BalanceManagementPage>();
 
             // ── Supply ────────────────────────────────────────────
             builder.Services.AddTransient<SupplyListPage>();
