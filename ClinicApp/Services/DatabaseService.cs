@@ -7,9 +7,17 @@ public class DatabaseService
 {
     // SQLite async connection, initialized once via Init()
     SQLiteAsyncConnection? _database;
+    private readonly SupabaseDataService _supabase;
 
+    public DatabaseService(SupabaseDataService supabase)
+    {
+        _supabase = supabase;
+    }
     public async Task Init()
     {
+
+
+        
         // Already fully initialised — skip
         if (_database != null) return;
 
@@ -42,7 +50,11 @@ public class DatabaseService
                 System.Diagnostics.Debug.WriteLine("[DB] Cleared SyncedBooking cache");
             }
             catch { }
+            try { await _database!.ExecuteAsync("ALTER TABLE ToothRecords ADD COLUMN SupabaseId TEXT DEFAULT ''"); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ToothRecords.SupabaseId column: {ex.Message}"); }
 
+            try { await _database.ExecuteAsync("ALTER TABLE TreatmentHistory ADD COLUMN SupabaseId TEXT DEFAULT ''"); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] TreatmentHistory.SupabaseId column: {ex.Message}"); }
             // Run each pragma and table creation individually with its own try/catch
             // so one failure can never skip the remaining tables
             try { await _database.ExecuteAsync("PRAGMA journal_mode=WAL;"); }
@@ -536,7 +548,6 @@ public class DatabaseService
                                .Where(r => r.PatientId == patientId)
                                .ToListAsync();
     }
-
     public async Task SaveToothRecord(ToothRecord record)
     {
         await Init();
@@ -545,12 +556,98 @@ public class DatabaseService
             .FirstOrDefaultAsync();
 
         record.LastUpdated = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
         if (existing is null)
             await _database!.InsertAsync(record);
         else
         {
             record.Id = existing.Id;
+            record.SupabaseId = existing.SupabaseId;
             await _database!.UpdateAsync(record);
+        }
+
+        // Push to Supabase so other devices get it via realtime
+        try
+        {
+            var patient = await GetPatientById(record.PatientId);
+            if (patient != null && !string.IsNullOrWhiteSpace(patient.SupabaseId))
+            {
+                var remote = new SupabaseToothRecord
+                {
+                    Id = string.IsNullOrWhiteSpace(record.SupabaseId)
+              ? Guid.NewGuid().ToString()
+              : record.SupabaseId,
+                    PatientId = patient.SupabaseId,
+                    ToothNumber = record.ToothNumber,
+                    Condition = record.Condition,
+                    Color = record.Color,
+                    Notes = record.Notes,
+                    LastUpdated = record.LastUpdated
+                };
+
+                var upserted = await _supabase.UpsertToothRecordAsync(remote);
+                if (upserted != null && record.SupabaseId != upserted.Id)
+                {
+                    record.SupabaseId = upserted.Id;
+                    await _database!.UpdateAsync(record);
+                }
+
+                if (upserted != null && record.SupabaseId != upserted.Id)
+                {
+                    record.SupabaseId = upserted.Id;
+                    await _database!.UpdateAsync(record);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ToothRecord] Supabase push error: {ex.Message}");
+        }
+    }
+
+    public async Task SyncToothRecordFromSupabase(SupabaseToothRecord sr)
+    {
+        await Init();
+        try
+        {
+            var patient = await GetPatientBySupabaseId(sr.PatientId);
+            if (patient == null)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[SyncToothRecord] No local patient for SupabaseId={sr.PatientId}");
+                return;
+            }
+
+            var existing = await _database!.Table<ToothRecord>()
+                .Where(r => r.PatientId == patient.PatientID && r.ToothNumber == sr.ToothNumber)
+                .FirstOrDefaultAsync();
+
+            if (existing == null)
+            {
+                await _database!.InsertAsync(new ToothRecord
+                {
+                    PatientId = patient.PatientID,
+                    ToothNumber = sr.ToothNumber,
+                    Condition = sr.Condition,
+                    Color = sr.Color,
+                    Notes = sr.Notes,
+                    LastUpdated = sr.LastUpdated,
+                    SupabaseId = sr.Id
+                });
+            }
+            else
+            {
+                existing.Condition = sr.Condition;
+                existing.Color = sr.Color;
+                existing.Notes = sr.Notes;
+                existing.LastUpdated = sr.LastUpdated;
+                existing.SupabaseId = sr.Id;
+                await _database!.UpdateAsync(existing);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SyncToothRecord] error: {ex.Message}");
         }
     }
 
@@ -580,11 +677,46 @@ public class DatabaseService
     }
 
     /// <summary>Appends a new history entry (never updates, always inserts).</summary>
+    /// <summary>Appends a new history entry (never updates, always inserts).</summary>
     public async Task AddTreatmentHistory(TreatmentHistory entry)
     {
         await Init();
         entry.Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         await _database!.InsertAsync(entry);
+
+        // Push to Supabase so other devices get it via realtime
+        try
+        {
+            var patient = await GetPatientById(entry.PatientId);
+            if (patient != null && !string.IsNullOrWhiteSpace(patient.SupabaseId))
+            {
+                var remote = new SupabaseTreatmentHistory
+                {
+                    PatientId = patient.SupabaseId,
+                    ToothNumber = entry.ToothNumber,
+                    ToothName = entry.ToothName,
+                    Condition = entry.Condition,
+                    PreviousCondition = entry.PreviousCondition,
+                    Color = entry.Color,
+                    Notes = entry.Notes,
+                    ActionType = entry.ActionType,
+                    Description = entry.Description,
+                    Timestamp = entry.Timestamp
+                };
+
+                var inserted = await _supabase.AddTreatmentHistoryAsync(remote);
+                if (inserted != null)
+                {
+                    entry.SupabaseId = inserted.Id;
+                    await _database!.UpdateAsync(entry);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[TreatmentHistory] Supabase push error: {ex.Message}");
+        }
     }
 
     /// <summary>Deletes all history for a patient (e.g. when patient is deleted).</summary>
@@ -596,6 +728,53 @@ public class DatabaseService
                                       .ToListAsync();
         foreach (var e in entries)
             await _database!.DeleteAsync(e);
+    }
+
+    public async Task SyncTreatmentHistoryFromSupabase(SupabaseTreatmentHistory sh)
+    {
+        await Init();
+        try
+        {
+            // Already have this record locally? Skip.
+            var existing = await _database!.Table<TreatmentHistory>()
+                .Where(h => h.SupabaseId == sh.Id)
+                .FirstOrDefaultAsync();
+            if (existing != null) return;
+
+            var patient = await GetPatientBySupabaseId(sh.PatientId);
+            if (patient == null)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[SyncTreatmentHistory] No local patient for SupabaseId={sh.PatientId}");
+                return;
+            }
+
+            var entry = new TreatmentHistory
+            {
+                PatientId = patient.PatientID,
+                ToothNumber = sh.ToothNumber,
+                ToothName = sh.ToothName,
+                Condition = sh.Condition,
+                PreviousCondition = sh.PreviousCondition,
+                Color = sh.Color,
+                Notes = sh.Notes,
+                ActionType = sh.ActionType,
+                Description = sh.Description,
+                Timestamp = string.IsNullOrWhiteSpace(sh.Timestamp)
+                    ? DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    : sh.Timestamp,
+                SupabaseId = sh.Id
+            };
+
+            await _database!.InsertAsync(entry);
+            System.Diagnostics.Debug.WriteLine(
+                $"[SyncTreatmentHistory] Inserted for PatientID={patient.PatientID}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[SyncTreatmentHistory] Error: {ex.Message}");
+        }
     }
 
     // =========================

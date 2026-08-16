@@ -45,6 +45,8 @@ public partial class DentalChartViewModel : ObservableObject
     };
 
     private readonly DatabaseService _db;
+    private readonly SupabaseRealtimeService _realtimeService; 
+
 
     // ═══════════════════════════════════════════════════════════════
     // PAGE STATE
@@ -113,11 +115,23 @@ public partial class DentalChartViewModel : ObservableObject
     // ═══════════════════════════════════════════════════════════════
     // CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════
-
-    public DentalChartViewModel(DatabaseService db)
+    public DentalChartViewModel(DatabaseService db, SupabaseRealtimeService realtimeService)
     {
         _db = db;
+        _realtimeService = realtimeService;
         BuildTeeth();
+
+        _realtimeService.OnToothRecordChanged += OnToothRecordChangedRemotely;
+    }
+
+    private async void OnToothRecordChangedRemotely()
+    {
+        if (PatientId > 0 && !IsBusy)
+            await LoadChartAsync();
+    }
+    public void Cleanup()
+    {
+        _realtimeService.OnToothRecordChanged -= OnToothRecordChangedRemotely;
     }
 
     // ═══════════════════════════════════════════════════════════════

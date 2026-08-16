@@ -3,7 +3,7 @@ using ClinicApp.ViewModels.DentalChart;
 namespace ClinicApp.Views.DentalChart;
 
 public partial class DentalChartPage : ContentPage
-{
+{   
     private readonly DentalChartViewModel _vm;
 
     public DentalChartPage(DentalChartViewModel vm)
@@ -22,5 +22,10 @@ public partial class DentalChartPage : ContentPage
         // handles the case where the user navigates back to the same patient.
         if (_vm.PatientId > 0)
             await _vm.LoadChartCommand.ExecuteAsync(null);
+    }
+    protected override void OnNavigatedFrom(NavigatedFromEventArgs args)
+    {
+        base.OnNavigatedFrom(args);
+        _vm.Cleanup();
     }
 }

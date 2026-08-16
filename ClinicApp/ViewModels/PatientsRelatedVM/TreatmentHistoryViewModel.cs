@@ -75,9 +75,23 @@ public partial class TreatmentHistoryViewModel : ObservableObject
     // CONSTRUCTOR
     // =========================================================
 
-    public TreatmentHistoryViewModel(DatabaseService db)
+    private readonly SupabaseRealtimeService _realtime;
+
+    public TreatmentHistoryViewModel(DatabaseService db, SupabaseRealtimeService realtime)
     {
         _db = db;
+        _realtime = realtime;
+        _realtime.OnTreatmentHistoryChanged += HandleTreatmentHistoryChanged;
+    }
+    private void HandleTreatmentHistoryChanged()
+    {
+        if (PatientId > 0)
+            _ = LoadHistoryAsync();
+    }
+
+    public void Cleanup()
+    {
+        _realtime.OnTreatmentHistoryChanged -= HandleTreatmentHistoryChanged;
     }
 
 

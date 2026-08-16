@@ -181,8 +181,8 @@
                     </div>
 
                     <!-- Hidden fields -->
-                    <input type="hidden" asp-for="AppointmentDate"
-                           id="AppointmentDate" />
+                    <input type="hidden" asp-for="AppointmentDateStr" id="AppointmentDateStr" />
+                    <input type="hidden" asp-for="AppointmentTimeStr" id="AppointmentTimeStr" />
 
                     <div class="mb-4">
                         <label asp-for="Notes"
@@ -232,7 +232,6 @@
 
     <script>
         const dateInput    = document.getElementById('apptDate');
-        const hiddenDt     = document.getElementById('AppointmentDate');
         const dayCapacity  = document.getElementById('dayCapacity');
         const dayProgress  = document.getElementById('dayProgress');
         const dayCapText   = document.getElementById('dayCapacityText');
@@ -354,33 +353,23 @@
                         <div class="fw-semibold">${slot.display}</div>
                         <div class="small text-muted">Available</div>`;
 
-                    btn.addEventListener('click', () => {
-                        // Deselect all
-                        document.querySelectorAll('.slot-btn').forEach(b => {
-                            if (!b.disabled) {
-                                b.classList.remove('btn-primary', 'active-slot');
-                                b.classList.add('btn-outline-primary');
-                            }
-                        });
+                            btn.addEventListener('click', () => {
+            document.querySelectorAll('.slot-btn').forEach(b => {
+                if (!b.disabled) {
+                    b.classList.remove('btn-primary', 'active-slot');
+                    b.classList.add('btn-outline-primary');
+                }
+            });
 
-                        // Select this slot
-                        btn.classList.remove('btn-outline-primary');
-                        btn.classList.add('btn-primary', 'active-slot');
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('btn-primary', 'active-slot');
 
-                        selectedTime = slot.time;
-                        slotError.classList.add('d-none');
+            selectedTime = slot.time;
+            slotError.classList.add('d-none');
 
-                     
-                         // Creates a date object parsing the explicit local matrix parameters
-                        const [hours, minutes] = slot.time.split(':');
-                        const [year, month, day] = dateStr.split('-');
-
-                        // Note: month index is 0-based in JS Date constructor
-                        const localDate = new Date(year, month - 1, day, hours, minutes, 0);
-
-                        // .toISOString() automatically outputs true UTC variant regardless of local settings!
-                        hiddenDt.value = localDate.toISOString();
-                    });
+            document.getElementById('AppointmentDateStr').value = dateStr;
+            document.getElementById('AppointmentTimeStr').value = slot.time;
+        });
                 }
 
                 col.appendChild(btn);
@@ -391,7 +380,8 @@
         function resetSlots() {
             slotGrid.innerHTML   = '';
             selectedTime         = null;
-            hiddenDt.value       = '';
+            document.getElementById('AppointmentDateStr').value = '';
+            document.getElementById('AppointmentTimeStr').value = '';
             isDayFull            = false;
             submitBtn.disabled   = false;
             dayCapacity.classList.add('d-none');

@@ -1414,5 +1414,84 @@ namespace ClinicApp.Services
                 return (false, insufficient);
             }
         }
+
+        // ── Treatment History ─────────────────────────────────────────
+
+        public async Task<SupabaseTreatmentHistory?> AddTreatmentHistoryAsync(
+            SupabaseTreatmentHistory entry)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTreatmentHistory>()
+                    .Insert(entry);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] AddTreatmentHistory: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<SupabaseTreatmentHistory>> GetTreatmentHistoryAsync(
+            string patientId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTreatmentHistory>()
+                    .Where(h => h.PatientId == patientId)
+                    .Get();
+                return result.Models ?? new List<SupabaseTreatmentHistory>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetTreatmentHistory: {ex.Message}");
+                return new List<SupabaseTreatmentHistory>();
+            }
+        }
+
+        // ── Tooth Records ─────────────────────────────────────────────
+
+        public async Task<SupabaseToothRecord?> UpsertToothRecordAsync(SupabaseToothRecord record)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseToothRecord>()
+                    .OnConflict("patient_id,tooth_number")   // string overload, snake_case DB names
+                    .Upsert(record);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpsertToothRecord: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<SupabaseToothRecord>> GetToothRecordsAsync(string patientId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseToothRecord>()
+                    .Where(r => r.PatientId == patientId)
+                    .Get();
+                return result.Models ?? new List<SupabaseToothRecord>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetToothRecords: {ex.Message}");
+                return new List<SupabaseToothRecord>();
+            }
+        }
     }
 }

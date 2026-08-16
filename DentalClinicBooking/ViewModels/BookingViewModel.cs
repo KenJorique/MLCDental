@@ -18,13 +18,17 @@ namespace DentalClinicBooking.ViewModels
         [Display(Name = "Email Address")]
         public string? Email { get; set; }
 
-       
+
 
         // In BookingViewModel.cs, update AppointmentDate property:
         [Required(ErrorMessage = "Please choose an appointment date")]
-        [Display(Name = "Preferred Appointment Date")]
-        [DataType(DataType.DateTime)]
-        public DateTime AppointmentDate { get; set; } = DateTime.Now.AddDays(1).Date.AddHours(10).AddMinutes(30);
+        public string AppointmentDateStr { get; set; } = string.Empty; // yyyy-MM-dd
+
+        [Required(ErrorMessage = "Please choose a time slot")]
+        public string AppointmentTimeStr { get; set; } = string.Empty; // HH:mm
+
+        // No longer bound from the form — computed server-side in the controller
+        public DateTime AppointmentDate { get; set; }
 
         // Add these helper properties for JS validation:
         public string MinTime => "10:00";

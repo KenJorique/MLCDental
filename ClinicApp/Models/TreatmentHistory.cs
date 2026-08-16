@@ -48,4 +48,7 @@ public class TreatmentHistory
     public string Timestamp { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
     public string Description { get; set; } = string.Empty;
+
+    /// <summary>Row id in the Supabase "treatment_history" table, used to prevent duplicate sync.</summary>
+    public string SupabaseId { get; set; } = string.Empty;
 }

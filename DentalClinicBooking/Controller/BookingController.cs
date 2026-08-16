@@ -27,9 +27,28 @@ namespace DentalClinicBooking.Controller
             if (!ModelState.IsValid)
                 return View(model);
 
+            var phTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila")
+                ?? TimeZoneInfo.CreateCustomTimeZone("PH", TimeSpan.FromHours(8), "PH", "PH");
+
+            if (!DateTime.TryParseExact(
+                    $"{model.AppointmentDateStr} {model.AppointmentTimeStr}",
+                    "yyyy-MM-dd HH:mm",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var localAppointment))
+            {
+                ModelState.AddModelError("", "Invalid appointment date or time.");
+                return View(model);
+            }
+
+            var appointmentUtc = TimeZoneInfo.ConvertTimeToUtc(
+                DateTime.SpecifyKind(localAppointment, DateTimeKind.Unspecified),
+                phTimeZone);
+
+            model.AppointmentDate = appointmentUtc;
+
             try
             {
-                // Check if patient already exists
                 var existingResult = await _supabase.Client
                     .From<DentalClinicBooking.Models.Patient>()
                     .Where(p => p.Phone == model.Phone)
@@ -37,13 +56,12 @@ namespace DentalClinicBooking.Controller
 
                 var existingPatient = existingResult.Models.FirstOrDefault();
 
-                // Insert booking only — patient created on approval if new
                 var booking = new Booking
                 {
                     FullName = model.FullName,
                     Phone = model.Phone,
                     Email = model.Email ?? "",
-                    AppointmentDate =  model.AppointmentDate,
+                    AppointmentDate = appointmentUtc,
                     Notes = model.Notes,
                     Status = "pending",
                     IsExistingPatient = existingPatient != null,
@@ -53,15 +71,14 @@ namespace DentalClinicBooking.Controller
                 await _supabase.Client.From<Booking>().Insert(booking);
 
                 TempData["PatientName"] = model.FullName;
-                TempData["AppointmentDate"] = model.AppointmentDate.ToLocalTime().ToString("MMMM dd, yyyy h:mm tt");
+                TempData["AppointmentDate"] = appointmentUtc.ToLocalTime().ToString("MMMM dd, yyyy h:mm tt");
                 TempData["IsExisting"] = existingPatient != null;
 
                 return RedirectToAction("Confirmation");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("",
-                    "Booking failed. Please try again. " + ex.Message);
+                ModelState.AddModelError("", "Booking failed. Please try again. " + ex.Message);
                 return View(model);
             }
         }

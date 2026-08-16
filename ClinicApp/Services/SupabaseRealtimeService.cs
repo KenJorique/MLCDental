@@ -271,5 +271,112 @@ namespace ClinicApp.Services
                 System.Diagnostics.Debug.WriteLine($"[Realtime] SubscribeServices error: {ex.Message}");
             }
         }
+
+        public event Action? OnTreatmentHistoryChanged;
+
+        public async Task SubscribeToTreatmentHistoryAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-treatment-history");
+                channel.Register(new PostgresChangesOptions("public", "treatment_history"));
+
+                // Never updates locally, only ever inserts — mirror that here
+                channel.AddPostgresChangeHandler(ListenType.Inserts, async (sender, change) =>
+                {
+                    try
+                    {
+                        var sh = change.Model<SupabaseTreatmentHistory>();
+                        if (sh == null) return;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Realtime] New treatment history from another device: PatientId={sh.PatientId}");
+                        await _db.SyncTreatmentHistoryFromSupabase(sh);
+                        MainThread.BeginInvokeOnMainThread(() => OnTreatmentHistoryChanged?.Invoke());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Realtime] TreatmentHistory insert error: {ex.Message}");
+                    }
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine("[Realtime] Subscribed to treatment_history.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Realtime] SubscribeTreatmentHistory error: {ex.Message}");
+            }
+        }
+
+        public async Task SyncMissedTreatmentHistoryAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var result = await _client.From<SupabaseTreatmentHistory>().Get();
+                int count = 0;
+                foreach (var sh in result.Models)
+                {
+                    await _db.SyncTreatmentHistoryFromSupabase(sh);
+                    count++;
+                }
+                System.Diagnostics.Debug.WriteLine($"[Sync] Missed treatment history synced: {count}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sync] SyncMissedTreatmentHistory error: {ex.Message}");
+            }
+        }
+
+        public event Action? OnToothRecordChanged;
+
+        public async Task SubscribeToToothRecordsAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-tooth-records");
+                channel.Register(new PostgresChangesOptions("public", "tooth_records"));
+
+                channel.AddPostgresChangeHandler(ListenType.Inserts, async (sender, change) =>
+                {
+                    try
+                    {
+                        var sr = change.Model<SupabaseToothRecord>();
+                        if (sr == null) return;
+                        await _db.SyncToothRecordFromSupabase(sr);
+                        MainThread.BeginInvokeOnMainThread(() => OnToothRecordChanged?.Invoke());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Realtime] ToothRecord insert error: {ex.Message}");
+                    }
+                });
+
+                channel.AddPostgresChangeHandler(ListenType.Updates, async (sender, change) =>
+                {
+                    try
+                    {
+                        var sr = change.Model<SupabaseToothRecord>();
+                        if (sr == null) return;
+                        await _db.SyncToothRecordFromSupabase(sr);
+                        MainThread.BeginInvokeOnMainThread(() => OnToothRecordChanged?.Invoke());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Realtime] ToothRecord update error: {ex.Message}");
+                    }
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine("[Realtime] Subscribed to tooth_records.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Realtime] SubscribeToothRecords error: {ex.Message}");
+            }
+        }
+
     }
 }

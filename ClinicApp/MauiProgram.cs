@@ -19,6 +19,7 @@ using ClinicApp.Views.UsersRelated;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using The49.Maui.BottomSheet;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 
 namespace ClinicApp
 {
@@ -121,9 +122,15 @@ namespace ClinicApp
             builder.Services.AddTransient<PatientDetailsPage>();
             builder.Services.AddTransient<PatientDetailsViewModel>();
             builder.Services.AddTransient<DentalChartPage>();
-            builder.Services.AddTransient<DentalChartViewModel>();
+            builder.Services.AddTransient<DentalChartViewModel> (sp =>
+                    new DentalChartViewModel(
+                        sp.GetRequiredService<DatabaseService>(),
+                        sp.GetRequiredService<SupabaseRealtimeService>()));
             builder.Services.AddTransient<Views.PatientsRelated.TreatmentHistoryPage>();
-            builder.Services.AddTransient<TreatmentHistoryViewModel>();
+            builder.Services.AddTransient<TreatmentHistoryViewModel>(sp => 
+            new TreatmentHistoryViewModel(
+                sp.GetRequiredService<DatabaseService>(),
+            sp.GetRequiredService<SupabaseRealtimeService>()));
             builder.Services.AddTransient<CephalometricPage>();
             builder.Services.AddTransient<CephalometricViewModel>();
             builder.Services.AddTransient<VisitDetailsViewModel>();
@@ -193,6 +200,7 @@ namespace ClinicApp
             builder
                 .UseMauiApp<App>()
                 .UseBottomSheet()
+                .UseSkiaSharp()
                 .UseMauiCommunityToolkit()
                 .ConfigureFonts(fonts =>
                 {
