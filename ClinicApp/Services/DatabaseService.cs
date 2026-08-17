@@ -131,6 +131,9 @@ public class DatabaseService
             try { await _database!.CreateTableAsync<AppointmentEntry>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] AppointmentEntry: {ex.Message}"); }
 
+            // Inside your database initialization
+            await _database.CreateTableAsync<CephalometricMeasurement>();
+
             try
             {
                 await _database!.ExecuteAsync(
@@ -1061,5 +1064,45 @@ public class DatabaseService
         return await _database!.Table<Patient>()
             .Where(p => p.SupabaseId == supabaseId)
             .FirstOrDefaultAsync();
+    }
+
+    // =========================
+    // CEPHALOMETRIC MEASUREMENTS
+    // =========================
+
+    public async Task SaveCephalometricMeasurement(CephalometricMeasurement measurement)
+    {
+        await Init();
+        try
+        {
+            var existing = await _database!.Table<CephalometricMeasurement>()
+                .Where(m => m.PatientId == measurement.PatientId
+                         && m.MeasurementDate.Date == measurement.MeasurementDate.Date)
+                .FirstOrDefaultAsync();
+
+            if (existing is null)
+                await _database!.InsertAsync(measurement);
+            else
+            {
+                measurement.Id = existing.Id;
+                await _database!.UpdateAsync(measurement);
+            }
+
+            System.Diagnostics.Debug.WriteLine($"✅ Measurement saved for patient {measurement.PatientId}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Save measurement error: {ex.Message}");
+        }
+    }
+
+    public async Task<List<CephalometricMeasurement>> GetMeasurementsForPatient(int patientId)
+    {
+        await Init();
+        var list = await _database!.Table<CephalometricMeasurement>()
+            .Where(m => m.PatientId == patientId)
+            .ToListAsync();
+        list.Sort((a, b) => b.MeasurementDate.CompareTo(a.MeasurementDate)); // Newest first
+        return list;
     }
 }

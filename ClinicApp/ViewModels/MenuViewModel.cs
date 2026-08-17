@@ -2,6 +2,7 @@
 using ClinicApp.Views;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.SupplyRelated;
+using ClinicApp.Views.TransactionRelated;
 using ClinicApp.Views.UsersRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -104,6 +105,20 @@ namespace ClinicApp.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine(
                     $"[MenuViewModel] GoToSupply: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        async Task GoToPaymentManagement()
+        {
+            try
+            {
+                await Shell.Current.GoToAsync(nameof(BalanceManagementPage));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MenuViewModel] GoToPaymentManagement: {ex.Message}");
             }
         }
     }

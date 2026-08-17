@@ -8,35 +8,35 @@ namespace ClinicApp.ViewModels.ServicesRelatedVM;
 [QueryProperty(nameof(ServiceId), "ServiceId")]
 public partial class AddServiceViewModel : ObservableObject
 {
-    readonly DatabaseService _db;
+    readonly SupabaseDataService _supabase;
 
-    public AddServiceViewModel(DatabaseService db) => _db = db;
+    public AddServiceViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
     [ObservableProperty] string pageTitle = "Add Service";
-    [ObservableProperty] int serviceId;
+    [ObservableProperty] string? serviceId;
     [ObservableProperty] string? serviceName;
-    [ObservableProperty] double servicePrice;
+    [ObservableProperty] decimal servicePrice;
     [ObservableProperty] string? serviceDescription;
 
-    //partial void OnServiceIdChanged(int value)
-    //{
-    //    if (value > 0)
-    //    {
-    //        PageTitle = "Edit Service";
-    //        LoadServiceData(value);
-    //    }
-    //}
-
-    private async Task LoadServiceDataAsync(int id)
+    partial void OnServiceIdChanged(string? value)
     {
-        var list = await _db.GetServices();
-        var service = list.FirstOrDefault(s => s.ServiceID == id);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            PageTitle = "Edit Service";
+            _ = LoadServiceDataAsync(value);
+        }
+    }
+
+    private async Task LoadServiceDataAsync(string id)
+    {
+        var list = await _supabase.GetServicesAsync();
+        var service = list.FirstOrDefault(s => s.Id == id);
         if (service != null)
         {
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                ServiceName = service.ServiceName;
-                ServicePrice = service.Price;
+                ServiceName = service.Name;
+                ServicePrice = service.BasePrice;
                 ServiceDescription = service.Description;
             });
         }
@@ -58,26 +58,39 @@ public partial class AddServiceViewModel : ObservableObject
             return;
         }
 
-        if (ServiceId > 0)
+        if (!string.IsNullOrWhiteSpace(ServiceId))
         {
-            var list = await _db.GetServices();
-            var service = list.FirstOrDefault(s => s.ServiceID == ServiceId);
+            var list = await _supabase.GetServicesAsync();
+            var service = list.FirstOrDefault(s => s.Id == ServiceId);
             if (service != null)
             {
-                service.ServiceName = ServiceName;
-                service.Price = ServicePrice;
+                service.Name = ServiceName;
+                service.BasePrice = ServicePrice;
                 service.Description = ServiceDescription;
-                await _db.UpdateService(service);
+                var success = await _supabase.UpdateServiceAsync(service);
+                if (!success)
+                {
+                    await Shell.Current.DisplayAlert("Error", "Could not update the service.", "OK");
+                    return;
+                }
             }
         }
         else
         {
-            await _db.AddService(new ServiceModel
+            var newService = await _supabase.AddServiceAsync(new SupabaseService
             {
-                ServiceName = ServiceName,
-                Price = ServicePrice,
-                Description = ServiceDescription
+                Name = ServiceName,
+                BasePrice = ServicePrice,
+                Description = ServiceDescription,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
             });
+
+            if (newService == null)
+            {
+                await Shell.Current.DisplayAlert("Error", "Could not save the service.", "OK");
+                return;
+            }
         }
 
         await Shell.Current.GoToAsync("..");

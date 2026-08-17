@@ -1,12 +1,13 @@
 ﻿using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
+using Newtonsoft.Json;
 
 namespace ClinicApp.Models
 {
     [Table("services")]
     public class SupabaseService : BaseModel
     {
-        [PrimaryKey("id")]
+        [PrimaryKey("id", false)]
         public string Id { get; set; } = string.Empty;
 
         [Column("name")]
@@ -24,6 +25,7 @@ namespace ClinicApp.Models
         [Column("created_at")]
         public DateTime CreatedAt { get; set; }
 
+        [JsonIgnore]
         public string PriceDisplay =>
             BasePrice == 0 ? "No charge" : $"₱{BasePrice:N2}";
     }

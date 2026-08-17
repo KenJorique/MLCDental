@@ -879,6 +879,64 @@ namespace ClinicApp.Services
             }
         }
 
+        public async Task<SupabaseService?> AddServiceAsync(SupabaseService service)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseService>().Insert(service);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] AddService: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateServiceAsync(SupabaseService service)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                if (string.IsNullOrEmpty(service.Id))
+                {
+                    System.Diagnostics.Debug.WriteLine("[Supabase] UpdateService: Id is empty — cannot update");
+                    return false;
+                }
+
+                var result = await _client!.From<SupabaseService>().Update(service);
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateService done. Rows: {result.Models.Count}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateService FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
+        // Soft delete — flips is_active to false instead of removing the row
+        public async Task<bool> DeleteServiceAsync(string serviceId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                await _client!
+                    .From<SupabaseService>()
+                    .Where(s => s.Id == serviceId)
+                    .Set(s => s.IsActive, false)
+                    .Update();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] DeleteService FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
         // ── Bills ─────────────────────────────────────────────────────
 
         public async Task<SupabaseBill?> CreateBillAsync(SupabaseBill bill)
@@ -1386,6 +1444,213 @@ namespace ClinicApp.Services
             }
         }
 
+        // ── Supplies ──────────────────────────────────────────────
 
+        public async Task<List<SupabaseSupplyItem>> GetSuppliesAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseSupplyItem>()
+                    .Where(s => s.IsDeleted == false)
+                    .Get();
+                return result.Models ?? new List<SupabaseSupplyItem>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetSupplies: {ex.Message}");
+                return new List<SupabaseSupplyItem>();
+            }
+        }
+
+        public async Task<SupabaseSupplyItem?> GetSupplyByIdAsync(string id)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                return await _client!
+                    .From<SupabaseSupplyItem>()
+                    .Where(s => s.Id == id)
+                    .Single();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetSupplyById: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<SupabaseSupplyItem?> AddSupplyAsync(SupabaseSupplyItem supply)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseSupplyItem>().Insert(supply);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] AddSupply: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateSupplyAsync(SupabaseSupplyItem supply)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                if (string.IsNullOrEmpty(supply.Id)) return false;
+                await _client!.From<SupabaseSupplyItem>().Update(supply);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateSupply FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
+        // Soft delete
+        public async Task<bool> DeleteSupplyAsync(string supplyId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                await _client!
+                    .From<SupabaseSupplyItem>()
+                    .Where(s => s.Id == supplyId)
+                    .Set(s => s.IsDeleted, true)
+                    .Update();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] DeleteSupply FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
+        // Applies a stock delta (+ restock / − used) and writes a log row
+        public async Task<bool> ApplyStockChangeAsync(
+            string supplyId, int changeInPieces, string changeType, string note,
+            string? patientId = null, string? patientName = null)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var supply = await GetSupplyByIdAsync(supplyId);
+                if (supply is null) return false;
+
+                int newQty = supply.QuantityInPieces + changeInPieces;
+                if (newQty < 0) newQty = 0;
+
+                supply.QuantityInPieces = newQty;
+                var updated = await UpdateSupplyAsync(supply);
+                if (!updated) return false;
+
+                await _client!.From<SupabaseStockLog>().Insert(new SupabaseStockLog
+                {
+                    SupplyId = supplyId,
+                    ChangeType = changeType,
+                    ChangeInPieces = changeInPieces,
+                    StockAfterChange = newQty,
+                    PatientId = patientId,
+                    PatientName = patientName,
+                    Note = note,
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] ApplyStockChange FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<SupabaseStockLog>> GetLogsForSupplyAsync(string supplyId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseStockLog>()
+                    .Where(l => l.SupplyId == supplyId)
+                    .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseStockLog>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetLogsForSupply: {ex.Message}");
+                return new List<SupabaseStockLog>();
+            }
+        }
+
+        // ── Service → Supply linking ─────────────────────────────
+
+        public async Task<List<SupabaseServiceSupply>> GetSuppliesForServiceAsync(string serviceId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseServiceSupply>()
+                    .Where(x => x.ServiceId == serviceId)
+                    .Get();
+                return result.Models ?? new List<SupabaseServiceSupply>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetSuppliesForService: {ex.Message}");
+                return new List<SupabaseServiceSupply>();
+            }
+        }
+
+        /// <summary>
+        /// Deducts every supply linked to a service from stock and logs each deduction.
+        /// Call this once, when a service is actually performed/completed on a patient
+        /// — not when it's merely selected or billed.
+        /// Returns Success=false if the service has no linked supplies, or if any
+        /// linked item's stock is now insufficient (InsufficientStock lists their names —
+        /// the deduction still goes through and clamps at 0, this is just a heads-up).
+        /// </summary>
+        public async Task<(bool Success, List<string> InsufficientStock)> DeductSuppliesForServiceAsync(
+    string serviceId, string? patientId = null, string? patientName = null, int quantity = 1)
+        {
+            var insufficient = new List<string>();
+            try
+            {
+                await EnsureInitializedAsync();
+                var links = await GetSuppliesForServiceAsync(serviceId);
+                if (links.Count == 0) return (true, insufficient);
+
+                foreach (var link in links)
+                {
+                    var supply = await GetSupplyByIdAsync(link.SupplyId);
+                    if (supply is null) continue;
+
+                    int qtyToDeduct = Math.Max(1, (int)Math.Ceiling(link.QuantityUsed)) * Math.Max(1, quantity);
+
+                    if (supply.QuantityInPieces < qtyToDeduct)
+                        insufficient.Add(supply.Name);
+
+                    await ApplyStockChangeAsync(
+                        supply.Id, -qtyToDeduct, "Used",
+                        "Auto-deducted from service", patientId, patientName);
+                }
+
+                return (insufficient.Count == 0, insufficient);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] DeductSuppliesForService FAILED: {ex.Message}");
+                return (false, insufficient);
+            }
+        }
     }
 }

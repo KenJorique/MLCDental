@@ -21,18 +21,18 @@
 						</Frame.GestureRecognizers>
 
 						<Grid ColumnDefinitions="*,Auto">
-							<Label Grid.Column="0"
-                                   Text="{Binding Service.ServiceName}"
+                            <Label Grid.Column="0"
+                                   Text="{Binding ServiceName}"
                                    FontAttributes="Bold"
                                    FontSize="16"
                                    VerticalOptions="Center"/>
-							<Label Grid.Column="1"
-                                   Text="{Binding Service.Price, StringFormat='₱{0:N2}'}"
+                            <Label Grid.Column="1"
+                                   Text="{Binding PriceDisplay}"
                                    FontAttributes="Bold"
                                    FontSize="16"
                                    TextColor="MediumPurple"
                                    VerticalOptions="Center"/>
-						</Grid>
+                        </Grid>
 					</Frame>
 
 				</DataTemplate>

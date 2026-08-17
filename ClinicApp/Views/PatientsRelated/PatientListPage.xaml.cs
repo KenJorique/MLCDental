@@ -17,6 +17,7 @@ public partial class PatientListPage : ContentPage
     {
         base.OnAppearing();
         // Refresh the list every time the user navigates back to this page
+        await _viewModel.StartRealtimeAsync();
         _viewModel.LoadPatientsCommand.Execute(null);
     }
 }

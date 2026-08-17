@@ -10,14 +10,15 @@ namespace ClinicApp.ViewModels.TransactionVM;
 // First-payment flow ONLY — reached exclusively from
 // BillSummaryViewModel.Proceed(). Nothing about this bill exists in
 // Supabase yet when this page opens: no bills row, no bill_items, no
-// dental chart/tooth records, no treatment history. All of that gets
-// written in ONE place — RecordPayment below, via BillingService.
-// CreateBillAsync — and only once the entered amount actually clears
-// validation and Record Payment is tapped. Simply opening this page and
-// going back to Bill Summary (or backing out of the app entirely) writes
-// nothing at all; there's no draft-vs-database reconciliation to worry
-// about, because there's nothing in the database to reconcile against
-// until payment genuinely happens.
+// dental chart/tooth records, no treatment history, and no supply
+// deduction. All of that gets written in ONE place — RecordPayment below,
+// via BillingService.CreateBillAsync plus the supply-deduction loop right
+// after it — and only once the entered amount actually clears validation
+// and Record Payment is tapped. Simply opening this page and going back to
+// Bill Summary (or backing out of the app entirely) writes nothing at all;
+// there's no draft-vs-database reconciliation to worry about, because
+// there's nothing in the database to reconcile against until payment
+// genuinely happens.
 public partial class PaymentViewModel : ObservableObject
 {
     private readonly SupabaseDataService _supabase;
@@ -49,7 +50,8 @@ public partial class PaymentViewModel : ObservableObject
     // bug: if the bill gets created successfully but RecordPaymentAsync
     // then fails (e.g. a network hiccup) and staff tap Record Payment
     // again, this makes the retry reuse the bill that already exists
-    // instead of creating a second one.
+    // instead of creating a second one (and skips deducting supplies a
+    // second time too — see below).
     private string? _pendingBillId;
 
     public void LoadDraft()
@@ -194,10 +196,11 @@ public partial class PaymentViewModel : ObservableObject
 
             // Only actually create the bill (and everything that comes
             // with it — bill_items, tooth/chart records, treatment
-            // history) the first time through. If this is a retry after
-            // RecordPaymentAsync failed below on a previous attempt,
-            // _pendingBillId is already set and this whole step is
-            // skipped — the bill already exists from that first attempt.
+            // history, and supply deduction) the first time through. If
+            // this is a retry after RecordPaymentAsync failed below on a
+            // previous attempt, _pendingBillId is already set and this
+            // whole step is skipped — the bill already exists (and
+            // supplies were already deducted) from that first attempt.
             if (billId == null)
             {
                 var billResult = await _billing.CreateBillAsync(
@@ -212,6 +215,29 @@ public partial class PaymentViewModel : ObservableObject
 
                 billId = billResult.Bill.Id;
                 _pendingBillId = billId;
+
+                // Auto-deduct linked supplies for every service on this
+                // bill — moved here from BillSummaryViewModel.Proceed()
+                // now that bill creation itself happens here instead of on
+                // Bill Summary. Runs only on this first successful
+                // creation (guarded by the same billId == null check
+                // above), so a retry after a later RecordPaymentAsync
+                // failure won't deduct stock a second time.
+                var lowStockItems = new List<string>();
+                foreach (var service in draft.Services)
+                {
+                    var (_, insufficient) = await _supabase.DeductSuppliesForServiceAsync(
+                        service.ServiceId, draft.PatientId, draft.PatientName, service.Quantity);
+                    lowStockItems.AddRange(insufficient);
+                }
+
+                if (lowStockItems.Count > 0)
+                {
+                    await Shell.Current.DisplayAlert(
+                        "Low Stock Warning",
+                        $"These items are now low/out of stock: {string.Join(", ", lowStockItems.Distinct())}",
+                        "OK");
+                }
             }
 
             var amountToRecord = Math.Min(RequiredAmount, draft.Total);

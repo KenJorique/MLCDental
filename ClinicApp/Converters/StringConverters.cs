@@ -147,3 +147,29 @@ public class InstallmentConverter : IValueConverter
                               object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+public class FilterChipBgConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var current = value as string;
+        var thisFilter = parameter as string;
+        return current == thisFilter ? Application.Current!.Resources["PrimaryGreen"] : Colors.White;
+    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+public class FilterChipTextConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        bool selected = (value as string) == (parameter as string);
+        return selected
+            ? Colors.White
+            : (Color)Application.Current!.Resources["TextSecondary"];
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}

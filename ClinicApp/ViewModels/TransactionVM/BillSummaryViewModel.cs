@@ -39,9 +39,8 @@ public partial class BillSummaryViewModel : ObservableObject
 
     // NOTE: installment is now a PER-SERVICE decision (see ServiceLineItem.
     // IsInstallmentSelected / SelectedInstallmentMonths) rather than one
-    // toggle for the whole bill. The old bill-wide IsInstallment/
-    // InstallmentMonths/MonthlyPayment properties are gone from here —
-    // "AmountDueToday" below is the sum of each item's own contribution.
+    // toggle for the whole bill. "AmountDueToday" below is the sum of each
+    // item's own contribution.
 
     [ObservableProperty]
     decimal amountDueToday;
@@ -57,15 +56,13 @@ public partial class BillSummaryViewModel : ObservableObject
     // Discount is only fully disabled when EVERY service on the bill is
     // installment-eligible — i.e. there'd be nothing left for it to apply
     // to. A mixed bill (some installment, some not) still allows a
-    // discount; it just applies only to the non-installment item(s), same
-    // as before.
+    // discount; it just applies only to the non-installment item(s).
     public bool CanApplyDiscount =>
         Services.Any(x => !x.IsInstallmentEligible);
 
     // Only true on a genuinely mixed bill — some installment, some not —
     // where the discount is still usable but doesn't cover everything.
-    // Drives the "Excludes installment items" hint text specifically
-    // (separate from the "fully disabled" hint below).
+    // Drives the "Excludes installment items" hint text.
     public bool HasMixedInstallmentAndRegular =>
         HasInstallmentService && CanApplyDiscount;
 
@@ -145,11 +142,7 @@ public partial class BillSummaryViewModel : ObservableObject
         Subtotal = Services.Sum(x => x.Subtotal);
 
         // Discount excludes any service that's eligible for installment,
-        // regardless of whether the patient actually chose a plan for it
-        // (so a discount can't sneak onto an eligible-but-not-selected
-        // service's full price). On a mixed bill this still leaves a
-        // non-zero eligible pool; CanApplyDiscount only forces this to 0
-        // when EVERY service is installment-eligible.
+        // regardless of whether the patient actually chose a plan for it.
         var discountEligibleSubtotal = Services
             .Where(x => !x.IsInstallmentEligible)
             .Sum(x => x.Subtotal);
@@ -163,10 +156,7 @@ public partial class BillSummaryViewModel : ObservableObject
         Total = Subtotal - DiscountAmount;
 
         // Due today = sum of each item's own contribution (full price, or
-        // 50% down if on a plan), minus the discount — which only ever
-        // comes from non-installment items (see discountEligibleSubtotal
-        // above), and those are always due in full today, so it's correct
-        // to net the whole DiscountAmount off AmountDueToday here too.
+        // 50% down if on a plan), minus the discount.
         AmountDueToday = Services.Sum(x => x.AmountDueToday) - DiscountAmount;
 
         if (BillDraftStore.Current != null)
@@ -178,11 +168,7 @@ public partial class BillSummaryViewModel : ObservableObject
             BillDraftStore.Current.AmountDueToday = AmountDueToday;
 
             // Bridging fields for the bill-level Supabase columns until the
-            // payment-allocation rework moves this fully to bill_items:
-            // "is this bill installment at all" and "sum of monthly
-            // payments across every plan on it" still make sense as
-            // rough bill-level summaries even though the real terms now
-            // live per item.
+            // payment-allocation rework moves this fully to bill_items.
             BillDraftStore.Current.IsInstallment = HasInstallmentService &&
                 Services.Any(x => x.IsInstallmentSelected);
             BillDraftStore.Current.InstallmentMonths = Services
@@ -245,15 +231,12 @@ public partial class BillSummaryViewModel : ObservableObject
             return;
 
         // Bill creation (and everything CreateBillAsync writes alongside
-        // it — bill_items, dental chart/tooth records, treatment history)
-        // is now deferred to the moment Record Payment succeeds on
-        // PaymentPage, not here. This is genuinely just navigation — the
-        // draft in BillDraftStore.Current carries everything PaymentPage
-        // needs (PatientName, Services, totals, appointment/booking ids),
-        // so there's nothing to pass in the URL and nothing written to
-        // Supabase yet. Going back and forth between this page and
-        // Payment before Record Payment is tapped touches the database
-        // not at all.
+        // it — bill_items, dental chart/tooth records, treatment history,
+        // and supply deduction) is now deferred to the moment Record
+        // Payment succeeds on PaymentPage, not here. This is genuinely
+        // just navigation — the draft in BillDraftStore.Current carries
+        // everything PaymentPage needs, so there's nothing to pass in the
+        // URL and nothing written to Supabase yet.
         await Shell.Current.GoToAsync(nameof(PaymentPage));
     }
 }

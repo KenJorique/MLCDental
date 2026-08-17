@@ -287,18 +287,12 @@
 
 			<!-- FAB — Book Appointment (green, same style as Patient page) -->
 			<Button Text="+ Book Appointment"
-                    BackgroundColor="{StaticResource Primary}"
-                    TextColor="White"
-                    CornerRadius="24"
-                    HeightRequest="48"
-                    Padding="16,0"
-                    FontSize="13"
-                    FontAttributes="Bold"
-                    VerticalOptions="End"
+                    Command="{Binding GoToWalkInCommand}"
+					Style="{StaticResource FabStyle}"
+					VerticalOptions="End"
                     HorizontalOptions="End"
                     Margin="0,0,16,24"
                     ZIndex="5"
-                    Command="{Binding GoToWalkInCommand}"
                     IsVisible="{Binding ShowDetail,
                         Converter={StaticResource InvertedBoolConverter}}"/>
 

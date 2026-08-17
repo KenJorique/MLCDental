@@ -2,52 +2,113 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ClinicApp.Views.MenuPage"
-             Title="Menu">
+             Title="Menu"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{StaticResource PageBg}">
 
-	<VerticalStackLayout Padding="20" Spacing="10">
+	<ScrollView>
+		<VerticalStackLayout Padding="28,28,20,20" Spacing="16">
 
-		<Frame Padding="15" HasShadow="True">
-			<Frame.GestureRecognizers>
-				<TapGestureRecognizer Command="{Binding GoToServicesCommand}" />
-			</Frame.GestureRecognizers>
-			<Label Text="Service &amp; Pricing" FontSize="16" />
-		</Frame>
+			<!-- ── PROFILE HEADER ── -->
+			<Border Padding="16" BackgroundColor="White"
+                    StrokeThickness="0">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Grid ColumnDefinitions="Auto,*,Auto">
+					<VerticalStackLayout Grid.Column="1" Spacing="2">
+						<Label Text="Google Account" FontSize="14"
+                               FontAttributes="Bold" TextColor="{StaticResource TextPrimary}"/>
+						<Label Text="{Binding GoogleEmail}"
+                               FontSize="12" TextColor="{StaticResource TextMuted}"/>
+					</VerticalStackLayout>
+					<Button Grid.Column="2"
+                            Text="{Binding GoogleButtonText}"
+                            BackgroundColor="{StaticResource PrimaryGreen}"
+                            TextColor="White" CornerRadius="8"
+                            FontSize="12" HeightRequest="36" VerticalOptions="Center"
+                            Command="{Binding GoogleSignInCommand}"/>
+				</Grid>
+			</Border>
 
-		<Frame Padding="15" HasShadow="True">
-			<Frame.GestureRecognizers>
-				<TapGestureRecognizer Command="{Binding GoToUsersCommand}" />
-			</Frame.GestureRecognizers>
-			<Label Text="User Management" FontSize="16" />
-		</Frame>
+			<!-- ── MENU ITEMS ── -->
+			<VerticalStackLayout Spacing="22">
 
-		<Frame Padding="15" HasShadow="True">
-			<Frame.GestureRecognizers>
-				<TapGestureRecognizer Command="{Binding GoToSupplyCommand}" />
-			</Frame.GestureRecognizers>
-			<Label Text="Medical Supplies" FontSize="16" />
-		</Frame>
+				<!-- Service and Pricing -->
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+					<Grid.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding GoToServicesCommand}"/>
+					</Grid.GestureRecognizers>
+					<Label Grid.Column="0" FontFamily="MaterialSymbolsRoundedFilled" Text="&#xf05b;"
+                           FontSize="26" TextColor="{StaticResource PrimaryGreen}"
+                           VerticalOptions="Start" Margin="0,2,0,0"/>
+					<VerticalStackLayout Grid.Column="1" Spacing="2">
+						<Label Text="Service and Pricing" FontSize="16" FontAttributes="Bold"
+                               TextColor="{StaticResource PrimaryGreen}"/>
+						<Label Text="Manage dental services and pricing" FontSize="13"
+                               TextColor="{StaticResource TextMuted}"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="18" TextColor="{StaticResource TextMuted}" VerticalOptions="Center"/>
+				</Grid>
 
-        <!-- Add inside your MenuPage content -->
-        <Frame Margin="12" Padding="14" CornerRadius="12"
-       BorderColor="#E0E0E0" BackgroundColor="White">
-            <Grid ColumnDefinitions="*,Auto">
-                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                    <Label Text="Google Account" FontSize="14"
-                   FontAttributes="Bold" TextColor="#333"/>
-                    <Label Text="{Binding GoogleEmail}"
-                   FontSize="12" TextColor="#888"/>
-                </VerticalStackLayout>
-                <Button Grid.Column="1"
-                Text="{Binding GoogleButtonText}"
-                BackgroundColor="#4285F4"
-                TextColor="White" CornerRadius="8"
-                FontSize="12" HeightRequest="36"
-                Command="{Binding GoogleSignInCommand}"/>
-            </Grid>
-        </Frame>
+				<!-- Medical Supply -->
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+					<Grid.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding GoToSupplyCommand}"/>
+					</Grid.GestureRecognizers>
+					<Label Grid.Column="0" FontFamily="MaterialSymbolsRoundedFilled" Text="&#xe1a1;"
+                           FontSize="26" TextColor="{StaticResource PrimaryGreen}"
+                           VerticalOptions="Start" Margin="0,2,0,0"/>
+					<VerticalStackLayout Grid.Column="1" Spacing="2">
+						<Label Text="Medical Supply" FontSize="16" FontAttributes="Bold"
+                               TextColor="{StaticResource PrimaryGreen}"/>
+						<Label Text="Track supplies and monitor stock levels" FontSize="13"
+                               TextColor="{StaticResource TextMuted}"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="18" TextColor="{StaticResource TextMuted}" VerticalOptions="Center"/>
+				</Grid>
 
-       
+				<!-- Payment Management -->
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+					<Grid.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding GoToPaymentManagementCommand}"/>
+					</Grid.GestureRecognizers>
+					<Label Grid.Column="0" FontFamily="MaterialSymbolsRoundedFilled" Text="&#xe8a1;"
+                           FontSize="26" TextColor="{StaticResource PrimaryGreen}"
+                           VerticalOptions="Start" Margin="0,2,0,0"/>
+					<VerticalStackLayout Grid.Column="1" Spacing="2">
+						<Label Text="Payment Management" FontSize="16" FontAttributes="Bold"
+                               TextColor="{StaticResource PrimaryGreen}"/>
+						<Label Text="Track payments and outstanding balances" FontSize="13"
+                               TextColor="{StaticResource TextMuted}"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="18" TextColor="{StaticResource TextMuted}" VerticalOptions="Center"/>
+				</Grid>
 
-    </VerticalStackLayout>
+				<!-- User Management -->
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+					<Grid.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding GoToUsersCommand}"/>
+					</Grid.GestureRecognizers>
+					<Label Grid.Column="0" FontFamily="MaterialSymbolsRoundedFilled" Text="&#xe7ef;"
+                           FontSize="26" TextColor="{StaticResource PrimaryGreen}"
+                           VerticalOptions="Start" Margin="0,2,0,0"/>
+					<VerticalStackLayout Grid.Column="1" Spacing="2">
+						<Label Text="User Management" FontSize="16" FontAttributes="Bold"
+                               TextColor="{StaticResource PrimaryGreen}"/>
+						<Label Text="Manage staff accounts and access" FontSize="13"
+                               TextColor="{StaticResource TextMuted}"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="18" TextColor="{StaticResource TextMuted}" VerticalOptions="Center"/>
+				</Grid>
+
+			</VerticalStackLayout>
+
+		</VerticalStackLayout>
+	</ScrollView>
 
 </ContentPage>

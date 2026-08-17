@@ -4,6 +4,7 @@ using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.UsersRelated;
+using ClinicApp.ViewModels.PatientsRelatedVM;
 using ClinicApp.Views.SupplyRelated;
 using ClinicApp.Views.AppointmentRelated;
 using CommunityToolkit.Maui.Core;
@@ -52,6 +53,10 @@ namespace ClinicApp
             //Google Sign In
             Routing.RegisterRoute(nameof(GoogleSignInPage), typeof(GoogleSignInPage));
 
+            //Cephalometric
+            Routing.RegisterRoute(nameof(CephalometricPage), typeof(CephalometricPage));
+            Routing.RegisterRoute("measurements", typeof(Views.CephalometricRelated.CephalometricMeasurementsPage));
+
             //Transactions
             Routing.RegisterRoute(nameof(TransactionPage), typeof(TransactionPage));
             Routing.RegisterRoute(nameof(CreateBillPage), typeof(CreateBillPage));
@@ -61,6 +66,8 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(PaymentPage), typeof(PaymentPage));
             Routing.RegisterRoute(nameof(AdditionalPaymentPage), typeof(AdditionalPaymentPage));
             Routing.RegisterRoute(nameof(BillDetailsPage), typeof(BillDetailsPage));
+            Routing.RegisterRoute(nameof(BalanceManagementPage), typeof(BalanceManagementPage));
+
         }
 
         protected override void OnAppearing()

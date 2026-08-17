@@ -47,9 +47,12 @@ namespace ClinicApp
             builder.Services.AddSingleton<BillDraftService>();
             builder.Services.AddSingleton<BillingService>();
             // ── App ───────────────────────────────────────────────
+            // ── App ───────────────────────────────────────────────
             builder.Services.AddSingleton<App>(sp => new App(
                 sp.GetRequiredService<SupabaseDataService>(),
-                sp.GetRequiredService<DatabaseService>()
+                sp.GetRequiredService<DatabaseService>(),
+                sp.GetRequiredService<SupabaseRealtimeService>(),
+                sp.GetRequiredService<PatientListViewModel>()
             ));
 
             // ── Main pages ────────────────────────────────────────
@@ -163,6 +166,8 @@ namespace ClinicApp
             builder.Services.AddTransient<PaymentPage>();
             builder.Services.AddTransient<BillDetailsViewModel>();
             builder.Services.AddTransient<BillDetailsPage>();
+            builder.Services.AddTransient<BalanceManagementViewModel>();
+            builder.Services.AddTransient<BalanceManagementPage>();
 
             builder.Services.AddTransient<AdditionalPaymentPage>(); 
             builder.Services.AddTransient<AdditionalPaymentViewModel>();
@@ -181,6 +186,12 @@ namespace ClinicApp
             builder.Services.AddTransient<StockHistoryPage>();
             builder.Services.AddTransient<StockHistoryViewModel>();
             builder.Services.AddTransient<AdjustStockSheet>();
+
+            // ── Cephalometric ─────────────────────────────
+            builder.Services.AddTransient<Views.CephalometricRelated.CephalometricMeasurementsPage>();
+            builder.Services.AddTransient<CephalometricMeasurementsViewModel>();
+
+
 
             builder
                 .UseMauiApp<App>()

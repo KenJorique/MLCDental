@@ -38,7 +38,6 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             {
                 newBookingCount++;
                 hasNewBookings = true;
-                await LoadPatients();
             };
             _supabaseData = supabaseData;
         }
@@ -120,6 +119,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 _realtime.OnPatientChanged += async () =>
                 {
                     System.Diagnostics.Debug.WriteLine("[Realtime] Patient changed — reloading");
+                    await _realtime.SyncMissedPatientsAsync();
                     await LoadPatientsInternal();
                 };
 
@@ -128,6 +128,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 {
                     NewBookingCount++;
                     HasNewBookings = true;
+                    await _realtime.SyncMissedPatientsAsync();
                     await LoadPatientsInternal();
                 };
             }
