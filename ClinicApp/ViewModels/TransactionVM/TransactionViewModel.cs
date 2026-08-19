@@ -4,7 +4,6 @@ using ClinicApp.Views;
 using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.VisualBasic;
 using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels.TransactionVM;
@@ -15,37 +14,17 @@ public partial class TransactionViewModel : ObservableObject
 {
     readonly SupabaseDataService _supabase;
     readonly DatabaseService _database;
-    public ObservableCollection<LedgerItem> Ledger { get; }
-    = new();
 
     public ObservableCollection<LedgerItem> PendingPayments { get; }
     = new();
 
-    const int HistoryPreviewCount = 4;
-
     public ObservableCollection<SupabaseBill> Bills { get; } = new();
     public ObservableCollection<SupabaseBill> UnpaidBills { get; } = new();
 
-    [ObservableProperty]
-    bool isHistoryExpanded;
-
-    public IEnumerable<LedgerItem> VisibleHistory =>
-        IsHistoryExpanded ? Ledger : Ledger.Take(HistoryPreviewCount);
-
-    public bool HasMoreHistory =>
-        Ledger.Count > HistoryPreviewCount;
-
-    public string HistoryToggleLabel =>
-        IsHistoryExpanded ? "Show less" : $"Show all history ({Ledger.Count})";
-
-    partial void OnIsHistoryExpandedChanged(bool value)
-    {
-        OnPropertyChanged(nameof(VisibleHistory));
-        OnPropertyChanged(nameof(HistoryToggleLabel));
-    }
-
-    [RelayCommand]
-    void ToggleHistory() => IsHistoryExpanded = !IsHistoryExpanded;
+    // One card per bill — replaces the old single unified ledger list.
+    // Each card carries its own payment history, fetched per-bill in
+    // LoadBillsAsync below.
+    public ObservableCollection<BillCardItem> BillCards { get; } = new();
 
     [ObservableProperty]
     string patientId = string.Empty;
@@ -77,10 +56,9 @@ public partial class TransactionViewModel : ObservableObject
     [ObservableProperty]
     string paymentStatus = string.Empty;
 
-    // Color helpers for the status pill shown beside "Outstanding
-    // Balance" — mirrors SupabaseBill.StatusColor/StatusBgColor, just
-    // keyed off PaymentStatus's own casing ("Paid" / "Partially Paid" /
-    // "Unpaid") since that's already computed in LoadBillsAsync below.
+    // Pill colors for the patient-summary status badge — back to the
+    // rounded-badge design for this card specifically. The left-accent-
+    // strip treatment stays only on the individual bill cards below.
     public Color PaymentStatusColor => PaymentStatus switch
     {
         "Paid" => Color.FromArgb("#2E7D32"),
@@ -165,30 +143,39 @@ public partial class TransactionViewModel : ObservableObject
                 System.Diagnostics.Debug.WriteLine(
                     $"[TransactionVM]   Bill Id={b.Id} PatientId={b.PatientId} Total={b.TotalAmount}");
 
-            Ledger.Clear();
-            IsHistoryExpanded = false;
             Bills.Clear();
             foreach (var bill in all)
-                Bills.Add(bill);          // ← was missing entirely
+                Bills.Add(bill);
 
-            var items = all.Select(bill => new LedgerItem
+            // Build one card per bill, newest bill first. Each card
+            // fetches and owns its own payment history so a multi-bill
+            // patient's payments never get mixed up across bills.
+            BillCards.Clear();
+            foreach (var bill in all.OrderByDescending(b => b.VisitDate))
             {
-                BillId = bill.Id,
-                IsBill = true,
-                IsOverdue = bill.IsOverdue,
-                Title = "Bill Created",
-                Subtitle = bill.VisitDate.ToString("MMM dd, yyyy hh:mm tt"),
-                Reference = bill.BillNumber ?? bill.Id,
-                Amount = bill.TotalAmount,
-                PaidAmount = bill.AmountPaid,
-                RemainingBalance = bill.Balance,
-                Status = bill.Status,
-                Date = bill.VisitDate
-            }).ToList();
+                var payments = await _supabase.GetPaymentsForBillAsync(bill.Id);
 
-            foreach (var item in items.OrderByDescending(x => x.Date))
-                Ledger.Add(item);
+                // Oldest-first display: first payment made appears at the
+                // top of the table, most recent at the bottom.
+                var chronological = payments.OrderBy(p => p.PaymentDate).ToList();
+                var rows = new List<PaymentRowItem>();
+                var runningBalance = bill.TotalAmount;
 
+                foreach (var p in chronological)
+                {
+                    runningBalance -= p.Amount;
+                    rows.Add(new PaymentRowItem
+                    {
+                        PaymentId = p.Id,
+                        BillId = bill.Id,
+                        Date = p.PaymentDate,
+                        Amount = p.Amount,
+                        RemainingBalance = runningBalance
+                    });
+                }
+
+                BillCards.Add(new BillCardItem(bill, rows));
+            }
 
             TotalBilled = Bills.Sum(x => x.TotalAmount);
             TotalPaid = Bills.Sum(x => x.AmountPaid);
@@ -224,9 +211,6 @@ public partial class TransactionViewModel : ObservableObject
             OnPropertyChanged(nameof(NextDueDisplay));
             OnPropertyChanged(nameof(OverdueBillsCount));
             OnPropertyChanged(nameof(OverdueSummary));
-            OnPropertyChanged(nameof(VisibleHistory));
-            OnPropertyChanged(nameof(HasMoreHistory));
-            OnPropertyChanged(nameof(HistoryToggleLabel));
             OnPropertyChanged(nameof(PaymentStatusColor));
             OnPropertyChanged(nameof(PaymentStatusBgColor));
         }
@@ -276,23 +260,26 @@ public partial class TransactionViewModel : ObservableObject
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
+    // Add Payment button inside an individual bill card — scoped to
+    // that specific bill so it's unambiguous which bill the payment
+    // applies to when a patient has several (spec section 4).
     [RelayCommand]
-    private async Task PayNow(LedgerItem item)
+    private async Task AddPaymentForBill(SupabaseBill bill)
     {
-        if (item == null)
+        if (bill == null)
             return;
 
-        // Existing bill, paying down its balance — NOT the same page as
-        // the brand-new-bill flow (see AdditionalPaymentPage for why).
         await Shell.Current.GoToAsync(
             $"{nameof(AdditionalPaymentPage)}" +
-            $"?billId={item.BillId}" +
+            $"?billId={bill.Id}" +
             $"&patientId={Uri.EscapeDataString(PatientId)}" +
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
+    // Tapping a payment row opens Bill Details (not a standalone
+    // receipt) — see the note at the top of this response for why.
     [RelayCommand]
-    private async Task OpenLedgerItem(LedgerItem item)
+    private async Task OpenPayment(PaymentRowItem item)
     {
         if (item == null)
             return;

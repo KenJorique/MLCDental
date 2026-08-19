@@ -252,8 +252,15 @@ public partial class PaymentViewModel : ObservableObject
                 return;
             }
 
+            var amountReceived = PaymentAmount;
+            var change = Change;
+
             // Done with this draft — clear it so nothing stale lingers if
-            // this ViewModel instance somehow gets revisited.
+            // this ViewModel instance somehow gets revisited. Captured
+            // above BEFORE clearing: Change is a computed property that
+            // reads Draft (via RequiredAmount -> MinimumDueToday -> Draft),
+            // so evaluating it after this line would silently collapse to
+            // the wrong figure once Draft is gone.
             BillDraftStore.Current = null;
 
             await Shell.Current.GoToAsync(
@@ -264,8 +271,8 @@ public partial class PaymentViewModel : ObservableObject
                 $"&appointmentEntryId={Uri.EscapeDataString(draft.AppointmentEntryId ?? string.Empty)}" +
                 $"&supabaseEntryId={Uri.EscapeDataString(draft.SupabaseEntryId ?? string.Empty)}" +
                 $"&supabaseBookingId={Uri.EscapeDataString(draft.SupabaseBookingId ?? string.Empty)}" +
-                $"&amountReceived={PaymentAmount}" +
-                $"&change={Change}");
+                $"&amountReceived={amountReceived}" +
+                $"&change={change}");
         }
         catch (Exception ex)
         {
