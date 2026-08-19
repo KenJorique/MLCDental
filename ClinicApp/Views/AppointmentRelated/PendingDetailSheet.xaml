@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<the49:BottomSheet
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:the49="https://schemas.the49.com/dotnet/2023/maui"
+    x:Class="ClinicApp.Views.AppointmentRelated.PendingDetailSheet"
+    HasHandle="False"
+    HasBackdrop="True"
+    CornerRadius="20"
+    IsCancelable="True"
+    BackgroundColor="White">
+
+	<the49:BottomSheet.Detents>
+		<the49:ContentDetent />
+	</the49:BottomSheet.Detents>
+
+	<VerticalStackLayout Spacing="0" Padding="0,12,0,20">
+
+		<!-- Drag handle -->
+		<BoxView WidthRequest="40" HeightRequest="4" CornerRadius="2"
+                 BackgroundColor="#CCCCCC"
+                 HorizontalOptions="Center" Margin="0,0,0,16"/>
+
+		<!-- Patient name -->
+		<Label Text="{Binding SelectedCard.FullName}"
+               FontSize="22" FontAttributes="Bold"
+               TextColor="#1A1A2E"
+               Margin="20,0,20,18"/>
+
+		<!-- Date / Time -->
+		<Grid Padding="20,0" ColumnDefinitions="*,*" Margin="0,0,0,16">
+			<VerticalStackLayout Grid.Column="0" Spacing="2">
+				<Label Text="Date" FontSize="12" TextColor="Gray"/>
+				<Label Text="{Binding SelectedCard.AppointmentDate, StringFormat='{0:MMM dd, yyyy}'}"
+                       FontSize="16" FontAttributes="Bold" TextColor="#1A1A2E"/>
+			</VerticalStackLayout>
+			<VerticalStackLayout Grid.Column="1" Spacing="2">
+				<Label Text="Time" FontSize="12" TextColor="Gray"/>
+				<Label Text="{Binding SelectedCard.AppointmentDate, StringFormat='{0:h:mm tt}'}"
+                       FontSize="16" FontAttributes="Bold" TextColor="#1A1A2E"/>
+			</VerticalStackLayout>
+		</Grid>
+
+		<!-- Contact Number + call -->
+		<VerticalStackLayout Padding="20,0" Spacing="2" Margin="0,0,0,24">
+			<Label Text="Contact Number" FontSize="12" TextColor="Gray"/>
+			<HorizontalStackLayout Spacing="12">
+				<Label Text="{Binding SelectedCard.Phone}"
+                       FontSize="16" FontAttributes="Bold" TextColor="#1A1A2E"
+                       VerticalOptions="Center"/>
+				<Border BackgroundColor="#EEF5EE"
+                        StrokeThickness="0"
+                        HeightRequest="40" WidthRequest="40"
+                        VerticalOptions="Center">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="20"/>
+					</Border.StrokeShape>
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer
+                            Command="{Binding CallPatientCommand}"
+                            CommandParameter="{Binding SelectedCard.Phone}"/>
+					</Border.GestureRecognizers>
+					<Label FontFamily="MaterialSymbolsRoundedFilled"
+                           Text="&#xe0b0;"
+                           FontSize="20" TextColor="#2E7D32"
+                           HorizontalOptions="Center" VerticalOptions="Center"/>
+				</Border>
+			</HorizontalStackLayout>
+		</VerticalStackLayout>
+
+		<!-- Action rows — icon + label + caption + chevron -->
+		<VerticalStackLayout Padding="20,0" Spacing="8">
+
+			<!-- Approve -->
+			<Border BackgroundColor="White" StrokeThickness="1" Stroke="#E0E0E0"
+                    Padding="14,12">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer
+                        Command="{Binding ApproveCommand}"
+                        CommandParameter="{Binding SelectedCard}"/>
+				</Border.GestureRecognizers>
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+					<Border Grid.Column="0" BackgroundColor="#E8F5E9" StrokeThickness="0"
+                            HeightRequest="44" WidthRequest="44">
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="22"/>
+						</Border.StrokeShape>
+						<Label FontFamily="MaterialSymbolsRounded" Text="&#xe5ca;"
+                               FontSize="22" TextColor="#1A6B2F"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
+					</Border>
+					<VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+						<Label Text="Approve"
+                               FontSize="15" FontAttributes="Bold" TextColor="#1A1A2E"/>
+						<Label Text="Approve this booking"
+                               FontSize="12" TextColor="Gray"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="20" TextColor="#C8C8C8"
+                           VerticalOptions="Center"/>
+				</Grid>
+			</Border>
+
+			<!-- Reschedule — same style as Approve/Cancel, only the icon is blue -->
+			<Border BackgroundColor="White" StrokeThickness="1" Stroke="#E0E0E0"
+                    Padding="14,12">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer
+                        Command="{Binding RescheduleCommand}"
+                        CommandParameter="{Binding SelectedCard}"/>
+				</Border.GestureRecognizers>
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+					<Border Grid.Column="0" BackgroundColor="#E3F2FD" StrokeThickness="0"
+                            HeightRequest="44" WidthRequest="44">
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="22"/>
+						</Border.StrokeShape>
+						<Label FontFamily="MaterialSymbolsRounded" Text="&#xe5d5;"
+                               FontSize="22" TextColor="#1565C0"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
+					</Border>
+					<VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+						<Label Text="Reschedule"
+                               FontSize="15" FontAttributes="Bold" TextColor="#1A1A2E"/>
+						<Label Text="Change the date or time"
+                               FontSize="12" TextColor="Gray"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="20" TextColor="#C8C8C8"
+                           VerticalOptions="Center"/>
+				</Grid>
+			</Border>
+
+			<!-- Cancel — destructive, colored label like Delete Patient elsewhere in the app -->
+			<Border BackgroundColor="White" StrokeThickness="1" Stroke="#E0E0E0"
+                    Padding="14,12">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="14"/>
+				</Border.StrokeShape>
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer
+                        Command="{Binding CancelBookingCommand}"
+                        CommandParameter="{Binding SelectedCard}"/>
+				</Border.GestureRecognizers>
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+					<Border Grid.Column="0" BackgroundColor="#FFEBEE" StrokeThickness="0"
+                            HeightRequest="44" WidthRequest="44">
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="22"/>
+						</Border.StrokeShape>
+						<Label FontFamily="MaterialSymbolsRounded" Text="&#xe5cd;"
+                               FontSize="22" TextColor="Crimson"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
+					</Border>
+					<VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+						<Label Text="Cancel"
+                               FontSize="15" FontAttributes="Bold" TextColor="Crimson"/>
+						<Label Text="Cancel this booking"
+                               FontSize="12" TextColor="Gray"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="20" TextColor="#C8C8C8"
+                           VerticalOptions="Center"/>
+				</Grid>
+			</Border>
+
+		</VerticalStackLayout>
+
+	</VerticalStackLayout>
+
+</the49:BottomSheet>

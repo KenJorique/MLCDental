@@ -8,19 +8,18 @@ namespace ClinicApp.ViewModels.SupplyVM;
 [QueryProperty(nameof(HasExpirationParam), "hasExpiration")]
 public partial class AddStockViewModel : ObservableObject
 {
-    private readonly DatabaseService _db;
+    private readonly SupabaseDataService _supabase;
 
-    [ObservableProperty] private int supplyId;
+    [ObservableProperty] private string supplyId = string.Empty;
     [ObservableProperty] private bool isBusy;
 
-    // Passed from SupplyInfoViewModel so we know whether to show the date picker
     [ObservableProperty] private bool hasExpirationParam;
 
     [ObservableProperty] private int addQty;
     [ObservableProperty] private DateTime expirationDate = DateTime.Today.AddYears(1);
     [ObservableProperty] private string qtyError = string.Empty;
 
-    public AddStockViewModel(DatabaseService db) => _db = db;
+    public AddStockViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
     [RelayCommand]
     async Task SaveAsync()
@@ -35,16 +34,15 @@ public partial class AddStockViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            await _db.ApplyStockChange(SupplyId, AddQty, "Restocked", string.Empty);
+            await _supabase.ApplyStockChangeAsync(SupplyId, AddQty, "Restocked", string.Empty);
 
-            // Update expiration on the item if it tracks one
             if (HasExpirationParam)
             {
-                var item = await _db.GetSupplyItemById(SupplyId);
+                var item = await _supabase.GetSupplyByIdAsync(SupplyId);
                 if (item is not null)
                 {
-                    item.ExpirationDate = ExpirationDate.ToString("yyyy-MM-dd");
-                    await _db.UpdateSupplyItem(item);
+                    item.ExpirationDate = ExpirationDate;
+                    await _supabase.UpdateSupplyAsync(item);
                 }
             }
 

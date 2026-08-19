@@ -36,6 +36,15 @@ namespace ClinicApp.Views.AppointmentRelated
             base.OnAppearing();
             try
             {
+                // BUGFIX: ShowDetail only got reset to false when a sheet button
+                // (Complete/Reschedule/Cancel/Close) was tapped. Swiping the sheet away
+                // or tapping the backdrop instead skipped all of that, leaving ShowDetail
+                // stuck true — which hid the FAB (bound to !ShowDetail) until something
+                // else happened to reset it. Since no sheet can legitimately still be
+                // open the moment this page becomes visible again, force it back to
+                // false here so the FAB is reliably visible on every return to this page.
+                _vm.ShowDetail = false;
+
                 await _vm.LoadAppointments();
 
                 if (!_subscribed)
@@ -67,7 +76,7 @@ namespace ClinicApp.Views.AppointmentRelated
 
                 var entry = _vm.CalendarDrawable.HitTest((float)pos.Value.X, (float)pos.Value.Y);
                 if (entry != null)
-                    _vm.SelectAppointmentCommand.Execute(entry);
+                    _vm.SelectWeekAppointmentCommand.Execute(entry);
             }
             catch (Exception ex)
             {

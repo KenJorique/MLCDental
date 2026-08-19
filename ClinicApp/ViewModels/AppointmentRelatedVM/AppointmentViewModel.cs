@@ -12,21 +12,16 @@ namespace ClinicApp.ViewModels
         readonly DatabaseService _db;
         readonly SupabaseDataService _supabaseData;
 
-        public ObservableCollection<SupabaseBooking> PendingBookings { get; set; } = new();
-        public ObservableCollection<SupabaseBooking> ApprovedBookings { get; set; } = new();
-        public ObservableCollection<SupabaseBooking> RescheduledBookings { get; set; } = new();
+        public ObservableCollection<BookingCardViewModel> PendingBookings { get; set; } = new();
 
         // Separate busy flags — IsRefreshing for pull-to-refresh, IsLoading for internal ops
         [ObservableProperty] private bool isRefreshing;
         [ObservableProperty] private bool isLoading;
         [ObservableProperty] private int pendingCount;
-        [ObservableProperty] private int approvedCount;
-        [ObservableProperty] private int rescheduledCount;
+        [ObservableProperty] private BookingCardViewModel? selectedCard;
 
         // Capital H — matches XAML binding exactly
         public bool HasPending => PendingCount > 0;
-        public bool HasApproved => ApprovedCount > 0;
-        public bool HasRescheduled => RescheduledCount > 0;
 
         public AppointmentViewModel(DatabaseService db, SupabaseDataService supabaseData)
         {
@@ -70,31 +65,15 @@ namespace ClinicApp.ViewModels
 
             try
             {
-                var pendingTask = _supabaseData.GetBookingsByStatusAsync("pending");
-                var approvedTask = _supabaseData.GetBookingsByStatusAsync("approved");
-                var rescheduledTask = _supabaseData.GetBookingsByStatusAsync("rescheduled");
-
-                await Task.WhenAll(pendingTask, approvedTask, rescheduledTask);
+                var pending = await _supabaseData.GetBookingsByStatusAsync("pending");
 
                 PendingBookings.Clear();
-                foreach (var b in pendingTask.Result)
-                    PendingBookings.Add(b);
-
-                ApprovedBookings.Clear();
-                foreach (var b in approvedTask.Result)
-                    ApprovedBookings.Add(b);
-
-                RescheduledBookings.Clear();
-                foreach (var b in rescheduledTask.Result)
-                    RescheduledBookings.Add(b);
+                foreach (var b in pending)
+                    PendingBookings.Add(new BookingCardViewModel(b));
 
                 PendingCount = PendingBookings.Count;
-                ApprovedCount = ApprovedBookings.Count;
-                RescheduledCount = RescheduledBookings.Count;
 
                 OnPropertyChanged(nameof(HasPending));
-                OnPropertyChanged(nameof(HasApproved));
-                OnPropertyChanged(nameof(HasRescheduled));
             }
             catch (Exception ex)
             {
@@ -103,147 +82,202 @@ namespace ClinicApp.ViewModels
 
         }
 
-        [RelayCommand]
-        async Task Approve(SupabaseBooking booking)
-        {
-            Console.WriteLine("[Approve] ===== APPROVE STARTED =====");
+        PendingDetailSheet? _pendingSheet;
 
-            if (booking == null)
+        // Opens the bottom detail sheet when a card is tapped — custom sheet matching
+        // AppointmentDetailSheet's layout (Date/Time/Contact+call, icon-row actions)
+        [RelayCommand]
+        async Task ShowBookingDetail(BookingCardViewModel card)
+        {
+            if (card is null) return;
+            SelectedCard = card;
+
+            _pendingSheet = new PendingDetailSheet { BindingContext = this };
+            await _pendingSheet.ShowAsync();
+        }
+
+        async Task CloseSheetAsync()
+        {
+            if (_pendingSheet == null) return;
+            var sheet = _pendingSheet;
+            _pendingSheet = null;
+            try { await sheet.DismissAsync(); }
+            catch (Exception ex)
             {
-                Console.WriteLine("[Approve] booking is NULL — returning");
+                System.Diagnostics.Debug.WriteLine($"[CloseSheetAsync] {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        async Task CallPatient(string phoneNumber)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                await Shell.Current.DisplayAlert("Error", "No phone number available for this patient.", "OK");
                 return;
             }
 
-            Console.WriteLine($"[Approve] Patient: {booking.FullName}");
+            try
+            {
+                if (PhoneDialer.Default.IsSupported)
+                {
+                    PhoneDialer.Default.Open(phoneNumber);
+                }
+                else
+                {
+                    await Shell.Current.DisplayAlert("Not Supported", "Phone dialing is not supported on this device.", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CallPatient] Error: {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", "Unable to open phone dialer.", "OK");
+            }
+        }
+
+        [RelayCommand]
+        async Task Approve(BookingCardViewModel card)
+        {
+            if (card == null) return;
+            var booking = card.Booking;
 
             bool confirm = await Shell.Current.DisplayAlert(
                 "Approve Booking",
-                $"Approve booking for {booking.FullName}?\nService: {booking.Service}",
+                $"Approve booking for {booking.FullName}",
                 "Approve", "Cancel");
 
-            Console.WriteLine($"[Approve] Confirmed: {confirm}");
             if (!confirm) return;
 
             IsLoading = true;
             try
             {
-                Console.WriteLine("[Approve] Step 1: Adding patient to SQLite...");
-                var parts = (booking.FullName ?? "").Trim().Split(' ', 2);
-                var patient = new Patient
-                {
-                    FirstName = parts.Length > 0 ? parts[0] : "",
-                    LastName = parts.Length > 1 ? parts[1] : "",
-                    MobileNo = booking.Phone ?? "",
-                    Email = booking.Email ?? "",
-                    DateOfBirth = booking.DateOfBirth.HasValue
-                                                ? booking.DateOfBirth.Value.ToString("yyyy-MM-dd") : "",
-                    ReasonForConsultation = booking.Service ?? "",
-                    ReferredBy = "Online Booking",
-                    DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
-                };
-                await _db.AddPatient(patient);
-                Console.WriteLine($"[Approve] Step 1 done. PatientID={patient.PatientID}");
+                // Only create new patient if not existing
+                // Replace the existing patient check section with this:
 
-                Console.WriteLine("[Approve] Step 2: Adding patient to Supabase...");
-                var supPatient = new SupabasePatient
-                {
-                    FirstName = patient.FirstName,
-                    LastName = patient.LastName,
-                    Phone = patient.MobileNo,
-                    Email = patient.Email,
-                    ReasonForConsultation = patient.ReasonForConsultation,
-                    ReferredBy = "Online Booking",
-                    DateRegistered = DateTime.UtcNow
-                };
-                await _supabaseData.AddPatientAsync(supPatient);
-                Console.WriteLine("[Approve] Step 2 done.");
+                // Always check by phone first — prevents duplicates regardless of flag.
+                // Track the resolved patient (existing or newly-created) so its Supabase Id
+                // can be linked onto the appointment entry below.
+                SupabasePatient? patient = null;
 
-                Console.WriteLine("[Approve] Step 3: Adding local appointment entry...");
+                if (!string.IsNullOrEmpty(booking.Phone))
+                {
+                    patient = await _supabaseData.GetPatientByPhoneAsync(booking.Phone);
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] Existing patient: {(patient != null ? patient.Id : "NONE")}");
+                }
+
+                if (patient == null)
+                {
+                    // Create new patient — only if truly doesn't exist
+                    var parts = (booking.FullName ?? "").Trim().Split(' ', 2);
+                    var localPatient = new Patient
+                    {
+                        FirstName = parts.Length > 0 ? parts[0] : "",
+                        LastName = parts.Length > 1 ? parts[1] : "",
+                        MobileNo = booking.Phone ?? "",
+                        Email = booking.Email ?? "",
+                        ReferredBy = "Online Booking",
+                        DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
+                    };
+
+                    var supPatient = new SupabasePatient
+                    {
+                        FirstName = localPatient.FirstName,
+                        LastName = localPatient.LastName,
+                        Phone = localPatient.MobileNo,
+                        Email = localPatient.Email,
+                        ReasonForConsultation = localPatient.ReasonForConsultation,
+                        ReferredBy = "Online Booking",
+                        DateRegistered = DateTime.UtcNow
+                    };
+                    patient = await _supabaseData.AddPatientAsync(supPatient);
+
+                    if (patient != null)
+                        localPatient.SupabaseId = patient.Id;
+
+                    await _db.AddPatient(localPatient);
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] New patient created: {localPatient.FirstName}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] Patient already exists — skipping creation");
+                }
+
+                // Rest of approve flow stays the same...
+                // 1. Treat the booking's appointment date as Local time (Philippine Time)
+                var localDate = booking.AppointmentDate.Kind == DateTimeKind.Utc
+                    ? booking.AppointmentDate.ToLocalTime()
+                    : DateTime.SpecifyKind(booking.AppointmentDate, DateTimeKind.Local);
+
+                // 2. Derive the true UTC equivalent for Supabase storage (subtracts 8 hours)
+                var utcDate = localDate.ToUniversalTime();
+
                 var localEntry = new AppointmentEntry
                 {
                     SupabaseBookingId = booking.Id,
                     PatientName = booking.FullName ?? "",
                     Phone = booking.Phone ?? "",
                     Email = booking.Email ?? "",
-                    Service = booking.Service ?? "",
                     Notes = booking.Notes ?? "",
-                    AppointmentDateTime = booking.AppointmentDate.Kind == DateTimeKind.Utc
-                                              ? booking.AppointmentDate.ToLocalTime()
-                                                    .ToString("yyyy-MM-dd HH:mm:ss")
-                                              : booking.AppointmentDate
-                                                    .ToString("yyyy-MM-dd HH:mm:ss"),
+                    AppointmentDateTime = localDate.ToString("yyyy-MM-dd HH:mm:ss"),
                     Status = "approved"
                 };
                 await _db.AddAppointmentEntry(localEntry);
-                Console.WriteLine("[Approve] Step 3 done.");
 
-                Console.WriteLine("[Approve] Step 4: Adding Supabase appointment entry...");
                 var supEntry = new SupabaseAppointmentEntry
                 {
                     SupabaseBookingId = booking.Id,
+                    // BUGFIX (Ken's improvement, folded in): previously this was never set,
+                    // leaving the appointment entry with no link back to the patient record.
+                    PatientId = patient?.Id ?? "",
                     PatientName = booking.FullName ?? "",
                     Phone = booking.Phone ?? "",
                     Email = booking.Email ?? "",
-                    Service = booking.Service ?? "",
                     Notes = booking.Notes ?? "",
-                    AppointmentDateTime = booking.AppointmentDate.ToUniversalTime(),
+                    AppointmentDateTime = utcDate,
                     Status = "approved"
                 };
                 await _supabaseData.AddAppointmentEntryAsync(supEntry);
-                Console.WriteLine("[Approve] Step 4 done.");
 
-                Console.WriteLine("[Approve] Step 5: Updating booking status...");
                 await _supabaseData.UpdateBookingStatusAsync(booking.Id, "approved");
-                Console.WriteLine("[Approve] Step 5 done.");
 
-                // ── Step 6: Google Tasks ──────────────────────────────────
+                // Google Tasks
                 try
                 {
                     var taskId = await _supabaseData.SyncToGoogleTasksAsync(
-                        "",  // pass empty — auto-fetches fresh token
+                        "",
                         booking.FullName ?? "",
-                        booking.Service ?? "",
+                        " ",
                         booking.AppointmentDate,
                         booking.Phone ?? "",
                         booking.Notes ?? "");
 
-                    if (!string.IsNullOrEmpty(taskId))
-                    {
-                        System.Diagnostics.Debug.WriteLine(
-                            $"[Approve] Google Task created: {taskId}");
-
-                        // Save taskId to local entry for later complete/delete
-                        var entries = await _db.GetAppointmentsForWeek(
-                            WeekStart(booking.AppointmentDate));
-                        var entry = entries.FirstOrDefault(
-                            e => e.SupabaseBookingId == booking.Id);
-                        if (entry != null)
-                        {
-                            entry.GoogleTaskId = taskId;
-                            await _db.UpdateAppointmentEntry(entry);
-                        }
-                    }
-                }
-                catch (Exception googleEx)
-                {
-                    // Never block approve if Google Tasks fails
                     System.Diagnostics.Debug.WriteLine(
-                        $"[Approve] Google Tasks error: {googleEx.Message}");
+                        $"[Approve] Task: {taskId ?? "null"}");
                 }
-
-                Console.WriteLine("[Approve] Step 6 done.");
+                catch (Exception gEx)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] Google: {gEx.Message}");
+                }
 
                 await Shell.Current.DisplayAlert("Approved",
-                    $"{booking.FullName} added to patient list and schedule.", "OK");
+                    booking.IsExistingPatient
+                        ? $"{booking.FullName}'s appointment approved. (Existing patient)"
+                        : $"{booking.FullName} added to patient list and approved.",
+                    "OK");
 
-                Console.WriteLine("[Approve] ===== APPROVE COMPLETE =====");
+                await CloseSheetAsync();
                 await FetchAndPopulate();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Approve] MAIN EXCEPTION: {ex.Message}");
-                Console.WriteLine($"[Approve] STACK: {ex.StackTrace}");
-                await Shell.Current.DisplayAlert("Error", $"Failed: {ex.Message}", "OK");
+                System.Diagnostics.Debug.WriteLine($"[Approve] {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
             }
             finally { IsLoading = false; }
         }
@@ -256,13 +290,16 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
-        async Task Reschedule(SupabaseBooking booking)
+        async Task Reschedule(BookingCardViewModel card)
         {
-            if (booking == null)
+            if (card == null)
             {
-                System.Diagnostics.Debug.WriteLine("[Reschedule] booking is null");
+                System.Diagnostics.Debug.WriteLine("[Reschedule] card is null");
                 return;
             }
+            var booking = card.Booking;
+
+            await CloseSheetAsync();
 
             // 1. (Optional) Remove the status update alert if you want it to navigate instantly,
             // or keep it if you want them to confirm they are changing it right now.
@@ -279,13 +316,14 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
-        async Task MoveToPending(SupabaseBooking booking)
+        async Task MoveToPending(BookingCardViewModel card)
         {
-            if (booking == null)
+            if (card == null)
             {
-                System.Diagnostics.Debug.WriteLine("[MoveToPending] booking is null");
+                System.Diagnostics.Debug.WriteLine("[MoveToPending] card is null");
                 return;
             }
+            var booking = card.Booking;
 
             System.Diagnostics.Debug.WriteLine($"[MoveToPending] Starting for {booking.FullName}, Id={booking.Id}");
 
@@ -303,5 +341,127 @@ namespace ClinicApp.ViewModels
             }
             finally { IsLoading = false; }
         }
+
+        // Cancel a pending booking
+        [RelayCommand]
+        async Task CancelBooking(BookingCardViewModel card)
+        {
+            if (card == null) return;
+            var booking = card.Booking;
+
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Cancel Booking",
+                $"Cancel {booking.FullName}'s booking?\nThis cannot be undone.",
+                "Yes, cancel", "Keep");
+
+            if (!confirm) return;
+
+            IsLoading = true;
+            try
+            {
+                await _supabaseData.UpdateBookingStatusAsync(booking.Id, "cancelled");
+                await CloseSheetAsync();
+                await FetchAndPopulate();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CancelBooking] {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+            }
+            finally { IsLoading = false; }
+        }
+
+        [RelayCommand]
+        async Task MarkComplete(BookingCardViewModel card)
+        {
+            if (card == null) return;
+            var booking = card.Booking;
+
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Mark as Complete",
+                $"Mark {booking.FullName}'s appointment as completed?\n" +
+                "It will be removed from the appointment list.",
+                "Yes", "Cancel");
+
+            if (!confirm) return;
+
+            IsLoading = true;
+            try
+            {
+                // 1. Get the appointment entry before deleting
+                var entries = await _supabaseData.GetAppointmentEntriesAsync();
+                var entry = entries.FirstOrDefault(
+                    e => e.SupabaseBookingId == booking.Id);
+
+                // 2. Complete Google Task if exists
+                try
+                {
+                    var accessToken = await _supabaseData.GetFreshAccessTokenAsync();
+                    if (!string.IsNullOrEmpty(accessToken)
+                        && entry != null
+                        && !string.IsNullOrEmpty(entry.GoogleTaskId))
+                    {
+                        await _supabaseData.CompleteGoogleTaskAsync(
+                            accessToken, entry.GoogleTaskId);
+                    }
+                }
+                catch (Exception googleEx)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[MarkComplete] Google Tasks: {googleEx.Message}");
+                }
+
+                // 3. Delete from Supabase appointment_entries immediately
+                if (entry != null && !string.IsNullOrEmpty(entry.Id))
+                    await _supabaseData.DeleteAppointmentEntryAsync(entry.Id);
+
+                // 4. Delete from Supabase bookings immediately
+                await _supabaseData.DeleteBookingAsync(booking.Id);
+
+                // 5. Delete from local SQLite immediately
+                await _db.ExecuteAsync(
+                    "DELETE FROM AppointmentEntry WHERE SupabaseBookingId = ?",
+                    booking.Id);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MarkComplete] {booking.FullName} removed from all lists");
+
+                // 6. Refresh the list — booking gone immediately
+                await FetchAndPopulate();
+
+                await Shell.Current.DisplayAlert("Completed",
+                    $"{booking.FullName}'s appointment has been completed " +
+                    "and removed from the list.", "OK");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MarkComplete] {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+            }
+            finally { IsLoading = false; }
+        }
+    }
+
+    /// <summary>
+    /// Wraps a SupabaseBooking for the card list — kept as a thin passthrough wrapper
+    /// (no expand/collapse state; cards are always shown fully expanded).
+    /// </summary>
+    public partial class BookingCardViewModel : ObservableObject
+    {
+        public SupabaseBooking Booking { get; }
+
+        public BookingCardViewModel(SupabaseBooking booking)
+        {
+            Booking = booking;
+        }
+
+        // Convenience passthroughs so the card template can bind directly
+        public string FullName => Booking.FullName ?? "";
+        public string Phone => Booking.Phone ?? "";
+        public string Email => Booking.Email ?? "";
+        public string Notes => Booking.Notes ?? "";
+        public DateTime AppointmentDate => Booking.AppointmentDate;
+        public bool IsExistingPatient => Booking.IsExistingPatient;
     }
 }

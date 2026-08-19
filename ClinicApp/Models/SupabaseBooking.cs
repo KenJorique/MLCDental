@@ -1,4 +1,5 @@
-﻿using Supabase.Postgrest.Attributes;
+﻿
+using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
 namespace ClinicApp.Models
@@ -21,8 +22,6 @@ namespace ClinicApp.Models
         [Column("appointment_date")]
         public DateTime AppointmentDate { get; set; }
 
-        [Column("service")]
-        public string? Service { get; set; }
 
         [Column("notes")]
         public string? Notes { get; set; }
@@ -33,8 +32,15 @@ namespace ClinicApp.Models
         [Column("created_at")]
         public DateTime CreatedAt { get; set; }
 
-        [Column("date_of_birth")]
-        public DateTime? DateOfBirth { get; set; }
+
+        [Column("is_existing_patient")]
+        public bool IsExistingPatient { get; set; } = false;
+
+        [Column("existing_patient_id")]
+        public string? ExistingPatientId { get; set; }
+
 
     }
+
+
 }

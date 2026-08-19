@@ -9,9 +9,9 @@ namespace ClinicApp.ViewModels.SupplyVM;
 [QueryProperty(nameof(CurrentStock), "currentStock")]
 public partial class ReduceStockViewModel : ObservableObject
 {
-    private readonly DatabaseService _db;
+    private readonly SupabaseDataService _supabase;
 
-    [ObservableProperty] private int supplyId;
+    [ObservableProperty] private string supplyId = string.Empty;
     [ObservableProperty] private int currentStock;
     [ObservableProperty] private bool isBusy;
 
@@ -24,10 +24,9 @@ public partial class ReduceStockViewModel : ObservableObject
         "Used", "Damaged", "Expired"
     };
 
-    // Shows "Maximum available: X pcs" below the entry
     public string MaxAvailableText => $"Maximum available: {CurrentStock} pcs";
 
-    public ReduceStockViewModel(DatabaseService db) => _db = db;
+    public ReduceStockViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
     partial void OnCurrentStockChanged(int value) =>
         OnPropertyChanged(nameof(MaxAvailableText));
@@ -50,7 +49,7 @@ public partial class ReduceStockViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            await _db.ApplyStockChange(SupplyId, -ReduceQty, SelectedType, string.Empty);
+            await _supabase.ApplyStockChangeAsync(SupplyId, -ReduceQty, SelectedType, string.Empty);
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
                 await Shell.Current.GoToAsync(".."));

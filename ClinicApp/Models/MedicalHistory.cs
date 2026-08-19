@@ -30,9 +30,12 @@ public class MedicalHistory
     public bool TakingMedications { get; set; } = false;
 
     // Previous dental
-    public string PreviousDentist { get; set; } = string.Empty;
-    public string LastDentalVisit { get; set; } = string.Empty;
+    //public string PreviousDentist { get; set; } = string.Empty;
+    //public string LastDentalVisit { get; set; } = string.Empty;
 
     public string LastUpdated { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
     // Timestamp of the last manual update from the Medical Record tab
+
+    // Free-text "Other" condition — stored separately from the conditions checklist
+    public string OtherCondition { get; set; } = string.Empty;
 }

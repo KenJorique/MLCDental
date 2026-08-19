@@ -10,7 +10,7 @@ namespace ClinicApp.Views.AppointmentRelated
         {
             InitializeComponent();
             _vm = vm;
-            BindingContext = vm;
+            BindingContext = vm;    
         }
 
         protected override async void OnAppearing()

@@ -10,50 +10,47 @@ namespace ClinicApp.ViewModels.SupplyVM;
 [QueryProperty(nameof(SupplyId), "supplyId")]
 public partial class SupplyInfoViewModel : ObservableObject
 {
-    private readonly DatabaseService _db;
+    private readonly SupabaseDataService _supabase;
 
-    [ObservableProperty] private int supplyId;
+    [ObservableProperty] private string supplyId = string.Empty;
     [ObservableProperty] private bool isBusy;
-    [ObservableProperty] private SupplyItem? supply;
+    [ObservableProperty] private SupabaseSupplyItem? supply;
 
     public ObservableCollection<StockLogRowViewModel> Logs { get; } = new();
 
-    // Computed display
     public string StockDisplay => Supply?.QuantityDisplay ?? "—";
     public bool IsLowStock => Supply?.IsLowStock ?? false;
     public bool IsOutOfStock => Supply?.IsOutOfStock ?? false;
     public string StockStatus => IsOutOfStock ? "Out of Stock" : IsLowStock ? "Low Stock" : "In Stock";
     public string StockStatusColor => IsOutOfStock ? "#D32F2F" : IsLowStock ? "#F57C00" : "#388E3C";
-    /// Strips "Per " prefix — shows "Piece", "Box", "Pack", "Kit"
     public string UnitDisplay => Supply?.Unit?.Replace("Per ", string.Empty) ?? "—";
 
     public string ExpirationDisplay => Supply is null ? "—"
-        : Supply.HasExpiration && !string.IsNullOrWhiteSpace(Supply.ExpirationDate)
-            ? Supply.ExpirationDate : "—";
+        : Supply.HasExpiration && !string.IsNullOrWhiteSpace(Supply.ExpirationDateDisplay)
+            ? Supply.ExpirationDateDisplay : "—";
 
-    // 4 most recent logs shown on SupplyInfoPage
     public IEnumerable<StockLogRowViewModel> RecentLogs => Logs.Take(4);
 
-    public SupplyInfoViewModel(DatabaseService db) => _db = db;
+    public SupplyInfoViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
-    partial void OnSupplyIdChanged(int value)
+    partial void OnSupplyIdChanged(string value)
     {
-        if (value > 0)
+        if (!string.IsNullOrWhiteSpace(value))
             MainThread.BeginInvokeOnMainThread(async () => await LoadAsync());
     }
 
     [RelayCommand]
     public async Task LoadAsync()
     {
-        if (SupplyId <= 0 || IsBusy) return;
+        if (string.IsNullOrWhiteSpace(SupplyId) || IsBusy) return;
         IsBusy = true;
         try
         {
-            Supply = await _db.GetSupplyItemById(SupplyId);
+            Supply = await _supabase.GetSupplyByIdAsync(SupplyId);
             if (Supply is null) return;
             NotifyDisplayChanged();
 
-            var logs = await _db.GetLogsForSupplyItem(SupplyId);
+            var logs = await _supabase.GetLogsForSupplyAsync(SupplyId);
             Logs.Clear();
             foreach (var log in logs)
                 Logs.Add(new StockLogRowViewModel(log));
@@ -77,8 +74,6 @@ public partial class SupplyInfoViewModel : ObservableObject
         OnPropertyChanged(nameof(UnitDisplay));
         OnPropertyChanged(nameof(ExpirationDisplay));
     }
-
-    // ── Navigation ───────────────────────────────────────────────────
 
     [RelayCommand]
     public async Task GoToAddStock()
@@ -107,21 +102,13 @@ public partial class SupplyInfoViewModel : ObservableObject
 
 public class StockLogRowViewModel
 {
-    public SupplyStockLog Log { get; }
-    public StockLogRowViewModel(SupplyStockLog log) => Log = log;
+    public SupabaseStockLog Log { get; }
+    public StockLogRowViewModel(SupabaseStockLog log) => Log = log;
 
     public string ChangeDisplay => Log.ChangeInPieces >= 0
         ? $"+{Log.ChangeInPieces} pcs" : $"{Log.ChangeInPieces} pcs";
 
-    public string DateDisplay
-    {
-        get
-        {
-            if (DateTime.TryParse(Log.Timestamp, out var dt))
-                return dt.ToString("MMM d");
-            return Log.Timestamp;
-        }
-    }
+    public string DateDisplay => Log.CreatedAt.ToString("MMM d");
 
     public string TypeDisplay => Log.ChangeType;
     public bool IsIncrease => Log.ChangeInPieces >= 0;

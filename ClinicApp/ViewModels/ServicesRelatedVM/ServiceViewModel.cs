@@ -11,21 +11,21 @@ namespace ClinicApp.ViewModels.ServicesRelatedVM;
 
 public partial class ServiceViewModel : ObservableObject
 {
-    readonly DatabaseService _db;
+    readonly SupabaseDataService _supabase;
 
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isRefreshing;
 
     public ObservableCollection<ServiceCardViewModel> ServiceCards { get; set; } = new();
 
-    public ServiceViewModel(DatabaseService db) => _db = db;
+    public ServiceViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
     [RelayCommand]
     public async Task LoadServices()
     {
         try
         {
-            var serviceList = await _db.GetServices();
+            var serviceList = await _supabase.GetServicesAsync();
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 ServiceCards.Clear();
@@ -35,7 +35,7 @@ public partial class ServiceViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Database Error: {ex.Message}");
+            Debug.WriteLine($"[Supabase] LoadServices: {ex.Message}");
         }
         finally
         {
@@ -52,7 +52,7 @@ public partial class ServiceViewModel : ObservableObject
 
         var sheet = new ItemActionSheet();
         sheet.Configure(
-            title: card.Service.ServiceName,
+            title: card.Service.Name,
             subtitle: string.IsNullOrWhiteSpace(card.Service.Description)
                 ? string.Empty
                 : card.Service.Description,
@@ -67,7 +67,7 @@ public partial class ServiceViewModel : ObservableObject
                     IconColor = Color.FromArgb("#2E7D32"),
                     OnTapped = async () =>
                         await Shell.Current.GoToAsync(
-                            $"{nameof(AddServicePage)}?ServiceId={card.Service.ServiceID}"),
+                            $"{nameof(AddServicePage)}?ServiceId={card.Service.Id}"),
                 },
                 new ActionSheetOption
                 {
@@ -88,17 +88,29 @@ public partial class ServiceViewModel : ObservableObject
     {
         bool answer = await Shell.Current.DisplayAlert(
             "Delete Service",
-            $"Are you sure you want to delete \"{card.Service.ServiceName}\"?",
+            $"Are you sure you want to delete \"{card.Service.Name}\"?",
             "Delete", "Cancel");
 
         if (!answer) return;
 
-        try { await _db.DeleteService(card.Service); }
-        catch (Exception ex) { Debug.WriteLine($"[Delete] {ex.Message}"); }
-
-        var existing = ServiceCards.FirstOrDefault(c => c.Service.ServiceID == card.Service.ServiceID);
-        if (existing is not null)
-            ServiceCards.Remove(existing);
+        try
+        {
+            var success = await _supabase.DeleteServiceAsync(card.Service.Id);
+            if (success)
+            {
+                var existing = ServiceCards.FirstOrDefault(c => c.Service.Id == card.Service.Id);
+                if (existing is not null)
+                    ServiceCards.Remove(existing);
+            }
+            else
+            {
+                await Shell.Current.DisplayAlert("Error", "Could not delete the service. Try again.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Delete] {ex.Message}");
+        }
     }
 
     [RelayCommand]

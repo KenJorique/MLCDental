@@ -11,14 +11,8 @@ public class SupplyItem
     public string Name { get; set; } = string.Empty;
 
     public string Unit { get; set; } = "Per Piece";
-    /// <summary>Per Piece | Per Pack | Per Box | Per Kit</summary>
-    public string Unit { get; set; } = "Per Piece";
 
     /// <summary>How many pieces are in one unit. Always 1 when Unit is Per Piece.</summary>
-    public int PiecesPerUnit { get; set; } = 1;
-
-    public int QuantityInPieces { get; set; } = 0;
-
     public int PiecesPerUnit { get; set; } = 1;
 
     public int QuantityInPieces { get; set; } = 0;

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClinicApp.ViewModels"
+             xmlns:models="clr-namespace:ClinicApp.Models"
+             x:Class="ClinicApp.Views.AppointmentRelated.InProcedurePage"
+             x:DataType="vm:InProcedureViewModel"
+             Title="Procedure Queue"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#F5F5F5">
+
+	<!-- Count badge lives in the nav bar itself, beside the title,
+         instead of a separate "In Procedure" label in the body. -->
+	<Shell.TitleView>
+		<Grid ColumnDefinitions="*,Auto" HorizontalOptions="Fill" Padding="0,0,16,0">
+			<Label Grid.Column="0"
+                   Text="Procedure Queue"
+                   FontSize="18" FontAttributes="Bold"
+                   TextColor="Black"
+                   VerticalOptions="Center"/>
+			<Border Grid.Column="1"
+                    BackgroundColor="#F57C00"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="8,2"
+                    VerticalOptions="Center">
+				<Label Text="{Binding InProcedureCount}"
+                       TextColor="White" FontSize="12"
+                       FontAttributes="Bold"/>
+			</Border>
+		</Grid>
+	</Shell.TitleView>
+
+	<Grid RowDefinitions="*" Padding="16">
+
+		<!-- Initial load skeleton -->
+		<ActivityIndicator IsRunning="{Binding IsInitialLoading}"
+                            IsVisible="{Binding IsInitialLoading}"
+                            Color="{StaticResource Primary}"
+                            VerticalOptions="Center" />
+
+		<!-- Global empty state -->
+		<StackLayout IsVisible="{Binding HasNone}"
+                     VerticalOptions="Center"
+                     HorizontalOptions="Center"
+                     Spacing="8">
+			<Label Text="🪑" FontSize="48" HorizontalOptions="Center" />
+			<Label Text="No active patients right now" FontSize="15" TextColor="#6B7280" HorizontalOptions="Center" />
+		</StackLayout>
+
+		<!-- In Procedure list -->
+		<RefreshView IsRefreshing="{Binding IsRefreshing}"
+                     Command="{Binding RefreshCommand}"
+                     IsVisible="{Binding IsInProcedureTabActive}">
+			<CollectionView ItemsSource="{Binding InProcedureList}"
+                             SelectionMode="None">
+				<CollectionView.ItemsLayout>
+					<LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+				</CollectionView.ItemsLayout>
+				<CollectionView.ItemTemplate>
+					<DataTemplate x:DataType="models:AppointmentEntry">
+						<Frame Margin="0,4" Padding="14" CornerRadius="12"
+                               BorderColor="#FFE0B2" BackgroundColor="White"
+                               HasShadow="True">
+							<Frame.GestureRecognizers>
+								<TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:InProcedureViewModel}}, Path=SelectEntryCommand}"
+                                                       CommandParameter="{Binding .}" />
+							</Frame.GestureRecognizers>
+							<VerticalStackLayout Spacing="4">
+								<Label Text="{Binding PatientName}"
+                                       FontSize="18" FontAttributes="Bold"/>
+								<Label Text="{Binding AppointmentDateTimeParsed, StringFormat='{0:MMM dd, yyyy  h:mm tt}'}"
+                                       FontSize="14" TextColor="Gray"/>
+							</VerticalStackLayout>
+						</Frame>
+					</DataTemplate>
+				</CollectionView.ItemTemplate>
+			</CollectionView>
+		</RefreshView>
+
+		<!-- Billing list -->
+		<!--<RefreshView IsRefreshing="{Binding IsRefreshing}"
+                     Command="{Binding RefreshCommand}"
+                     IsVisible="{Binding IsBillingTabActive}">
+            <CollectionView ItemsSource="{Binding BillingList}"
+                             SelectionMode="None"
+                             Margin="16,4">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:AppointmentEntry">
+                        <Border Stroke="#E5E7EB" StrokeShape="RoundRectangle 14" Padding="14" BackgroundColor="White">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:InProcedureViewModel}}, Path=SelectEntryCommand}"
+                                                       CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding PatientName}" FontAttributes="Bold" FontSize="16" />
+                                <Border Grid.Row="0" Grid.Column="1" BackgroundColor="#E8EFFD" StrokeShape="RoundRectangle 8" Padding="8,3">
+                                    <Label Text="Billing" TextColor="#2563EB" FontSize="11" FontAttributes="Bold" />
+                                </Border>
+                                <Label Grid.Row="1" Grid.Column="0" Text="{Binding AppointmentDateTime}" TextColor="#6B7280" FontSize="13" />
+                                <ImageButton Grid.Row="1" Grid.Column="1"
+                                             Source="call_icon.png"
+                                             WidthRequest="28" HeightRequest="28"
+                                             BackgroundColor="Transparent"
+                                             Command="{Binding Source={RelativeSource AncestorType={x:Type vm:InProcedureViewModel}}, Path=CallPatientCommand}"
+                                             CommandParameter="{Binding Phone}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>-->
+
+	</Grid>
+</ContentPage>

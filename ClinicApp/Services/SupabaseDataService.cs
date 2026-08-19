@@ -1,4 +1,5 @@
 ﻿using ClinicApp.Models;
+using ClinicApp.Helpers;
 using Supabase;
 
 namespace ClinicApp.Services
@@ -191,9 +192,12 @@ namespace ClinicApp.Services
             try
             {
                 await EnsureInitializedAsync();
+
+
                 var result = await _client!
                     .From<SupabaseAppointmentEntry>()
                     .Insert(entry);
+
                 return result.Models.FirstOrDefault();
             }
             catch (Exception ex)
@@ -333,8 +337,8 @@ namespace ClinicApp.Services
             }
         }
 
-     
 
+        // ── Google Tasks Integration ─────────────────────────────────
         public async Task<string?> SyncToGoogleTasksAsync(
                         string accessToken,
                         string patientName,
@@ -697,7 +701,7 @@ namespace ClinicApp.Services
             }
         }
 
-        public async Task<bool> RecordPaymentAsync(
+        public async Task<bool> RecordTransactionPaymentAsync(
             string transactionId, decimal amountToPay)
         {
             try
@@ -732,67 +736,920 @@ namespace ClinicApp.Services
             try
             {
                 await EnsureInitializedAsync();
-                var result = await _client!.From<SupabaseBooking>().Get();
 
-                var startUtc = date.Date.ToUniversalTime();
-                var endUtc = startUtc.AddDays(1);
+                var result = await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Get();
+                System.Diagnostics.Debug.WriteLine(
+    $"Appointment Entries Count = {result.Models.Count}");
 
+                foreach (var a in result.Models)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"{a.PatientName} | {a.AppointmentDateTime:o} | {a.Status}");
+                }
                 return result.Models
-                    .Where(b =>
-                        b.AppointmentDate >= startUtc &&
-                        b.AppointmentDate < endUtc &&
-                        b.Status != "rejected" &&
-                        b.Status != "cancelled")
-                    .Select(b => b.AppointmentDate)
+                    .Where(x =>
+                    {
+                        var local = x.AppointmentDateTime.ToLocalTime();
+
+                        return local.Date == date.Date &&
+                               x.Status != "cancelled" &&
+                               x.Status != "completed" &&
+                               x.Status != "rejected";
+                    })
+                    .Select(x => x.AppointmentDateTime)
                     .ToList();
+
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] GetBookedSlots: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(ex);
+
                 return new List<DateTime>();
             }
         }
 
-        public async Task RescheduleBookingAsync(string bookingId, DateTime newUtcTime)
+        public async Task<bool> IsSlotAvailableAsync(DateTime utcTime)
+        {
+            await EnsureInitializedAsync();
+
+            var result = await _client!
+                .From<SupabaseAppointmentEntry>()
+                .Get();
+            System.Diagnostics.Debug.WriteLine(
+    $"Appointment Entries Count = {result.Models.Count}");
+
+            foreach (var a in result.Models)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"{a.PatientName} | {a.AppointmentDateTime:o} | {a.Status}");
+            }
+            return !result.Models.Any(a =>
+            {
+                var dt = a.AppointmentDateTime.ToUniversalTime();
+
+                return dt.Year == utcTime.Year &&
+                       dt.Month == utcTime.Month &&
+                       dt.Day == utcTime.Day &&
+                       dt.Hour == utcTime.Hour &&
+                       dt.Minute == utcTime.Minute &&
+                       a.Status != "cancelled" &&
+                       a.Status != "completed" &&
+                       a.Status != "rejected";
+            });
+        }
+
+        public async Task RescheduleBookingAsync(
+    string appointmentEntryId,
+    DateTime newUtcTime)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var result = await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Where(x => x.Id == appointmentEntryId)
+                    .Single();
+
+                if (result == null)
+                    return;
+
+                result.AppointmentDateTime = newUtcTime;
+                result.Status = "rescheduled";
+
+                await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Update(result);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] Reschedule: {ex.Message}");
+
+                throw;
+            }
+        }
+
+        public async Task<SupabasePatient?> GetPatientByPhoneAsync(string phone)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var digitsOnly = new string((phone ?? "").Where(char.IsDigit).ToArray());
+                if (string.IsNullOrEmpty(digitsOnly))
+                    return null;
+
+                var result = await _client!.From<SupabasePatient>().Get();
+                var patients = result.Models ?? new List<SupabasePatient>();
+
+                return patients.FirstOrDefault(p =>
+                    !string.IsNullOrEmpty(p.Phone) &&
+                    new string(p.Phone.Where(char.IsDigit).ToArray())
+                        .EndsWith(digitsOnly.Length >= 7 ? digitsOnly[^7..] : digitsOnly));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetPatientByPhone: {ex.Message}");
+                return null;
+            }
+        }
+
+        // ── Services ──────────────────────────────────────────────────
+
+        public async Task<List<SupabaseService>> GetServicesAsync()
         {
             try
             {
                 await EnsureInitializedAsync();
                 var result = await _client!
-                    .From<SupabaseBooking>()
-                    .Where(b => b.Id == bookingId)
-                    .Single();
-
-                if (result == null) return;
-
-                result.AppointmentDate = newUtcTime;
-                result.Status = "rescheduled";
-
-                await _client!.From<SupabaseBooking>().Update(result);
-
-                // Also update appointment_entries if exists
-                var entries = await _client!
-                    .From<SupabaseAppointmentEntry>()
-                    .Where(e => e.SupabaseBookingId == bookingId)
+                    .From<SupabaseService>()
+                    .Where(s => s.IsActive == true)
+                    .Order("name", Supabase.Postgrest.Constants.Ordering.Ascending)
                     .Get();
-
-                var entry = entries.Models.FirstOrDefault();
-                if (entry != null)
-                {
-                    entry.AppointmentDateTime = newUtcTime;
-                    entry.Status = "rescheduled";
-                    await _client!.From<SupabaseAppointmentEntry>().Update(entry);
-                }
-
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] Rescheduled {bookingId} to {newUtcTime:yyyy-MM-dd HH:mm} UTC");
+                return result.Models ?? new List<SupabaseService>();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(
-                    $"[Supabase] RescheduleBooking: {ex.Message}");
+                    $"[Supabase] GetServices: {ex.Message}");
+                return new List<SupabaseService>();
+            }
+        }
+
+        public async Task<SupabaseService?> AddServiceAsync(SupabaseService service)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseService>().Insert(service);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] AddService: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateServiceAsync(SupabaseService service)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                if (string.IsNullOrEmpty(service.Id))
+                {
+                    System.Diagnostics.Debug.WriteLine("[Supabase] UpdateService: Id is empty — cannot update");
+                    return false;
+                }
+
+                var result = await _client!.From<SupabaseService>().Update(service);
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateService done. Rows: {result.Models.Count}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateService FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
+        // Soft delete — flips is_active to false instead of removing the row
+        public async Task<bool> DeleteServiceAsync(string serviceId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                await _client!
+                    .From<SupabaseService>()
+                    .Where(s => s.Id == serviceId)
+                    .Set(s => s.IsActive, false)
+                    .Update();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] DeleteService FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
+        // ── Bills ─────────────────────────────────────────────────────
+
+        public async Task<SupabaseBill?> CreateBillAsync(SupabaseBill bill)
+        {
+            await EnsureInitializedAsync();
+
+            bill.Balance = bill.TotalAmount - bill.AmountPaid;
+            bill.BillNumber = $"B-{DateTime.Now:yyyy}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
+
+
+            System.Diagnostics.Debug.WriteLine("===== INSERTING BILL =====");
+
+            var result = await _client!
+                .From<SupabaseBill>()
+                .Insert(bill);
+
+            System.Diagnostics.Debug.WriteLine($"Models Count = {result.Models.Count}");
+
+            foreach (var b in result.Models)
+            {
+                System.Diagnostics.Debug.WriteLine($"Returned Id = {b.Id}");
+                System.Diagnostics.Debug.WriteLine($"Returned BillNo = {b.BillNumber}");
+            }
+
+            return result.Models.FirstOrDefault();
+        }
+        public async Task AddBillItemAsync(SupabaseBillItemInsert item)
+        {
+            await EnsureInitializedAsync();
+
+            try
+            {
+                var result = await _client!
+                    .From<SupabaseBillItemInsert>()
+                    .Insert(item);
+
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] Bill item saved: {item.ServiceName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] AddBillItem ERROR: {ex}");
+
                 throw;
+            }
+        }
+
+        public async Task<SupabaseBill?> GetBillByIdAsync(string billId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                return await _client!
+                    .From<SupabaseBill>()
+                    .Where(b => b.Id == billId)
+                    .Single();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetBillById: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<SupabaseBill>> GetBillsForPatientAsync(string patientId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var result = await _client!
+                    .From<SupabaseBill>()
+                    .Order("visit_date", Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+
+                var bills = result.Models ?? new List<SupabaseBill>();
+
+                var matches = bills.Where(b => b.PatientId == patientId).ToList();
+                if (matches.Any())
+                    return matches;
+
+                // Walk-in fallback: match by patient name instead of ID
+                var patientResult = await _client!
+                    .From<SupabasePatient>()
+                    .Where(p => p.Id == patientId)
+                    .Get();
+
+                var patient = patientResult.Models?.FirstOrDefault();
+                if (patient == null)
+                    return new List<SupabaseBill>();
+
+                var fullName = $"{patient.FirstName} {patient.LastName}".Trim();
+
+                return bills
+                    .Where(b => string.Equals(b.PatientName?.Trim(), fullName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetBillsForPatient: {ex.Message}");
+                return new List<SupabaseBill>();
+            }
+        }
+        public async Task<SupabaseBooking?> AddBookingAsync(SupabaseBooking booking)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var result = await _client!
+                    .From<SupabaseBooking>()
+                    .Insert(booking);
+
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] AddBooking: {ex.Message}");
+
+                return null;
+            }
+        }
+
+
+        public async Task<List<SupabaseBillItem>> GetBillItemsAsync(string billId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBillItem>()
+                    .Where(i => i.BillId == billId)
+                    .Get();
+                return result.Models ?? new List<SupabaseBillItem>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetBillItems: {ex.Message}");
+                return new List<SupabaseBillItem>();
+            }
+        }
+
+        public async Task<List<SupabaseBill>> GetUnpaidBillsAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBill>()
+                    .Where(b => b.Status != "paid")
+                    .Order("visit_date",
+                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseBill>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetUnpaidBills: {ex.Message}");
+                return new List<SupabaseBill>();
+            }
+        }
+
+        // Computes what's actually due THIS visit, freshly, from the current
+        // state of each bill_item — unlike Bill.MinimumDueToday, which is a
+        // snapshot taken once at bill creation and never updated. Call this
+        // every time the Payment page loads, not just on the first visit.
+        // Calculates, purely from an item's stored fields, what it currently
+        // owes according to its fixed schedule — and lets advance payments
+        // net out naturally, since AmountPaid already reflects them.
+        //
+        // - "monthsElapsed" = how many monthly due dates have already
+        //   passed, counting from InstallmentStartDate (the downpayment
+        //   date), capped at InstallmentMonths.
+        // - "totalOwedByNow" = what should have been paid by THIS point in
+        //   the schedule if nothing had been paid early: downpayment, plus
+        //   one MonthlyPayment for every month that's passed.
+        // - AmountDueNow = totalOwedByNow minus whatever's actually been
+        //   paid (AmountPaid) — so if the patient already paid ahead, this
+        //   comes out to 0 (or less than a full MonthlyPayment) automatically,
+        //   without needing to track "advance credit" as a separate number.
+        //
+        // Once every scheduled month has passed (monthsElapsed >=
+        // InstallmentMonths), the schedule is over — whatever's left is
+        // simply owed in full, same as a non-installment item.
+        private static (decimal AmountDueNow, DateTime? NextDueDate) GetInstallmentDueState(
+            SupabaseBillItem item)
+        {
+            if (!item.IsInstallment || item.Balance <= 0)
+                return (0, null);
+
+            // Downpayment not made yet — handled separately by the caller,
+            // not via this schedule math (there's no start date to anchor on).
+            if (item.AmountPaid <= 0 || !item.InstallmentStartDate.HasValue)
+                return (0, null);
+
+            var start = item.InstallmentStartDate.Value;
+            var monthsElapsed = 0;
+
+            while (monthsElapsed < item.InstallmentMonths &&
+                   start.AddMonths(monthsElapsed + 1) <= DateTime.UtcNow)
+            {
+                monthsElapsed++;
+            }
+
+            if (monthsElapsed >= item.InstallmentMonths)
+            {
+                // Full term has elapsed by the calendar — no more "next
+                // monthly due", whatever remains is simply owed in full.
+                return (item.Balance, null);
+            }
+
+            var totalOwedByNow = Math.Min(
+                item.DownpaymentAmount + (item.MonthlyPayment * monthsElapsed),
+                item.Subtotal);
+
+            var amountDueNow = Math.Max(0m, Math.Min(totalOwedByNow - item.AmountPaid, item.Balance));
+            var nextDueDate = start.AddMonths(monthsElapsed + 1);
+
+            return (amountDueNow, nextDueDate);
+        }
+
+        public async Task<decimal> GetMinimumDueForBillAsync(string billId)
+        {
+            try
+            {
+                var items = await GetBillItemsAsync(billId);
+                decimal minimum = 0;
+
+                foreach (var item in items)
+                {
+                    if (item.Balance <= 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: skipped (Balance={item.Balance} <= 0)");
+                        continue;
+                    }
+
+                    if (!item.IsInstallment)
+                    {
+                        // Non-installment items are always due in full.
+                        minimum += item.Balance;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: non-installment, contributes full Balance={item.Balance}");
+                    }
+                    else if (item.AmountPaid <= 0)
+                    {
+                        // Nothing paid on this item yet — the downpayment
+                        // is what starts the schedule, still required.
+                        var contribution = Math.Min(item.DownpaymentAmount, item.Balance);
+                        minimum += contribution;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: AmountPaid=0, " +
+                            $"DownpaymentAmount={item.DownpaymentAmount}, Balance={item.Balance}, " +
+                            $"contributes={contribution}");
+                    }
+                    else
+                    {
+                        // Downpayment already made — no forced minimum unless
+                        // a scheduled monthly due date has actually arrived,
+                        // and any advance/early payment already made nets
+                        // straight out of what's owed for that cycle.
+                        var (amountDueNow, nextDueDate) = GetInstallmentDueState(item);
+                        minimum += amountDueNow;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: AmountPaid={item.AmountPaid}, " +
+                            $"nextDueDate={(nextDueDate.HasValue ? nextDueDate.Value.ToString("o") : "schedule complete")}, " +
+                            $"contributes={amountDueNow}");
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[DIAG-MINIMUM] TOTAL minimum={minimum}");
+
+                return minimum;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetMinimumDueForBill: {ex.Message}");
+                return 0;
+            }
+        }
+
+        // Distributes a payment across this bill's items instead of just the
+        // bill-level total: non-installment items are paid off first (always
+        // due in full), then installment items in due-date order (items that
+        // haven't started their schedule yet — DueDate null — go first,
+        // since that represents the still-unpaid downpayment stage). Each
+        // item's own balance/amount_paid/due_date gets updated so the NEXT
+        // visit's minimum (see GetMinimumDueForBillAsync above) reflects
+        // what's actually still owed on THAT item, not a stale bill-wide figure.
+        //
+        // FIX: this used to catch-and-log any failure here and carry on —
+        // meaning a payment could "succeed" at the bill level while every
+        // bill_item stayed completely untouched (AmountPaid/Balance never
+        // moved), which is exactly what silently broke "due today" on repeat
+        // visits. Now returns success/error so the caller can stop BEFORE
+        // recording anything else, instead of leaving bill-level and
+        // item-level data out of sync.
+        private async Task<(bool Success, string? Error)> AllocatePaymentToBillItemsAsync(
+            string billId, decimal amount, DateTime paymentDate)
+        {
+            try
+            {
+                var items = await GetBillItemsAsync(billId);
+                var remaining = amount;
+
+                var ordered = items
+                    .Where(i => i.Balance > 0)
+                    .OrderBy(i => i.IsInstallment ? 1 : 0)
+                    .ThenBy(i => i.DueDate ?? DateTime.MinValue)
+                    .ToList();
+
+                foreach (var item in ordered)
+                {
+                    if (remaining <= 0) break;
+
+                    var applied = Math.Min(item.Balance, remaining);
+                    var wasUnstarted = item.IsInstallment && item.AmountPaid <= 0;
+
+                    item.AmountPaid += applied;
+                    item.Balance -= applied;
+                    item.LastPaymentDate = paymentDate;
+
+                    // Anchor the schedule ONCE, right when the downpayment
+                    // lands — never touched again after this, so a later
+                    // early/advance payment can't shift it.
+                    if (wasUnstarted && item.InstallmentStartDate == null)
+                        item.InstallmentStartDate = paymentDate;
+
+                    // DueDate is stored purely for display (Bill Details,
+                    // Receipt overdue flags) — always recomputed from the
+                    // fixed schedule, never bumped by "1 month from whenever
+                    // this payment happened" like before.
+                    item.DueDate = item.Balance <= 0
+                        ? null
+                        : (item.IsInstallment
+                            ? GetInstallmentDueState(item).NextDueDate
+                            : item.DueDate);
+
+                    var updateResult = await _client!.From<SupabaseBillItem>().Update(item);
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[DIAG-ALLOCATE] {item.ServiceName}: applied={applied} " +
+                        $"newBalance={item.Balance} IsInstallment={item.IsInstallment} " +
+                        $"computedDueDate={(item.DueDate.HasValue ? item.DueDate.Value.ToString("o") : "NULL")} " +
+                        $"Update() returned {updateResult.Models.Count} row(s).");
+
+                    // A 0-row response means the update didn't actually
+                    // touch anything in the DB (most commonly an RLS policy
+                    // silently blocking the write) — treat that the same as
+                    // a thrown exception, not a success.
+                    if (updateResult.Models.Count == 0)
+                    {
+                        return (false,
+                            $"Update to bill_items for '{item.ServiceName}' affected 0 rows " +
+                            "— check Supabase RLS policies allow UPDATE on bill_items for this user/role.");
+                    }
+
+                    remaining -= applied;
+                }
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] AllocatePaymentToBillItems: {ex.Message}");
+                return (false, ex.Message);
+            }
+        }
+
+        public async Task<(bool Success, string? Error)> RecordPaymentAsync(
+     string billId, decimal amount, string? notes = null)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var billResult = await _client!
+                    .From<SupabaseBill>()
+                    .Where(b => b.Id == billId)
+                    .Single();
+
+                if (billResult == null)
+                    return (false, "Bill not found");
+
+                var paymentDate = DateTime.UtcNow;
+
+                // Allocate to bill_items FIRST, before writing anything else.
+                // If this fails, nothing else has been touched yet, so there's
+                // nothing to roll back — the caller gets a clear error instead
+                // of a payment that "succeeded" while items stayed stale.
+                var (allocated, allocError) =
+                    await AllocatePaymentToBillItemsAsync(billId, amount, paymentDate);
+
+                if (!allocated)
+                {
+                    return (false,
+                        $"Payment was not recorded — could not update bill items ({allocError}).");
+                }
+
+                var payment = new SupabasePayment
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    BillId = billId,
+                    Amount = amount,
+                    PaymentDate = paymentDate,
+                    Notes = notes
+                };
+                await _client!.From<SupabasePayment>().Insert(payment);
+
+                billResult.AmountPaid += amount;
+                billResult.Balance = billResult.TotalAmount - billResult.AmountPaid;
+                billResult.LastPaymentDate = payment.PaymentDate;
+
+                if (billResult.AmountPaid >= billResult.TotalAmount)
+                {
+                    billResult.Status = "paid";
+                    billResult.DueDate = null;
+                }
+                else
+                {
+                    billResult.Status = billResult.AmountPaid > 0 ? "partial" : "unpaid";
+
+                    if (billResult.IsInstallment)
+                    {
+                        // Bill-level DueDate is just a display rollup — mirror
+                        // whatever the item-level schedule (already recomputed
+                        // and anchored in AllocatePaymentToBillItemsAsync above)
+                        // actually says is next, instead of a flat "+1 month
+                        // from today", which used to push the due date forward
+                        // on every advance/early payment even though the real,
+                        // anchored per-item schedule hadn't moved at all.
+                        var refreshedItems = await GetBillItemsAsync(billId);
+                        billResult.DueDate = refreshedItems
+                            .Where(i => i.Balance > 0 && i.DueDate.HasValue)
+                            .OrderBy(i => i.DueDate)
+                            .Select(i => (DateTime?)i.DueDate)
+                            .FirstOrDefault();
+                    }
+                }
+
+                var updateResult = await _client!.From<SupabaseBill>().Update(billResult);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] RecordPayment UPDATE rows returned: {updateResult.Models.Count}");
+
+
+                if (updateResult.Models.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[Supabase] WARNING: Update affected 0 rows — check RLS UPDATE policy on 'bills' table.");
+                    return (false, "Payment saved but bill status wasn't updated. Check permissions.");
+                }
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] RecordPayment: {ex.Message}");
+                return (false, ex.Message);
+            }
+        }
+        public async Task<List<SupabasePayment>> GetPaymentsForBillAsync(
+            string billId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabasePayment>()
+                    .Where(p => p.BillId == billId)
+                    .Order("payment_date",
+                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabasePayment>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetPaymentsForBill: {ex.Message}");
+                return new List<SupabasePayment>();
+            }
+        }
+
+        public async Task<List<SupabaseBill>> GetAllBillsAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBill>()
+                    .Order("visit_date",
+                           Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseBill>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Supabase] GetAllBills: {ex.Message}");
+                return new List<SupabaseBill>();
+            }
+        }
+
+        // ── Supplies ──────────────────────────────────────────────
+
+        public async Task<List<SupabaseSupplyItem>> GetSuppliesAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseSupplyItem>()
+                    .Where(s => s.IsDeleted == false)
+                    .Get();
+                return result.Models ?? new List<SupabaseSupplyItem>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetSupplies: {ex.Message}");
+                return new List<SupabaseSupplyItem>();
+            }
+        }
+
+        public async Task<SupabaseSupplyItem?> GetSupplyByIdAsync(string id)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                return await _client!
+                    .From<SupabaseSupplyItem>()
+                    .Where(s => s.Id == id)
+                    .Single();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetSupplyById: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<SupabaseSupplyItem?> AddSupplyAsync(SupabaseSupplyItem supply)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseSupplyItem>().Insert(supply);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] AddSupply: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateSupplyAsync(SupabaseSupplyItem supply)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                if (string.IsNullOrEmpty(supply.Id)) return false;
+                await _client!.From<SupabaseSupplyItem>().Update(supply);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateSupply FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
+        // Soft delete
+        public async Task<bool> DeleteSupplyAsync(string supplyId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                await _client!
+                    .From<SupabaseSupplyItem>()
+                    .Where(s => s.Id == supplyId)
+                    .Set(s => s.IsDeleted, true)
+                    .Update();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] DeleteSupply FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
+        // Applies a stock delta (+ restock / − used) and writes a log row
+        public async Task<bool> ApplyStockChangeAsync(
+            string supplyId, int changeInPieces, string changeType, string note,
+            string? patientId = null, string? patientName = null)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var supply = await GetSupplyByIdAsync(supplyId);
+                if (supply is null) return false;
+
+                int newQty = supply.QuantityInPieces + changeInPieces;
+                if (newQty < 0) newQty = 0;
+
+                supply.QuantityInPieces = newQty;
+                var updated = await UpdateSupplyAsync(supply);
+                if (!updated) return false;
+
+                await _client!.From<SupabaseStockLog>().Insert(new SupabaseStockLog
+                {
+                    SupplyId = supplyId,
+                    ChangeType = changeType,
+                    ChangeInPieces = changeInPieces,
+                    StockAfterChange = newQty,
+                    PatientId = patientId,
+                    PatientName = patientName,
+                    Note = note,
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] ApplyStockChange FAILED: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<SupabaseStockLog>> GetLogsForSupplyAsync(string supplyId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseStockLog>()
+                    .Where(l => l.SupplyId == supplyId)
+                    .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseStockLog>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetLogsForSupply: {ex.Message}");
+                return new List<SupabaseStockLog>();
+            }
+        }
+
+        // ── Service → Supply linking ─────────────────────────────
+
+        public async Task<List<SupabaseServiceSupply>> GetSuppliesForServiceAsync(string serviceId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseServiceSupply>()
+                    .Where(x => x.ServiceId == serviceId)
+                    .Get();
+                return result.Models ?? new List<SupabaseServiceSupply>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetSuppliesForService: {ex.Message}");
+                return new List<SupabaseServiceSupply>();
+            }
+        }
+
+        /// <summary>
+        /// Deducts every supply linked to a service from stock and logs each deduction.
+        /// Call this once, when a service is actually performed/completed on a patient
+        /// — not when it's merely selected or billed.
+        /// Returns Success=false if the service has no linked supplies, or if any
+        /// linked item's stock is now insufficient (InsufficientStock lists their names —
+        /// the deduction still goes through and clamps at 0, this is just a heads-up).
+        /// </summary>
+        public async Task<(bool Success, List<string> InsufficientStock)> DeductSuppliesForServiceAsync(
+    string serviceId, string? patientId = null, string? patientName = null, int quantity = 1)
+        {
+            var insufficient = new List<string>();
+            try
+            {
+                await EnsureInitializedAsync();
+                var links = await GetSuppliesForServiceAsync(serviceId);
+                if (links.Count == 0) return (true, insufficient);
+
+                foreach (var link in links)
+                {
+                    var supply = await GetSupplyByIdAsync(link.SupplyId);
+                    if (supply is null) continue;
+
+                    int qtyToDeduct = Math.Max(1, (int)Math.Ceiling(link.QuantityUsed)) * Math.Max(1, quantity);
+
+                    if (supply.QuantityInPieces < qtyToDeduct)
+                        insufficient.Add(supply.Name);
+
+                    await ApplyStockChangeAsync(
+                        supply.Id, -qtyToDeduct, "Used",
+                        "Auto-deducted from service", patientId, patientName);
+                }
+
+                return (insufficient.Count == 0, insufficient);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] DeductSuppliesForService FAILED: {ex.Message}");
+                return (false, insufficient);
             }
         }
     }

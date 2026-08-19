@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels.TransactionVM"
+    x:Class="ClinicApp.Views.TransactionRelated.BalanceManagementPage"
+    x:DataType="vm:BalanceManagementViewModel"
+    Title="Payment Management"
+    Shell.NavBarIsVisible="True"
+    Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+    Shell.TitleColor="White"
+    Shell.ForegroundColor="White"
+    Shell.TabBarIsVisible="False"
+    BackgroundColor="{StaticResource PageBg}">
+
+	<Grid RowDefinitions="Auto,Auto,*">
+
+		<!-- ── SEARCH + SORT ── -->
+		<VerticalStackLayout Grid.Row="0"
+                             BackgroundColor="{StaticResource PrimaryGreen}"
+                             Padding="16,0,16,14">
+			<Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+				<Border Grid.Column="0" BackgroundColor="White"
+                        StrokeThickness="0" HeightRequest="40">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="20"/>
+					</Border.StrokeShape>
+					<Grid ColumnDefinitions="Auto,*" Padding="12,0" ColumnSpacing="8">
+						<Label Grid.Column="0" FontFamily="MaterialSymbolsRounded"
+                               Text="&#xe8b6;" FontSize="17"
+                               TextColor="{StaticResource TextMuted}"
+                               VerticalOptions="Center"/>
+						<Entry Grid.Column="1"
+                               Text="{Binding SearchText}"
+                               Placeholder="Search patient name..."
+                               PlaceholderColor="{StaticResource TextMuted}"
+                               TextColor="{StaticResource TextPrimary}"
+                               FontSize="13" BackgroundColor="Transparent"
+                               VerticalOptions="Center"/>
+					</Grid>
+				</Border>
+
+				<Border Grid.Column="1" BackgroundColor="Transparent"
+                        StrokeThickness="0" HeightRequest="40" WidthRequest="40"
+                        VerticalOptions="Center">
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding ShowSortOptionsCommand}"/>
+					</Border.GestureRecognizers>
+					<Label FontFamily="MaterialSymbolsRounded" Text="&#xe152;"
+                           FontSize="24" TextColor="White"
+                           HorizontalOptions="Center" VerticalOptions="Center"/>
+				</Border>
+			</Grid>
+		</VerticalStackLayout>
+
+		<!-- ── FILTER CHIPS ── -->
+		<ScrollView Grid.Row="1" Orientation="Horizontal"
+            Padding="16,12,16,0">
+			<HorizontalStackLayout Spacing="8">
+
+				<Border StrokeThickness="1" Padding="14,7"
+                Stroke="{StaticResource Gray200}">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="16"/>
+					</Border.StrokeShape>
+					<Border.BackgroundColor>
+						<Binding Path="CurrentFilter" Converter="{StaticResource FilterChipBgConverter}" ConverterParameter="All"/>
+					</Border.BackgroundColor>
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding SelectFilterCommand}" CommandParameter="All"/>
+					</Border.GestureRecognizers>
+					<Label Text="{Binding AllCount, StringFormat='All ({0})'}"
+                   FontSize="13" FontAttributes="Bold">
+						<Label.TextColor>
+							<Binding Path="CurrentFilter" Converter="{StaticResource FilterChipTextConverter}" ConverterParameter="All"/>
+						</Label.TextColor>
+					</Label>
+				</Border>
+
+				<Border StrokeThickness="1" Padding="14,7"
+                Stroke="{StaticResource Gray200}">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="16"/>
+					</Border.StrokeShape>
+					<Border.BackgroundColor>
+						<Binding Path="CurrentFilter" Converter="{StaticResource FilterChipBgConverter}" ConverterParameter="DueSoon"/>
+					</Border.BackgroundColor>
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding SelectFilterCommand}" CommandParameter="DueSoon"/>
+					</Border.GestureRecognizers>
+					<Label Text="{Binding DueSoonCount, StringFormat='Due Soon ({0})'}" FontSize="13">
+						<Label.TextColor>
+							<Binding Path="CurrentFilter" Converter="{StaticResource FilterChipTextConverter}" ConverterParameter="DueSoon"/>
+						</Label.TextColor>
+					</Label>
+				</Border>
+
+				<Border StrokeThickness="1" Padding="14,7"
+                Stroke="{StaticResource Gray200}">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="16"/>
+					</Border.StrokeShape>
+					<Border.BackgroundColor>
+						<Binding Path="CurrentFilter" Converter="{StaticResource FilterChipBgConverter}" ConverterParameter="Overdue"/>
+					</Border.BackgroundColor>
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding SelectFilterCommand}" CommandParameter="Overdue"/>
+					</Border.GestureRecognizers>
+					<Label Text="{Binding OverdueCount, StringFormat='Overdue ({0})'}" FontSize="13">
+						<Label.TextColor>
+							<Binding Path="CurrentFilter" Converter="{StaticResource FilterChipTextConverter}" ConverterParameter="Overdue"/>
+						</Label.TextColor>
+					</Label>
+				</Border>
+
+			</HorizontalStackLayout>
+		</ScrollView>
+
+		<!-- ── PATIENT BALANCE LIST ── -->
+		<RefreshView Grid.Row="2"
+                     Command="{Binding RefreshCommand}"
+                     IsRefreshing="{Binding IsRefreshing}"
+                     Margin="16,12,16,0">
+			<CollectionView ItemsSource="{Binding Patients}"
+                             VerticalOptions="Fill"
+                             IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
+
+				<CollectionView.EmptyView>
+					<VerticalStackLayout Spacing="8" HorizontalOptions="Center"
+                                         VerticalOptions="Center">
+						<Label Text="{Binding EmptyStateTitle}"
+                               FontSize="16" FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}"
+                               HorizontalTextAlignment="Center"/>
+						<Label Text="{Binding EmptyStateMessage}"
+                               FontSize="13" TextColor="{StaticResource TextMuted}"
+                               HorizontalTextAlignment="Center"/>
+					</VerticalStackLayout>
+				</CollectionView.EmptyView>
+
+				<CollectionView.ItemTemplate>
+					<DataTemplate x:DataType="vm:PatientBalanceCardViewModel">
+						<Border Margin="0,0,0,12" Padding="0"
+                                BackgroundColor="White"
+                                Stroke="{StaticResource Gray200}"
+                                StrokeThickness="1">
+							<Border.StrokeShape>
+								<RoundRectangle CornerRadius="14"/>
+							</Border.StrokeShape>
+							<Border.GestureRecognizers>
+								<TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                              Path=BindingContext.OpenPatientCommand}"
+                                    CommandParameter="{Binding .}"/>
+							</Border.GestureRecognizers>
+
+							<!-- Column 0: status accent stripe, clipped by the Border's rounded corners -->
+							<Grid ColumnDefinitions="4,*">
+								<BoxView Grid.Column="0"
+                                         Color="{Binding AccentColor}"
+                                         BackgroundColor="Transparent"/>
+
+								<Grid Grid.Column="1" Padding="16,14,16,12"
+                                      RowDefinitions="Auto,Auto,Auto" RowSpacing="0">
+
+									<!-- Row 1: Name + status badge + chevron -->
+									<Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+										<Label Grid.Column="0" Text="{Binding DisplayName}"
+                                               FontSize="16" FontAttributes="Bold"
+                                               TextColor="{StaticResource TextPrimary}"
+                                               VerticalOptions="Center"
+                                               LineBreakMode="TailTruncation"/>
+
+										<Border Grid.Column="1" Padding="10,4"
+                                                StrokeThickness="1"
+                                                BackgroundColor="{Binding StatusBg}"
+                                                Stroke="{Binding StatusBorder}"
+                                                IsVisible="{Binding HasStatus}"
+                                                VerticalOptions="Center">
+											<Border.StrokeShape>
+												<RoundRectangle CornerRadius="12"/>
+											</Border.StrokeShape>
+											<Label Text="{Binding StatusLabel}"
+                                                   FontSize="11" FontAttributes="Bold"
+                                                   TextColor="{Binding StatusText}"/>
+										</Border>
+
+										<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded"
+                                               Text="&#xe5cc;" FontSize="18"
+                                               TextColor="{StaticResource TextMuted}"
+                                               VerticalOptions="Center"/>
+									</Grid>
+
+									<!-- Row 2: divider -->
+									<BoxView Grid.Row="1" HeightRequest="1"
+                                             Color="#F0F1EE" Margin="0,12,0,10"/>
+
+									<!-- Row 3: Balance / Next Payment / Due -->
+									<Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+										<VerticalStackLayout Grid.Column="0" Spacing="2">
+											<Label Text="Balance" FontSize="11" TextColor="{StaticResource TextMuted}"/>
+											<Label Text="{Binding BalanceDisplay}" FontSize="14"
+                                                   FontAttributes="Bold" TextColor="{StaticResource TextPrimary}"/>
+										</VerticalStackLayout>
+
+										<VerticalStackLayout Grid.Column="1" Spacing="2">
+											<Label Text="Next Payment" FontSize="11" TextColor="{StaticResource TextMuted}"/>
+											<Label Text="{Binding NextPaymentDisplay}" FontSize="14"
+                                                   FontAttributes="Bold" TextColor="{StaticResource TextPrimary}"/>
+										</VerticalStackLayout>
+
+										<VerticalStackLayout Grid.Column="2" Spacing="2">
+											<Label Text="Due" FontSize="11" TextColor="{StaticResource TextMuted}"/>
+											<Label Text="{Binding DueDateDisplay}" FontSize="14"
+                                                   FontAttributes="Bold" TextColor="{StaticResource TextPrimary}"/>
+										</VerticalStackLayout>
+									</Grid>
+
+								</Grid>
+							</Grid>
+						</Border>
+					</DataTemplate>
+				</CollectionView.ItemTemplate>
+			</CollectionView>
+		</RefreshView>
+
+		<ActivityIndicator Grid.Row="2" IsRunning="{Binding IsBusy}"
+                            IsVisible="{Binding IsBusy}"
+                            Color="{StaticResource PrimaryGreen}"
+                            VerticalOptions="Center" HorizontalOptions="Center"/>
+
+	</Grid>
+</ContentPage>

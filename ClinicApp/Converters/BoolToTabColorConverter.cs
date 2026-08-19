@@ -8,8 +8,8 @@ public class BoolToTabColorConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is bool isSelected && isSelected)
-            return Colors.MediumPurple;   // active tab color
-        return Colors.Gray;               // inactive tab color
+            return Color.FromArgb("#2563EB");   // active tab — matches ClinicApp accent
+        return Color.FromArgb("#E5E7EB");       // inactive tab — light gray, matches card borders
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

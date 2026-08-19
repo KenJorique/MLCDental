@@ -9,8 +9,11 @@ namespace DentalClinicBooking.Models
         [PrimaryKey("id", false)]
         public string Id { get; set; } = string.Empty;
 
-        [Column("full_name")]
-        public string FullName { get; set; } = string.Empty;
+        [Column("first_name")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Column("last_name")]
+        public string? LastName { get; set; }
 
         [Column("phone")]
         public string? Phone { get; set; }
@@ -21,7 +24,8 @@ namespace DentalClinicBooking.Models
         [Column("date_of_birth")]
         public DateTime? DateOfBirth { get; set; }
 
-        [Column("created_at")]
-        public DateTime CreatedAt { get; set; }
+        // Computed
+        public string FullName =>
+            $"{FirstName} {LastName}".Trim();
     }
 }

@@ -23,20 +23,47 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] bool isMedicalTabActive = false;
 
     [RelayCommand]
-    void SelectPersonalTab()
+    async Task SelectPersonalTab()
     {
+        if (IsMedicalEditMode)
+        {
+            bool discard = await Shell.Current.DisplayAlert(
+                "Discard changes?",
+                "You have unsaved changes in Medical Record. Switching tabs will discard them.",
+                "Discard", "Keep editing");
+            if (!discard) return;
+
+            IsMedicalEditMode = false;
+            if (PatientId > 0)
+            {
+                await LoadPatientAsync(PatientId);
+                await LoadConditionsAsync();
+            }
+        }
+
         IsPersonalTabActive = true;
         IsMedicalTabActive = false;
         IsPersonalEditMode = false;
-        IsMedicalEditMode = false;
     }
 
     [RelayCommand]
-    void SelectMedicalTab()
+    async Task SelectMedicalTab()
     {
+        if (IsPersonalEditMode)
+        {
+            bool discard = await Shell.Current.DisplayAlert(
+                "Discard changes?",
+                "You have unsaved changes in Personal Info. Switching tabs will discard them.",
+                "Discard", "Keep editing");
+            if (!discard) return;
+
+            IsPersonalEditMode = false;
+            if (PatientId > 0)
+                await LoadPatientAsync(PatientId);
+        }
+
         IsPersonalTabActive = false;
         IsMedicalTabActive = true;
-        IsPersonalEditMode = false;
         IsMedicalEditMode = false;
     }
 
@@ -66,6 +93,7 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] string nickname = string.Empty;
 
     public List<string> GenderOptions { get; } = new() { "Male", "Female", "Other" };
+    public List<string> BloodTypeOptions { get; } = new() { "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown" };
     [ObservableProperty] string gender = string.Empty;
 
     [ObservableProperty] DateTime dateOfBirthDate = new DateTime(2000, 1, 1);
@@ -100,8 +128,22 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] string guardianOccupation = string.Empty;
     [ObservableProperty] string guardianMobile = string.Empty;
 
-    // ── Medical (Blood Type only) ─────────────────────────────
+    // ── Medical History (full) ────────────────────────────────
     [ObservableProperty] string bloodType = string.Empty;
+    [ObservableProperty] bool isGoodHealth;
+    [ObservableProperty] bool isPregnant;
+    [ObservableProperty] bool underMedicalTreatment;
+    [ObservableProperty] string medicationDetails = string.Empty;
+    [ObservableProperty] bool hasBeenHospitalized;
+    [ObservableProperty] string hospitalizationDetails = string.Empty;
+    [ObservableProperty] bool usesTobacco;
+    [ObservableProperty] bool takingMedications;
+
+    // Computed — drives IsVisible of Pregnant field
+    public bool IsFemale => Gender?.Equals("Female", StringComparison.OrdinalIgnoreCase) ?? false;
+
+    // Notify IsFemale when Gender changes
+    partial void OnGenderChanged(string value) => OnPropertyChanged(nameof(IsFemale));
 
     // ── Allergies ─────────────────────────────────────────────
     [ObservableProperty] bool hasLatexAllergy;
@@ -114,6 +156,12 @@ public partial class PatientDetailsViewModel : ObservableObject
     // ── Medical Conditions ────────────────────────────────────
     public ObservableCollection<ConditionCheckItem> Conditions { get; } = new();
     [ObservableProperty] string conditionsText = "None reported";
+    [ObservableProperty] string otherCondition = string.Empty;
+
+    // Shows "Other" in view mode only when it has content
+    public bool HasOtherCondition => !string.IsNullOrWhiteSpace(OtherCondition);
+    partial void OnOtherConditionChanged(string value) =>
+        OnPropertyChanged(nameof(HasOtherCondition));
 
     partial void OnPatientIdChanged(int value)
     {
@@ -124,13 +172,13 @@ public partial class PatientDetailsViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadPatient()
     {
-        IsBusy = false;
         if (PatientId > 0)
             await LoadPatientAsync(PatientId);
     }
 
     private async Task LoadPatientAsync(int id)
     {
+        if (IsBusy) return;
         IsBusy = true;
         try
         {
@@ -176,6 +224,15 @@ public partial class PatientDetailsViewModel : ObservableObject
             if (m is not null)
             {
                 BloodType = m.BloodType;
+                IsGoodHealth = m.IsGoodHealth;
+                IsPregnant = m.IsPregnant;
+                UnderMedicalTreatment = m.UnderMedicalTreatment;
+                MedicationDetails = m.MedicationDetails;
+                HasBeenHospitalized = m.HasBeenHospitalized;
+                HospitalizationDetails = m.HospitalizationDetails;
+                UsesTobacco = m.UsesTobacco;
+                TakingMedications = m.TakingMedications;
+                OtherCondition = m.OtherCondition;
                 MedicalLastUpdated = !string.IsNullOrWhiteSpace(m.LastUpdated)
                     ? (DateTime.TryParse(m.LastUpdated, out var parsedDate)
                         ? $"Last updated: {parsedDate:MMMM dd, yyyy h:mm tt}"
@@ -184,6 +241,7 @@ public partial class PatientDetailsViewModel : ObservableObject
             }
             else
             {
+                OtherCondition = string.Empty;
                 MedicalLastUpdated = "Not yet updated";
             }
 
@@ -210,15 +268,22 @@ public partial class PatientDetailsViewModel : ObservableObject
     private async Task BuildConditionsSummaryAsync(int patientId)
     {
         var patientConds = await _db.GetPatientConditions(patientId);
+        var parts = new List<string>();
+
         if (patientConds.Count > 0)
         {
             var allConds = await _db.GetAllConditions();
             var matched = allConds
                 .Where(c => patientConds.Any(pc => pc.ConditionID == c.ConditionID))
                 .Select(c => c.ConditionName).ToList();
-            ConditionsText = matched.Count > 0 ? string.Join(", ", matched) : "None reported";
+            parts.AddRange(matched);
         }
-        else ConditionsText = "None reported";
+
+        // Include free-text Other condition in the summary
+        if (!string.IsNullOrWhiteSpace(OtherCondition))
+            parts.Add(OtherCondition.Trim());
+
+        ConditionsText = parts.Count > 0 ? string.Join(", ", parts) : "None reported";
     }
 
     private async Task LoadConditionsAsync()
@@ -229,7 +294,11 @@ public partial class PatientDetailsViewModel : ObservableObject
         var selectedIds = patientConds.Select(pc => pc.ConditionID).ToHashSet();
 
         Conditions.Clear();
-        foreach (var c in allConds)
+        // Alphabetical, "Other" excluded from checklist (shown as text entry instead)
+        var sorted = allConds
+            .Where(c => c.ConditionName != "Other")
+            .OrderBy(c => c.ConditionName);
+        foreach (var c in sorted)
             Conditions.Add(new ConditionCheckItem
             {
                 ConditionID = c.ConditionID,
@@ -299,6 +368,15 @@ public partial class PatientDetailsViewModel : ObservableObject
             {
                 PatientID = PatientId,
                 BloodType = BloodType,
+                IsGoodHealth = IsGoodHealth,
+                IsPregnant = IsPregnant,
+                UnderMedicalTreatment = UnderMedicalTreatment,
+                MedicationDetails = MedicationDetails,
+                HasBeenHospitalized = HasBeenHospitalized,
+                HospitalizationDetails = HospitalizationDetails,
+                UsesTobacco = UsesTobacco,
+                TakingMedications = TakingMedications,
+                OtherCondition = OtherCondition.Trim(),
                 LastUpdated = today,
             });
 

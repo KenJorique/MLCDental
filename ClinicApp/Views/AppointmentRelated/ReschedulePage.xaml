@@ -3,155 +3,196 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ClinicApp.ViewModels"
              x:Class="ClinicApp.Views.AppointmentRelated.ReschedulePage"
-             Title="Reschedule Appointment"
-             BackgroundColor="#F5F5F5">
+             Title="Reschedule"
+             Shell.NavBarIsVisible="True"
+             Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+             Shell.TitleColor="White"
+             Shell.ForegroundColor="White"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource PageBg}">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="16" Spacing="16">
+	<ScrollView>
+		<VerticalStackLayout Padding="16" Spacing="0">
 
-            <!-- Patient info card -->
-            <Frame BackgroundColor="White" BorderColor="#E0E0E0"
-                   CornerRadius="12" Padding="14" HasShadow="False">
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Rescheduling for:"
-                           FontSize="11" TextColor="#888"/>
-                    <Label Text="{Binding PatientName}"
+			<!-- ── Header banner ── -->
+			<Border BackgroundColor="{StaticResource PrimaryGreen}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="14,12"
+                    Margin="0,0,0,16">
+				<VerticalStackLayout Spacing="2">
+					<Label Text="Reschedule Appointment"
+                           FontSize="15" FontAttributes="Bold"
+                           TextColor="White"/>
+					<Label Text="Pick a new date and time slot"
+                           FontSize="11" TextColor="{StaticResource MediumGreen}"/>
+				</VerticalStackLayout>
+			</Border>
+
+			<!-- ── Patient Info card ── -->
+			<Border BackgroundColor="White"
+                    Stroke="{StaticResource BorderColor}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="16"
+                    Margin="0,0,0,14">
+				<VerticalStackLayout Spacing="6">
+					<Label Text="Patient Information"
+                           FontSize="17" FontAttributes="Bold"
+                           TextColor="{StaticResource PrimaryGreen}"
+                           Margin="0,0,0,4"/>
+					<Label Text="{Binding PatientName}"
                            FontSize="16" FontAttributes="Bold"
-                           TextColor="#222"/>
-                    <Label FontSize="12" TextColor="#666">
-                        <Label.FormattedText>
-                            <FormattedString>
-                                <Span Text="Current: "/>
-                                <Span Text="{Binding CurrentDateTime}"
+                           TextColor="{StaticResource TextPrimary}"/>
+					<Label FontSize="13" TextColor="{StaticResource TextSecondary}">
+						<Label.FormattedText>
+							<FormattedString>
+								<Span Text="Current appointment: "/>
+								<Span Text="{Binding CurrentDateTime}"
                                       FontAttributes="Bold"/>
-                            </FormattedString>
-                        </Label.FormattedText>
-                    </Label>
-                </VerticalStackLayout>
-            </Frame>
+							</FormattedString>
+						</Label.FormattedText>
+					</Label>
+				</VerticalStackLayout>
+			</Border>
 
-            <!-- New date picker -->
-            <Frame BackgroundColor="White" BorderColor="#E0E0E0"
-                   CornerRadius="12" Padding="14" HasShadow="False">
-                <VerticalStackLayout Spacing="12">
+			<!-- ── Appointment Details card ── -->
+			<Border BackgroundColor="White"
+                    Stroke="{StaticResource BorderColor}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="16"
+                    Margin="0,0,0,14">
+				<VerticalStackLayout Spacing="0">
 
-                    <Label Text="Select New Date"
-                           FontSize="14" FontAttributes="Bold"
-                           TextColor="#333"/>
+					<Label Text="New Schedule"
+                           FontSize="17" FontAttributes="Bold"
+                           TextColor="{StaticResource PrimaryGreen}"
+                           Margin="0,0,0,8"/>
 
-                    <DatePicker x:Name="NewDatePicker"
-                                MinimumDate="{Binding MinDate}"
-                                MaximumDate="{Binding MaxDate}"
-                                Date="{Binding SelectedDate}"
-                                DateSelected="OnDateSelected"
-                                Format="MMMM dd, yyyy"/>
+					<!-- Date -->
+					<Label Text="Select New Date"
+                           Style="{StaticResource FormFieldLabel}"
+                           Margin="0,4,0,4"/>
+					<Border Style="{StaticResource FormInputBox}">
+						<DatePicker x:Name="NewDatePicker"
+                                    MinimumDate="{Binding MinDate}"
+                                    MaximumDate="{Binding MaxDate}"
+                                    Date="{Binding SelectedDate}"
+                                    DateSelected="OnDateSelected"
+                                    Format="MMMM dd, yyyy"
+                                    TextColor="{StaticResource TextPrimary}"/>
+					</Border>
 
-                    <Label Text="Clinic is open Monday – Saturday only."
-                           FontSize="11" TextColor="#888"/>
+					<Label Text="Clinic is open Monday – Saturday only."
+                           FontSize="11"
+                           TextColor="{StaticResource TextMuted}"
+                           Margin="0,4,0,0"/>
 
-                </VerticalStackLayout>
-            </Frame>
+					<!-- Sunday warning -->
+					<Border BackgroundColor="#FCEAEA"
+                            Stroke="#FFCDD2"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 8"
+                            Padding="10,8"
+                            Margin="0,8,0,0"
+                            IsVisible="{Binding HasError}">
+						<Label Text="{Binding ErrorMessage}"
+                               FontSize="12" TextColor="#C62828"/>
+					</Border>
 
-            <!-- Available time slots -->
-            <Frame BackgroundColor="White" BorderColor="#E0E0E0"
-                   CornerRadius="12" Padding="14" HasShadow="False">
-                <VerticalStackLayout Spacing="12">
+					<!-- Time slots label -->
+					<Label Text="Select New Time Slot"
+                           Style="{StaticResource FormFieldLabel}"
+                           Margin="0,12,0,8"/>
 
-                    <Label Text="Select New Time Slot"
-                           FontSize="14" FontAttributes="Bold"
-                           TextColor="#333"/>
-
-                    <ActivityIndicator IsRunning="{Binding IsLoadingSlots}"
+					<ActivityIndicator IsRunning="{Binding IsLoadingSlots}"
                                        IsVisible="{Binding IsLoadingSlots}"
-                                       Color="#4A4A8A"/>
+                                       Color="{StaticResource PrimaryGreen}"
+                                       HeightRequest="30"/>
 
-                    <Label Text="Select a date first"
-                           FontSize="12" TextColor="#888"
+					<Label Text="No available slots for this date."
+                           FontSize="12" TextColor="{StaticResource TextMuted}"
                            IsVisible="{Binding HasNoSlots}"/>
 
-                    <!-- Time slot buttons -->
-                    <FlexLayout BindableLayout.ItemsSource="{Binding TimeSlots}"
-                                Wrap="Wrap" JustifyContent="Start"
-                                AlignItems="Start">
-                        <BindableLayout.ItemTemplate>
-                            <DataTemplate x:DataType="vm:TimeSlotItem">
-                                <Border Margin="4"
-                                        StrokeShape="RoundRectangle 8"
+					<!-- 3-column slot grid -->
+					<CollectionView ItemsSource="{Binding TimeSlots}"
+                                    SelectionMode="None"
+                                    IsVisible="{Binding IsLoadingSlots,
+                                        Converter={StaticResource InvertedBoolConverter}}">
+						<CollectionView.ItemsLayout>
+							<GridItemsLayout Orientation="Vertical"
+                                             Span="3"
+                                             HorizontalItemSpacing="8"
+                                             VerticalItemSpacing="8"/>
+						</CollectionView.ItemsLayout>
+						<CollectionView.ItemTemplate>
+							<DataTemplate x:DataType="vm:TimeSlotItem">
+								<Border BackgroundColor="{Binding BackgroundColor}"
                                         Stroke="{Binding BorderColor}"
-                                        BackgroundColor="{Binding BackgroundColor}"
-                                        Padding="0">
-                                    <Border.GestureRecognizers>
-                                        <TapGestureRecognizer
+                                        StrokeThickness="1.5"
+                                        StrokeShape="RoundRectangle 10"
+                                        HeightRequest="56"
+                                        Margin="0">
+									<Border.GestureRecognizers>
+										<TapGestureRecognizer
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
                                                       Path=BindingContext.SelectSlotCommand}"
                                             CommandParameter="{Binding .}"
                                             NumberOfTapsRequired="1"/>
-                                    </Border.GestureRecognizers>
-                                    <VerticalStackLayout Padding="14,10"
-                                        Spacing="2" WidthRequest="120">
-                                        <Label Text="{Binding Display}"
-                                               FontSize="14"
-                                               FontAttributes="Bold"
+									</Border.GestureRecognizers>
+									<VerticalStackLayout VerticalOptions="Center"
+                                                         HorizontalOptions="Center"
+                                                         Spacing="2">
+										<Label Text="{Binding Display}"
+                                               FontSize="13" FontAttributes="Bold"
                                                TextColor="{Binding TextColor}"
                                                HorizontalOptions="Center"/>
-                                        <Label Text="{Binding StatusText}"
+										<Label Text="{Binding StatusText}"
                                                FontSize="10"
                                                TextColor="{Binding StatusColor}"
                                                HorizontalOptions="Center"/>
-                                    </VerticalStackLayout>
-                                </Border>
-                            </DataTemplate>
-                        </BindableLayout.ItemTemplate>
-                    </FlexLayout>
+									</VerticalStackLayout>
+								</Border>
+							</DataTemplate>
+						</CollectionView.ItemTemplate>
+					</CollectionView>
 
-                </VerticalStackLayout>
-            </Frame>
+				</VerticalStackLayout>
+			</Border>
 
-            <!-- Selected summary -->
-            <Frame BackgroundColor="#E8F5E9" BorderColor="#C8E6C9"
-                   CornerRadius="12" Padding="14" HasShadow="False"
-                   IsVisible="{Binding HasSelection}">
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="New appointment scheduled for:"
-                           FontSize="11" TextColor="#2E7D32"/>
-                    <Label Text="{Binding SelectedSummary}"
-                           FontSize="15" FontAttributes="Bold"
-                           TextColor="#1B5E20"/>
-                </VerticalStackLayout>
-            </Frame>
+			<!-- ── Selected summary ── -->
+			<Border BackgroundColor="#E8F5E9"
+                    Stroke="#C8E6C9"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="14"
+                    Margin="0,0,0,14"
+                    IsVisible="{Binding HasSelection}">
+				<VerticalStackLayout Spacing="6">
+					<Label Text="New Schedule"
+                           FontSize="14" FontAttributes="Bold"
+                           TextColor="{StaticResource PrimaryGreen}"/>
+					<Label Text="{Binding SelectedSummary}"
+                           FontSize="14" TextColor="Black"
+                           FontAttributes="Bold"/>
+				</VerticalStackLayout>
+			</Border>
 
-            <!-- Error message -->
-            <Frame BackgroundColor="#FCEAEA" BorderColor="#FFCDD2"
-                   CornerRadius="12" Padding="14" HasShadow="False"
-                   IsVisible="{Binding HasError}">
-                <Label Text="{Binding ErrorMessage}"
-                       FontSize="12" TextColor="#C62828"/>
-            </Frame>
-
-            <!-- Confirm button -->
-            <Button Text="Confirm Reschedule"
-                    BackgroundColor="#1565C0"
+			<!-- ── Confirm button ── -->
+			<Button Text="Confirm Reschedule"
+                    BackgroundColor="{StaticResource PrimaryGreen}"
                     TextColor="White"
-                    CornerRadius="12"
-                    HeightRequest="50"
-                    FontSize="14"
+                    FontSize="16"
                     FontAttributes="Bold"
+                    CornerRadius="14"
+                    HeightRequest="52"
+                    HorizontalOptions="Fill"
                     IsEnabled="{Binding HasSelection}"
-                    Command="{Binding ConfirmRescheduleCommand}"/>
+                    Command="{Binding ConfirmRescheduleCommand}"
+                    Margin="0,0,0,32"/>
 
-            <Button Text="Cancel"
-                    BackgroundColor="Transparent"
-                    BorderColor="#E0E0E0"
-                    BorderWidth="1"
-                    TextColor="#888"
-                    CornerRadius="12"
-                    HeightRequest="44"
-                    FontSize="13"
-                    Command="{Binding CancelCommand}"/>
-
-            <BoxView HeightRequest="40" Color="Transparent"/>
-
-        </VerticalStackLayout>
-    </ScrollView>
+		</VerticalStackLayout>
+	</ScrollView>
 
 </ContentPage>

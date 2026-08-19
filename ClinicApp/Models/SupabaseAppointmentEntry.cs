@@ -15,14 +15,15 @@ namespace ClinicApp.Models
         [Column("patient_name")]
         public string PatientName { get; set; } = string.Empty;
 
+        [Column("patient_id")]
+        public string PatientId { get; set; } = string.Empty;
+
         [Column("phone")]
         public string? Phone { get; set; }
 
         [Column("email")]
         public string? Email { get; set; }
 
-        [Column("service")]
-        public string? Service { get; set; }
 
         [Column("notes")]
         public string? Notes { get; set; }
@@ -35,5 +36,8 @@ namespace ClinicApp.Models
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; }
+
+        [Column("google_task_id")]
+        public string? GoogleTaskId { get; set; }
     }
 }

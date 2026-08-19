@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ClinicApp.Views.CephalometricRelated.CephalometricMeasurementsPage"
+             Title="Cephalometric Measurements"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#FAFAFA">
+
+    <Grid RowDefinitions="Auto,*" Padding="0" RowSpacing="0">
+
+        <!-- Header -->
+        <StackLayout Grid.Row="0" Padding="16" BackgroundColor="#2563EB" Spacing="8">
+            <Label Text="{Binding PatientName, StringFormat='Patient: {0}'}" 
+                   FontSize="18" FontAttributes="Bold" TextColor="White"/>
+            <Label Text="{Binding MeasurementDate, StringFormat='Measured: {0:MMM dd, yyyy}'}" 
+                   FontSize="12" TextColor="#E0E7FF"/>
+        </StackLayout>
+
+        <!-- Measurements List -->
+        <ScrollView Grid.Row="1">
+            <StackLayout Padding="16" Spacing="12">
+
+                <Label Text="Skeletal Measurements" FontSize="16" FontAttributes="Bold" 
+                       Margin="0,12,0,8"/>
+
+                <CollectionView ItemsSource="{Binding Measurements}" SelectionMode="Single">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <StackLayout Padding="12" BackgroundColor="White" Margin="0,4" 
+                                         Spacing="8">
+
+                                <!-- Header: Name and Value -->
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackLayout Grid.Column="0" Spacing="2">
+                                        <Label Text="{Binding Name}" FontSize="14" FontAttributes="Bold" 
+                                               TextColor="#1F2937"/>
+                                        <Label Text="{Binding Description}" FontSize="11" TextColor="#666"/>
+                                    </StackLayout>
+
+                                    <StackLayout Grid.Column="1" Spacing="2" HorizontalOptions="End">
+                                        <Label Text="{Binding Value, StringFormat='{0:F1} {1}'}" 
+                                               FontSize="14" FontAttributes="Bold" 
+                                               TextColor="{Binding StatusColor}">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="{Binding Value, StringFormat='{0:F1}'}" 
+                                                          FontAttributes="Bold"/>
+                                                    <Span Text=" "/>
+                                                    <Span Text="{Binding Unit}"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                        <Label Text="{Binding Status}" FontSize="11" 
+                                               TextColor="{Binding StatusColor}"/>
+                                    </StackLayout>
+                                </Grid>
+
+                                <!-- Normal Range -->
+                                <StackLayout Spacing="4">
+                                    <StackLayout Orientation="Horizontal" Spacing="8">
+                                        <Label Text="{Binding Min, StringFormat='Normal: {0:F0}'}" 
+                                               FontSize="10" TextColor="#999" HorizontalOptions="Start"/>
+                                        <Label Text="{Binding Max, StringFormat='to {0:F0}'}" 
+                                               FontSize="10" TextColor="#999"/>
+                                    </StackLayout>
+
+                                    <!-- Progress Bar (visual comparison) -->
+                                    <Grid ColumnDefinitions="*" HeightRequest="24">
+                                        <!-- Normal range background -->
+                                        <ProgressBar Grid.Column="0" Progress="1" 
+                                                    ProgressColor="#E0E0E0" 
+                                                    HeightRequest="6" 
+                                                    Margin="0,9"/>
+
+                                        <!-- Value indicator -->
+                                        <ProgressBar Grid.Column="0" Progress="{Binding NormalizedValue}" 
+                                                    ProgressColor="{Binding StatusColor}" 
+                                                    HeightRequest="8" 
+                                                    Margin="0,8"/>
+                                    </Grid>
+                                </StackLayout>
+
+                                <!-- Status Badge -->
+                                <Frame Padding="8,4" CornerRadius="4" BorderColor="{Binding StatusColor}" 
+                                      BackgroundColor="{Binding StatusColor, Converter={StaticResource ColorToLight}}" 
+                                      HasShadow="False" HorizontalOptions="Start">
+                                    <Label Text="{Binding Status}" FontSize="11" FontAttributes="Bold" 
+                                          TextColor="{Binding StatusColor}"/>
+                                </Frame>
+
+                            </StackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Summary -->
+                <StackLayout Padding="12" BackgroundColor="#F0F9FF"  Margin="0,16,0,0" Spacing="4">
+                    <Label Text="📋 Summary" FontSize="13" FontAttributes="Bold" TextColor="#2563EB"/>
+                    <Label Text="Green = Normal | Orange = High | Blue = Low" 
+                           FontSize="11" TextColor="#666"/>
+                </StackLayout>
+
+            </StackLayout>
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>

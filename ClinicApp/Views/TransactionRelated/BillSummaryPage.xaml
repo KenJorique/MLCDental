@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:ClinicApp.Models"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels.TransactionVM"
+    x:Class="ClinicApp.Views.TransactionRelated.BillSummaryPage"
+    Title="Bill Summary"
+    Shell.TabBarIsVisible="False"
+    Shell.NavBarIsVisible="True"
+    Shell.BackgroundColor="{StaticResource Primary}"
+    Shell.ForegroundColor="{StaticResource White}"
+    Shell.TitleColor="{StaticResource White}"
+    BackgroundColor="#F5F5F5">
+
+	<Grid RowDefinitions="*,Auto">
+
+		<ScrollView Grid.Row="0">
+			<VerticalStackLayout Padding="16" Spacing="14">
+
+				<!-- Patient info card -->
+				<Frame BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray100}" CornerRadius="12" Padding="14" HasShadow="False">
+					<Grid ColumnDefinitions="*,Auto">
+						<Label Grid.Column="0"
+                               Text="{Binding PatientName}"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Black}"
+                               VerticalOptions="Center"/>
+
+						<Frame Grid.Column="1"
+                               BackgroundColor="{StaticResource Secondary}"
+                               BorderColor="Transparent"
+                               CornerRadius="10"
+                               Padding="8,4"
+                               HasShadow="False"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding HasServices}">
+							<Label Text="{Binding TotalItems, StringFormat='{0} service(s)'}"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}"/>
+						</Frame>
+					</Grid>
+				</Frame>
+
+				<!-- Services list (read-only here — removal happens back on Service Summary) -->
+				<Label Text="Added Services" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Black}"
+                       IsVisible="{Binding HasServices}"/>
+
+				<CollectionView ItemsSource="{Binding Services}" SelectionMode="None"
+                                 IsVisible="{Binding HasServices}">
+					<CollectionView.ItemsLayout>
+						<LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
+					</CollectionView.ItemsLayout>
+					<CollectionView.ItemTemplate>
+						<DataTemplate x:DataType="vm:ServiceLineItem">
+							<Frame BackgroundColor="{StaticResource White}"
+                                   BorderColor="{StaticResource Gray100}"
+                                   CornerRadius="12"
+                                   Padding="14"
+                                   HasShadow="False">
+								<Frame.Triggers>
+									<DataTrigger TargetType="Frame" Binding="{Binding IsInstallmentSelected}" Value="True">
+										<Setter Property="BorderColor" Value="{StaticResource Primary}"/>
+									</DataTrigger>
+								</Frame.Triggers>
+
+								<VerticalStackLayout Spacing="4">
+
+									<!-- Row 1: service name only -->
+									<Label Text="{Binding ServiceName}"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource Black}"/>
+
+									<!-- Row 2: Qty: # x unit price .......... bold total -->
+									<Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+										<Label Grid.Column="0"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Gray500}"
+                                               VerticalOptions="Center">
+											<Label.Text>
+												<MultiBinding StringFormat="Qty: {0} x {1}">
+													<Binding Path="Quantity"/>
+													<Binding Path="UnitPriceDisplay"/>
+												</MultiBinding>
+											</Label.Text>
+										</Label>
+										<Label Grid.Column="1"
+                                               Text="{Binding SubtotalDisplay}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource Primary}"
+                                               VerticalOptions="Center"/>
+									</Grid>
+
+									<!-- Optional teeth info, only when applicable -->
+									<Label Text="{Binding TeethDisplay}" FontSize="11" TextColor="{StaticResource Primary}"
+                                           IsVisible="{Binding TeethDisplay, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+									<!-- Compact toggle row — only shown for eligible services.
+                                         Card stays gray/collapsed until turned on. -->
+									<BoxView HeightRequest="0.5" Color="{StaticResource Gray100}" Margin="0,8,0,0"
+                                             IsVisible="{Binding IsInstallmentEligible}"/>
+									<Grid ColumnDefinitions="*,Auto"
+                                          Margin="0,4,0,0"
+                                          IsVisible="{Binding IsInstallmentEligible}">
+										<Label Text="Pay in installments"
+                                               FontSize="13"
+                                               TextColor="{StaticResource Gray700}"
+                                               VerticalOptions="Center"/>
+										<Switch Grid.Column="1"
+                                                IsToggled="{Binding IsInstallmentSelected}"
+                                                OnColor="{StaticResource Secondary}"
+                                                ThumbColor="{StaticResource Gray300}"
+                                                Scale="0.85"
+                                                VerticalOptions="Center">
+											<Switch.Triggers>
+												<DataTrigger TargetType="Switch" Binding="{Binding IsInstallmentSelected}" Value="True">
+													<Setter Property="ThumbColor" Value="{StaticResource Primary}"/>
+												</DataTrigger>
+											</Switch.Triggers>
+										</Switch>
+									</Grid>
+
+									<!-- Expanded plan details — only when the toggle is on -->
+									<VerticalStackLayout Spacing="10" Margin="0,6,0,0"
+                                                          IsVisible="{Binding IsInstallmentSelected}">
+
+										<Frame BackgroundColor="{StaticResource Secondary}"
+                                               BorderColor="Transparent"
+                                               CornerRadius="8"
+                                               Padding="10,8"
+                                               HasShadow="False">
+											<Grid ColumnDefinitions="*,Auto">
+												<Label Text="Down payment today (50%)"
+                                                       FontSize="12"
+                                                       TextColor="{StaticResource Primary}"
+                                                       VerticalOptions="Center"/>
+												<Label Grid.Column="1"
+                                                       Text="{Binding DownpaymentDisplay}"
+                                                       FontSize="15"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{StaticResource Primary}"
+                                                       VerticalOptions="Center"/>
+											</Grid>
+										</Frame>
+
+										<Label FontSize="11" TextColor="{StaticResource Gray500}">
+											<Label.Text>
+												<MultiBinding StringFormat="Then pay the remaining {0} over">
+													<Binding Path="RemainingAfterDownpaymentDisplay"/>
+												</MultiBinding>
+											</Label.Text>
+										</Label>
+
+										<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+
+											<Frame Grid.Row="0" Grid.Column="0" Padding="8,10" CornerRadius="8" HasShadow="False"
+                                                   BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray100}">
+												<Frame.GestureRecognizers>
+													<TapGestureRecognizer Command="{Binding SelectMonthsCommand}">
+														<TapGestureRecognizer.CommandParameter>
+															<x:Int32>1</x:Int32>
+														</TapGestureRecognizer.CommandParameter>
+													</TapGestureRecognizer>
+												</Frame.GestureRecognizers>
+												<Frame.Triggers>
+													<DataTrigger TargetType="Frame" Binding="{Binding SelectedInstallmentMonths}" Value="1">
+														<Setter Property="BackgroundColor" Value="{StaticResource Secondary}"/>
+														<Setter Property="BorderColor" Value="{StaticResource Primary}"/>
+													</DataTrigger>
+												</Frame.Triggers>
+												<VerticalStackLayout Spacing="1" HorizontalOptions="Center">
+													<Label Text="1 month" FontSize="11" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
+													<Label Text="{Binding MonthlyFor1Display}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
+												</VerticalStackLayout>
+											</Frame>
+
+											<Frame Grid.Row="0" Grid.Column="1" Padding="8,10" CornerRadius="8" HasShadow="False"
+                                                   BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray100}">
+												<Frame.GestureRecognizers>
+													<TapGestureRecognizer Command="{Binding SelectMonthsCommand}">
+														<TapGestureRecognizer.CommandParameter>
+															<x:Int32>2</x:Int32>
+														</TapGestureRecognizer.CommandParameter>
+													</TapGestureRecognizer>
+												</Frame.GestureRecognizers>
+												<Frame.Triggers>
+													<DataTrigger TargetType="Frame" Binding="{Binding SelectedInstallmentMonths}" Value="2">
+														<Setter Property="BackgroundColor" Value="{StaticResource Secondary}"/>
+														<Setter Property="BorderColor" Value="{StaticResource Primary}"/>
+													</DataTrigger>
+												</Frame.Triggers>
+												<VerticalStackLayout Spacing="1" HorizontalOptions="Center">
+													<Label Text="2 months" FontSize="11" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
+													<Label Text="{Binding MonthlyFor2Display}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
+												</VerticalStackLayout>
+											</Frame>
+
+											<Frame Grid.Row="1" Grid.Column="0" Padding="8,10" CornerRadius="8" HasShadow="False"
+                                                   BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray100}">
+												<Frame.GestureRecognizers>
+													<TapGestureRecognizer Command="{Binding SelectMonthsCommand}">
+														<TapGestureRecognizer.CommandParameter>
+															<x:Int32>3</x:Int32>
+														</TapGestureRecognizer.CommandParameter>
+													</TapGestureRecognizer>
+												</Frame.GestureRecognizers>
+												<Frame.Triggers>
+													<DataTrigger TargetType="Frame" Binding="{Binding SelectedInstallmentMonths}" Value="3">
+														<Setter Property="BackgroundColor" Value="{StaticResource Secondary}"/>
+														<Setter Property="BorderColor" Value="{StaticResource Primary}"/>
+													</DataTrigger>
+												</Frame.Triggers>
+												<VerticalStackLayout Spacing="1" HorizontalOptions="Center">
+													<Label Text="3 months" FontSize="11" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
+													<Label Text="{Binding MonthlyFor3Display}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
+												</VerticalStackLayout>
+											</Frame>
+
+											<Frame Grid.Row="1" Grid.Column="1" Padding="8,10" CornerRadius="8" HasShadow="False"
+                                                   BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray100}">
+												<Frame.GestureRecognizers>
+													<TapGestureRecognizer Command="{Binding SelectMonthsCommand}">
+														<TapGestureRecognizer.CommandParameter>
+															<x:Int32>4</x:Int32>
+														</TapGestureRecognizer.CommandParameter>
+													</TapGestureRecognizer>
+												</Frame.GestureRecognizers>
+												<Frame.Triggers>
+													<DataTrigger TargetType="Frame" Binding="{Binding SelectedInstallmentMonths}" Value="4">
+														<Setter Property="BackgroundColor" Value="{StaticResource Secondary}"/>
+														<Setter Property="BorderColor" Value="{StaticResource Primary}"/>
+													</DataTrigger>
+												</Frame.Triggers>
+												<VerticalStackLayout Spacing="1" HorizontalOptions="Center">
+													<Label Text="4 months" FontSize="11" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
+													<Label Text="{Binding MonthlyFor4Display}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
+												</VerticalStackLayout>
+											</Frame>
+
+										</Grid>
+									</VerticalStackLayout>
+
+								</VerticalStackLayout>
+							</Frame>
+						</DataTemplate>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
+
+				<!-- Totals card: full bill breakdown -->
+				<!-- (Subtotal -> Discount -> Total -> Due Today, in that order,
+                     so Due Today is always the final, most prominent figure
+                     right before Proceed to Payment.) -->
+				<Frame BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray100}" CornerRadius="12" Padding="14" HasShadow="False">
+					<VerticalStackLayout Spacing="10">
+
+						<Grid ColumnDefinitions="*,Auto">
+							<Label Text="Subtotal" FontSize="13" TextColor="{StaticResource Gray500}"/>
+							<Label Grid.Column="1" Text="{Binding SubtotalDisplay}" FontSize="13" TextColor="{StaticResource Gray500}"/>
+						</Grid>
+
+						<VerticalStackLayout Spacing="2">
+							<Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+								<Label Text="Discount"
+                                       FontSize="13"
+                                       TextColor="{StaticResource Gray500}"
+                                       VerticalOptions="Center"/>
+
+								<!-- Stays a normal, always-enabled dropdown —
+                                     no overlay. DiscountChanged (code-behind)
+                                     is what blocks an invalid pick: it
+                                     reverts back to "None" and shows an alert
+                                     when the bill doesn't allow a discount. -->
+								<Picker Grid.Column="1"
+                                        x:Name="DiscountPicker"
+                                        SelectedIndexChanged="DiscountChanged"
+                                        WidthRequest="160"
+                                        FontSize="13"
+                                        TextColor="{StaticResource Primary}">
+									<Picker.Items>
+										<x:String>None</x:String>
+										<x:String>Senior (20%)</x:String>
+										<x:String>PWD (20%)</x:String>
+										<x:String>Special</x:String>
+									</Picker.Items>
+								</Picker>
+							</Grid>
+							<Label Text="Excludes installment items"
+                                   FontSize="10"
+                                   TextColor="{StaticResource Gray400}"
+                                   IsVisible="{Binding HasMixedInstallmentAndRegular}"/>
+
+							<!-- Special: a flat peso amount off, not a percentage.
+                                 e.g. ₱150 off, rather than 20% off. -->
+							<Grid ColumnDefinitions="Auto,*"
+                                  Margin="0,6,0,0"
+                                  IsVisible="{Binding IsSpecialDiscount}">
+								<Label Text="₱"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}"
+                                       VerticalOptions="Center"/>
+								<Entry Grid.Column="1"
+                                       Placeholder="Amount off"
+                                       Keyboard="Numeric"
+                                       FontSize="14"
+                                       TextColor="{StaticResource Primary}"
+                                       Text="{Binding SpecialDiscountAmount}"/>
+							</Grid>
+						</VerticalStackLayout>
+
+						<Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasDiscount}">
+							<Label Text="Discount Amount" TextColor="{StaticResource Primary}" FontSize="12"/>
+							<Label Grid.Column="1" Text="{Binding DiscountDisplay}" TextColor="{StaticResource Primary}" FontSize="12"/>
+						</Grid>
+
+						<Grid ColumnDefinitions="*,Auto"
+                              Margin="0,2,0,0"
+                              Padding="0,10,0,0">
+							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
+							<Label Text="Total" FontSize="13" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
+							<Label Grid.Column="1" Text="{Binding TotalDisplay}" FontSize="13" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
+						</Grid>
+
+						<!-- Due Today: last line in the card, biggest and most
+                             prominent — the actionable figure right before
+                             Proceed to Payment. -->
+						<Grid ColumnDefinitions="*,Auto"
+                              Margin="0,2,0,0"
+                              Padding="0,10,0,0">
+							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
+							<Label Text="Due Today" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center" Margin="0,4,0,0"/>
+							<Label Grid.Column="1"
+                                   Text="{Binding AmountDueTodayDisplay}"
+                                   FontSize="26"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}"
+                                   VerticalOptions="Center"
+                                   Margin="0,4,0,0"/>
+						</Grid>
+
+					</VerticalStackLayout>
+				</Frame>
+
+			</VerticalStackLayout>
+		</ScrollView>
+
+		<!-- Sticky bottom bar: just Proceed — Due Today already ends the
+             breakdown card above, right before this button. -->
+		<Frame Grid.Row="1"
+               BackgroundColor="{StaticResource White}"
+               BorderColor="{StaticResource Gray100}"
+               CornerRadius="0"
+               Padding="16,12"
+               HasShadow="True">
+			<Grid>
+				<Button Text="Proceed to Payment"
+						BackgroundColor="{StaticResource Primary}"
+						TextColor="{StaticResource White}"
+						CornerRadius="12"
+						HeightRequest="48"
+						IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+						Command="{Binding ProceedCommand}"/>
+
+				<HorizontalStackLayout Spacing="8"
+										HorizontalOptions="Center"
+										VerticalOptions="Center"
+										IsVisible="{Binding IsBusy}">
+					<ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource Primary}"/>
+					<Label Text="Processing..." TextColor="{StaticResource Primary}" VerticalOptions="Center"/>
+				</HorizontalStackLayout>
+			</Grid>
+		</Frame>
+
+	</Grid>
+</ContentPage>

@@ -8,21 +8,19 @@ namespace ClinicApp.ViewModels.SupplyVM;
 [QueryProperty(nameof(SupplyId), "supplyId")]
 public partial class AddSupplyViewModel : ObservableObject
 {
-    private readonly DatabaseService _db;
-    private SupplyItem? _editing;
+    private readonly SupabaseDataService _supabase;
+    private SupabaseSupplyItem? _editing;
 
-    // ── Unit options ──────────────────────────────────────────────
     public List<string> UnitOptions { get; } = new()
     {
         "Per Piece", "Per Pack", "Per Box", "Per Kit"
     };
 
-    [ObservableProperty] private int supplyId;
+    [ObservableProperty] private string? supplyId;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isEditMode;
     [ObservableProperty] private string pageTitle = "Add New Item";
 
-    // Form fields
     [ObservableProperty] private string itemName = string.Empty;
     [ObservableProperty] private string selectedUnit = "Per Piece";
     [ObservableProperty] private int piecesPerUnit = 1;
@@ -31,24 +29,22 @@ public partial class AddSupplyViewModel : ObservableObject
     [ObservableProperty] private DateTime expirationDate = DateTime.Today.AddYears(1);
     [ObservableProperty] private int minimumStock = 10;
 
-    // Computed display
     [ObservableProperty] private bool showPiecesPerUnit;
     [ObservableProperty] private int totalPieces;
 
-    // Validation
     [ObservableProperty] private string nameError = string.Empty;
     [ObservableProperty] private bool canSave;
 
-    public AddSupplyViewModel(DatabaseService db)
+    public AddSupplyViewModel(SupabaseDataService supabase)
     {
-        _db = db;
+        _supabase = supabase;
         selectedUnit = "Per Piece";
         showPiecesPerUnit = false;
     }
 
-    partial void OnSupplyIdChanged(int value)
+    partial void OnSupplyIdChanged(string? value)
     {
-        if (value > 0)
+        if (!string.IsNullOrWhiteSpace(value))
             MainThread.BeginInvokeOnMainThread(async () => await LoadForEditAsync(value));
     }
 
@@ -83,11 +79,11 @@ public partial class AddSupplyViewModel : ObservableObject
             : UnitQuantity;
     }
 
-    private async Task LoadForEditAsync(int id)
+    private async Task LoadForEditAsync(string id)
     {
         try
         {
-            var item = await _db.GetSupplyItemById(id);
+            var item = await _supabase.GetSupplyByIdAsync(id);
             if (item is null) return;
             _editing = item;
             IsEditMode = true;
@@ -99,10 +95,8 @@ public partial class AddSupplyViewModel : ObservableObject
             HasExpiration = item.HasExpiration;
             MinimumStock = item.MinimumStockPieces;
 
-            if (item.HasExpiration && DateTime.TryParse(item.ExpirationDate, out var exp))
-                ExpirationDate = exp;
-
-            // Quantity fields are hidden in edit mode
+            if (item.HasExpiration && item.ExpirationDate.HasValue)
+                ExpirationDate = item.ExpirationDate.Value;
         }
         catch (Exception ex)
         {
@@ -130,40 +124,42 @@ public partial class AddSupplyViewModel : ObservableObject
                 _editing.Unit = SelectedUnit;
                 _editing.PiecesPerUnit = SelectedUnit == "Per Piece" ? 1 : PiecesPerUnit;
                 _editing.HasExpiration = HasExpiration;
-                _editing.ExpirationDate = HasExpiration
-                    ? ExpirationDate.ToString("yyyy-MM-dd") : string.Empty;
+                _editing.ExpirationDate = HasExpiration ? ExpirationDate : null;
                 _editing.MinimumStockPieces = MinimumStock;
 
-                await _db.UpdateSupplyItem(_editing);
+                var success = await _supabase.UpdateSupplyAsync(_editing);
+                if (!success)
+                {
+                    await Shell.Current.DisplayAlert("Error", "Could not update the item.", "OK");
+                    return;
+                }
             }
             else
             {
                 int pieces = SelectedUnit == "Per Piece" ? 1 : PiecesPerUnit;
 
-                var item = new SupplyItem
+                var newItem = await _supabase.AddSupplyAsync(new SupabaseSupplyItem
                 {
                     Name = ItemName.Trim(),
                     Unit = SelectedUnit,
                     PiecesPerUnit = pieces,
                     QuantityInPieces = 0,
                     HasExpiration = HasExpiration,
-                    ExpirationDate = HasExpiration
-                        ? ExpirationDate.ToString("yyyy-MM-dd") : string.Empty,
+                    ExpirationDate = HasExpiration ? ExpirationDate : null,
                     MinimumStockPieces = MinimumStock,
-                };
+                    AddedDate = DateTime.Today,
+                    CreatedAt = DateTime.UtcNow
+                });
 
-                int newId = await _db.AddSupplyItem(item);
-
-                if (newId <= 0)
+                if (newItem is null)
                 {
                     await Shell.Current.DisplayAlert("Error",
                         "Could not save the item. Please try again.", "OK");
                     return;
                 }
 
-                // TotalPieces = UnitQuantity × PiecesPerUnit (or just UnitQuantity for Per Piece)
                 if (TotalPieces > 0)
-                    await _db.ApplyStockChange(newId, TotalPieces, "Restocked",
+                    await _supabase.ApplyStockChangeAsync(newItem.Id, TotalPieces, "Restocked",
                         "Initial stock on creation");
             }
 

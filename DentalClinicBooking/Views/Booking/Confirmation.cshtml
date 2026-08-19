@@ -2,7 +2,8 @@
     ViewData["Title"] = "Booking Confirmed";
     var name = TempData["PatientName"]?.ToString() ?? "Patient";
     var date = TempData["AppointmentDate"]?.ToString() ?? "";
-    var service = TempData["Service"]?.ToString() ?? "";
+    // var service = TempData["Service"]?.ToString() ?? "";
+    var isExisting = TempData["IsExisting"] as bool? ?? false;
 }
 
 <div class="container py-5">
@@ -33,11 +34,27 @@
 
                         <hr class="my-3" />
 
-                        <div class="d-flex align-items-center mb-2">
+                      @*   <div class="d-flex align-items-center mb-2">
                             <i class="bi bi-clipboard2-pulse text-primary me-2"></i>
                             <span class="fw-semibold">Service</span>
                         </div>
-                        <p class="mb-0 ms-4">@service</p>
+                        <p class="mb-0 ms-4">@service</p> *@
+                    </div>
+                }
+                @if (isExisting)
+                {
+                    <div class="alert alert-info text-start small">
+                        <i class="bi bi-person-check me-2"></i>
+                        Welcome back! Your appointment request has been received.
+                        Our staff will confirm your schedule shortly.
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info text-start small">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Thank you for registering with us! Our clinic staff will
+                        contact you to <strong>confirm your schedule</strong>.
                     </div>
                 }
 

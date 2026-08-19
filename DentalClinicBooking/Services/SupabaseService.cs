@@ -6,6 +6,21 @@ namespace DentalClinicBooking.Services
     {
         private readonly Supabase.Client _client;
 
+        // Philippines is UTC+8 year-round (no DST). "Asia/Manila" is the
+        // IANA id (Linux/macOS); "Taipei Standard Time" is the Windows id
+        // for the same fixed UTC+8 offset — used as a fallback if Manila
+        // isn't registered on the host OS.
+        private static readonly TimeZoneInfo PhTimeZone = GetPhTimeZone();
+
+        private static TimeZoneInfo GetPhTimeZone()
+        {
+            try { return TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"); }
+            catch (TimeZoneNotFoundException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+            }
+        }
+
         public SupabaseService(IConfiguration config)
         {
             var url = config["Supabase:Url"];
@@ -21,12 +36,22 @@ namespace DentalClinicBooking.Services
         }
         public Supabase.Client Client => _client;
 
+        // date is a PH calendar date (e.g. from the <input type=date>).
+        // Builds the UTC window that corresponds to PH midnight → next PH midnight,
+        // so the DB query is correct regardless of what timezone the server itself is in.
+        private static (DateTime startUtc, DateTime endUtc) PhDayWindowUtc(DateTime date)
+        {
+            var phMidnight = DateTime.SpecifyKind(date.Date, DateTimeKind.Unspecified);
+            var startUtc = TimeZoneInfo.ConvertTimeToUtc(phMidnight, PhTimeZone);
+            var endUtc = startUtc.AddDays(1);
+            return (startUtc, endUtc);
+        }
+
         public async Task<int> GetBookingCountForDateAsync(DateTime date)
         {
             try
             {
-                var startOfDay = date.Date.ToUniversalTime();
-                var endOfDay = startOfDay.AddDays(1);
+                var (startOfDay, endOfDay) = PhDayWindowUtc(date);
 
                 var result = await _client
                     .From<Booking>()
@@ -50,20 +75,25 @@ namespace DentalClinicBooking.Services
         {
             try
             {
-                var startOfDay = date.Date.ToUniversalTime();
-                var endOfDay = startOfDay.AddDays(1);
+                var result = await _client.From<Booking>().Get();
 
-                var result = await _client
-                    .From<Booking>()
-                    .Get();
+                var phTimeZone = TimeZoneInfo.FindSystemTimeZoneById(
+                    "Asia/Manila") ??
+                    TimeZoneInfo.CreateCustomTimeZone(
+                        "PH", TimeSpan.FromHours(8), "PH", "PH");
 
                 return result.Models
                     .Where(b =>
-                        b.AppointmentDate >= startOfDay &&
-                        b.AppointmentDate < endOfDay &&
                         b.Status != "rejected" &&
-                        b.Status != "cancelled")
-                    .Select(b => b.AppointmentDate.ToLocalTime())
+                        b.Status != "cancelled" &&
+                        b.AppointmentDate != default)
+                    .Select(b =>
+                    {
+                        var utc = DateTime.SpecifyKind(
+                                      b.AppointmentDate, DateTimeKind.Utc);
+                        return TimeZoneInfo.ConvertTimeFromUtc(utc, phTimeZone);
+                    })
+                    .Where(local => local.Date == date.Date)
                     .ToList();
             }
             catch (Exception ex)

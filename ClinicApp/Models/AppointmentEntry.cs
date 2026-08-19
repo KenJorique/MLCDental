@@ -1,5 +1,4 @@
 ﻿using SQLite;
-
 namespace ClinicApp.Models
 {
     [Table("AppointmentEntry")]
@@ -7,39 +6,33 @@ namespace ClinicApp.Models
     {
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
-
         public string SupabaseBookingId { get; set; } = string.Empty;
         public string PatientName { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public string Service { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
         public string GoogleTaskId { get; set; } = string.Empty;
-
         // Stored as "yyyy-MM-dd HH:mm:ss"
         public string AppointmentDateTime { get; set; } = string.Empty;
-
         // pending / approved / completed / cancelled / rescheduled
         public string Status { get; set; } = "pending";
-
         public string CreatedAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-        [Ignore]
+        public string PatientSupabaseId { get; set; } = string.Empty;
+
+        [SQLite.Ignore]
         public DateTime AppointmentDateTimeParsed
         {
             get
             {
-                if (!DateTime.TryParse(AppointmentDateTime, out var dt))
+                if (string.IsNullOrEmpty(AppointmentDateTime))
                     return DateTime.MinValue;
-
-                // Always convert to Philippine local time for display
-                return dt.Kind switch
-                {
-                    DateTimeKind.Utc => dt.ToLocalTime(),
-                    DateTimeKind.Local => dt,
-                    _ => DateTime.SpecifyKind(dt, DateTimeKind.Utc)
-                                                  .ToLocalTime()
-                };
+                if (DateTime.TryParse(AppointmentDateTime,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var dt))
+                    return dt;
+                return DateTime.MinValue;
             }
         }
 
@@ -71,37 +64,40 @@ namespace ClinicApp.Models
             }
         }
 
-
         [Ignore]
         public Color StatusColor => Status switch
         {
-            "pending" => Color.FromArgb("#E65100"),
-            "approved" => Color.FromArgb("#1565C0"),
-            "completed" => Color.FromArgb("#2E7D32"),
-            "cancelled" => Color.FromArgb("#C62828"),
-            "rescheduled" => Color.FromArgb("#6A1B9A"),
-            _ => Color.FromArgb("#888780")
+            "approved" => Color.FromArgb("#2E7D32"),
+            "in-transit" => Color.FromArgb("#F59E0B"),
+            "billing" => Color.FromArgb("#7C3AED"),
+            "completed" => Color.FromArgb("#2563EB"),
+            "pending" => Color.FromArgb("#D97706"),
+            "rescheduled" => Color.FromArgb("#0284C7"),
+            "cancelled" => Color.FromArgb("#DC2626"),
+            _ => Color.FromArgb("#6B7280")
         };
 
         [Ignore]
         public Color StatusBgColor => Status switch
         {
             "pending" => Color.FromArgb("#FFF3E0"),
-            "approved" => Color.FromArgb("#E3F2FD"),
+            "approved" => Color.FromArgb("#EEF5EE"), // changed: blue tint → pale green
             "completed" => Color.FromArgb("#E8F5E9"),
             "cancelled" => Color.FromArgb("#FCEAEA"),
-            "rescheduled" => Color.FromArgb("#F3E5F5"),
+            "rescheduled" => Color.FromArgb("#FBF4E0"), // changed: purple tint → pale gold
             _ => Color.FromArgb("#F1EFE8")
         };
 
         [Ignore]
         public string StatusLabel => Status switch
         {
-            "pending" => "Pending",
             "approved" => "Approved",
+            "in-transit" => "In Transit",
+            "billing" => "Billing",
             "completed" => "Completed",
-            "cancelled" => "Cancelled",
+            "pending" => "Pending",
             "rescheduled" => "Rescheduled",
+            "cancelled" => "Cancelled",
             _ => Status
         };
     }

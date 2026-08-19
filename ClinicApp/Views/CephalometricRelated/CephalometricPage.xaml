@@ -2,84 +2,115 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ClinicApp.Views.CephalometricRelated.CephalometricPage"
-             Title="Cephalometric"
-             Shell.TabBarIsVisible="False">
+             Title="Cephalometric Analysis"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#FAFAFA">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="15">
+    <Grid RowDefinitions="Auto,*,Auto" Padding="0" RowSpacing="0">
 
-            <!-- Patient info header -->
-            <Frame Padding="12" HasShadow="True">
-                <HorizontalStackLayout Spacing="15">
+        <!-- Header -->
+        <StackLayout Grid.Row="0" Padding="16" BackgroundColor="#2563EB" Spacing="8">
+            <Label Text="{Binding PatientName, StringFormat='Patient: {0}'}" 
+                   FontSize="18" FontAttributes="Bold" TextColor="White"/>
+            <Label Text="Cephalometric X-Ray Analysis" 
+                   FontSize="14" TextColor="#E0E7FF"/>
+        </StackLayout>
 
-                    <HorizontalStackLayout Spacing="5">
-                        <Label Text="Patient ID:" FontAttributes="Bold" FontSize="13"/>
-                        <Label Text="{Binding PatientId}" FontSize="13"/>
-                    </HorizontalStackLayout>
+        <!-- Content Area -->
+        <ScrollView Grid.Row="1">
+            <StackLayout Padding="16" Spacing="16">
 
-                    <BoxView WidthRequest="1" Color="LightGray" HeightRequest="20" VerticalOptions="Center"/>
-
-                    <HorizontalStackLayout Spacing="5">
-                        <Label Text="Patient Name:" FontAttributes="Bold" FontSize="13"/>
-                        <Label Text="{Binding PatientName}" FontSize="13"/>
-                    </HorizontalStackLayout>
-
-                </HorizontalStackLayout>
-            </Frame>
-
-            <!-- ── NO IMAGE STATE: upload placeholder ── -->
-            <Frame IsVisible="{Binding HasImage, Converter={StaticResource InverseBoolConverter}}"
-                   Padding="40"
-                   HasShadow="True"
-                   BackgroundColor="#F5F5F5">
-                <Frame.GestureRecognizers>
-                    <!-- Tap the placeholder to open image picker -->
-                    <TapGestureRecognizer Command="{Binding UploadImageCommand}" />
-                </Frame.GestureRecognizers>
-
-                <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
-
-                    <!-- Upload icon using text symbol -->
-                    <Label Text="🖼"
-                           FontSize="48"
-                           HorizontalOptions="Center"/>
-
-                    <Label Text="Upload Lateral Cephalometric X-ray Image"
-                           FontSize="16"
-                           FontAttributes="Bold"
-						   TextColor="Black"
+                <!-- No Image State -->
+                <StackLayout IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}" 
+                             Padding="20" Spacing="12">
+                    <Label Text="📋" FontSize="48" HorizontalTextAlignment="Center"/>
+                    <Label Text="No X-Ray Image" FontSize="16" FontAttributes="Bold" 
                            HorizontalTextAlignment="Center"/>
+                    <Label Text="Upload a lateral cephalometric X-ray to begin analysis." 
+                           FontSize="13" TextColor="#666" HorizontalTextAlignment="Center"/>
+                    <Button Text="Upload Image" Command="{Binding UploadImageCommand}" 
+                            BackgroundColor="#2563EB" TextColor="White" CornerRadius="8" Padding="16"/>
+                </StackLayout>
 
-                    <Label Text="Tap to select a JPEG or PNG image"
-                           FontSize="13"
-                           TextColor="Gray"
-                           HorizontalTextAlignment="Center"/>
+                <!-- Image Display with Landmark Overlay -->
+                <StackLayout IsVisible="{Binding HasImage}" Spacing="12">
 
-                </VerticalStackLayout>
-            </Frame>
+                    <!-- Image Container with Canvas Overlay -->
+                    <Frame BorderColor="#E0E0E0" CornerRadius="8" Padding="0" HasShadow="False">
+                        <Grid>
+                            <!-- Base Image -->
+                            <Image Source="{Binding ImagePath}" Aspect="AspectFit" 
+                                   HeightRequest="500"/>
 
-            <!-- ── HAS IMAGE STATE: show X-ray + action buttons ── -->
-            <VerticalStackLayout IsVisible="{Binding HasImage}" Spacing="12">
+                            <!-- Landmark Overlay Canvas -->
+                            <GraphicsView IsVisible="{Binding HasLandmarks}" 
+                                         x:Name="LandmarkCanvas"
+                                         HeightRequest="500"/>
+                        </Grid>
+                    </Frame>
 
-                <!-- X-ray image display -->
-                <Frame Padding="0" HasShadow="True" IsClippedToBounds="True">
-                    <Image Source="{Binding ImagePath}"
-                           Aspect="AspectFit"
-                           HeightRequest="300"/>
-                </Frame>
+                    <!-- Analysis Status -->
+                    <StackLayout IsVisible="{Binding IsAnalyzing}" 
+                                 Padding="12" BackgroundColor="#F0F9FF" >
+                        <ActivityIndicator IsRunning="True" Color="#2563EB"/>
+                        <Label Text="Analyzing X-ray..." FontSize="13" TextColor="#2563EB" 
+                               HorizontalTextAlignment="Center"/>
+                    </StackLayout>
 
-                <!-- Analyze Image: disabled for now -->
-                <Button Text="Analyze Image"
-                        Command="{Binding AnalyzeImageCommand}"
-                        IsEnabled="False"
-                        BackgroundColor="Gray"/>
+                    <!-- Action Buttons -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button Grid.Column="0" Text="Analyze" 
+                                Command="{Binding AnalyzeImageCommand}"
+                                IsEnabled="{Binding IsAnalyzing, Converter={StaticResource InvertedBoolConverter}}"
+                                BackgroundColor="#2563EB" TextColor="White" CornerRadius="8"/>
+                        <Button Grid.Column="1" Text="Replace" 
+                                Command="{Binding ReplaceImageCommand}"
+                                BackgroundColor="#F5F5F5" TextColor="#333" CornerRadius="8"/>
+                    </Grid>
 
-                <!-- Replace Image: shows confirmation first -->
-                <Button Text="Replace Image"
-                        Command="{Binding ReplaceImageCommand}"/>
+                    <!-- Landmarks List -->
+                    <StackLayout IsVisible="{Binding HasLandmarks}" Spacing="8">
+                        <Label Text="Detected Landmarks" FontSize="14" FontAttributes="Bold"/>
 
-            </VerticalStackLayout>
+                        <CollectionView ItemsSource="{Binding DetectedLandmarks}" SelectionMode="Single">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <StackLayout Padding="12" BackgroundColor="#F9FAFB" Margin="0,4" 
+                                                  Spacing="4">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Label Grid.Column="0" Text="{Binding ClassName, StringFormat='{0}'}" 
+                                                   FontSize="13" FontAttributes="Bold" TextColor="#1F2937"/>
+                                            <StackLayout Grid.Column="2" Spacing="2" HorizontalOptions="End">
+                                                <Label Text="{Binding X, StringFormat='X: {0:F1}'}" 
+                                                       FontSize="11" TextColor="#666"/>
+                                                <Label Text="{Binding Y, StringFormat='Y: {0:F1}'}" 
+                                                       FontSize="11" TextColor="#666"/>
+                                            </StackLayout>
+                                        </Grid>
+                                        <ProgressBar Progress="{Binding Confidence}" 
+                                                     ProgressColor="#2563EB" HeightRequest="4"/>
+                                    </StackLayout>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </StackLayout>
 
-        </VerticalStackLayout>
-    </ScrollView>
+                </StackLayout>
+
+            </StackLayout>
+        </ScrollView>
+
+        <!-- Bottom Bar -->
+        <StackLayout Grid.Row="2" Padding="16" BackgroundColor="White" 
+                      Spacing="8">
+            <Button Text="+ Upload New X-Ray" 
+                    Command="{Binding UploadImageCommand}"
+                    IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}"
+                    BackgroundColor="#2563EB" TextColor="White" CornerRadius="8" Padding="16"/>
+            <Label Text="Landmarks are displayed as overlays on the image. Confidence shown below." 
+                   FontSize="11" TextColor="#999" IsVisible="{Binding HasLandmarks}"/>
+        </StackLayout>
+
+    </Grid>
+
 </ContentPage>
