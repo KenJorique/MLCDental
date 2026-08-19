@@ -129,7 +129,7 @@ public partial class BalanceManagementViewModel : ObservableObject
     {
         var result = await Shell.Current.DisplayActionSheet(
             "Sort By", "Cancel", null,
-            "Nearest due date", "Highest balance", "Patient name A-Z");
+            "Nearest due date", "Highest balance", "Newest balance", "Patient name A-Z");
 
         if (!string.IsNullOrEmpty(result) && result != "Cancel")
         {
@@ -161,6 +161,7 @@ public partial class BalanceManagementViewModel : ObservableObject
         filtered = CurrentSort switch
         {
             "Highest balance" => filtered.OrderByDescending(p => p.TotalBalance),
+            "Newest balance" => filtered.OrderByDescending(p => p.MostRecentBillDate),
             "Patient name A-Z" => filtered.OrderBy(p => p.DisplayName),
             _ => filtered.OrderBy(p => p.NextDueDate ?? DateTime.MaxValue) // Nearest due date
         };

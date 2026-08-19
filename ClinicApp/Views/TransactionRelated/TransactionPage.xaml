@@ -32,6 +32,7 @@
 
 					<Label Text="{Binding DateDisplay}"
                            FontSize="12"
+                           FontAttributes="Bold"
                            TextColor="{StaticResource Black}"
                            VerticalOptions="Center"/>
 
@@ -87,15 +88,15 @@
                                   ColumnSpacing="10">
 
 								<Label Text="{Binding Bill.DateDisplay}"
-                                       FontSize="13"
+                                       FontSize="14"
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource Black}"
                                        VerticalOptions="Center"
-									   Margin="0,0,10,0"/>
+									   Margin="0,0,30,0"/>
 
 								<Label Grid.Column="1"
                                        Text="{Binding Bill.TotalDisplay}"
-                                       FontSize="13"
+                                       FontSize="14"
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource Black}"
                                        VerticalOptions="Center"/>
@@ -308,12 +309,31 @@
 						</VerticalStackLayout>
 					</Border>
 
-					<!-- Bills and their payment histories, one card per bill -->
-					<Label Text="Transaction History"
-                           FontSize="14"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
-                           Margin="0,8,0,4"/>
+					<!-- Transaction History label + sort icon on the right -->
+					<Grid ColumnDefinitions="*,Auto"
+                          Margin="0,-5,0,-5">
+
+						<Label Text="Transaction History"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"
+                               VerticalOptions="Center"/>
+
+						<Border Grid.Column="1"
+                                BackgroundColor="Transparent"
+                                StrokeThickness="0"
+                                Padding="6">
+							<Border.GestureRecognizers>
+								<TapGestureRecognizer Command="{Binding SortOptionsCommand}"/>
+							</Border.GestureRecognizers>
+
+							<Label FontFamily="MaterialSymbolsRoundedFilled"
+                                   Text="&#xe152;"
+                                   FontSize="20" 
+                                   TextColor="{StaticResource Black}"
+                                   VerticalOptions="Center"/>
+						</Border>
+					</Grid>
 
 					<Label Text="No billing records yet"
                            FontSize="12"

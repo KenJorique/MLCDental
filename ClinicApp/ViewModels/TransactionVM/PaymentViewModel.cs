@@ -7,18 +7,6 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace ClinicApp.ViewModels.TransactionVM;
 
-// First-payment flow ONLY — reached exclusively from
-// BillSummaryViewModel.Proceed(). Nothing about this bill exists in
-// Supabase yet when this page opens: no bills row, no bill_items, no
-// dental chart/tooth records, no treatment history, and no supply
-// deduction. All of that gets written in ONE place — RecordPayment below,
-// via BillingService.CreateBillAsync plus the supply-deduction loop right
-// after it — and only once the entered amount actually clears validation
-// and Record Payment is tapped. Simply opening this page and going back to
-// Bill Summary (or backing out of the app entirely) writes nothing at all;
-// there's no draft-vs-database reconciliation to worry about, because
-// there's nothing in the database to reconcile against until payment
-// genuinely happens.
 public partial class PaymentViewModel : ObservableObject
 {
     private readonly SupabaseDataService _supabase;
@@ -45,13 +33,6 @@ public partial class PaymentViewModel : ObservableObject
     [ObservableProperty]
     private string errorMessage = string.Empty;
 
-    // Set the first time CreateBillAsync succeeds within this page's
-    // lifetime. Guards against a narrower version of the old duplicate-bill
-    // bug: if the bill gets created successfully but RecordPaymentAsync
-    // then fails (e.g. a network hiccup) and staff tap Record Payment
-    // again, this makes the retry reuse the bill that already exists
-    // instead of creating a second one (and skips deducting supplies a
-    // second time too — see below).
     private string? _pendingBillId;
 
     public void LoadDraft()
@@ -80,11 +61,6 @@ public partial class PaymentViewModel : ObservableObject
 
     public string InstallmentDisplay => Draft?.InstallmentSummary ?? string.Empty;
 
-    // No real due date exists yet — nothing's been created. This is a
-    // preview only, using the same "+1 month from today" rule
-    // BillingService.CreateBillAsync itself uses when it sets the real
-    // DueDate at creation time, so what's shown here matches what the
-    // bill will actually get once Record Payment is tapped.
     public string DueDateDisplay =>
         IsInstallment
             ? DateTime.Now.AddMonths(1).ToString("MMM dd, yyyy")
@@ -110,9 +86,6 @@ public partial class PaymentViewModel : ObservableObject
 
     public string PaymentAmountDisplay => $"₱{PaymentAmount:N2}";
 
-    // No "nothing due yet" case here (unlike AdditionalPaymentViewModel) —
-    // this is always, by definition, the very first payment on a bill
-    // that doesn't exist yet, so the minimum is always genuinely required.
     public bool IsBelowMinimum =>
         MinimumDueToday > 0 && PaymentAmount < MinimumDueToday;
 
@@ -255,12 +228,6 @@ public partial class PaymentViewModel : ObservableObject
             var amountReceived = PaymentAmount;
             var change = Change;
 
-            // Done with this draft — clear it so nothing stale lingers if
-            // this ViewModel instance somehow gets revisited. Captured
-            // above BEFORE clearing: Change is a computed property that
-            // reads Draft (via RequiredAmount -> MinimumDueToday -> Draft),
-            // so evaluating it after this line would silently collapse to
-            // the wrong figure once Draft is gone.
             BillDraftStore.Current = null;
 
             await Shell.Current.GoToAsync(

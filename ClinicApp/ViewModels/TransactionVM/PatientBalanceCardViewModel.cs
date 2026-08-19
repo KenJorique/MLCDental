@@ -7,7 +7,7 @@ namespace ClinicApp.ViewModels.TransactionVM
     /// all their unpaid/partial bills. Built from a group of SupabaseBill.
     public partial class PatientBalanceCardViewModel : ObservableObject
     {
-        public const int DueSoonWindowDays = 3;
+        public const int DueSoonWindowDays = 7;
 
         public string PatientId { get; }
         public string PatientName { get; }
@@ -20,6 +20,7 @@ namespace ClinicApp.ViewModels.TransactionVM
 
         public decimal TotalBalance { get; }
         public DateTime? NextDueDate { get; }
+        public DateTime MostRecentBillDate { get; }  
         public decimal NextPaymentAmount { get; }
         public bool IsOverdue { get; }
         public bool IsDueSoon { get; }
@@ -41,6 +42,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 .First();
 
             NextDueDate = PrimaryBill.DueDate ?? PrimaryBill.VisitDate.AddDays(30);
+            MostRecentBillDate = bills.Max(b => b.CreatedAt);
             NextPaymentAmount = PrimaryBill.IsInstallment && PrimaryBill.MonthlyPayment > 0
                 ? PrimaryBill.MonthlyPayment
                 : PrimaryBill.Balance;
