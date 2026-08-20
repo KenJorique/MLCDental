@@ -2,7 +2,7 @@
     ViewData["Title"] = "Welcome";
 }
 
-<section style="background: linear-gradient(135deg, #1a6fc4, #0d4a8a); color: white; padding: 80px 0;">
+<section style="background: linear-gradient(135deg, #2E7D32, #1B5E20); color: white; padding: 80px 0;">
     <div class="container text-center">
         <i class="bi bi-heart-pulse" style="font-size: 3rem;"></i>
         <h1 class="fw-bold mt-3">Welcome to MLC Dental Clinic</h1>
@@ -15,15 +15,17 @@
 
 <section class="py-5">
     <div class="container">
-        <h2 class="text-center fw-bold mb-5">Our Services</h2>
+        <h2 class="text-center fw-bold mb-2">Our Services</h2>
+        <div class="mx-auto mb-5 bg-gold-light"
+             style="height: 4px; width: 60px; border-radius: 2px; background-color: var(--clinic-gold) !important;"></div>
         <div class="row g-4">
             @foreach (var service in new[] {
-                        ("bi-search", "General Checkup", "Comprehensive oral examination and diagnosis."),
-                        ("bi-stars", "Teeth Cleaning", "Professional cleaning to remove plaque and tartar."),
-                        ("bi-bandaid", "Tooth Extraction", "Safe and painless tooth removal procedures."),
-                        ("bi-circle", "Dental Filling", "Restore damaged teeth with quality materials."),
-                        ("bi-clipboard-pulse", "Root Canal", "Relieve pain and save infected teeth."),
-                        ("bi-gem", "Teeth Whitening", "Brighten your smile professionally.")
+                        ("bi-clipboard2-pulse", "Consultation", "Comprehensive oral examination and assessment to evaluate the patient's overall dental health and treatment needs."),
+                        ("bi-stars", "Teeth Cleaning", "Professional removal of plaque, tartar, and surface stains to promote optimal oral hygiene and periodontal health."),
+                        ("bi-bandaid", "Tooth Extraction", "Clinical removal of teeth that are severely damaged, non-restorable, or otherwise indicated for extraction."),
+                        ("bi-circle", "Dental Filling", "Restoration of teeth affected by dental caries or minor structural damage using appropriate restorative materials."),
+                        ("bi-gem", "Dental Crown", "Custom-fitted restoration designed to protect, strengthen, and restore the function of damaged or weakened teeth."),
+                        ("bi-braces", "Orthodontic Treatment", "Comprehensive treatment focused on correcting tooth alignment and improving dental occlusion through orthodontic appliances.")
                         })
             {
                 <div class="col-md-4">
@@ -38,7 +40,7 @@
     </div>
 </section>
 
-<section style="background: var(--clinic-light, #e8f4fd);" class="py-5">
+<section style="background: var(--clinic-light, #EEF5EE);" class="py-5">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-md-8">

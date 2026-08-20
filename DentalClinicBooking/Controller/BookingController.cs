@@ -9,6 +9,11 @@ namespace DentalClinicBooking.Controller
     {
         private readonly SupabaseService _supabase;
 
+        // The only 6 bookable slots — matches the mobile app's own
+        // WalkInBookingViewModel.InitializeEmptySlots hour list exactly,
+        // so both booking forms offer identical slots.
+        private static readonly int[] SlotHours = { 10, 11, 13, 14, 15, 16 };
+
         public BookingController(SupabaseService supabase)
         {
             _supabase = supabase;
@@ -22,13 +27,36 @@ namespace DentalClinicBooking.Controller
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(BookingViewModel model)
+        public async Task<IActionResult> Index(
+            BookingViewModel model, string? selectedDateStr, int? selectedHour)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
             try
             {
+                // Defensive re-check right before inserting: the slot the
+                // patient picked may have been approved by staff in the
+                // time between page load and Submit. selectedDateStr /
+                // selectedHour are PH-local, set by the same slot-click
+                // handler that builds the hidden AppointmentDate field —
+                // reusing them here sidesteps any UTC/local ambiguity in
+                // model.AppointmentDate and just reuses GetBookedHoursAsync,
+                // the exact same check GetAvailability already uses.
+                if (!string.IsNullOrEmpty(selectedDateStr) &&
+                    DateTime.TryParse(selectedDateStr, out var selectedDate) &&
+                    selectedHour.HasValue)
+                {
+                    var bookedHours = await _supabase.GetBookedHoursAsync(selectedDate);
+                    if (bookedHours.Contains(selectedHour.Value))
+                    {
+                        ModelState.AddModelError("",
+                            "Sorry, this time slot was just booked by someone else. " +
+                            "Please choose another time.");
+                        return View(model);
+                    }
+                }
+
                 // Check if patient already exists
                 var existingResult = await _supabase.Client
                     .From<DentalClinicBooking.Models.Patient>()
@@ -43,7 +71,7 @@ namespace DentalClinicBooking.Controller
                     FullName = model.FullName,
                     Phone = model.Phone,
                     Email = model.Email ?? "",
-                    AppointmentDate =  model.AppointmentDate,
+                    AppointmentDate = model.AppointmentDate,
                     Notes = model.Notes,
                     Status = "pending",
                     IsExistingPatient = existingPatient != null,
@@ -79,54 +107,32 @@ namespace DentalClinicBooking.Controller
 
             try
             {
-                // Get ALL non-cancelled/rejected bookings for this date
-                var allBookings = await _supabase.Client
-                    .From<DentalClinicBooking.Models.Booking>()
-                    .Get();
-
-                // Date from picker is local Philippine time (no timezone)
-                // Bookings are stored as UTC — convert both to same basis
-                var phTimeZone = TimeZoneInfo.FindSystemTimeZoneById(
-                    "Asia/Manila") ??
-                    TimeZoneInfo.CreateCustomTimeZone(
-                        "PH", TimeSpan.FromHours(8), "PH", "PH");
-
-                var bookedHours = allBookings.Models
-                    .Where(b =>
-                        b.Status != "rejected" &&
-                        b.Status != "cancelled" &&
-                        b.AppointmentDate != default)
-                    .Select(b =>
-                    {
-                        // Convert stored UTC to Philippine time
-                        var utc = DateTime.SpecifyKind(
-                                        b.AppointmentDate, DateTimeKind.Utc);
-                        var local = TimeZoneInfo.ConvertTimeFromUtc(utc, phTimeZone);
-                        return local;
-                    })
-                    .Where(local => local.Date == selectedDate.Date)
-                    .Select(local => local.Hour)
-                    .ToList();
+                // Reads appointment_entries — a slot is only unavailable
+                // once staff have actually approved a booking for it (or
+                // created a walk-in), not just because someone submitted
+                // a pending request. See SupabaseService.GetBookedHoursAsync.
+                var bookedHours = await _supabase.GetBookedHoursAsync(selectedDate);
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[Availability] Date={selectedDate:yyyy-MM-dd} " +
                     $"BookedHours=[{string.Join(",", bookedHours)}]");
 
-                var allSlots = new[] { 10, 11, 12, 13, 14, 15 }
+                var allSlots = SlotHours
                     .Select(h => new
                     {
                         time = $"{h:00}:00",
                         display = h > 12
                             ? $"{h - 12}:00 PM"
                             : h == 12 ? "12:00 PM" : $"{h}:00 AM",
-                        count = bookedHours.Count(bh => bh == h),
-                        full = bookedHours.Any(bh => bh == h) // 1 per slot
-                    });
+                        full = bookedHours.Contains(h)
+                    })
+                    .ToList();
 
-                var dayCount = bookedHours.Distinct().Count();
-                var dayFull = dayCount >= 6;
+                // Not an artificial daily cap — just the real fact that
+                // every one of today's actual slots is already taken.
+                var allFull = allSlots.All(s => s.full);
 
-                return Json(new { dayCount, dayFull, slots = allSlots });
+                return Json(new { allFull, slots = allSlots });
             }
             catch (Exception ex)
             {
@@ -134,49 +140,180 @@ namespace DentalClinicBooking.Controller
                     $"[Availability] Error: {ex.Message}");
                 return Json(new
                 {
-                    dayCount = 0,
-                    dayFull = false,
+                    allFull = false,
                     slots = Array.Empty<object>()
                 });
             }
         }
 
+        // Patient Name autocomplete — the ONLY patient suggestion feature
+        // on this form now. Returns names only; selecting one must not
+        // autofill phone/email/notes, so nothing else is even sent back.
         [HttpGet]
-        public async Task<IActionResult> LookupPatient(string phone)
+        public async Task<IActionResult> SearchPatients(string query)
         {
-            if (string.IsNullOrWhiteSpace(phone) || phone.Length < 11)
-                return Json(new { found = false });
+            var names = await _supabase.SearchPatientNamesAsync(query);
+            return Json(names);
+        }
 
-            try
-            {
-                // Check bookings table first for returning patients
-                var result = await _supabase.Client
-                    .From<DentalClinicBooking.Models.Patient>()
-                    .Where(p => p.Phone == phone)
-                    .Get();
+        // ── TEMPORARY DIAGNOSTIC — safe to delete once slot availability
+        // is confirmed correct. Visit e.g.
+        //     /Booking/DebugAvailability?date=2026-08-21
+        // directly in a browser to see exactly what appointment_entries
+        // returned and how each row was interpreted.
+        [HttpGet]
+        public async Task<IActionResult> DebugAvailability(string date)
+        {
+            if (!DateTime.TryParse(date, out var selectedDate))
+                return BadRequest("Invalid date — use format yyyy-MM-dd");
 
-                var patient = result.Models.FirstOrDefault();
-
-                if (patient != null)
-                {
-                    return Json(new
-                    {
-                        found = true,
-                        fullName = patient.FullName,
-                        email = patient.Email ?? "",
-                        phone = patient.Phone ?? "",
-                        isExisting = true
-                    });
-                }
-
-                return Json(new { found = false });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[LookupPatient] {ex.Message}");
-                return Json(new { found = false });
-            }
+            var info = await _supabase.DebugAppointmentEntriesAsync(selectedDate);
+            return Json(info);
         }
     }
 }
+
+
+//using DentalClinicBooking.Models;
+//using DentalClinicBooking.Services;
+//using DentalClinicBooking.ViewModels;
+//using Microsoft.AspNetCore.Mvc;
+
+//namespace DentalClinicBooking.Controller
+//{
+//    public class BookingController : Microsoft.AspNetCore.Mvc.Controller
+//    {
+//        private readonly SupabaseService _supabase;
+
+//        private static readonly int[] SlotHours = { 10, 11, 13, 14, 15, 16 };
+
+//        public BookingController(SupabaseService supabase)
+//        {
+//            _supabase = supabase;
+//        }
+
+//        [HttpGet]
+//        public IActionResult Index()
+//        {
+//            return View(new BookingViewModel());
+//        }
+
+//        [HttpPost]
+//        [ValidateAntiForgeryToken]
+//        public async Task<IActionResult> Index(
+//            BookingViewModel model, string? selectedDateStr, int? selectedHour)
+//        {
+//            if (!ModelState.IsValid)
+//                return View(model);
+
+//            try
+//            {
+//                if (!string.IsNullOrEmpty(selectedDateStr) &&
+//                    DateTime.TryParse(selectedDateStr, out var selectedDate) &&
+//                    selectedHour.HasValue)
+//                {
+//                    var bookedHours = await _supabase.GetBookedHoursAsync(selectedDate);
+//                    if (bookedHours.Contains(selectedHour.Value))
+//                    {
+//                        ModelState.AddModelError("",
+//                            "Sorry, this time slot was just booked by someone else. " +
+//                            "Please choose another time.");
+//                        return View(model);
+//                    }
+//                }
+
+//                // Check if patient already exists
+//                var existingResult = await _supabase.Client
+//                    .From<DentalClinicBooking.Models.Patient>()
+//                    .Where(p => p.Phone == model.Phone)
+//                    .Get();
+
+//                var existingPatient = existingResult.Models.FirstOrDefault();
+
+//                // Insert booking only — patient created on approval if new
+//                var booking = new Booking
+//                {
+//                    FullName = model.FullName,
+//                    Phone = model.Phone,
+//                    Email = model.Email ?? "",
+//                    AppointmentDate = model.AppointmentDate,
+//                    Notes = model.Notes,
+//                    Status = "pending",
+//                    IsExistingPatient = existingPatient != null,
+//                    ExistingPatientId = existingPatient?.Id ?? ""
+//                };
+
+//                await _supabase.Client.From<Booking>().Insert(booking);
+
+//                TempData["PatientName"] = model.FullName;
+//                TempData["AppointmentDate"] = model.AppointmentDate.ToLocalTime().ToString("MMMM dd, yyyy h:mm tt");
+//                TempData["IsExisting"] = existingPatient != null;
+
+//                return RedirectToAction("Confirmation");
+//            }
+//            catch (Exception ex)
+//            {
+//                ModelState.AddModelError("",
+//                    "Booking failed. Please try again. " + ex.Message);
+//                return View(model);
+//            }
+//        }
+
+//        public IActionResult Confirmation()
+//        {
+//            return View();
+//        }
+
+//        [HttpGet]
+//        public async Task<IActionResult> GetAvailability(string date)
+//        {
+//            if (!DateTime.TryParse(date, out var selectedDate))
+//                return BadRequest("Invalid date");
+
+//            try
+//            {
+//                // Reads appointment_entries — a slot is only unavailable
+//                // once staff have actually approved a booking for it (or
+//                // created a walk-in). See SupabaseService.GetBookedHoursAsync.
+//                var bookedHours = await _supabase.GetBookedHoursAsync(selectedDate);
+
+//                System.Diagnostics.Debug.WriteLine(
+//                    $"[Availability] Date={selectedDate:yyyy-MM-dd} " +
+//                    $"BookedHours=[{string.Join(",", bookedHours)}]");
+
+//                var allSlots = SlotHours
+//                    .Select(h => new
+//                    {
+//                        time = $"{h:00}:00",
+//                        display = h > 12
+//                            ? $"{h - 12}:00 PM"
+//                            : h == 12 ? "12:00 PM" : $"{h}:00 AM",
+//                        full = bookedHours.Contains(h)
+//                    })
+//                    .ToList();
+
+//                var allFull = allSlots.All(s => s.full);
+
+//                return Json(new { allFull, slots = allSlots });
+//            }
+//            catch (Exception ex)
+//            {
+//                System.Diagnostics.Debug.WriteLine(
+//                    $"[Availability] Error: {ex.Message}");
+//                return Json(new
+//                {
+//                    allFull = false,
+//                    slots = Array.Empty<object>()
+//                });
+//            }
+//        }
+
+//        // Patient Name autocomplete
+//        [HttpGet]
+//        public async Task<IActionResult> SearchPatients(string query)
+//        {
+//            var names = await _supabase.SearchPatientNamesAsync(query);
+//            return Json(names);
+//        }
+//    }
+//}

@@ -255,7 +255,7 @@
                                        VerticalOptions="Center"/>
 
 								<!-- Status pill — Paid / Partially Paid / Unpaid,
-                                     sits right beside the balance figure. -->
+                                     sits right beside the balance figure.
 								<Frame Grid.Row="1"
                                        Grid.Column="1"
                                        BackgroundColor="{Binding PaymentStatusBgColor}"
@@ -269,7 +269,7 @@
                                            FontSize="11"
                                            FontAttributes="Bold"
                                            TextColor="{Binding PaymentStatusColor}"/>
-								</Frame>
+								</Frame>    -->
 							</Grid>
 
 							<Frame BackgroundColor="#FFF1F2"
