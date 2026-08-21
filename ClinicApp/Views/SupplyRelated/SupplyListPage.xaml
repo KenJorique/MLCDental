@@ -13,28 +13,28 @@
     Shell.TabBarIsVisible="False"
     BackgroundColor="{StaticResource PageBg}">
 
-    <Grid RowDefinitions="Auto,Auto,*">
+	<Grid RowDefinitions="Auto,Auto,*">
 
-        <!-- ── SEARCH + FILTER BAR ── -->
-        <VerticalStackLayout Grid.Row="0"
+		<!-- ── SEARCH + FILTER BAR ── -->
+		<VerticalStackLayout Grid.Row="0"
                              BackgroundColor="{StaticResource PrimaryGreen}"
                              Padding="16,0,16,14">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                <Border Grid.Column="0"
+			<Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+				<Border Grid.Column="0"
                         BackgroundColor="White"
                         StrokeThickness="0"
                         HeightRequest="40">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="20"/>
-                    </Border.StrokeShape>
-                    <Grid ColumnDefinitions="Auto,*" Padding="12,0" ColumnSpacing="8">
-                        <Label Grid.Column="0"
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="20"/>
+					</Border.StrokeShape>
+					<Grid ColumnDefinitions="Auto,*" Padding="12,0" ColumnSpacing="8">
+						<Label Grid.Column="0"
                                FontFamily="MaterialSymbolsRounded"
                                Text="&#xe8b6;"
                                FontSize="17"
                                TextColor="{StaticResource TextMuted}"
                                VerticalOptions="Center"/>
-                        <Entry Grid.Column="1"
+						<Entry Grid.Column="1"
                                Text="{Binding SearchText}"
                                Placeholder="Search supplies..."
                                PlaceholderColor="{StaticResource TextMuted}"
@@ -42,156 +42,246 @@
                                FontSize="13"
                                BackgroundColor="Transparent"
                                VerticalOptions="Center"/>
-                    </Grid>
-                </Border>
+					</Grid>
+				</Border>
 
-                <Border Grid.Column="1"
+				<Border Grid.Column="1"
                         BackgroundColor="Transparent"
                         StrokeThickness="0"
                         HeightRequest="40" WidthRequest="40"
                         VerticalOptions="Center">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding ShowSortOptionsCommand}"/>
-                    </Border.GestureRecognizers>
-                    <Label FontFamily="MaterialSymbolsRounded"
-                           Text="&#xef4f;"
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding ShowSortOptionsCommand}"/>
+					</Border.GestureRecognizers>
+					<Label FontFamily="MaterialSymbolsRounded"
+                           Text="&#xe152;"
                            FontSize="24"
                            TextColor="White"
                            HorizontalOptions="Center"
                            VerticalOptions="Center"/>
-                </Border>
-            </Grid>
-        </VerticalStackLayout>
+				</Border>
+			</Grid>
+		</VerticalStackLayout>
 
-        <!-- ── LOW STOCK BANNER ── -->
-        <Border Grid.Row="1"
-                IsVisible="{Binding HasLowStock}"
-                BackgroundColor="#FFF3E0"
-                Stroke="#FFB74D"
-                StrokeThickness="1"
-                StrokeShape="RoundRectangle 10"
-                Padding="12,8"
-                Margin="16,8,16,0">
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                <Label Grid.Column="0"
-                       FontFamily="MaterialSymbolsRounded"
-                       Text="&#xe002;"
-                       FontSize="16"
-                       TextColor="#E65100"
-                       VerticalOptions="Center"/>
-                <Label Grid.Column="1"
-                       Text="{Binding LowStockSummary}"
-                       FontSize="13" FontAttributes="Bold"
-                       TextColor="#E65100"
-                       VerticalOptions="Center"/>
-            </Grid>
-        </Border>
+		<!-- ── FILTER PILLS: All / Low Stock / Out of Stock ──
+             Selected = solid green fill, white text. Unselected = white
+             fill, gray border, dark text — same treatment for all three
+             pills regardless of stock-status color, per design. Driven
+             by CurrentFilter via DataTriggers rather than bindable color
+             properties, since there's only two states (selected / not)
+             shared identically across all three pills. -->
+		<ScrollView Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalScrollBarVisibility="Never">
+			<HorizontalStackLayout Spacing="8" Padding="16,10,16,10">
 
-        <!-- ── SUPPLY LIST ── -->
-        <RefreshView Grid.Row="2"
+				<Border StrokeThickness="1"
+                        Stroke="{StaticResource Gray200}"
+                        BackgroundColor="White">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="20"/>
+					</Border.StrokeShape>
+					<Border.Triggers>
+						<DataTrigger TargetType="Border"
+                                     Binding="{Binding CurrentFilter}" Value="All">
+							<Setter Property="BackgroundColor" Value="{StaticResource Primary}"/>
+							<Setter Property="Stroke" Value="{StaticResource Primary}"/>
+						</DataTrigger>
+					</Border.Triggers>
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding SetFilterCommand}"
+                                               CommandParameter="All"/>
+					</Border.GestureRecognizers>
+					<Label Text="{Binding AllCount, StringFormat='All ({0})'}"
+                           FontSize="13" Padding="16,8"
+                           TextColor="{StaticResource Gray500}">
+						<Label.Triggers>
+							<DataTrigger TargetType="Label"
+                                         Binding="{Binding CurrentFilter}" Value="All">
+								<Setter Property="TextColor" Value="White"/>
+							</DataTrigger>
+						</Label.Triggers>
+					</Label>
+				</Border>
+
+				<Border StrokeThickness="1"
+                        Stroke="{StaticResource Gray200}"
+                        BackgroundColor="White">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="20"/>
+					</Border.StrokeShape>
+					<Border.Triggers>
+						<DataTrigger TargetType="Border"
+                                     Binding="{Binding CurrentFilter}" Value="Low Stock">
+							<Setter Property="BackgroundColor" Value="{StaticResource Primary}"/>
+							<Setter Property="Stroke" Value="{StaticResource Primary}"/>
+						</DataTrigger>
+					</Border.Triggers>
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding SetFilterCommand}"
+                                               CommandParameter="Low Stock"/>
+					</Border.GestureRecognizers>
+					<Label Text="{Binding LowStockOnlyCount, StringFormat='Low Stock ({0})'}"
+                           FontSize="13" Padding="16,8"
+                           TextColor="{StaticResource Gray500}">
+						<Label.Triggers>
+							<DataTrigger TargetType="Label"
+                                         Binding="{Binding CurrentFilter}" Value="Low Stock">
+								<Setter Property="TextColor" Value="White"/>
+							</DataTrigger>
+						</Label.Triggers>
+					</Label>
+				</Border>
+
+				<Border StrokeThickness="1"
+                        Stroke="{StaticResource Gray200}"
+                        BackgroundColor="White">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="20"/>
+					</Border.StrokeShape>
+					<Border.Triggers>
+						<DataTrigger TargetType="Border"
+                                     Binding="{Binding CurrentFilter}" Value="Out of Stock">
+							<Setter Property="BackgroundColor" Value="{StaticResource Primary}"/>
+							<Setter Property="Stroke" Value="{StaticResource Primary}"/>
+						</DataTrigger>
+					</Border.Triggers>
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding SetFilterCommand}"
+                                               CommandParameter="Out of Stock"/>
+					</Border.GestureRecognizers>
+					<Label Text="{Binding OutOfStockCount, StringFormat='Out of Stock ({0})'}"
+                           FontSize="13" Padding="16,8"
+                           TextColor="{StaticResource Gray500}">
+						<Label.Triggers>
+							<DataTrigger TargetType="Label"
+                                         Binding="{Binding CurrentFilter}" Value="Out of Stock">
+								<Setter Property="TextColor" Value="White"/>
+							</DataTrigger>
+						</Label.Triggers>
+					</Label>
+				</Border>
+
+			</HorizontalStackLayout>
+		</ScrollView>
+
+		<!-- ── SUPPLY LIST ──
+             RefreshView now fills the full remaining height (no bottom
+             margin) so the list visually extends behind the FAB, same as
+             the FAB floating over it. Bottom clearance instead lives on
+             a transparent Footer spacer, which adds space AFTER the
+             last item inside the scrollable area — so scrolling all the
+             way down clears the last card past the FAB, rather than the
+             list's viewport just stopping short of the bottom.
+             (CollectionView has no Padding property in MAUI — using it
+             was a mistake on my part, causing an XFC0009 build error;
+             Footer is the correct way to do this.) -->
+		<RefreshView Grid.Row="2"
              Command="{Binding RefreshCommand}"
-             IsRefreshing="{Binding IsRefreshing}"
-             Margin="0,0,0,88">
-            <CollectionView ItemsSource="{Binding FilteredCards}"
+             IsRefreshing="{Binding IsRefreshing}">
+			<CollectionView ItemsSource="{Binding FilteredCards}"
                     SelectionMode="None"
-                    Margin="16,8,16,0"
+                    Margin="24,8,24,0"
                     IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
 
-                <CollectionView.EmptyView>
-                    <VerticalStackLayout Spacing="8"
-                                 HorizontalOptions="Center"
-                                 VerticalOptions="Center"
-                                 Margin="0,60,0,0">
-                        <Label Text="No supplies found"
-                       Style="{StaticResource SupplyEmptyTitleStyle}"/>
-                        <Label Text="Tap + to add your first supply item"
-                       Style="{StaticResource SupplyEmptySubtitleStyle}"/>
-                    </VerticalStackLayout>
-                </CollectionView.EmptyView>
+				<CollectionView.Footer>
+					<BoxView HeightRequest="50" Color="Transparent"/>
+				</CollectionView.Footer>
 
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:SupplyCardViewModel">
-                        <SwipeView>
-                            <SwipeView.LeftItems>
-                                <SwipeItems Mode="Reveal">
-                                    <SwipeItem Text="Add Stock"
-                                       BackgroundColor="#2E7D32"
-                                       Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                 Path=BindingContext.QuickAddStockCommand}"
-                                       CommandParameter="{Binding .}"/>
-                                </SwipeItems>
-                            </SwipeView.LeftItems>
-                            <SwipeView.RightItems>
-                                <SwipeItems Mode="Reveal">
-                                    <SwipeItem Text="Reduce"
-                                       BackgroundColor="#E65100"
-                                       Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                 Path=BindingContext.QuickReduceStockCommand}"
-                                       CommandParameter="{Binding .}"/>
-                                </SwipeItems>
-                            </SwipeView.RightItems>
+				<CollectionView.EmptyView>
+					<Grid HorizontalOptions="Fill" VerticalOptions="Fill">
+						<VerticalStackLayout Spacing="8"
+								 HorizontalOptions="Center"
+								 VerticalOptions="Center">
+							<Label Text="{Binding EmptyStateTitle}"
+							   Style="{StaticResource EmptyStateTitleStyle}"
+							   HorizontalTextAlignment="Center"/>
+							<Label Text="{Binding EmptyStateMessage}"
+							   Style="{StaticResource EmptyStateSubtitleStyle}"
+							   HorizontalTextAlignment="Center"/>
+						</VerticalStackLayout>
+					</Grid>
+				</CollectionView.EmptyView>
 
-                            <Border Style="{StaticResource SupplyListRowCardStyle}">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                          Path=BindingContext.ShowActionSheetCommand}"
-                                CommandParameter="{Binding .}"/>
-                                </Border.GestureRecognizers>
+				<CollectionView.ItemTemplate>
+					<DataTemplate x:DataType="vm:SupplyCardViewModel">
+						<Border Style="{StaticResource ElevatedCardStyle}"
+                                Padding="14,12"
+                                Margin="15,0,15,8">
+							<Border.GestureRecognizers>
+								<TapGestureRecognizer
+                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                      Path=BindingContext.ShowActionSheetCommand}"
+                            CommandParameter="{Binding .}"/>
+							</Border.GestureRecognizers>
 
-                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
-                                    <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
-                                        <Label Text="{Binding Supply.Name}"
-                                       FontSize="15" FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}"
-                                       LineBreakMode="TailTruncation"/>
-                                        <Label Text="{Binding UnitDisplay}"
-                                       Style="{StaticResource SupplyCaptionStyle}"/>
-                                    </VerticalStackLayout>
+							<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+								<VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+									<Label Text="{Binding Supply.Name}"
+                                   FontSize="15" FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   LineBreakMode="TailTruncation"/>
+									<Label Text="{Binding UnitDisplay}"
+                                   Style="{StaticResource MutedCaptionStyle}"/>
+									<Label Text="{Binding ExpiredWarningText}"
+                                   IsVisible="{Binding IsExpired}"
+                                   FontSize="11" FontAttributes="Bold"
+                                   TextColor="{StaticResource StatusOut}"/>
+								</VerticalStackLayout>
 
-                                    <Border Grid.Column="1"
-                                    Style="{StaticResource SupplyStatusBadgeStyle}"
-                                    BackgroundColor="{Binding StockStatusColor}"
-                                    VerticalOptions="Center">
-                                        <Label Text="{Binding StockStatusLabel}"
-                                       Style="{StaticResource SupplyStatusBadgeLabelStyle}"/>
-                                    </Border>
+								<Border Grid.Column="1"
+                                Style="{StaticResource StatusBadgeStyle}"
+                                BackgroundColor="{Binding StockStatusColor}"
+                                VerticalOptions="Center">
+									<Label Text="{Binding StockStatusLabel}"
+                                   Style="{StaticResource StatusBadgeLabelStyle}"
+                                   TextColor="{Binding StockStatusTextColor}"/>
+								</Border>
 
-                                    <Label Grid.Column="2"
-                                   Text="{Binding StockDisplay}"
+								<Label Grid.Column="2"
+                               Text="{Binding StockDisplay}"
                                    FontSize="14" FontAttributes="Bold"
                                    TextColor="{StaticResource TextPrimary}"
                                    VerticalOptions="Center"/>
-                                </Grid>
-                            </Border>
-                        </SwipeView>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </RefreshView>
+							</Grid>
+						</Border>
+					</DataTemplate>
+				</CollectionView.ItemTemplate>
+			</CollectionView>
+		</RefreshView>
 
-        <!-- Loading -->
-        <VerticalStackLayout Grid.Row="2"
+		<!-- Loading -->
+		<VerticalStackLayout Grid.Row="2"
                              IsVisible="{Binding IsBusy}"
                              HorizontalOptions="Center"
                              VerticalOptions="Center"
                              Spacing="8">
-            <ActivityIndicator IsRunning="{Binding IsBusy}"
+			<ActivityIndicator IsRunning="{Binding IsBusy}"
                                Color="{StaticResource PrimaryGreen}"
                                HeightRequest="36" WidthRequest="36"/>
-            <Label Text="Loading supplies..."
-                   Style="{StaticResource SupplyCaptionStyle}"
+			<Label Text="Loading supplies..."
+                   Style="{StaticResource MutedCaptionStyle}"
                    HorizontalTextAlignment="Center"/>
-        </VerticalStackLayout>
+		</VerticalStackLayout>
 
-        <!-- FAB -->
-        <Button Grid.Row="2"
-                Text="+ Add Item"
-                Command="{Binding GoToAddSupplyCommand}"
+		<!-- FAB — circular icon button, floats over the list content
+             (it's declared last in this Grid cell, so it renders on top
+             of the CollectionView beneath it; the list stays fully
+             visible/scrollable behind it). Overrides FabStyle's
+             Padding/CornerRadius/FontSize inline rather than changing
+             FabStyle itself, since that style is shared with other
+             pages that still want the wider text-pill look. -->
+		<Button Grid.Row="2"
+                Text="+ Add Supply"
+		    	Command="{Binding GoToAddSupplyCommand}"
                 Style="{StaticResource FabStyle}"
-                VerticalOptions="End"
+				VerticalOptions="End"
                 HorizontalOptions="End"
-                Margin="0,0,20,24"/>
+                Margin="0,0,20,24">
+			<Button.Shadow>
+				<Shadow Brush="Black" Opacity="0.3" Radius="8" Offset="0,3"/>
+			</Button.Shadow>
+		</Button>
 
-    </Grid>
+	</Grid>
 </ContentPage>

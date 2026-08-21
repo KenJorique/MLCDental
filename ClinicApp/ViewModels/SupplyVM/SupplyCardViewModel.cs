@@ -17,11 +17,27 @@ public partial class SupplyCardViewModel : ObservableObject
     public string StockStatusLabel => Supply.IsOutOfStock ? "Out of Stock"
                                     : Supply.IsLowStock ? "Low Stock"
                                     : "In Stock";
-    public string StockStatusColor => Supply.IsOutOfStock ? "#D32F2F"
-                                    : Supply.IsLowStock ? "#F57C00"
-                                    : "#388E3C";
+
+    // Pale background + saturated text, matching BillCardItem's
+    // Paid/Partial/Unpaid palette exactly (Ledger page) rather than the
+    // old solid-bg/white-text look.
+    public string StockStatusColor => Supply.IsOutOfStock ? "#FCEAEA"
+                                    : Supply.IsLowStock ? "#FFF3E0"
+                                    : "#E8F5E9";
+
+    public string StockStatusTextColor => Supply.IsOutOfStock ? "#C62828"
+                                    : Supply.IsLowStock ? "#E65100"
+                                    : "#2E7D32";
     public string ExpirationDisplay => Supply.HasExpiration && !string.IsNullOrWhiteSpace(Supply.ExpirationDateDisplay)
                                         ? Supply.ExpirationDateDisplay : "—";
+
+    // Inline expired warning (see SupplyListPage.xaml) — only true for
+    // items that actually have an expiration date set AND it's in the past.
+    public bool IsExpired => Supply.HasExpiration
+                              && Supply.ExpirationDate.HasValue
+                              && Supply.ExpirationDate.Value.Date < DateTime.Now.Date;
+
+    public string ExpiredWarningText => $"Expired {Supply.ExpirationDateDisplay}";
 
     public void Refresh()
     {
@@ -31,6 +47,9 @@ public partial class SupplyCardViewModel : ObservableObject
         OnPropertyChanged(nameof(UnitDisplay));
         OnPropertyChanged(nameof(StockStatusLabel));
         OnPropertyChanged(nameof(StockStatusColor));
+        OnPropertyChanged(nameof(StockStatusTextColor));
         OnPropertyChanged(nameof(ExpirationDisplay));
+        OnPropertyChanged(nameof(IsExpired));
+        OnPropertyChanged(nameof(ExpiredWarningText));
     }
 }

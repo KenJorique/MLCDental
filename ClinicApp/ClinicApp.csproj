@@ -101,9 +101,6 @@
 	  <Compile Update="Views\GoogleSignInPage.xaml.cs">
 	    <DependentUpon>GoogleSignInPage.xaml</DependentUpon>
 	  </Compile>
-	  <Compile Update="Resources\Styles\SupplyStyles.xaml.cs">
-	    <DependentUpon>SupplyStyles.xaml</DependentUpon>
-	  </Compile>
 	  <Compile Update="Views\UsersRelated\AddUserPage.xaml.cs">
 	    <DependentUpon>AddUserPage.xaml</DependentUpon>
 	  </Compile>
@@ -114,9 +111,6 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Resources\Styles\PatientStyles.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
-	  <MauiXaml Update="Resources\Styles\SupplyStyles.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentPage.xaml">

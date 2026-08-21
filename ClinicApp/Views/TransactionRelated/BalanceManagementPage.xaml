@@ -126,8 +126,7 @@
                              IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
 
 				<CollectionView.EmptyView>
-					<VerticalStackLayout Spacing="8" HorizontalOptions="Center"
-                                         VerticalOptions="Center">
+					<VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
 						<Label Text="{Binding EmptyStateTitle}"
                                FontSize="16" FontAttributes="Bold"
                                TextColor="{StaticResource TextSecondary}"

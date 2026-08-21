@@ -40,10 +40,10 @@
               ColumnSpacing="12" BackgroundColor="{StaticResource PageBg}">
 			<Button Grid.Column="0" Text="Cancel"
                     Command="{Binding CancelCommand}"
-                    Style="{StaticResource SupplySecondaryButtonStyle}"/>
+                    Style="{StaticResource SecondaryActionButtonStyle}"/>
 			<Button Grid.Column="1" Text="Save"
                     Command="{Binding SaveCommand}"
-                    Style="{StaticResource SupplyPrimaryButtonStyle}"/>
+                    Style="{StaticResource PrimaryActionButtonStyle}"/>
 		</Grid>
 	</Grid>
 </ContentPage>

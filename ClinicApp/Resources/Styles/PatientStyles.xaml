@@ -4,40 +4,43 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
 	<!-- ══════════════════════════════════════════
-         MLC CLINIC — GREEN PALETTE
-         Used across all pages. Keep in sync with Colors.xaml.
-         NOTE: Keys previously named "Pink" have been renamed to
-         accurate green names. Find+Replace in all pages:
-           PrimaryGreen  → PrimaryGreen
-           LightGreen    → LightGreen
-           MediumGreen   → MediumGreen
-           PrimaryGreen   → PrimaryGreen
-    ══════════════════════════════════════════════ -->
+	     MLC CLINIC — GREEN PALETTE
+	     Used across all pages. Keep in sync with Colors.xaml.
+	     NOTE: PrimaryGreen, TextPrimary/TextSecondary/TextMuted/
+	     TextOnPrimary, and PageBg used to be defined here — moved to
+	     Colors.xaml since FormStyles.xaml (and other pages) depended on
+	     them but they weren't safely available unless PatientStyles.xaml
+	     happened to be merged too. PrimaryGreen was also defined here at
+	     a DIFFERENT value (#1A6B2F) than Colors.xaml's (#2E7D32) — that
+	     conflict is now resolved; #2E7D32 is the only definition,
+	     app-wide.
 
-	<!-- Brand greens -->
-	<Color x:Key="PrimaryGreen">#1A6B2F</Color>
+	     CardBorder / BorderColor (identical value, #C4DEC9) have been
+	     consolidated into one shared CardBorderColor key in Styles.xaml.
+	══════════════════════════════════════════════ -->
+
+	<!-- Brand greens specific to Patient screens -->
 	<Color x:Key="LightGreen">#EAF4EC</Color>
 	<Color x:Key="MediumGreen">#B8DEC0</Color>
 
 	<!-- Backgrounds -->
-	<Color x:Key="PageBg">#FFFFFF</Color>
-	<Color x:Key="SurfaceBg">#F0F7F1</Color>
+	<!-- SurfaceBg used to be its own near-duplicate pale green (#F0F7F1),
+	     visually indistinguishable from Colors.xaml's Secondary
+	     (#EEF5EE). Per your preference, it's now the same value as
+	     Secondary rather than a second, separately-maintained tone —
+	     kept as its own key (rather than deleted outright) since I don't
+	     have visibility into every page that references "SurfaceBg" by
+	     name; this avoids a broken StaticResource lookup while still
+	     eliminating the two-nearly-identical-colors problem. If you'd
+	     rather fully remove the key, a project-wide find of "SurfaceBg"
+	     → replace with "Secondary" is all that's left to do. -->
+	<Color x:Key="SurfaceBg">#EEF5EE</Color>
 	<Color x:Key="CardBg">#FFFFFF</Color>
-
-	<!-- Text -->
-	<Color x:Key="TextPrimary">#1A1A2E</Color>
-	<Color x:Key="TextSecondary">#6B7280</Color>
-	<Color x:Key="TextMuted">#B0B7C3</Color>
-	<Color x:Key="TextOnPrimary">#FFFFFF</Color>
-
-	<!-- Borders & Dividers -->
-	<Color x:Key="BorderColor">#C4DEC9</Color>
 	<Color x:Key="Divider">#DCF0E2</Color>
-	<Color x:Key="CardBorder">#C4DEC9</Color>
 
 	<!-- ══════════════════════════════════════════
-         TYPOGRAPHY
-    ══════════════════════════════════════════════ -->
+	     TYPOGRAPHY
+	══════════════════════════════════════════════ -->
 	<Style x:Key="SectionTitleStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="12"/>
 		<Setter Property="FontAttributes" Value="Bold"/>
@@ -71,11 +74,11 @@
 	</Style>
 
 	<!-- ══════════════════════════════════════════
-         CARDS
-    ══════════════════════════════════════════════ -->
+	     CARDS
+	══════════════════════════════════════════════ -->
 	<Style x:Key="CardStyle" TargetType="Border">
 		<Setter Property="BackgroundColor" Value="{StaticResource CardBg}"/>
-		<Setter Property="Stroke" Value="{StaticResource CardBorder}"/>
+		<Setter Property="Stroke" Value="{StaticResource CardBorderColor}"/>
 		<Setter Property="StrokeThickness" Value="1"/>
 		<Setter Property="Padding" Value="16"/>
 		<Setter Property="Margin" Value="0,0,0,12"/>
@@ -84,8 +87,8 @@
 	<Style x:Key="DetailCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}"/>
 
 	<!-- ══════════════════════════════════════════
-         INPUTS
-    ══════════════════════════════════════════════ -->
+	     INPUTS
+	══════════════════════════════════════════════ -->
 	<Style x:Key="EntryStyle" TargetType="Entry">
 		<Setter Property="FontSize" Value="14"/>
 		<Setter Property="TextColor" Value="{StaticResource TextPrimary}"/>
@@ -96,8 +99,8 @@
 	</Style>
 
 	<!-- ══════════════════════════════════════════
-         BUTTONS
-    ══════════════════════════════════════════════ -->
+	     BUTTONS
+	══════════════════════════════════════════════ -->
 	<Style x:Key="PrimaryButtonStyle" TargetType="Button">
 		<Setter Property="BackgroundColor" Value="{StaticResource PrimaryGreen}"/>
 		<Setter Property="TextColor" Value="{StaticResource TextOnPrimary}"/>
@@ -120,7 +123,7 @@
 	<Style x:Key="SortButtonStyle" TargetType="Button">
 		<Setter Property="BackgroundColor" Value="{StaticResource CardBg}"/>
 		<Setter Property="TextColor" Value="{StaticResource PrimaryGreen}"/>
-		<Setter Property="BorderColor" Value="{StaticResource CardBorder}"/>
+		<Setter Property="BorderColor" Value="{StaticResource CardBorderColor}"/>
 		<Setter Property="BorderWidth" Value="1"/>
 		<Setter Property="CornerRadius" Value="12"/>
 		<Setter Property="FontSize" Value="13"/>
@@ -128,8 +131,8 @@
 	</Style>
 
 	<!-- ══════════════════════════════════════════
-         PATIENT LIST
-    ══════════════════════════════════════════════ -->
+	     PATIENT LIST
+	══════════════════════════════════════════════ -->
 	<Style x:Key="PatientNameStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="15"/>
 		<Setter Property="FontAttributes" Value="Bold"/>
@@ -139,7 +142,7 @@
 
 	<Style x:Key="PatientCardStyle" TargetType="Frame">
 		<Setter Property="BackgroundColor" Value="{StaticResource CardBg}"/>
-		<Setter Property="BorderColor" Value="{StaticResource CardBorder}"/>
+		<Setter Property="BorderColor" Value="{StaticResource CardBorderColor}"/>
 		<Setter Property="CornerRadius" Value="12"/>
 		<Setter Property="HasShadow" Value="False"/>
 		<Setter Property="Padding" Value="16"/>

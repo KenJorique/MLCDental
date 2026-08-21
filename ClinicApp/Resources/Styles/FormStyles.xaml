@@ -43,7 +43,7 @@
 
 	<Style x:Key="FormErrorLabel" TargetType="Label">
 		<Setter Property="FontSize" Value="12"/>
-		<Setter Property="TextColor" Value="#D32F2F"/>
+		<Setter Property="TextColor" Value="{StaticResource StatusOut}"/>
 		<Setter Property="Margin" Value="2,2,0,0"/>
 	</Style>
 

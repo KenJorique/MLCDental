@@ -12,7 +12,6 @@
 				<ResourceDictionary Source="Resources/Styles/Colors.xaml" />
 				<ResourceDictionary Source="Resources/Styles/Styles.xaml" />
 				<ResourceDictionary Source="Resources/Styles/PatientStyles.xaml" />
-				<ResourceDictionary Source="Resources/Styles/SupplyStyles.xaml" />
 				<ResourceDictionary Source="Resources/Styles/FormStyles.xaml" />
 			</ResourceDictionary.MergedDictionaries>
 
