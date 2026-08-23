@@ -5,6 +5,7 @@
     xmlns:vm="clr-namespace:ClinicApp.ViewModels.DentalChart"
     x:Class="ClinicApp.Views.DentalChart.DentalChartPage"
     x:DataType="vm:DentalChartViewModel"
+    xmlns:dc="clr-namespace:ClinicApp.Graphics.DentalChart"
     Title="Dental Chart"
     Shell.TabBarIsVisible="False"
     BackgroundColor="#F0F4F8">
@@ -57,66 +58,12 @@
                                Margin="0,2,0,4"/>
 
                         <!-- Upper teeth 1–16 — horizontal scroll on mobile -->
-                        <ScrollView Orientation="Horizontal"
-                                    HorizontalScrollBarVisibility="Never">
-                            <FlexLayout Direction="Row" JustifyContent="Start"
-                                        AlignItems="Center" Wrap="NoWrap"
-                                        BindableLayout.ItemsSource="{Binding UpperTeeth}">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ToothViewModel">
-                                        <Grid WidthRequest="42" HeightRequest="54" Margin="1,0">
-                                            <Grid.GestureRecognizers>
-                                                <TapGestureRecognizer
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                              Path=BindingContext.ToothTappedCommand}"
-                                                    CommandParameter="{Binding ToothNumber}"/>
-                                            </Grid.GestureRecognizers>
-
-                                            <!-- Selection ring -->
-                                            <Border IsVisible="{Binding IsSelected}"
-                                                    StrokeThickness="2.5"
-                                                    Stroke="#FFA500"
-                                                    BackgroundColor="Transparent"
-                                                    ZIndex="2">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="6"/>
-                                                </Border.StrokeShape>
-                                            </Border>
-
-                                            <!-- Tooth body -->
-                                            <Border BackgroundColor="{Binding ToothColor}"
-                                                    StrokeThickness="1" Stroke="#CCCCCC">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="5"/>
-                                                </Border.StrokeShape>
-                                                <VerticalStackLayout Padding="2" Spacing="1">
-                                                    <Label Text="{Binding ToothLabel}"
-                                                           Margin="0,10,0,0"
-                                                           FontSize="10" FontAttributes="Bold"
-                                                           HorizontalTextAlignment="Center"
-                                                           TextColor="#333333"/>
-                                                    <Label Text="T" FontSize="16"
-                                                           TextColor="Black"
-                                                           HorizontalTextAlignment="Center"
-                                                           VerticalTextAlignment="Center"
-                                                           IsVisible="{Binding Condition,
-                                                               Converter={StaticResource StringEqualConverter},
-                                                               ConverterParameter=Normal}"/>
-                                                    <BoxView
-                                                        WidthRequest="24" HeightRequest="20"
-                                                        CornerRadius="3"
-                                                        Color="{Binding ToothColor}"
-                                                        HorizontalOptions="Center"
-                                                        IsVisible="{Binding Condition,
-                                                            Converter={StaticResource StringNotEqualConverter},
-                                                            ConverterParameter=Normal}"/>
-                                                </VerticalStackLayout>
-                                            </Border>
-                                        </Grid>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </FlexLayout>
-                        </ScrollView>
+                        <!-- Upper teeth 1–16 — arch layout -->
+                        <dc:DentalArchCanvasView Arch="Upper"
+                                                  TeethSource="{Binding UpperTeeth}"
+                                                  TappedCommand="{Binding ToothTappedCommand}"
+                                                  HeightRequest="200"
+                                                  HorizontalOptions="Fill"/>
 
                         <!-- Gum divider -->
                         <Grid HeightRequest="22" Margin="0,6">
@@ -131,68 +78,12 @@
                             </Frame>
                         </Grid>
 
-                        <!-- Lower teeth 17–32 — horizontal scroll on mobile -->
-                        <ScrollView Orientation="Horizontal"
-                                    HorizontalScrollBarVisibility="Never">
-                            <FlexLayout Direction="Row" JustifyContent="Start"
-                                        AlignItems="Center" Wrap="NoWrap"
-                                        BindableLayout.ItemsSource="{Binding LowerTeeth}">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ToothViewModel">
-                                        <Grid WidthRequest="42" HeightRequest="54" Margin="1,0">
-                                            <Grid.GestureRecognizers>
-                                                <TapGestureRecognizer
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                              Path=BindingContext.ToothTappedCommand}"
-                                                    CommandParameter="{Binding ToothNumber}"/>
-                                            </Grid.GestureRecognizers>
-
-                                            <!-- Selection ring -->
-                                            <Border IsVisible="{Binding IsSelected}"
-                                                    StrokeThickness="2.5"
-                                                    Stroke="Gray"
-                                                    BackgroundColor="Transparent"
-                                                    ZIndex="2">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="6"/>
-                                                </Border.StrokeShape>
-                                            </Border>
-
-                                            <!-- Tooth body -->
-                                            <Border BackgroundColor="{Binding ToothColor}"
-                                                    StrokeThickness="1" Stroke="#CCCCCC">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="5"/>
-                                                </Border.StrokeShape>
-                                                <VerticalStackLayout Padding="2" Spacing="1">
-                                                    <Label Text="{Binding ToothLabel}"
-                                                           Margin="0,10,0,0"
-                                                           FontSize="10" FontAttributes="Bold"
-                                                           HorizontalTextAlignment="Center"
-                                                           TextColor="#333333"/>
-                                                    <Label Text="T" FontSize="16"
-                                                           TextColor="Black"
-                                                           HorizontalTextAlignment="Center"
-                                                           VerticalTextAlignment="Center"
-                                                           IsVisible="{Binding Condition,
-                                                               Converter={StaticResource StringEqualConverter},
-                                                               ConverterParameter=Normal}"/>
-                                                    
-                                                    <BoxView
-                                                        WidthRequest="24" HeightRequest="20"
-                                                        CornerRadius="3"
-                                                        Color="{Binding ToothColor}"
-                                                        HorizontalOptions="Center"
-                                                        IsVisible="{Binding Condition,
-                                                            Converter={StaticResource StringNotEqualConverter},
-                                                            ConverterParameter=Normal}"/>
-                                                </VerticalStackLayout>
-                                            </Border>
-                                        </Grid>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </FlexLayout>
-                        </ScrollView>
+                        <!-- Lower teeth 17–32 — arch layout -->
+                        <dc:DentalArchCanvasView Arch="Lower"
+                                                  TeethSource="{Binding LowerTeeth}"
+                                                  TappedCommand="{Binding ToothTappedCommand}"
+                                                  HeightRequest="200"
+                                                  HorizontalOptions="Fill"/>
 
                         <!-- LOWER arch label -->
                      

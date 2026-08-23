@@ -139,8 +139,8 @@
                     </div>
 
                     <!-- Hidden fields -->
-                    <input type="hidden" asp-for="AppointmentDate"
-                           id="AppointmentDate" />
+                    <input type="hidden" asp-for="AppointmentDateStr" id="AppointmentDateStr" />
+                    <input type="hidden" asp-for="AppointmentTimeStr" id="AppointmentTimeStr" />
 
                     <!-- PH-local date/hour of the selected slot — used by the
                          server for a real-time re-check right before saving,
@@ -205,6 +205,8 @@
         const submitBtn      = document.getElementById('submitBtn');
         const phoneInput     = document.getElementById('phoneInput');
         const phoneError     = document.getElementById('phoneError');
+        const phoneError   = document.getElementById('phoneError');
+        const phoneError   = document.getElementById('phoneError');
 
         let selectedTime   = null;
         let isDayFull      = false;
@@ -303,8 +305,6 @@
                     btn.className = 'btn w-100 slot-btn btn-outline-primary';
                     btn.innerHTML = `
                         <div class="fw-semibold">${slot.display}</div>
-                        <div class="small text-muted">Available</div>`;
-
                     btn.addEventListener('click', () => {
                         document.querySelectorAll('.slot-btn').forEach(b => {
                             if (!b.disabled) {
@@ -312,13 +312,13 @@
                                 b.classList.add('btn-outline-primary');
                             }
                         });
-
+                            }
                         btn.classList.remove('btn-outline-primary');
                         btn.classList.add('btn-primary', 'active-slot');
-
-                        selectedTime = slot.time;
-                        slotError.classList.add('d-none');
-
+                        // Select this slot
+                        btn.classList.remove('btn-outline-primary');
+                        btn.classList.add('btn-primary', 'active-slot');
+                        // Select this slot
                         const [hours, minutes] = slot.time.split(':');
                         const [year, month, day] = dateStr.split('-');
 
@@ -334,19 +334,25 @@
                         selectedDateEl.value = dateStr;
                         selectedHourEl.value = hours;
                     });
+                        // .toISOString() automatically outputs true UTC variant regardless of local settings!
+                        hiddenDt.value = localDate.toISOString();
+                    });
+                        // .toISOString() automatically outputs true UTC variant regardless of local settings!
+                        hiddenDt.value = localDate.toISOString();
+                    });
                 }
 
                 col.appendChild(btn);
                 slotGrid.appendChild(col);
-            });
-        }
-
-        function resetSlots() {
-            slotGrid.innerHTML   = '';
-            selectedTime         = null;
             hiddenDt.value       = '';
             selectedDateEl.value = '';
             selectedHourEl.value = '';
+        }
+
+            hiddenDt.value       = '';
+            slotGrid.innerHTML   = '';
+            selectedTime         = null;
+            hiddenDt.value       = '';
             isDayFull            = false;
             submitBtn.disabled   = false;
             dayFullAlert.classList.add('d-none');
@@ -433,9 +439,9 @@
                 });
 
                 nameSuggestions.classList.remove('d-none');
-            } catch (err) {
-                console.error('Name search error:', err);
-                hideNameSuggestions();
+        function hideNameSuggestions() {
+            nameSuggestions.classList.add('d-none');
+            nameSuggestions.innerHTML = '';
             }
         }
 

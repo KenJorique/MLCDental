@@ -25,6 +25,9 @@ public class ToothRecord
     /// <summary>Hex color string e.g. "#FF0000"</summary>
     public string Color { get; set; } = "#FFFFFF";
 
+    // Add to ToothRecord.cs, alongside your existing properties
+    [Column("SupabaseId")]
+    public string? SupabaseId { get; set; }
     public string Notes { get; set; } = string.Empty;
 
     [Column("LastUpdated")]

@@ -1,4 +1,3 @@
-
 using ClinicApp.ViewModels.PatientsRelatedVM;
 
 namespace ClinicApp.Views.PatientsRelated;
@@ -16,5 +15,12 @@ public partial class TreatmentHistoryPage : ContentPage
         base.OnAppearing();
         if (BindingContext is TreatmentHistoryViewModel vm)
             vm.LoadHistoryCommand.ExecuteAsync(null);
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        if (BindingContext is TreatmentHistoryViewModel vm)
+            vm.Cleanup();
     }
 }
