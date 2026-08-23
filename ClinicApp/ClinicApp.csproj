@@ -85,6 +85,7 @@
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.100" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
 		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.28.0" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
 		<PackageReference Include="SkiaSharp" Version="2.88.9" />
 		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="2.88.9" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
@@ -171,6 +172,9 @@
 		<Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
    	  <MauiXaml Update="Views\PatientsRelated\VisitDetailsPage.xaml">
+   	    <Generator>MSBuild:Compile</Generator>
+   	  </MauiXaml>
+   	  <MauiXaml Update="Views\ReportRelated\ReportsPage.xaml">
    	    <Generator>MSBuild:Compile</Generator>
    	  </MauiXaml>
 	  <MauiXaml Update="Views\ServicesRelated\ServicePage.xaml">

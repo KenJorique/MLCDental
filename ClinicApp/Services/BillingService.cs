@@ -1,4 +1,7 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.PatientModels;
+using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Models.TransactionModels;
+using ClinicApp.Models.TreatmentModels;
 
 namespace ClinicApp.Services;
 

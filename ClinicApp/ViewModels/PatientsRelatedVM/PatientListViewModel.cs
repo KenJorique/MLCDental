@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.PatientModels;
+using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
 using ClinicApp.Views;
 using ClinicApp.Views.CephalometricRelated;

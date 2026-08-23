@@ -1,4 +1,4 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.PatientModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ClinicApp.ViewModels.DentalChart;

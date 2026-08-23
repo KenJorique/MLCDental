@@ -1,11 +1,13 @@
-﻿    using ClinicApp.Models;
-    using ClinicApp.Services;
-    using ClinicApp.Views.AppointmentRelated;
-    using CommunityToolkit.Mvvm.ComponentModel;
-    using CommunityToolkit.Mvvm.Input;
-    using System.Collections.ObjectModel;
+﻿using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.PatientModels;
+using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Services;
+using ClinicApp.Views.AppointmentRelated;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System.Collections.ObjectModel;
 
-    namespace ClinicApp.ViewModels
+namespace ClinicApp.ViewModels
     {
         public partial class AppointmentViewModel : ObservableObject
         {

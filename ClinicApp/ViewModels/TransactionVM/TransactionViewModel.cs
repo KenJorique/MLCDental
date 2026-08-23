@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Models.TransactionModels;
 using ClinicApp.Services;
 using ClinicApp.Views;
 using ClinicApp.Views.TransactionRelated;

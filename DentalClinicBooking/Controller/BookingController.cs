@@ -42,13 +42,61 @@ namespace DentalClinicBooking.Controller
             }
 
             var appointmentUtc = TimeZoneInfo.ConvertTimeToUtc(
-                DateTime.SpecifyKind(localAppointment, DateTimeKind.Unspecified),
-                phTimeZone);
+    DateTime.SpecifyKind(localAppointment, DateTimeKind.Unspecified),
+    phTimeZone);
 
             model.AppointmentDate = appointmentUtc;
 
             try
             {
+                // ── Server-side conflict check ──────────────────────────────
+                // Don't trust the client's grayed-out slots alone — verify against
+                // the DB right before inserting, in case the UI was stale.
+                System.Diagnostics.Debug.WriteLine(
+      $"[DupeCheck] Incoming: DateStr={model.AppointmentDateStr} TimeStr={model.AppointmentTimeStr} " +
+      $"ParsedLocal={localAppointment:yyyy-MM-dd HH:mm} AppointmentUtc={appointmentUtc:O}");
+
+                var allBookings = await _supabase.Client
+                    .From<Booking>()
+                    .Get();
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[DupeCheck] Total rows fetched from Supabase: {allBookings.Models.Count}");
+
+                bool slotTaken = false;
+
+                foreach (var b in allBookings.Models)
+                {
+                    if (b.Status == "rejected" || b.Status == "cancelled" || b.AppointmentDate == default)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DupeCheck] Skipped row: Id={b.Id} Status={b.Status} RawDate={b.AppointmentDate:O}");
+                        continue;
+                    }
+
+                    var existingUtc = DateTime.SpecifyKind(b.AppointmentDate, DateTimeKind.Utc);
+                    var existingLocal = TimeZoneInfo.ConvertTimeFromUtc(existingUtc, phTimeZone);
+                    var newLocal = TimeZoneInfo.ConvertTimeFromUtc(appointmentUtc, phTimeZone);
+
+                    bool match = existingLocal.Date == newLocal.Date && existingLocal.Hour == newLocal.Hour;
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[DupeCheck] Row Id={b.Id} FullName={b.FullName} RawDate={b.AppointmentDate:O} " +
+                        $"ExistingUtc={existingUtc:O} ExistingLocal={existingLocal:yyyy-MM-dd HH:mm} " +
+                        $"NewLocal={newLocal:yyyy-MM-dd HH:mm} Match={match}");
+
+                    if (match)
+                        slotTaken = true;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[DupeCheck] Final slotTaken = {slotTaken}");
+
+                if (slotTaken)
+                {
+                    ModelState.AddModelError("", "Sorry, that time slot was just booked. Please choose another.");
+                    return View(model);
+                }
+
                 var existingResult = await _supabase.Client
                     .From<DentalClinicBooking.Models.Patient>()
                     .Where(p => p.Phone == model.Phone)
@@ -156,6 +204,7 @@ namespace DentalClinicBooking.Controller
                     slots = Array.Empty<object>()
                 });
             }
+
         }
 
         [HttpGet]

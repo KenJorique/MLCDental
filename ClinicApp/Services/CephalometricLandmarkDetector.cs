@@ -17,7 +17,7 @@ public class CephalometricLandmarkDetector
         System.Diagnostics.Debug.WriteLine($"✅ Detector initialized with URL: {_serverUrl}");
     }
 
-    public async Task<List<Landmark>> DetectLandmarksAsync(string imagePath)
+    public async Task<DetectionResult> DetectLandmarksAsync(string imagePath)
     {
         if (string.IsNullOrEmpty(_serverUrl))
             throw new InvalidOperationException("Server URL not configured");
@@ -50,7 +50,13 @@ public class CephalometricLandmarkDetector
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var result = JsonSerializer.Deserialize<LandmarkResponse>(jsonResponse, options);
 
-            return result?.Landmarks ?? new List<Landmark>();
+            return new DetectionResult
+            {
+                Landmarks = result?.Landmarks ?? new List<Landmark>(),
+                SoftTissueOutline = result?.SoftTissueOutline ?? new List<OutlinePoint>(),
+                MissingLandmarks = result?.MissingLandmarks ?? new List<string>(),
+                IncompletePlanes = result?.IncompletePlanes ?? new List<string>()
+            };
         }
         catch (HttpRequestException ex)
         {
@@ -110,6 +116,26 @@ public class CephalometricLandmarkDetector
     }
 }
 
+/// <summary>Combined result of an /analyze call: landmark points plus the traced soft-tissue outline.</summary>
+/// <summary>Combined result of an /analyze call: landmark points, outline, and any gaps.</summary>
+public class DetectionResult
+{
+    public List<Landmark> Landmarks { get; set; } = new();
+    public List<OutlinePoint> SoftTissueOutline { get; set; } = new();
+    public List<string> MissingLandmarks { get; set; } = new();
+    public List<string> IncompletePlanes { get; set; } = new();
+}
+
+/// <summary>A single point along a traced outline curve (no class/confidence — just geometry).</summary>
+public class OutlinePoint
+{
+    [JsonPropertyName("x")]
+    public float X { get; set; }
+
+    [JsonPropertyName("y")]
+    public float Y { get; set; }
+}
+
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
 public class LandmarkResponse
 {
@@ -122,26 +148,15 @@ public class LandmarkResponse
     [JsonPropertyName("count")]
     public int Count { get; set; }
 
+    [JsonPropertyName("soft_tissue_outline")]
+    public List<OutlinePoint> SoftTissueOutline { get; set; } = new();
+
+    [JsonPropertyName("missing_landmarks")]
+    public List<string> MissingLandmarks { get; set; } = new();
+
+    [JsonPropertyName("incomplete_planes")]
+    public List<string> IncompletePlanes { get; set; } = new();
+
     [JsonPropertyName("error")]
     public string? Error { get; set; }
-}
-
-public class Landmark
-{
-    [JsonPropertyName("x")]
-    public float X { get; set; }
-
-    [JsonPropertyName("y")]
-    public float Y { get; set; }
-
-    [JsonPropertyName("confidence")]
-    public float Confidence { get; set; }
-
-    [JsonPropertyName("class_id")]
-    public int ClassId { get; set; }
-
-    [JsonPropertyName("class_name")]
-    public string? ClassName { get; set; }
-
-    public override string ToString() => $"{ClassName}: ({X:F1}, {Y:F1}) conf={Confidence:F2}";
 }

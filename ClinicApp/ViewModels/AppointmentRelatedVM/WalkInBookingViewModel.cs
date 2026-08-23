@@ -1,4 +1,6 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.PatientModels;
+using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;

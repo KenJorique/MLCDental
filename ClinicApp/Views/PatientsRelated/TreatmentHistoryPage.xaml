@@ -3,7 +3,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:vm="clr-namespace:ClinicApp.ViewModels.PatientsRelatedVM"
-    xmlns:models="clr-namespace:ClinicApp.Models"
+    xmlns:models="clr-namespace:ClinicApp.Models.TreatmentModels"
     x:Class="ClinicApp.Views.PatientsRelated.TreatmentHistoryPage"
     x:DataType="vm:TreatmentHistoryViewModel"
     Title="Treatment History"

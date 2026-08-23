@@ -1,4 +1,4 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.SupabaseModels;
 using Supabase;
 
 namespace ClinicApp.Services
@@ -1491,6 +1491,64 @@ namespace ClinicApp.Services
             {
                 System.Diagnostics.Debug.WriteLine($"[Supabase] GetToothRecords: {ex.Message}");
                 return new List<SupabaseToothRecord>();
+            }
+        }
+
+        // ── Reports support ────────────────────────────────────────────
+
+        public async Task<List<SupabaseBooking>> GetAllBookingsForReportAsync(
+            DateTime rangeStart, DateTime rangeEnd)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseBooking>().Get();
+
+                return result.Models
+                    .Where(b => b.AppointmentDate >= rangeStart && b.AppointmentDate < rangeEnd)
+                    .OrderBy(b => b.AppointmentDate)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllBookingsForReport: {ex.Message}");
+                return new List<SupabaseBooking>();
+            }
+        }
+
+        public async Task<List<SupabaseTreatmentHistory>> GetAllTreatmentHistoryForReportAsync(
+    DateTime rangeStart, DateTime rangeEnd)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseTreatmentHistory>().Get();
+
+                return result.Models
+                    .Where(h => h.CreatedAt.HasValue
+                             && h.CreatedAt.Value >= rangeStart
+                             && h.CreatedAt.Value < rangeEnd)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllTreatmentHistoryForReport: {ex.Message}");
+                return new List<SupabaseTreatmentHistory>();
+            }
+        }
+
+        public async Task<List<SupabaseBillItem>> GetAllBillItemsAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseBillItem>().Get();
+                return result.Models ?? new List<SupabaseBillItem>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllBillItems: {ex.Message}");
+                return new List<SupabaseBillItem>();
             }
         }
     }

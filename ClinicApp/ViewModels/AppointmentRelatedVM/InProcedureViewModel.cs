@@ -1,10 +1,11 @@
-﻿using ClinicApp.Models;
-using ClinicApp.Services;
+﻿using ClinicApp.Services;
 using ClinicApp.Views.AppointmentRelated;
 using ClinicApp.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.SupabaseModels;
 
 namespace ClinicApp.ViewModels
 {

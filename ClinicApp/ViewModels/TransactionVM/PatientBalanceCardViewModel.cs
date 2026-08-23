@@ -1,4 +1,4 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.SupabaseModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ClinicApp.ViewModels.TransactionVM

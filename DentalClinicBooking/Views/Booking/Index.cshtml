@@ -287,8 +287,7 @@
                 noDateSel.classList.add('d-none');
                 dayCapacity.classList.add('d-none');
                 dayFullAlert.classList.add('d-none');
-                selectedTime = null;
-                hiddenDt.value = '';
+                selectedTime = null;    
 
                 // Pass date as Philippine local date (yyyy-MM-dd)
                 const res  = await fetch(
@@ -379,6 +378,7 @@
 
         function resetSlots() {
             slotGrid.innerHTML   = '';
+
             selectedTime         = null;
             document.getElementById('AppointmentDateStr').value = '';
             document.getElementById('AppointmentTimeStr').value = '';

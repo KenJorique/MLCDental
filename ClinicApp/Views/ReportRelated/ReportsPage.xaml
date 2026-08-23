@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ClinicApp.Views.ReportRelated.ReportsPage"
+             Title="Reports"
+             BackgroundColor="{StaticResource PageBg}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <!-- ── PERIOD SELECTOR ── -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                <Button Grid.Column="0" Text="Daily"
+                        BackgroundColor="{StaticResource PrimaryGreen}" TextColor="White"
+                        CornerRadius="8" FontSize="13"
+                        Command="{Binding SetPeriodCommand}" CommandParameter="Daily"/>
+                <Button Grid.Column="1" Text="Weekly"
+                        BackgroundColor="{StaticResource PrimaryGreen}" TextColor="White"
+                        CornerRadius="8" FontSize="13"
+                        Command="{Binding SetPeriodCommand}" CommandParameter="Weekly"/>
+                <Button Grid.Column="2" Text="Monthly"
+                        BackgroundColor="{StaticResource PrimaryGreen}" TextColor="White"
+                        CornerRadius="8" FontSize="13"
+                        Command="{Binding SetPeriodCommand}" CommandParameter="Monthly"/>
+            </Grid>
+
+            <Label Text="{Binding DateRangeLabel}" FontSize="14" FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}"/>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                                Color="{StaticResource PrimaryGreen}"/>
+
+            <VerticalStackLayout Spacing="12" IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
+
+                <!-- ── APPOINTMENTS ── -->
+                <Border Padding="16" BackgroundColor="White" StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14"/>
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Appointments" FontSize="15" FontAttributes="Bold"/>
+                        <Label Text="{Binding CurrentReport.TotalAppointments, StringFormat='Total: {0}'}"/>
+                        <Label Text="{Binding CurrentReport.CompletedAppointments, StringFormat='Completed: {0}'}"/>
+                        <Label Text="{Binding CurrentReport.PendingAppointments, StringFormat='Pending: {0}'}"/>
+                        <Label Text="{Binding CurrentReport.CancelledAppointments, StringFormat='Cancelled: {0}'}"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ── TREATMENTS ── -->
+                <Border Padding="16" BackgroundColor="White" StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14"/>
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Treatments" FontSize="15" FontAttributes="Bold"/>
+                        <Label Text="{Binding CurrentReport.TotalTreatments, StringFormat='Total: {0}'}"/>
+                        <CollectionView ItemsSource="{Binding CurrentReport.TreatmentBreakdown}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Label Text="{Binding Key}" FontSize="13"/>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ── BILLING ── -->
+                <Border Padding="16" BackgroundColor="White" StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14"/>
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Billing" FontSize="15" FontAttributes="Bold"/>
+                        <Label Text="{Binding CurrentReport.TotalRevenue, StringFormat='Revenue: ₱{0:N2}'}"/>
+                        <Label Text="{Binding CurrentReport.OutstandingBalance, StringFormat='Outstanding: ₱{0:N2}'}"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ── SERVICES RENDERED ── -->
+                <Border Padding="16" BackgroundColor="White" StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14"/>
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Services Rendered" FontSize="15" FontAttributes="Bold"/>
+                        <Label Text="{Binding CurrentReport.TotalServicesRendered, StringFormat='Total: {0}'}"/>
+                        <CollectionView ItemsSource="{Binding CurrentReport.ServiceBreakdown}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Grid.Column="0" Text="{Binding Key}" FontSize="13"/>
+                                        <Label Grid.Column="1" Text="{Binding Value}" FontSize="13" FontAttributes="Bold"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+                
+                <!-- ── MEDICAL SUPPLIES ── -->
+                <Border Padding="16" BackgroundColor="White" StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14"/>
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Medical Supplies" FontSize="15" FontAttributes="Bold"/>
+                        <Label Text="{Binding CurrentReport.LowStockItemCount, StringFormat='Low stock items: {0}'}"/>
+                        <CollectionView ItemsSource="{Binding CurrentReport.LowStockItemNames}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Label Text="{Binding .}" FontSize="13" TextColor="{StaticResource TextMuted}"/>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

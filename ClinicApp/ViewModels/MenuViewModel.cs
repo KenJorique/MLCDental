@@ -1,5 +1,6 @@
 ﻿using ClinicApp.Services;
 using ClinicApp.Views;
+using ClinicApp.Views.ReportRelated;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.SupplyRelated;
 using ClinicApp.Views.TransactionRelated;
@@ -119,6 +120,20 @@ namespace ClinicApp.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine(
                     $"[MenuViewModel] GoToPaymentManagement: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        async Task GoToReports()
+        {
+            try
+            {
+                await Shell.Current.GoToAsync(nameof(ReportsPage));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MenuViewModel] GoToReports: {ex.Message}");
             }
         }
     }

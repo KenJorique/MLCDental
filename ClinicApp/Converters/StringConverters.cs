@@ -6,11 +6,11 @@ namespace ClinicApp.Converters;
 /// <summary>Returns true when a string is non-null and non-empty.</summary>
 public class StringNotEmptyConverter : IValueConverter
 {
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => value is string s && !string.IsNullOrWhiteSpace(s);
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        !string.IsNullOrWhiteSpace(value as string);
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => throw new NotImplementedException();
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotImplementedException();
 }
 
 /// <summary>Returns true when the string equals the ConverterParameter.</summary>
@@ -169,6 +169,38 @@ public class FilterChipTextConverter : IValueConverter
             ? Colors.White
             : (Color)Application.Current!.Resources["TextSecondary"];
     }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+public class ColorToLightConverter : IValueConverter
+{
+    // Blends the given color toward white, for a soft "badge background" tint
+    private const float BlendAmount = 0.85f;
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is Color color)
+        {
+            return Color.FromRgba(
+                color.Red + (1 - color.Red) * BlendAmount,
+                color.Green + (1 - color.Green) * BlendAmount,
+                color.Blue + (1 - color.Blue) * BlendAmount,
+                1.0);
+        }
+
+        return Colors.White;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotImplementedException();
+}
+
+public class ClassIdToColorConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is int classId ? LandmarkColors.GetColor(classId) : Colors.Gray;
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotImplementedException();

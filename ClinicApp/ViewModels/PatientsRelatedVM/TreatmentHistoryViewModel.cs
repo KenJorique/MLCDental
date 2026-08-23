@@ -1,5 +1,5 @@
 ﻿using ClinicApp.Helpers;
-using ClinicApp.Models;
+using ClinicApp.Models.TreatmentModels;
 using ClinicApp.Services;
 using ClinicApp.Views.PatientsRelated;
 using CommunityToolkit.Mvvm.ComponentModel;

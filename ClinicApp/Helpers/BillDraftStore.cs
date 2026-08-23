@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Models.TransactionModels;
 
 namespace ClinicApp.Helpers;
 

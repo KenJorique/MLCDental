@@ -1,5 +1,6 @@
 ﻿using ClinicApp.Config;
 using ClinicApp.Models;
+using ClinicApp.Models.PatientModels;
 using ClinicApp.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Text.Json;
