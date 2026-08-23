@@ -63,13 +63,7 @@
 			</Grid>
 		</VerticalStackLayout>
 
-		<!-- ── FILTER PILLS: All / Low Stock / Out of Stock ──
-             Selected = solid green fill, white text. Unselected = white
-             fill, gray border, dark text — same treatment for all three
-             pills regardless of stock-status color, per design. Driven
-             by CurrentFilter via DataTriggers rather than bindable color
-             properties, since there's only two states (selected / not)
-             shared identically across all three pills. -->
+		<!-- ── FILTER PILLS: All / Low Stock / Out of Stock ──  -->
 		<ScrollView Grid.Row="1"
                     Orientation="Horizontal"
                     HorizontalScrollBarVisibility="Never">
@@ -165,17 +159,7 @@
 			</HorizontalStackLayout>
 		</ScrollView>
 
-		<!-- ── SUPPLY LIST ──
-             RefreshView now fills the full remaining height (no bottom
-             margin) so the list visually extends behind the FAB, same as
-             the FAB floating over it. Bottom clearance instead lives on
-             a transparent Footer spacer, which adds space AFTER the
-             last item inside the scrollable area — so scrolling all the
-             way down clears the last card past the FAB, rather than the
-             list's viewport just stopping short of the bottom.
-             (CollectionView has no Padding property in MAUI — using it
-             was a mistake on my part, causing an XFC0009 build error;
-             Footer is the correct way to do this.) -->
+		<!-- ── SUPPLY LIST ──    -->
 		<RefreshView Grid.Row="2"
              Command="{Binding RefreshCommand}"
              IsRefreshing="{Binding IsRefreshing}">
@@ -264,13 +248,7 @@
                    HorizontalTextAlignment="Center"/>
 		</VerticalStackLayout>
 
-		<!-- FAB — circular icon button, floats over the list content
-             (it's declared last in this Grid cell, so it renders on top
-             of the CollectionView beneath it; the list stays fully
-             visible/scrollable behind it). Overrides FabStyle's
-             Padding/CornerRadius/FontSize inline rather than changing
-             FabStyle itself, since that style is shared with other
-             pages that still want the wider text-pill look. -->
+		<!-- FAB — circular icon button, floats over the list content  -->
 		<Button Grid.Row="2"
                 Text="+ Add Supply"
 		    	Command="{Binding GoToAddSupplyCommand}"

@@ -15,49 +15,26 @@
 
 	<!-- Brand colors -->
 	<Color x:Key="Primary">#2E7D32</Color>
+	<Color x:Key="PrimaryGreen">#2E7D32</Color>
+
 	<Color x:Key="PrimaryDark">#1B5E20</Color>
 	<Color x:Key="PrimaryDarkText">#242424</Color>
 	<Color x:Key="Secondary">#EEF5EE</Color>
 	<Color x:Key="SecondaryDarkText">#2E7D32</Color>
 	<Color x:Key="Tertiary">#1B5E20</Color>
 
-	<!-- Alias used by FormStyles.xaml. NOTE: PatientStyles.xaml used to
-	     define its OWN PrimaryGreen at #1A6B2F — a second, slightly
-	     different green under the same key name. Removed there; #2E7D32
-	     (this one) is now the single source of truth app-wide. -->
-	<Color x:Key="PrimaryGreen">#2E7D32</Color>
-
-	<!-- Accent gold (from logo) — use sparingly for highlights -->
 	<Color x:Key="Gold">#C8A84B</Color>
 	<Color x:Key="GoldLight">#FBF4E0</Color>
 
-	<!-- Neutral card background for Appointment list cards (test — was per-status StatusBgColor) -->
 	<Color x:Key="AppointmentCardBg">#F5F0D0</Color>
 
-	<!-- ═══════════════════════════════════════════════════════════
-	     SEMANTIC TEXT COLORS — moved here from PatientStyles.xaml.
-	     FormStyles.xaml, PatientStyles.xaml, and (formerly) SupplyStyles
-	     all referenced TextPrimary/TextMuted, but they only actually
-	     existed in PatientStyles.xaml — meaning any page using
-	     FormStyles.xaml without PatientStyles.xaml also merged would
-	     throw a "resource not found" exception. Promoting them here
-	     (values unchanged) fixes that hidden dependency for good.
-	═══════════════════════════════════════════════════════════ -->
 	<Color x:Key="TextPrimary">#1A1A2E</Color>
 	<Color x:Key="TextSecondary">#6B7280</Color>
 	<Color x:Key="TextMuted">#B0B7C3</Color>
 	<Color x:Key="TextOnPrimary">#FFFFFF</Color>
 
-	<!-- Page background used across Patient/Supply pages — same story as
-	     TextPrimary/TextMuted above, promoted here so it's safely
-	     available regardless of which feature dictionaries are merged. -->
 	<Color x:Key="PageBg">#FFFFFF</Color>
 
-	<!-- ═══════════════════════════════════════════════════════════
-	     STATUS COLORS — moved here from SupplyStyles.xaml (now removed).
-	     Not actually supply-specific: "good / low / out" is a generic
-	     3-state status pattern any module can use.
-	═══════════════════════════════════════════════════════════ -->
 	<Color x:Key="StatusGood">#388E3C</Color>
 	<Color x:Key="StatusLow">#F57C00</Color>
 	<Color x:Key="StatusOut">#D32F2F</Color>

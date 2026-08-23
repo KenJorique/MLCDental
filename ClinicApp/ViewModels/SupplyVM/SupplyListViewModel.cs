@@ -19,28 +19,10 @@ public partial class SupplyListViewModel : ObservableObject
     [ObservableProperty] private string lowStockSummary = string.Empty;
     [ObservableProperty] private bool hasLowStock;
     [ObservableProperty] private string searchText = string.Empty;
-
-    // Renamed from CurrentSort: this drives the All / Low Stock / Out of
-    // Stock filter PILLS. It was previously also being set by the sort
-    // action sheet — same property doing two unrelated jobs, which
-    // meant the pills and the sort button silently fought over the same
-    // state. CurrentSortOption below is the real sort choice now.
     [ObservableProperty] private string currentFilter = "All";
-
-    // Actual sort order, set via the sort button's action sheet. Default
-    // matches the requested "out of stock, then low stock, then in
-    // stock, alphabetical within each" ordering — see ApplySort below.
     [ObservableProperty] private string currentSortOption = "Default";
 
     // ── Filter pill counts ──────────────────────────────────────────
-    // AllCount / OutOfStockCount are straightforward totals. LowStockOnlyCount
-    // is separate from the existing LowStockCount above: LowStockCount
-    // feeds the "N items are low or out of stock" banner and intentionally
-    // includes out-of-stock items too, but the "Low Stock" filter case
-    // below explicitly excludes out-of-stock items (c.IsLowStock &&
-    // !c.IsOutOfStock) so the Low Stock and Out of Stock pills don't
-    // double-count the same item. The pill's count needs to match what
-    // the filter actually returns, so it uses that same exclusion.
     [ObservableProperty] private int allCount;
     [ObservableProperty] private int lowStockOnlyCount;
     [ObservableProperty] private int outOfStockCount;
@@ -48,11 +30,6 @@ public partial class SupplyListViewModel : ObservableObject
     public ObservableCollection<SupplyCardViewModel> AllCards { get; } = new();
     public ObservableCollection<SupplyCardViewModel> FilteredCards { get; } = new();
 
-    // Same pattern as Balance Management's EmptyStateTitle/EmptyStateMessage:
-    // search takes priority over the filter (since a search with zero
-    // matches is its own distinct situation, whichever pill is active),
-    // and "Tap + to add your first supply item" only shows for the true
-    // empty-list case ("All", no search), not for an empty filtered view.
     public string EmptyStateTitle
     {
         get
@@ -156,11 +133,6 @@ public partial class SupplyListViewModel : ObservableObject
 
     // "Default" matches the requested behavior: out of stock first, then
     // low stock, then in stock, alphabetical within each group.
-    //
-    // NOTE — Recently Updated assumes SupabaseSupplyItem has an
-    // UpdatedAt property. I don't have that model file; if the real
-    // field is named differently (LastModified, ModifiedAt, etc.),
-    // this is the one line to fix.
     private IEnumerable<SupplyCardViewModel> ApplySort(IEnumerable<SupplyCardViewModel> source) =>
         CurrentSortOption switch
         {

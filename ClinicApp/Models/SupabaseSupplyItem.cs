@@ -40,8 +40,6 @@ namespace ClinicApp.Models
         [Column("created_at")]
         public DateTime CreatedAt { get; set; }
 
-        // Auto-maintained by a Postgres trigger (supplies_set_updated_at) —
-        // set on every UPDATE, so no C# code needs to touch this manually.
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; }
 

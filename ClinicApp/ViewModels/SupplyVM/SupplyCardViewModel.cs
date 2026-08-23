@@ -19,8 +19,6 @@ public partial class SupplyCardViewModel : ObservableObject
                                     : "In Stock";
 
     // Pale background + saturated text, matching BillCardItem's
-    // Paid/Partial/Unpaid palette exactly (Ledger page) rather than the
-    // old solid-bg/white-text look.
     public string StockStatusColor => Supply.IsOutOfStock ? "#FCEAEA"
                                     : Supply.IsLowStock ? "#FFF3E0"
                                     : "#E8F5E9";

@@ -11,7 +11,6 @@
     ═══════════════════════════════════════════════════════════ -->
 
 
-
 	<Style TargetType="ActivityIndicator">
 		<Setter Property="Color" Value="{StaticResource Primary}" />
 	</Style>
@@ -451,21 +450,6 @@
 		<Setter Property="BackgroundColor" Value="Transparent"/>
 	</Style>   -->
 
-	<!-- ═══════════════════════════════════════════════════════════
-	     SHARED GENERIC STYLES — promoted from SupplyStyles.xaml
-	     (now deleted; see cleanup notes). None of these are actually
-	     inventory-specific, so they live here instead of in a
-	     module-only dictionary. Named to avoid colliding with
-	     PatientStyles.xaml's existing SectionTitleStyle/RowLabelStyle/
-	     RowValueStyle/CaptionStyle/CardStyle/PrimaryButtonStyle, which
-	     are left untouched for now (separate decision, not part of
-	     today's cleanup).
-	═══════════════════════════════════════════════════════════ -->
-
-	<!-- Shared border color for card-style Borders/Frames that want a
-	     colored (not plain Gray200) stroke. Was duplicated as both
-	     CardBorder and BorderColor in PatientStyles.xaml at the same
-	     value (#C4DEC9) — consolidated into this one key. -->
 	<Color x:Key="CardBorderColor">#C4DEC9</Color>
 
 	<!-- Generic white rounded card with a soft shadow (was SupplyCardStyle).
@@ -516,7 +500,7 @@
 		<Setter Property="HorizontalOptions" Value="Fill"/>
 	</Style>
 
-	<!-- Pale secondary/cancel button (was SupplySecondaryButtonStyle) -->
+	<!-- Pale secondary/cancel button -->
 	<Style x:Key="SecondaryActionButtonStyle" TargetType="Button">
 		<Setter Property="BackgroundColor" Value="{StaticResource Secondary}"/>
 		<Setter Property="TextColor" Value="{StaticResource Primary}"/>
@@ -527,24 +511,21 @@
 		<Setter Property="HorizontalOptions" Value="Fill"/>
 	</Style>
 
-	<!-- Bold colored tappable-looking label, e.g. "View All ›"
-	     (was SupplyLinkStyle) -->
+	<!-- Bold colored tappable-looking label, e.g. "View All ›" -->
 	<Style x:Key="LinkStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="13"/>
 		<Setter Property="FontAttributes" Value="Bold"/>
 		<Setter Property="TextColor" Value="{StaticResource Primary}"/>
 	</Style>
 
-	<!-- Section header inside a card, e.g. "Item Details", "Stock History"
-	     (was SupplySectionTitleStyle) -->
+	<!-- Section header inside a card, e.g. "Item Details", "Stock History"  -->
 	<Style x:Key="CardSectionTitleStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="14"/>
 		<Setter Property="FontAttributes" Value="Bold"/>
 		<Setter Property="TextColor" Value="{StaticResource Gray900}"/>
 	</Style>
 
-	<!-- Label:value row pair, e.g. inside a details card
-	     (was SupplyRowLabelStyle / SupplyRowValueStyle) -->
+	<!-- Label:value row pair, e.g. inside a details card  -->
 	<Style x:Key="CardRowLabelStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="13"/>
 		<Setter Property="TextColor" Value="{StaticResource Gray500}"/>
@@ -559,17 +540,12 @@
 		<Setter Property="HorizontalTextAlignment" Value="End"/>
 	</Style>
 
-	<!-- Small muted caption text (was SupplyCaptionStyle). NOT the same
-	     role as FormHintLabel in FormStyles.xaml — that one has top
-	     margin for spacing below a form input; this one is meant for
-	     inline table-cell/caption text with no margin assumptions. -->
 	<Style x:Key="MutedCaptionStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="12"/>
 		<Setter Property="TextColor" Value="{StaticResource Gray400}"/>
 	</Style>
 
-	<!-- Empty-list messaging, e.g. CollectionView.EmptyView
-	     (was SupplyEmptyTitleStyle / SupplyEmptySubtitleStyle) -->
+	<!-- Empty-list messaging, e.g. CollectionView.EmptyView ) -->
 	<Style x:Key="EmptyStateTitleStyle" TargetType="Label">
 		<Setter Property="FontSize" Value="16"/>
 		<Setter Property="TextColor" Value="{StaticResource Gray500}"/>
