@@ -1732,6 +1732,31 @@ namespace ClinicApp.Services
             }
         }
 
+        // Reads supply_stock_logs for the Reports page's Medical Supply
+        // chart — every restock/usage/adjustment is already logged here
+        // by ApplyStockChangeAsync above, so this just filters that
+        // existing log to the selected period (same fetch-then-filter
+        // pattern as GetAllBookingsForReportAsync below).
+        public async Task<List<SupabaseStockLog>> GetAllStockLogsForReportAsync(
+            DateTime rangeStart, DateTime rangeEnd)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseStockLog>().Get();
+
+                return result.Models
+                    .Where(l => l.CreatedAt >= rangeStart && l.CreatedAt < rangeEnd)
+                    .OrderBy(l => l.CreatedAt)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllStockLogsForReport: {ex.Message}");
+                return new List<SupabaseStockLog>();
+            }
+        }
+
         // ── Reports support ────────────────────────────────────────────
 
         public async Task<List<SupabaseBooking>> GetAllBookingsForReportAsync(
