@@ -130,7 +130,7 @@ namespace ClinicApp
             builder.Services.AddTransient<TreatmentHistoryViewModel>(sp => 
             new TreatmentHistoryViewModel(
                 sp.GetRequiredService<DatabaseService>(),
-            sp.GetRequiredService<SupabaseRealtimeService>()));
+                sp.GetRequiredService<SupabaseRealtimeService>()));
             builder.Services.AddTransient<CephalometricPage>();
             builder.Services.AddTransient<CephalometricViewModel>();
             builder.Services.AddTransient<VisitDetailsViewModel>();

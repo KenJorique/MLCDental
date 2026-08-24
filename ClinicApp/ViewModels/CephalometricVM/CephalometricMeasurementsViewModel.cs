@@ -113,7 +113,7 @@ public partial class CephalometricMeasurementsViewModel : ObservableObject
             Measurements = resultsList;
 
             // Save to database
-            await SaveMeasurements(patientId, values);
+            await SaveMeasurements(patientId, values, landmarks);
         }
         catch (Exception ex)
         {
@@ -123,11 +123,12 @@ public partial class CephalometricMeasurementsViewModel : ObservableObject
         }
     }
 
-    private async Task SaveMeasurements(int patientId, Dictionary<string, double> values)
+    private async Task SaveMeasurements(int patientId, Dictionary<string, double> values, List<Landmark> landmarks)
     {
         try
         {
             System.Diagnostics.Debug.WriteLine($"💾 Saving measurements for patient {patientId}...");
+            var manuallyPlacedNames = landmarks.Where(l => l.IsManuallyPlaced).Select(l => l.ClassName).ToList();
 
             var measurement = new CephalometricMeasurement
             {
@@ -140,7 +141,10 @@ public partial class CephalometricMeasurementsViewModel : ObservableObject
                 SN_GoGn = values.ContainsKey("SN_GoGn") ? values["SN_GoGn"] : null,
                 U1_SN = values.ContainsKey("U1_SN") ? values["U1_SN"] : null,
                 L1_MP = values.ContainsKey("L1_MP") ? values["L1_MP"] : null,
-                LandmarkData = JsonSerializer.Serialize(values)
+                LandmarkData = JsonSerializer.Serialize(values),
+                  Notes = manuallyPlacedNames.Count > 0
+        ? $"Includes manually placed landmarks: {string.Join(", ", manuallyPlacedNames)}"
+        : null
             };
 
             await _db.SaveCephalometricMeasurement(measurement);

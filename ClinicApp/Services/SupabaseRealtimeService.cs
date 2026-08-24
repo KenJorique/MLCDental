@@ -379,5 +379,25 @@ namespace ClinicApp.Services
             }
         }
 
+        public async Task SyncMissedToothRecordsAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var result = await _client.From<SupabaseToothRecord>().Get();
+                int count = 0;
+                foreach (var sr in result.Models)
+                {
+                    await _db.SyncToothRecordFromSupabase(sr);
+                    count++;
+                }
+                System.Diagnostics.Debug.WriteLine($"[Sync] Missed tooth records synced: {count}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sync] SyncMissedToothRecords error: {ex.Message}");
+            }
+        }
+
     }
 }

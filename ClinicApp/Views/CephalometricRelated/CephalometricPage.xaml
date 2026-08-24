@@ -36,21 +36,19 @@
                 <StackLayout IsVisible="{Binding HasImage}" Spacing="12">
 
                     <!-- Image Container with Canvas Overlay -->
-                    <Frame BorderColor="#E0E0E0" CornerRadius="8" Padding="0" HasShadow="False">
-                        <Grid>
-                            <!-- Base Image -->
-                            <Image Source="{Binding ImagePath}" Aspect="AspectFit" 
-                                   HeightRequest="500"/>
+                    <ScrollView x:Name="ImageScrollView" Orientation="Both">
+                        <Grid x:Name="ImageContentGrid">
+                            <Grid.GestureRecognizers>
+                                <PinchGestureRecognizer PinchUpdated="OnPinchUpdated"/>
+                            </Grid.GestureRecognizers>
 
-                            <!-- Outline + landmark + construction-line overlay canvas: tap-and-drag any point to correct it -->
-                            <GraphicsView IsVisible="{Binding HasLandmarks}" 
-                                         x:Name="LandmarkCanvas"
-                                         HeightRequest="500"
-                                         StartInteraction="OnCanvasStartInteraction"
-                                         DragInteraction="OnCanvasDragInteraction"
-                                         EndInteraction="OnCanvasEndInteraction"/>
+                            <Image Source="{Binding ImagePath}" Aspect="AspectFit" HeightRequest="500"/>
+                            <GraphicsView IsVisible="{Binding HasLandmarks}" x:Name="LandmarkCanvas" HeightRequest="500"
+                     StartInteraction="OnCanvasStartInteraction"
+                     DragInteraction="OnCanvasDragInteraction"
+                     EndInteraction="OnCanvasEndInteraction"/>
                         </Grid>
-                    </Frame>
+                    </ScrollView>
 
                     <!-- Legend -->
                     <FlexLayout IsVisible="{Binding HasLandmarks}" Wrap="Wrap" Direction="Row" JustifyContent="Start">
@@ -82,9 +80,31 @@
 
                     <!-- Missing-landmark warning: explains any gaps in the construction lines -->
                     <Label Text="{Binding IncompletePlanesMessage}" 
-       FontSize="11" TextColor="#B45309" 
-       IsVisible="{Binding IncompletePlanesMessage, Converter={StaticResource StringNotEmptyConverter}}"/>
-                    
+                           FontSize="11" TextColor="#B45309" 
+                           IsVisible="{Binding ShowMissingLandmarksUI}"/>
+                    <!-- Missing landmarks: tap a chip, then tap the image to place that point -->
+                    <FlexLayout IsVisible="{Binding ShowMissingLandmarksUI}" 
+                                Wrap="Wrap" Direction="Row" JustifyContent="Start"
+                                BindableLayout.ItemsSource="{Binding MissingLandmarkNames}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Frame Padding="8,4" Margin="0,0,6,6" CornerRadius="10" HasShadow="False"
+                                       BackgroundColor="#FEF3C7" BorderColor="#D97706">
+                                    <Frame.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding BindingContext.StartPlacingLandmarkCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                           CommandParameter="{Binding .}"/>
+                                    </Frame.GestureRecognizers>
+                                    <Label Text="{Binding .}" TextColor="#92400E" FontSize="11"/>
+                                </Frame>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+
+                    <!-- Placement-mode hint -->
+                    <Label Text="{Binding LandmarkBeingPlaced, StringFormat='📍 Tap the X-ray to place: {0}'}" 
+       FontSize="12" FontAttributes="Bold" TextColor="#2563EB"
+       IsVisible="{Binding LandmarkBeingPlaced, Converter={StaticResource StringNotEmptyConverter}}"/>
+
                     <!-- Drag hint - only shown once landmarks are on screen -->
                     <Label Text="⚠ marked landmarks are less reliable — tap and drag any point to correct its position before calculating." 
                            FontSize="11" TextColor="#B45309" IsVisible="{Binding HasLandmarks}"/>

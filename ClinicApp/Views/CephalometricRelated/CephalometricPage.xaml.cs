@@ -19,6 +19,11 @@ public partial class CephalometricPage : ContentPage
     private Landmark? _touchStartLandmark;
     private bool _hasMoved;
 
+    private double _currentScale = 1;
+    private double _startScale = 1;
+    private const double MinScale = 1;
+    private const double MaxScale = 4;
+
     public CephalometricPage(CephalometricViewModel vm)
     {
         InitializeComponent();
@@ -56,6 +61,37 @@ public partial class CephalometricPage : ContentPage
         }
     }
 
+    private void OnPinchUpdated(object sender, PinchGestureUpdatedEventArgs e)
+    {
+        var content = this.FindByName<Grid>("ImageContentGrid");
+        if (content == null) return;
+
+        switch (e.Status)
+        {
+            case GestureStatus.Started:
+                _startScale = content.Scale;
+                content.AnchorX = 0;
+                content.AnchorY = 0;
+                break;
+
+            case GestureStatus.Running:
+                _currentScale = Math.Clamp(_startScale * e.Scale, MinScale, MaxScale);
+
+                // Adjust anchor so zoom centers roughly on the pinch point
+                double renderedX = content.X + e.ScaleOrigin.X * content.Width * content.Scale;
+                double renderedY = content.Y + e.ScaleOrigin.Y * content.Height * content.Scale;
+
+                content.AnchorX = e.ScaleOrigin.X;
+                content.AnchorY = e.ScaleOrigin.Y;
+                content.Scale = _currentScale;
+                break;
+
+            case GestureStatus.Completed:
+                _startScale = content.Scale;
+                break;
+        }
+    }
+
     private void OnCanvasSizeChanged(object? sender, EventArgs e)
     {
         if (_landmarkCanvas == null) return;
@@ -88,6 +124,21 @@ public partial class CephalometricPage : ContentPage
     {
         if (BindingContext is not CephalometricViewModel vm || _drawable == null) return;
         var touch = e.Touches?.FirstOrDefault() ?? default;
+
+        // Placement mode: next tap creates the missing landmark here, skip hit-testing
+        if (!string.IsNullOrEmpty(vm.LandmarkBeingPlaced))
+        {
+            var (origX, origY) = _drawable.ToOriginal(touch.X, touch.Y);
+
+            // With this corrected line (remove the trailing comma and supply required arguments):
+            // According to the signature: PlaceLandmarkAt(string className, float x, float y, int imageWidth, int imageHeight);
+            // You need to provide imageWidth and imageHeight. Use _drawable._originalWidth and _drawable._originalHeight if accessible, or get them from the image info if needed.
+
+            vm.PlaceLandmarkAt(vm.LandmarkBeingPlaced, origX, origY, (int)_drawable._originalWidth, (int)_drawable._originalHeight);
+            _landmarkCanvas?.Invalidate();
+            return;
+        }
+
 
         _touchStartPoint = touch;
         _hasMoved = false;
@@ -136,19 +187,49 @@ public partial class CephalometricPage : ContentPage
 
     private static double Distance(float x1, float y1, float x2, float y2) =>
         Math.Sqrt(Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2));
+
+    private async void OnPlacementModeChanged(string? landmarkName)
+    {
+        if (_drawable == null) return;
+        _drawable.PlacementTargetName = landmarkName;
+        _landmarkCanvas?.Invalidate();
+
+        if (string.IsNullOrEmpty(landmarkName)) return;
+
+        var region = LandmarkRegionGuide.GetRegion(landmarkName);
+        if (region == null) return;
+
+        var scrollView = this.FindByName<ScrollView>("ImageScrollView");
+        var content = this.FindByName<Grid>("ImageContentGrid");
+        if (scrollView == null || content == null) return;
+
+        double targetScale = 2.5;
+        content.AnchorX = 0;
+        content.AnchorY = 0;
+        content.Scale = targetScale;
+
+        // Wait a frame for layout to catch up to the new scale before scrolling
+        await Task.Delay(50);
+
+        double scrollX = (region.CenterX * content.Width * targetScale) - (scrollView.Width / 2);
+        double scrollY = (region.CenterY * content.Height * targetScale) - (scrollView.Height / 2);
+
+        await scrollView.ScrollToAsync(Math.Max(0, scrollX), Math.Max(0, scrollY), animated: true);
+    }
 }
 
 internal class LandmarkDrawable : IDrawable
 {
     private readonly CephalometricViewModel _viewModel;
 
-    private double _originalWidth = 1;
-    private double _originalHeight = 1;
+    public double _originalWidth = 1;
+    public double _originalHeight = 1;
     private double _canvasWidth = 1;
     private double _canvasHeight = 1;
     private double _scale = 1;
     private double _offsetX = 0;
     private double _offsetY = 0;
+    public string? PlacementTargetName { get; set; }
 
     /// <summary>Landmark tapped by the user; its full name is drawn on the image until tapped again.</summary>
     public Landmark? SelectedLandmark { get; set; }
@@ -198,6 +279,7 @@ internal class LandmarkDrawable : IDrawable
     {
         if (_viewModel?.DetectedLandmarks == null || _viewModel.DetectedLandmarks.Count == 0)
             return;
+    
 
         var landmarks = _viewModel.DetectedLandmarks;
 
@@ -212,6 +294,11 @@ internal class LandmarkDrawable : IDrawable
         DrawPlaneLine(canvas, "Frankfort plane", Find("Porion"), Find("Orbitale"), Colors.Orange, extendBothWays: 30);
         DrawPlaneLine(canvas, "Mandibular plane", Find("Gonion"), Find("Menton"), Colors.LimeGreen, extendBothWays: 30);
 
+        if (!string.IsNullOrEmpty(PlacementTargetName))
+        {
+            DrawPlacementGuide(canvas, PlacementTargetName);
+        }
+
         for (int i = 0; i < landmarks.Count; i++)
         {
             var landmark = landmarks[i];
@@ -221,6 +308,13 @@ internal class LandmarkDrawable : IDrawable
             Color color = LandmarkColors.GetColor(landmark.ClassId);
             bool needsReview = LowConfidenceClasses.Contains(landmark.ClassName ?? "");
             bool isSelected = ReferenceEquals(landmark, SelectedLandmark);
+
+            bool isManuallyPlaced = landmark.Confidence == 0f;
+
+            canvas.StrokeColor = isSelected ? Colors.Black
+                : isManuallyPlaced ? Colors.DodgerBlue
+                : (needsReview ? Colors.DarkOrange : Colors.White);
+            canvas.StrokeSize = isSelected ? 3f : isManuallyPlaced ? 3f : (needsReview ? 2.5f : 1.5f);
 
             canvas.FillColor = color;
             canvas.Alpha = 0.25f;
@@ -247,6 +341,7 @@ internal class LandmarkDrawable : IDrawable
         {
             DrawSelectedLabel(canvas, SelectedLandmark);
         }
+
     }
 
     private void DrawSelectedLabel(ICanvas canvas, Landmark landmark)
@@ -341,4 +436,29 @@ internal class LandmarkDrawable : IDrawable
         canvas.DrawLine(x1, y1, x2, y2);
         canvas.Alpha = 1.0f;
     }
+
+    private void DrawPlacementGuide(ICanvas canvas, string landmarkName)
+    {
+        var region = LandmarkRegionGuide.GetRegion(landmarkName);
+        if (region == null) return;
+
+        // Region is normalized to the ORIGINAL image, so convert through ToDisplay
+        float origX = region.CenterX * (float)_originalWidth;
+        float origY = region.CenterY * (float)_originalHeight;
+        var (dx, dy) = ToDisplay(origX, origY);
+
+        float radius = region.RadiusFraction * (float)Math.Min(_originalWidth, _originalHeight) * (float)_scale;
+
+        canvas.StrokeColor = Colors.DodgerBlue;
+        canvas.StrokeSize = 2f;
+        canvas.StrokeDashPattern = new float[] { 6, 4 };
+        canvas.Alpha = 0.8f;
+        canvas.DrawCircle(dx, dy, radius);
+
+        canvas.FillColor = Colors.DodgerBlue;
+        canvas.Alpha = 0.08f;
+        canvas.FillCircle(dx, dy, radius);
+        canvas.Alpha = 1.0f;
+    }
+
 }

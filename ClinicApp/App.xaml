@@ -47,6 +47,7 @@
 
             <converters:ColorToLightConverter x:Key="ColorToLightConverter"/>
             <converters:ClassIdToColorConverter x:Key="ClassIdToColorConverter"/>
+            <converters:IntGreaterThanZeroConverter x:Key="IntGreaterThanZeroConverter"/>
 
         </ResourceDictionary>
 	</Application.Resources>
