@@ -1,4 +1,10 @@
 ﻿using ClinicApp.Models;
+using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.PatientModels;
+using ClinicApp.Models.ServicesModels;
+using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Models.SupplyModels;
+using ClinicApp.Models.TreatmentModels;
 using SQLite;
 
 namespace ClinicApp.Services;

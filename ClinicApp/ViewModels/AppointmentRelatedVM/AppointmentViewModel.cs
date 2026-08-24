@@ -1,16 +1,18 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.PatientModels;
+using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Views.AppointmentRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using ClinicApp.Views.AppointmentRelated;
 
 namespace ClinicApp.ViewModels
-{
-    public partial class AppointmentViewModel : ObservableObject
     {
-        readonly DatabaseService _db;
-        readonly SupabaseDataService _supabaseData;
+        public partial class AppointmentViewModel : ObservableObject
+        {
+            readonly DatabaseService _db;
+            readonly SupabaseDataService _supabaseData;
 
         public ObservableCollection<BookingCardViewModel> PendingBookings { get; set; } = new();
 

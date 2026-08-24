@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ClinicApp.ViewModels.TransactionVM"
-             xmlns:models="clr-namespace:ClinicApp.Models"
+             xmlns:models="clr-namespace:ClinicApp.Models.TransactionModels"
              Shell.TabBarIsVisible="False"
              Shell.NavBarIsVisible="True"
              Shell.BackgroundColor="{StaticResource Primary}"

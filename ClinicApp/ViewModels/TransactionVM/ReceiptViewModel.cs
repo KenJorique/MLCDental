@@ -1,4 +1,4 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
 using ClinicApp.ViewModels.PatientsRelatedVM;
 using ClinicApp.Views;

@@ -1,5 +1,5 @@
 ﻿using ClinicApp.Helpers;
-using ClinicApp.Models;
+using ClinicApp.Models.TreatmentModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;

@@ -1,6 +1,6 @@
 ﻿namespace ClinicApp.Helpers;
 
-using ClinicApp.Models;
+using ClinicApp.Models.TreatmentModels;
 
 public static class VisitHistoryStore
 {

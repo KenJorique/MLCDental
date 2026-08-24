@@ -45,8 +45,8 @@ namespace DentalClinicBooking.Controller
             }
 
             var appointmentUtc = TimeZoneInfo.ConvertTimeToUtc(
-                DateTime.SpecifyKind(localAppointment, DateTimeKind.Unspecified),
-                phTimeZone);
+    DateTime.SpecifyKind(localAppointment, DateTimeKind.Unspecified),
+    phTimeZone);
 
             model.AppointmentDate = appointmentUtc;
 
@@ -148,6 +148,7 @@ namespace DentalClinicBooking.Controller
                     slots = Array.Empty<object>()
                 });
             }
+
         }
 
         // Patient Name autocomplete

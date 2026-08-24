@@ -1,5 +1,4 @@
 ﻿using ClinicApp.Helpers;
-using ClinicApp.Models;
 using ClinicApp.Services;
 using ClinicApp.Behaviors;
 using ClinicApp.Views;
@@ -7,6 +6,8 @@ using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using ClinicApp.Models.TransactionModels;
+using ClinicApp.Models.SupabaseModels;
 using System.Threading;
 using System.Threading.Tasks;
 

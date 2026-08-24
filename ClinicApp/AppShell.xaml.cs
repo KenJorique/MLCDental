@@ -68,6 +68,9 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(BillDetailsPage), typeof(BillDetailsPage));
             Routing.RegisterRoute(nameof(BalanceManagementPage), typeof(BalanceManagementPage));
 
+            //Reports
+            Routing.RegisterRoute(nameof(Views.ReportRelated.ReportsPage), typeof(Views.ReportRelated.ReportsPage));
+
         }
 
         protected override void OnAppearing()

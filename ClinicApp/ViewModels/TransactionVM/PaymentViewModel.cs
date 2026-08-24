@@ -1,5 +1,6 @@
-﻿using ClinicApp.Helpers;
-using ClinicApp.Models;
+﻿using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Models.TransactionModels;
+using ClinicApp.Helpers;
 using ClinicApp.Services;
 using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;

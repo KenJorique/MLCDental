@@ -1,5 +1,5 @@
 ﻿using ClinicApp.Config;
-using ClinicApp.Models;
+using ClinicApp.Models.PatientModels;
 using ClinicApp.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -26,6 +26,9 @@ public partial class CephalometricViewModel : ObservableObject
     [ObservableProperty] bool isAnalyzing;
     [ObservableProperty] List<Landmark> detectedLandmarks = new();
     [ObservableProperty] bool hasLandmarks;
+    [ObservableProperty] List<OutlinePoint> softTissueOutline = new();
+    [ObservableProperty] List<string> incompletePlanes = new();
+    [ObservableProperty] string incompletePlanesMessage = "";
 
     partial void OnPatientIdChanged(int value)
     {
@@ -77,6 +80,7 @@ public partial class CephalometricViewModel : ObservableObject
         if (confirm)
             await PickAndSaveImage();
     }
+
     [RelayCommand]
     async Task AnalyzeImage()
     {
@@ -108,29 +112,37 @@ public partial class CephalometricViewModel : ObservableObject
             }
 
             System.Diagnostics.Debug.WriteLine("📤 Running detection...");
-            var landmarks = await _detector.DetectLandmarksAsync(ImagePath);
+            var result = await _detector.DetectLandmarksAsync(ImagePath);
+            var landmarks = result.Landmarks;
 
-            System.Diagnostics.Debug.WriteLine($"📊 Detected {landmarks.Count} landmarks");
+
+            for (int i = 0; i < landmarks.Count; i++)
+                landmarks[i].Index = i + 1;
+
+            System.Diagnostics.Debug.WriteLine($"📊 Detected {landmarks.Count} landmarks, {result.SoftTissueOutline.Count} outline points");
 
             if (landmarks.Count == 0)
             {
-                await Shell.Current.DisplayAlert(
-                    "No Landmarks",
-                    "No landmarks detected.",
-                    "OK");
-                DetectedLandmarks.Clear();
+                await Shell.Current.DisplayAlert("No Landmarks", "No landmarks detected.", "OK");
+                DetectedLandmarks = new();
+                SoftTissueOutline = new();
+                IncompletePlanes = new();
+                IncompletePlanesMessage = "";
                 HasLandmarks = false;
                 return;
             }
 
             DetectedLandmarks = landmarks;
+            SoftTissueOutline = result.SoftTissueOutline;
+            IncompletePlanes = result.IncompletePlanes;
+            IncompletePlanesMessage = result.IncompletePlanes.Count > 0
+                ? $"⚠ {string.Join(", ", result.IncompletePlanes)} not shown — one or more required landmarks weren't confidently detected."
+                : "";
             HasLandmarks = true;
 
             NavigationData.PendingLandmarks = landmarks;
             NavigationData.PendingPatientId = PatientId;
             NavigationData.PendingPatientName = PatientName;
-
-            await Shell.Current.GoToAsync("measurements");
         }
         catch (Exception ex)
         {
@@ -142,6 +154,31 @@ public partial class CephalometricViewModel : ObservableObject
             IsAnalyzing = false;
         }
     }
+
+    [RelayCommand]
+    async Task ConfirmMeasurements()
+    {
+        try
+        {
+            if (!HasLandmarks || DetectedLandmarks.Count == 0)
+            {
+                await Shell.Current.DisplayAlert("No Landmarks", "Analyze an image first.", "OK");
+                return;
+            }
+
+            NavigationData.PendingLandmarks = DetectedLandmarks;
+            NavigationData.PendingPatientId = PatientId;
+            NavigationData.PendingPatientName = PatientName;
+
+            await Shell.Current.GoToAsync("measurements");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ ConfirmMeasurements crashed: {ex}");
+            await Shell.Current.DisplayAlert("Error", $"Could not open measurements: {ex.Message}", "OK");
+        }
+    }
+
     private async Task PickAndSaveImage()
     {
         try
@@ -169,7 +206,8 @@ public partial class CephalometricViewModel : ObservableObject
 
             ImagePath = destPath;
             HasImage = true;
-            DetectedLandmarks.Clear();
+            DetectedLandmarks = new();
+            SoftTissueOutline = new();
             HasLandmarks = false;
         }
         catch (Exception ex)

@@ -198,7 +198,11 @@ namespace ClinicApp
             builder.Services.AddTransient<Views.CephalometricRelated.CephalometricMeasurementsPage>();
             builder.Services.AddTransient<CephalometricMeasurementsViewModel>();
 
-
+            // ── Reports ─────────────────────────────
+            builder.Services.AddTransient<Views.ReportRelated.ReportsPage>();
+            builder.Services.AddTransient<ReportsViewModel>(sp=>
+            new ReportsViewModel(
+                sp.GetRequiredService<SupabaseDataService>()));
 
             builder
                 .UseMauiApp<App>()

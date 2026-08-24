@@ -88,6 +88,24 @@
                            FontSize="18" TextColor="{StaticResource TextMuted}" VerticalOptions="Center"/>
 				</Grid>
 
+				<!-- Reports -->
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+					<Grid.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding GoToReportsCommand}"/>
+					</Grid.GestureRecognizers>
+					<Label Grid.Column="0" FontFamily="MaterialSymbolsRoundedFilled" Text="&#xf681;"
+                           FontSize="26" TextColor="{StaticResource PrimaryGreen}"
+                           VerticalOptions="Start" Margin="0,2,0,0"/>
+					<VerticalStackLayout Grid.Column="1" Spacing="2">
+						<Label Text="Reports Generation" FontSize="16" FontAttributes="Bold"
+                               TextColor="{StaticResource PrimaryGreen}"/>
+						<Label Text="Daily, weekly &amp; monthly reports" FontSize="13"
+                               TextColor="{StaticResource TextMuted}"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+                           FontSize="18" TextColor="{StaticResource TextMuted}" VerticalOptions="Center"/>
+				</Grid>
+				
 				<!-- User Management -->
 				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
 					<Grid.GestureRecognizers>

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Maui.Graphics;
-using ClinicApp.Models;
 using ClinicApp.ViewModels;
+using ClinicApp.Models.AppointmentModels;
 
 namespace ClinicApp.Views.AppointmentRelated
 {

@@ -48,6 +48,9 @@
             <converters:FilterChipBgConverter x:Key="FilterChipBgConverter"/>
             <converters:FilterChipTextConverter x:Key="FilterChipTextConverter"/>
 
+            <converters:ColorToLightConverter x:Key="ColorToLightConverter"/>
+            <converters:ClassIdToColorConverter x:Key="ClassIdToColorConverter"/>
+
         </ResourceDictionary>
 	</Application.Resources>
 

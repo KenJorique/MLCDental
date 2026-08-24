@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.SupabaseModels;
 using Supabase.Realtime;
 using Supabase.Realtime.PostgresChanges;
 using static Supabase.Realtime.PostgresChanges.PostgresChangesOptions;

@@ -193,20 +193,19 @@
     @await Html.PartialAsync("_ValidationScripts")
 
     <script>
-        const dateInput      = document.getElementById('apptDate');
-        const hiddenDt       = document.getElementById('AppointmentDate');
-        const selectedDateEl = document.getElementById('selectedDateStr');
-        const selectedHourEl = document.getElementById('selectedHour');
-        const dayFullAlert   = document.getElementById('dayFullAlert');
-        const slotGrid       = document.getElementById('timeSlotGrid');
-        const slotLoading    = document.getElementById('timeSlotLoading');
-        const noDateSel      = document.getElementById('noDateSelected');
-        const slotError      = document.getElementById('timeSlotError');
-        const submitBtn      = document.getElementById('submitBtn');
-        const phoneInput     = document.getElementById('phoneInput');
-        const phoneError     = document.getElementById('phoneError');
-        const phoneError   = document.getElementById('phoneError');
-        const phoneError   = document.getElementById('phoneError');
+        const dateInput        = document.getElementById('apptDate');
+        const dateStrEl        = document.getElementById('AppointmentDateStr');
+        const timeStrEl        = document.getElementById('AppointmentTimeStr');
+        const selectedDateEl   = document.getElementById('selectedDateStr');
+        const selectedHourEl   = document.getElementById('selectedHour');
+        const dayFullAlert     = document.getElementById('dayFullAlert');
+        const slotGrid         = document.getElementById('timeSlotGrid');
+        const slotLoading      = document.getElementById('timeSlotLoading');
+        const noDateSel        = document.getElementById('noDateSelected');
+        const slotError        = document.getElementById('timeSlotError');
+        const submitBtn        = document.getElementById('submitBtn');
+        const phoneInput       = document.getElementById('phoneInput');
+        const phoneError       = document.getElementById('phoneError');
 
         let selectedTime   = null;
         let isDayFull      = false;
@@ -252,7 +251,8 @@
                 noDateSel.classList.add('d-none');
                 dayFullAlert.classList.add('d-none');
                 selectedTime = null;
-                hiddenDt.value = '';
+                dateStrEl.value = '';
+                timeStrEl.value = '';
                 selectedDateEl.value = '';
                 selectedHourEl.value = '';
 
@@ -305,6 +305,8 @@
                     btn.className = 'btn w-100 slot-btn btn-outline-primary';
                     btn.innerHTML = `
                         <div class="fw-semibold">${slot.display}</div>
+                        <div class="small text-muted">Available</div>`;
+
                     btn.addEventListener('click', () => {
                         document.querySelectorAll('.slot-btn').forEach(b => {
                             if (!b.disabled) {
@@ -312,47 +314,43 @@
                                 b.classList.add('btn-outline-primary');
                             }
                         });
-                            }
+
                         btn.classList.remove('btn-outline-primary');
                         btn.classList.add('btn-primary', 'active-slot');
-                        // Select this slot
-                        btn.classList.remove('btn-outline-primary');
-                        btn.classList.add('btn-primary', 'active-slot');
-                        // Select this slot
+
+                        selectedTime = slot.time;
+                        slotError.classList.add('d-none');
+
                         const [hours, minutes] = slot.time.split(':');
-                        const [year, month, day] = dateStr.split('-');
 
-                        // month index is 0-based in JS Date constructor
-                        const localDate = new Date(year, month - 1, day, hours, minutes, 0);
+                        // PH-local date/time — what the form actually posts
+                        // now. The controller parses these directly with
+                        // TryParseExact("yyyy-MM-dd HH:mm") and converts to
+                        // true UTC via TimeZoneInfo, so there's no reliance
+                        // on how a browser's own .toISOString() might get
+                        // interpreted by model binding.
+                        dateStrEl.value = dateStr;
+                        timeStrEl.value = `${hours}:${minutes}`;
 
-                        // .toISOString() outputs true UTC regardless of local settings
-                        hiddenDt.value = localDate.toISOString();
-
-                        // PH-local components, for the server's own recheck —
-                        // sidesteps relying on how AppointmentDate's UTC string
-                        // ends up interpreted by model binding.
+                        // PH-local components, for the server's own recheck
+                        // right before saving.
                         selectedDateEl.value = dateStr;
                         selectedHourEl.value = hours;
-                    });
-                        // .toISOString() automatically outputs true UTC variant regardless of local settings!
-                        hiddenDt.value = localDate.toISOString();
-                    });
-                        // .toISOString() automatically outputs true UTC variant regardless of local settings!
-                        hiddenDt.value = localDate.toISOString();
                     });
                 }
 
                 col.appendChild(btn);
                 slotGrid.appendChild(col);
-            hiddenDt.value       = '';
-            selectedDateEl.value = '';
-            selectedHourEl.value = '';
+            });
         }
 
-            hiddenDt.value       = '';
+        function resetSlots() {
             slotGrid.innerHTML   = '';
             selectedTime         = null;
-            hiddenDt.value       = '';
+            dateStrEl.value      = '';
+            timeStrEl.value      = '';
+            selectedDateEl.value = '';
+            selectedHourEl.value = '';
             isDayFull            = false;
             submitBtn.disabled   = false;
             dayFullAlert.classList.add('d-none');
@@ -439,9 +437,9 @@
                 });
 
                 nameSuggestions.classList.remove('d-none');
-        function hideNameSuggestions() {
-            nameSuggestions.classList.add('d-none');
-            nameSuggestions.innerHTML = '';
+            } catch (err) {
+                console.error('Name search error:', err);
+                hideNameSuggestions();
             }
         }
 
