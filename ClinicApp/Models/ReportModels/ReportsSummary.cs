@@ -62,15 +62,14 @@
         public string Label { get; set; } = string.Empty;
     }
 
-    // One bar in the Treatments chart. WidthProportion (0-1) is this
-    // condition's count relative to the largest one, used to size the
-    // bar's width in the custom horizontal-bar UI (see ReportsPage.xaml)
-    // — Microcharts doesn't have a horizontal bar chart type, so this is
-    // drawn with plain layout instead of a chart library.
-    public class TreatmentBarItem
+    // One point/segment/bar for a Syncfusion chart series. Used for all
+    // four charts (Appointments donut, Supplies donut, Billing line,
+    // Treatments horizontal bar) — Syncfusion's series bind via
+    // XBindingPath/YBindingPath to named properties, so one simple
+    // shared shape covers every chart on this page.
+    public class ChartDataPoint
     {
         public string Label { get; set; } = string.Empty;
-        public int Count { get; set; }
-        public double WidthProportion { get; set; }
+        public double Value { get; set; }
     }
 }

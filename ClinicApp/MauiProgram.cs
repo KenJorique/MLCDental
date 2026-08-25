@@ -20,6 +20,7 @@ using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using The49.Maui.BottomSheet;
 using SkiaSharp.Views.Maui.Controls.Hosting;
+using Syncfusion.Maui.Core.Hosting;
 
 namespace ClinicApp
 {
@@ -27,10 +28,13 @@ namespace ClinicApp
     {
         private const string SupabaseUrl = "https://uxacdqkkocbjaiqszpyk.supabase.co";
         private const string SupabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4YWNkcWtrb2NiamFpcXN6cHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NTExNTUsImV4cCI6MjA5NjAyNzE1NX0.Jt-Dsn6j3m9uL_R0A1Y0AVlUKBA_hmNI-NfHDBQYLUA";
+        private const string SyncfusionLicenseKey = "Ngo9BigBOggjHTQxAR8/V1NNaF5cXmBCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdlWXdcdXRURWlYVERwW0BWYUA=";
 
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
+
+            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(SyncfusionLicenseKey);
 
             // ── Google refresh token ──────────────────────────────
             Preferences.Set("google_refresh_token",
@@ -88,7 +92,7 @@ namespace ClinicApp
                                 sp.GetRequiredService<SupabaseDataService>()
                             ));
             builder.Services.AddTransient<ReschedulePage>();
-            builder.Services.AddTransient<InProcedurePage>( sp =>
+            builder.Services.AddTransient<InProcedurePage>(sp =>
                             new InProcedurePage(
                                 sp.GetRequiredService<InProcedureViewModel>(),
                                 sp.GetRequiredService<SupabaseRealtimeService>()
@@ -122,12 +126,12 @@ namespace ClinicApp
             builder.Services.AddTransient<PatientDetailsPage>();
             builder.Services.AddTransient<PatientDetailsViewModel>();
             builder.Services.AddTransient<DentalChartPage>();
-            builder.Services.AddTransient<DentalChartViewModel> (sp =>
+            builder.Services.AddTransient<DentalChartViewModel>(sp =>
                     new DentalChartViewModel(
                         sp.GetRequiredService<DatabaseService>(),
                         sp.GetRequiredService<SupabaseRealtimeService>()));
             builder.Services.AddTransient<Views.PatientsRelated.TreatmentHistoryPage>();
-            builder.Services.AddTransient<TreatmentHistoryViewModel>(sp => 
+            builder.Services.AddTransient<TreatmentHistoryViewModel>(sp =>
             new TreatmentHistoryViewModel(
                 sp.GetRequiredService<DatabaseService>(),
             sp.GetRequiredService<SupabaseRealtimeService>()));
@@ -176,7 +180,7 @@ namespace ClinicApp
             builder.Services.AddTransient<BalanceManagementViewModel>();
             builder.Services.AddTransient<BalanceManagementPage>();
 
-            builder.Services.AddTransient<AdditionalPaymentPage>(); 
+            builder.Services.AddTransient<AdditionalPaymentPage>();
             builder.Services.AddTransient<AdditionalPaymentViewModel>();
 
             // ── Supply ────────────────────────────────────────────
@@ -200,7 +204,7 @@ namespace ClinicApp
 
             // ── Reports ─────────────────────────────
             builder.Services.AddTransient<Views.ReportRelated.ReportsPage>();
-            builder.Services.AddTransient<ReportsViewModel>(sp=>
+            builder.Services.AddTransient<ReportsViewModel>(sp =>
             new ReportsViewModel(
                 sp.GetRequiredService<SupabaseDataService>()));
 
@@ -209,6 +213,7 @@ namespace ClinicApp
                 .UseBottomSheet()
                 .UseSkiaSharp()
                 .UseMauiCommunityToolkit()
+                .ConfigureSyncfusionCore()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

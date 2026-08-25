@@ -4,15 +4,17 @@
   1. Tab bar at top (Daily / Weekly / Monthly) — tapping one calls
      SetPeriodCommand, which rebuilds the dropdown below it.
   2. Dropdown (Picker) — shows the periods actually available for the
-     selected tab (e.g. "Aug 20, 2026", "This Week"), capped by how
-     much real data exists. Picking one loads that period's report.
-  3. Five report cards, each: title, chart, small color-key legend,
-     then a compact number summary row. All reuse the app's existing
+     selected tab (e.g. "Aug 20", "This Week"), capped by how much
+     real data exists. Picking one loads that period's report.
+  3. Five report cards, each: title, a real Syncfusion chart (with its
+     own legend/axes/data labels — nothing hand-drawn), then a compact
+     number summary row below. All reuse the app's existing
      ElevatedCardStyle/CardSectionTitleStyle/etc. from Styles.xaml
      rather than defining new card styles here.
 -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:chart="clr-namespace:Syncfusion.Maui.Charts;assembly=Syncfusion.Maui.Charts"
              x:Class="ClinicApp.Views.ReportRelated.ReportsPage"
              Title="Reports"
              BackgroundColor="{StaticResource PageBg}">
@@ -97,28 +99,28 @@
 				<VerticalStackLayout Spacing="14"
                         IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
 
-					<!-- ── APPOINTMENTS ── -->
+					<!-- ── APPOINTMENTS — donut, legend + data labels built in ── -->
 					<Border Style="{StaticResource ElevatedCardStyle}">
 						<VerticalStackLayout Spacing="10">
 							<Label Text="Appointments" Style="{StaticResource CardSectionTitleStyle}"/>
 
-							<GraphicsView Drawable="{Binding AppointmentChart}" HeightRequest="150"/>
-
-							<!-- Legend -->
-							<HorizontalStackLayout Spacing="14" HorizontalOptions="Center">
-								<HorizontalStackLayout Spacing="4">
-									<BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="{StaticResource Primary}"/>
-									<Label Text="Completed" Style="{StaticResource MutedCaptionStyle}"/>
-								</HorizontalStackLayout>
-								<HorizontalStackLayout Spacing="4">
-									<BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="{StaticResource StatusLow}"/>
-									<Label Text="Pending" Style="{StaticResource MutedCaptionStyle}"/>
-								</HorizontalStackLayout>
-								<HorizontalStackLayout Spacing="4">
-									<BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="{StaticResource StatusOut}"/>
-									<Label Text="Cancelled" Style="{StaticResource MutedCaptionStyle}"/>
-								</HorizontalStackLayout>
-							</HorizontalStackLayout>
+							<chart:SfCircularChart HeightRequest="220">
+								<chart:SfCircularChart.Legend>
+									<chart:ChartLegend Placement="Bottom"/>
+								</chart:SfCircularChart.Legend>
+								<chart:DoughnutSeries ItemsSource="{Binding AppointmentChartData}"
+                                                       XBindingPath="Label" YBindingPath="Value"
+                                                       ShowDataLabels="True">
+									<chart:DoughnutSeries.PaletteBrushes>
+										<SolidColorBrush Color="{StaticResource Primary}"/>
+										<SolidColorBrush Color="{StaticResource StatusLow}"/>
+										<SolidColorBrush Color="{StaticResource StatusOut}"/>
+									</chart:DoughnutSeries.PaletteBrushes>
+									<chart:DoughnutSeries.DataLabelSettings>
+										<chart:CircularDataLabelSettings LabelPlacement="Outer"/>
+									</chart:DoughnutSeries.DataLabelSettings>
+								</chart:DoughnutSeries>
+							</chart:SfCircularChart>
 
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
@@ -137,31 +139,30 @@
 						</VerticalStackLayout>
 					</Border>
 
-					<!-- ── TREATMENTS — custom horizontal bars, no chart library
-                         (Microcharts has no horizontal bar type) ── -->
+					<!-- ── TREATMENTS — real horizontal bar chart via IsTransposed ── -->
 					<Border Style="{StaticResource ElevatedCardStyle}">
 						<VerticalStackLayout Spacing="10">
 							<Label Text="Treatments" Style="{StaticResource CardSectionTitleStyle}"/>
 
-							<CollectionView ItemsSource="{Binding TreatmentBars}" SelectionMode="None">
-								<CollectionView.ItemTemplate>
-									<DataTemplate>
-										<VerticalStackLayout Spacing="3" Margin="0,4">
-											<Grid ColumnDefinitions="*,Auto">
-												<Label Text="{Binding Label}" FontSize="12" TextColor="{StaticResource TextPrimary}"/>
-												<Label Grid.Column="1" Text="{Binding Count}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}"/>
-											</Grid>
-											<Grid HeightRequest="10" BackgroundColor="{StaticResource Gray100}">
-												<Grid.ColumnDefinitions>
-													<ColumnDefinition Width="{Binding WidthProportion, Converter={StaticResource ProportionToStarConverter}}"/>
-													<ColumnDefinition Width="*"/>
-												</Grid.ColumnDefinitions>
-												<BoxView Grid.Column="0" Color="{StaticResource Primary}" CornerRadius="5"/>
-											</Grid>
-										</VerticalStackLayout>
-									</DataTemplate>
-								</CollectionView.ItemTemplate>
-							</CollectionView>
+							<chart:SfCartesianChart HeightRequest="240" IsTransposed="True">
+								<chart:SfCartesianChart.XAxes>
+									<chart:CategoryAxis/>
+								</chart:SfCartesianChart.XAxes>
+								<chart:SfCartesianChart.YAxes>
+									<chart:NumericalAxis>
+										<chart:NumericalAxis.Title>
+											<chart:ChartAxisTitle Text="Count"/>
+										</chart:NumericalAxis.Title>
+									</chart:NumericalAxis>
+								</chart:SfCartesianChart.YAxes>
+								<chart:ColumnSeries ItemsSource="{Binding TreatmentChartData}"
+                                                  XBindingPath="Label" YBindingPath="Value"
+                                                  ShowDataLabels="True">
+									<chart:ColumnSeries.Fill>
+										<SolidColorBrush Color="{StaticResource Primary}"/>
+									</chart:ColumnSeries.Fill>
+								</chart:ColumnSeries>
+							</chart:SfCartesianChart>
 
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
@@ -178,12 +179,33 @@
 						</VerticalStackLayout>
 					</Border>
 
-					<!-- ── BILLING — line chart trend across the whole dropdown ── -->
+					<!-- ── BILLING — line chart, real X (date) / Y (amount) axes ── -->
 					<Border Style="{StaticResource ElevatedCardStyle}">
 						<VerticalStackLayout Spacing="10">
 							<Label Text="Billing" Style="{StaticResource CardSectionTitleStyle}"/>
 
-							<GraphicsView Drawable="{Binding BillingChart}" HeightRequest="160"/>
+							<chart:SfCartesianChart HeightRequest="220">
+								<chart:SfCartesianChart.XAxes>
+									<chart:CategoryAxis>
+										<chart:CategoryAxis.Title>
+											<chart:ChartAxisTitle Text="Date"/>
+										</chart:CategoryAxis.Title>
+									</chart:CategoryAxis>
+								</chart:SfCartesianChart.XAxes>
+								<chart:SfCartesianChart.YAxes>
+									<chart:NumericalAxis>
+										<chart:NumericalAxis.Title>
+											<chart:ChartAxisTitle Text="Amount Collected (₱)"/>
+										</chart:NumericalAxis.Title>
+									</chart:NumericalAxis>
+								</chart:SfCartesianChart.YAxes>
+								<chart:LineSeries ItemsSource="{Binding BillingChartData}"
+								   XBindingPath="Label" YBindingPath="Value"
+								   Fill="{StaticResource Primary}"
+								   StrokeWidth="3"
+								   ShowMarkers="True"
+								   ShowDataLabels="True"/>
+							</chart:SfCartesianChart>
 
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
@@ -200,27 +222,28 @@
 						</VerticalStackLayout>
 					</Border>
 
-					<!-- ── MEDICAL SUPPLIES ── -->
+					<!-- ── MEDICAL SUPPLIES — donut, legend + data labels built in ── -->
 					<Border Style="{StaticResource ElevatedCardStyle}">
 						<VerticalStackLayout Spacing="10">
 							<Label Text="Medical Supplies" Style="{StaticResource CardSectionTitleStyle}"/>
 
-							<GraphicsView Drawable="{Binding SupplyChart}" HeightRequest="150"/>
-
-							<HorizontalStackLayout Spacing="14" HorizontalOptions="Center">
-								<HorizontalStackLayout Spacing="4">
-									<BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="{StaticResource Primary}"/>
-									<Label Text="In Stock" Style="{StaticResource MutedCaptionStyle}"/>
-								</HorizontalStackLayout>
-								<HorizontalStackLayout Spacing="4">
-									<BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="{StaticResource StatusLow}"/>
-									<Label Text="Low Stock" Style="{StaticResource MutedCaptionStyle}"/>
-								</HorizontalStackLayout>
-								<HorizontalStackLayout Spacing="4">
-									<BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="{StaticResource StatusOut}"/>
-									<Label Text="Out of Stock" Style="{StaticResource MutedCaptionStyle}"/>
-								</HorizontalStackLayout>
-							</HorizontalStackLayout>
+							<chart:SfCircularChart HeightRequest="220">
+								<chart:SfCircularChart.Legend>
+									<chart:ChartLegend Placement="Bottom"/>
+								</chart:SfCircularChart.Legend>
+								<chart:DoughnutSeries ItemsSource="{Binding SupplyChartData}"
+                                                       XBindingPath="Label" YBindingPath="Value"
+                                                       ShowDataLabels="True">
+									<chart:DoughnutSeries.PaletteBrushes>
+										<SolidColorBrush Color="{StaticResource Primary}"/>
+										<SolidColorBrush Color="{StaticResource StatusLow}"/>
+										<SolidColorBrush Color="{StaticResource StatusOut}"/>
+									</chart:DoughnutSeries.PaletteBrushes>
+									<chart:DoughnutSeries.DataLabelSettings>
+										<chart:CircularDataLabelSettings LabelPlacement="Outer"/>
+									</chart:DoughnutSeries.DataLabelSettings>
+								</chart:DoughnutSeries>
+							</chart:SfCircularChart>
 
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
