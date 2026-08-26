@@ -35,7 +35,7 @@ namespace ClinicApp.Views
 
                     Preferences.Set("google_signed_in", true);
                     Preferences.Set("google_access_token", accessToken);
-                    Preferences.Set("google_email", "ken20042011@gmail.com");
+                    Preferences.Set("google_email", "mlcdentalclinic1@gmail.com");
 
                     StatusLabel.Text = "Connected to Google Tasks!";
                     StatusLabel.TextColor = Colors.Green;

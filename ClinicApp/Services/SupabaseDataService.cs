@@ -486,8 +486,8 @@ namespace ClinicApp.Services
                     return _cachedAccessToken;
 
                 const string clientId = "697851532160-76uhho3a71cif1q0k143g22u6n7ledhf.apps.googleusercontent.com";
-                const string clientSecret = "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";
-                const string refreshToken = "1//0etnD-p20Px5wCgYIARAAGA4SNwF-L9IrRRqCR6LS1Egm5jBQzQycF9dM4KQ5KXD1wi8J9WHx6Yd4LWq9nd5aj0ZyZlOA1gP-wXM";
+                const string clientSecret = "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";
+                const string refreshToken = "1//04lNOw9Ik3RmfCgYIARAAGAQSNwF-L9IrWCDoRUW-BrnhpvGtUQvPJykV5kJQT-epjT75UhGphOTNb1Xr7wVCRE3XuNKKE8vY458";
 
                 using var http = new HttpClient();
                 http.Timeout = TimeSpan.FromSeconds(30);

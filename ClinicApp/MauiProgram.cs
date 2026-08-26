@@ -34,7 +34,7 @@ namespace ClinicApp
 
             // ── Google refresh token ──────────────────────────────
             Preferences.Set("google_refresh_token",
-     "1//0etnD-p20Px5wCgYIARAAGA4SNwF-L9IrRRqCR6LS1Egm5jBQzQycF9dM4KQ5KXD1wi8J9WHx6Yd4LWq9nd5aj0ZyZlOA1gP-wXM");
+     "1//04lNOw9Ik3RmfCgYIARAAGAQSNwF-L9IrWCDoRUW-BrnhpvGtUQvPJykV5kJQT-epjT75UhGphOTNb1Xr7wVCRE3XuNKKE8vY458");
             // Clear cached token so fresh one is fetched
             Preferences.Remove("google_access_token");
 
