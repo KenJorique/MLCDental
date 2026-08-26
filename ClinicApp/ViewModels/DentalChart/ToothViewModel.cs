@@ -20,7 +20,7 @@ public partial class ToothViewModel : ObservableObject
 
     [ObservableProperty]
     private Color toothIconColor =
-        Color.FromArgb("#555555");
+        Color.FromArgb("#6B7280");
 
     [ObservableProperty]
     private bool isSelected;
@@ -117,7 +117,7 @@ public partial class ToothViewModel : ObservableObject
             Colors.White;
 
         ToothIconColor =
-            Color.FromArgb("#444444");
+            Color.FromArgb("#6B7280");
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -132,7 +132,7 @@ public partial class ToothViewModel : ObservableObject
             {
                 ToothColor = Colors.White;
                 ToothIconColor =
-                    Color.FromArgb("#444444");
+                    Color.FromArgb("#6B7280");
 
                 return;
             }
@@ -152,7 +152,7 @@ public partial class ToothViewModel : ObservableObject
             else
             {
                 ToothIconColor =
-                    Color.FromArgb("#444444");
+                    Color.FromArgb("#6B7280");
             }
         }
         catch
@@ -161,7 +161,7 @@ public partial class ToothViewModel : ObservableObject
                 Colors.White;
 
             ToothIconColor =
-                Color.FromArgb("#444444");
+                Color.FromArgb("#6B7280");
         }
     }
 

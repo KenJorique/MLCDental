@@ -7,8 +7,8 @@
              BackgroundColor="{StaticResource PageBg}">
 
 	<ScrollView>
-		<VerticalStackLayout Padding="28,28,20,20" Spacing="16">
 
+		<VerticalStackLayout Padding="28,28,20,20" Spacing="16">
 			<!-- ── PROFILE HEADER ── -->
 			<Border Padding="16" BackgroundColor="White"
                     StrokeThickness="0">

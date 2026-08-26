@@ -388,6 +388,11 @@ namespace ClinicApp.ViewModels
             {
                 await _db.UpdateAppointmentStatus(SelectedAppointment.Id, "cancelled");
 
+                // Written BEFORE the delete below — once DeleteAppointmentEntryAsync runs, this is the only record left that this appointment ever existed or got cancelled.
+                await _supabaseData.LogCancelledAppointmentAsync(
+                    SelectedAppointment.AppointmentDateTimeParsed,
+                    SelectedAppointment.PatientName);
+
                 if (!string.IsNullOrEmpty(_selectedSupabaseEntryId))
                     await _supabaseData.DeleteAppointmentEntryAsync(_selectedSupabaseEntryId);
 

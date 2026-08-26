@@ -2,6 +2,7 @@
 using ClinicApp.Services;
 using ClinicApp.Views;
 using ClinicApp.Views.AppointmentRelated;
+using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.SupplyRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -24,19 +25,33 @@ namespace ClinicApp.ViewModels
     //    date range and fills 4 ObservableCollection<ChartDataPoint>
     //    properties — the page's Syncfusion chart series bind directly
     //    to these via ItemsSource/XBindingPath/YBindingPath.
-    // 4. Billing chart granularity depends on the tab:
-    //    - Weekly/Monthly: breaks the SELECTED week/month down into
-    //      daily buckets (7 days, or ~28-31 days) — a zoom INTO that
-    //      one period, not a trend across separate periods.
-    //    - Daily: bills only store a date (no time-of-day) so true
-    //      hourly bars aren't possible yet — stays as a 7-day trend
-    //      across the dropdown until that data exists.
+    // 4. Billing chart granularity depends on the tab, and always
+    //    zooms INTO the selected period (never a trend across separate
+    //    periods anymore):
+    //    - Daily: hourly bars for the SELECTED day, using CreatedAt
+    //      (real time-of-day), bucketed to clinic hours.
+    //    - Weekly/Monthly: one bar per day inside the selected
+    //      week/month (7 days, or ~28-31 days), using VisitDate.
     // 5. Each report card's stat area is tappable — confirms with the
     //    user, then deep-links to the relevant list page.
+    // 6. Appointments: appointment_entries only holds NOT-YET-FINISHED
+    //    visits (the row gets deleted, not marked "completed", once a
+    //    visit is fully processed — see ReceiptViewModel.Done()). So
+    //    Completed comes from Bills instead; Pending/Cancelled come
+    //    from whatever's still sitting in appointment_entries, with a
+    //    report-time no-show rule for entries left over from a day
+    //    that's already fully ended.
     // ───────────────────────────────────────────────────────────────
     public partial class ReportsViewModel : ObservableObject
     {
         readonly SupabaseDataService dataService;
+
+        // Clinic operating hours, used to bucket the Daily billing
+        // chart into hourly bars. Adjust these two numbers if the
+        // clinic's actual hours differ (24-hour format, CloseHour is
+        // exclusive — 17 means "up to but not including 5 PM").
+        const int ClinicOpenHour = 8;
+        const int ClinicCloseHour = 17;
 
         // Earliest date any real data exists (earliest booking or bill).
         // Computed once and cached — see EnsureEarliestDateAsync.
@@ -46,6 +61,18 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private ReportsSummary? currentReport;
         [ObservableProperty] private bool isBusy;
         [ObservableProperty] private string dateRangeLabel = string.Empty;
+
+        // Billing chart X-axis title — "Hour" on the Daily tab, "Date" on Weekly/Monthly. Set in SetPeriod.
+        [ObservableProperty] private string billingAxisTitle = "Hour";
+
+        // Whether the Billing line chart shows a number label on every point. Off for Monthly (too many points, labels overlap the line) — on for Daily/Weekly.
+        [ObservableProperty] private bool showBillingDataLabels = true;
+
+        // Whether the chevron/navigation icons show on the report cards — only on the Daily tab, per request.
+        [ObservableProperty] private bool isDailyPeriod = true;
+
+        // Treatments chart height, sized to the number of treatment categories so Daily/Weekly stay compact while Monthly (usually more categories) gets room to breathe. Set in LoadReport.
+        [ObservableProperty] private double treatmentsChartHeight = 240;
 
         public ObservableCollection<DateRangeOption> DateOptions { get; } = new();
 
@@ -59,11 +86,13 @@ namespace ClinicApp.ViewModels
         public ObservableCollection<ChartDataPoint> BillingChartData { get; } = new();
         public ObservableCollection<ChartDataPoint> TreatmentChartData { get; } = new();
 
+        // Injects the shared data service used for every Supabase call on this page.
         public ReportsViewModel(SupabaseDataService dataService)
         {
             this.dataService = dataService;
         }
 
+        // Runs when the page appears; loads the Daily tab by default.
         public void OnAppearing() => _ = SetPeriod("Daily");
 
         // Tapping a Daily/Weekly/Monthly tab lands here. Rebuilds the
@@ -80,6 +109,11 @@ namespace ClinicApp.ViewModels
                 _ => ReportPeriod.Daily
             };
 
+            // Daily shows hours, so the axis label changes; Monthly has too many points for on-chart labels to stay readable, so those are hidden there (values are still visible via tooltip in the chart).
+            BillingAxisTitle = SelectedPeriod == ReportPeriod.Daily ? "Hour" : "Date";
+            ShowBillingDataLabels = SelectedPeriod != ReportPeriod.Monthly;
+            IsDailyPeriod = SelectedPeriod == ReportPeriod.Daily; // chevrons only show on Daily, per request
+
             await EnsureEarliestDateAsync();
 
             DateOptions.Clear();
@@ -91,6 +125,7 @@ namespace ClinicApp.ViewModels
             SelectedDateOption = DateOptions.FirstOrDefault();
         }
 
+        // Fires when the dropdown selection changes; triggers a fresh report load for that range.
         partial void OnSelectedDateOptionChanged(DateRangeOption? value)
         {
             if (value != null) _ = LoadReport();
@@ -107,12 +142,14 @@ namespace ClinicApp.ViewModels
             try
             {
                 var allBookings = await dataService.GetAllBookingsForReportAsync(DateTime.MinValue, DateTime.MaxValue);
+                var allEntries = await dataService.GetAllAppointmentEntriesForReportAsync(DateTime.MinValue, DateTime.MaxValue);
                 var allBills = await dataService.GetAllBillsAsync();
 
                 var earliestBooking = allBookings.Count > 0 ? allBookings.Min(b => b.AppointmentDate) : (DateTime?)null;
+                var earliestEntry = allEntries.Count > 0 ? allEntries.Min(e => e.AppointmentDateTime) : (DateTime?)null;
                 var earliestBill = allBills.Count > 0 ? allBills.Min(b => b.CreatedAt) : (DateTime?)null;
 
-                _earliestDataDate = new[] { earliestBooking, earliestBill }
+                _earliestDataDate = new[] { earliestBooking, earliestEntry, earliestBill }
                     .Where(d => d.HasValue)
                     .Select(d => d!.Value)
                     .DefaultIfEmpty(DateTime.Today)
@@ -231,19 +268,38 @@ namespace ClinicApp.ViewModels
                 var report = new ReportsSummary { PeriodLabel = label, StartDate = start, EndDate = end };
                 DateRangeLabel = label;
 
-                // ── APPOINTMENTS ──
-                var bookings = await dataService.GetAllBookingsForReportAsync(start, end);
-                report.TotalAppointments = bookings.Count;
-                report.CompletedAppointments = bookings.Count(b => b.Status == "completed");
-                report.CancelledAppointments = bookings.Count(b => b.Status == "cancelled" || b.Status == "rejected");
+                // ── BILLING (fetched early — Completed appointments below need it) ──
+                var allBills = await dataService.GetAllBillsAsync();
+                var billsInRange = allBills.Where(b => b.VisitDate >= start && b.VisitDate < end).ToList();
 
-                // Pending is a catch-all (Total minus the two known
-                // buckets) instead of an exact "pending" string match,
-                // so bookings sitting in other statuses (e.g. "approved")
-                // still get counted instead of vanishing from the chart.
-                report.PendingAppointments = report.TotalAppointments
-                    - report.CompletedAppointments
-                    - report.CancelledAppointments;
+                // ── APPOINTMENTS ──
+                // appointment_entries only holds NOT-YET-FINISHED visits —
+                // ReceiptViewModel.Done() deletes the row the moment a visit
+                // is fully processed, it never marks it "completed". So a
+                // finished visit's only remaining trace is its Bill.
+                var entries = await dataService.GetAllAppointmentEntriesForReportAsync(start, end);
+                var today = DateTime.Today;
+
+                report.CompletedAppointments = billsInRange.Count; // a bill existing for this date IS the "this visit happened" signal, since the entry that produced it is already gone
+
+                // Explicit cancellations — CancelAppointment() logs one row here BEFORE
+                // deleting the entry, since the entry's Status never actually reaches
+                // "cancelled" before it's gone (the row is deleted, not status-flipped).
+                var cancelledLogs = await dataService.GetAllCancelledAppointmentsForReportAsync(start, end);
+                var explicitlyCancelled = cancelledLogs.Count;
+
+                // No-show rule: an entry left over from a day that's already
+                // FULLY ended (not just "later today") without being
+                // explicitly cancelled or converted into a bill. Never
+                // applies mid-day — only once the calendar day is over.
+                var noShowPastDay = entries.Count(e => e.AppointmentDateTime.Date < today);
+
+                report.CancelledAppointments = explicitlyCancelled + noShowPastDay;
+
+                // Genuinely still pending — scheduled today or later, not yet resolved either way.
+                report.PendingAppointments = entries.Count(e => e.AppointmentDateTime.Date >= today);
+
+                report.TotalAppointments = report.CompletedAppointments + report.PendingAppointments + report.CancelledAppointments;
 
                 AppointmentChartData.Clear();
                 AppointmentChartData.Add(new ChartDataPoint { Label = "Completed", Value = report.CompletedAppointments });
@@ -264,9 +320,9 @@ namespace ClinicApp.ViewModels
                 foreach (var kv in report.TreatmentBreakdown.OrderByDescending(kv => kv.Value))
                     TreatmentChartData.Add(new ChartDataPoint { Label = kv.Key, Value = kv.Value });
 
-                // ── BILLING ──
-                var allBills = await dataService.GetAllBillsAsync();
-                var billsInRange = allBills.Where(b => b.VisitDate >= start && b.VisitDate < end).ToList();
+                // ~50dp per row is enough for a 2-line wrapped label; 240 is the floor so the card never looks squashed with few categories
+                TreatmentsChartHeight = Math.Max(240, report.TreatmentBreakdown.Count * 50);
+
                 report.TotalRevenue = billsInRange.Sum(b => b.AmountPaid);
                 report.OutstandingBalance = billsInRange.Sum(b => b.Balance);
 
@@ -274,16 +330,19 @@ namespace ClinicApp.ViewModels
 
                 if (SelectedPeriod == ReportPeriod.Daily)
                 {
-                    // Bills only store a date, no time-of-day, so true
-                    // hourly bars aren't possible yet. Stays as a 7-day
-                    // trend across the dropdown (newest-first, so grab
-                    // from the front then reverse for left-to-right).
-                    foreach (var opt in DateOptions.Take(7).Reverse())
+                    // Hourly breakdown of the SELECTED day (not "last 7
+                    // days" like before, which ignored which date you
+                    // picked). Uses CreatedAt since it has real
+                    // time-of-day; VisitDate is date-only. Bucketed to
+                    // clinic hours so it isn't 24 mostly-empty bars.
+                    for (int hour = ClinicOpenHour; hour < ClinicCloseHour; hour++)
                     {
+                        var hourStart = start.AddHours(hour);
+                        var hourEnd = hourStart.AddHours(1);
                         var revenue = (double)allBills
-                            .Where(b => b.VisitDate >= opt.Start && b.VisitDate < opt.End)
+                            .Where(b => b.CreatedAt >= hourStart && b.CreatedAt < hourEnd)
                             .Sum(b => b.AmountPaid);
-                        BillingChartData.Add(new ChartDataPoint { Label = opt.Label, Value = revenue });
+                        BillingChartData.Add(new ChartDataPoint { Label = hourStart.ToString("h tt"), Value = revenue });
                     }
                 }
                 else
@@ -291,9 +350,12 @@ namespace ClinicApp.ViewModels
                     // Weekly/Monthly: zoom INTO the selected period —
                     // one bar per day inside it (7 for a week, ~28-31
                     // for a month) — instead of a trend across separate
-                    // weeks/months.
+                    // weeks/months. Sunday is skipped since the clinic
+                    // is always closed then (Weekly ends up with 6 bars).
                     for (var day = start.Date; day < end.Date; day = day.AddDays(1))
                     {
+                        if (day.DayOfWeek == DayOfWeek.Sunday) continue; // clinic closed, no data possible
+
                         var dayEnd = day.AddDays(1);
                         var revenue = (double)allBills
                             .Where(b => b.VisitDate >= day && b.VisitDate < dayEnd)
@@ -302,8 +364,8 @@ namespace ClinicApp.ViewModels
                     }
                 }
 
-                // ── SERVICES RENDERED ──
-                var billIdsInRange = billsInRange.Select(b => b.Id).ToHashSet();
+                // ── SERVICES RENDERED — counts each billed line item within this period ──
+                var billIdsInRange = billsInRange.Select(b => b.Id).ToHashSet(); // bill IDs in range, used to filter items below
                 var allBillItems = await dataService.GetAllBillItemsAsync();
                 var itemsInRange = allBillItems.Where(i => billIdsInRange.Contains(i.BillId)).ToList();
 
@@ -312,16 +374,45 @@ namespace ClinicApp.ViewModels
                     .GroupBy(i => string.IsNullOrWhiteSpace(i.ServiceName) ? "Unspecified" : i.ServiceName)
                     .ToDictionary(g => g.Key, g => g.Count());
 
-                // ── SUPPLIES — overview (current snapshot, not period-based) ──
-                var supplies = await dataService.GetSuppliesAsync();
+                // ── SUPPLIES — reconstructed AS OF the end of the selected period, not just "right now" ──
+                var supplies = await dataService.GetSuppliesAsync(); // today's live quantities — the starting point we work backward from
                 report.TotalSupplies = supplies.Count;
-                report.OutOfStockCount = supplies.Count(s => s.IsOutOfStock);
-                report.LowStockItemCount = supplies.Count(s => s.IsLowStock && !s.IsOutOfStock);
-                report.InStockCount = report.TotalSupplies - report.LowStockItemCount - report.OutOfStockCount;
-                report.LowStockItemNames = supplies
-                    .Where(s => s.IsLowStock && !s.IsOutOfStock)
-                    .Select(s => s.Name)
-                    .ToList();
+
+                // Every log entry that happened AFTER this period ended — subtracting these
+                // from today's live quantity "undoes" everything that's happened since,
+                // leaving what stock actually looked like at the end of the period. For a
+                // period that includes today (e.g. the Daily tab on "Today"), there are no
+                // future logs yet, so this naturally just equals the live snapshot.
+                var logsAfterPeriod = await dataService.GetAllStockLogsForReportAsync(end, DateTime.MaxValue);
+
+                var lowStockNames = new List<string>(); // names of items that were low as of that period, for the tap-to-view alert
+                int inStockAsOf = 0, lowAsOf = 0, outAsOf = 0; // per-item classification counters for that point in time
+
+                foreach (var supply in supplies)
+                {
+                    // Sum of every change to THIS item that happened after the period ended
+                    var changesSincePeriod = logsAfterPeriod
+                        .Where(l => l.SupplyId == supply.Id)
+                        .Sum(l => l.ChangeInPieces);
+
+                    // Reverse those changes off today's quantity to get the historical quantity
+                    var quantityAsOfPeriod = supply.QuantityInPieces - changesSincePeriod;
+
+                    if (quantityAsOfPeriod <= 0)
+                        outAsOf++;
+                    else if (quantityAsOfPeriod <= supply.MinimumStockPieces)
+                    {
+                        lowAsOf++;
+                        lowStockNames.Add(supply.Name);
+                    }
+                    else
+                        inStockAsOf++;
+                }
+
+                report.OutOfStockCount = outAsOf;
+                report.LowStockItemCount = lowAsOf;
+                report.InStockCount = inStockAsOf;
+                report.LowStockItemNames = lowStockNames;
 
                 SupplyChartData.Clear();
                 SupplyChartData.Add(new ChartDataPoint { Label = "In Stock", Value = report.InStockCount });
@@ -329,9 +420,9 @@ namespace ClinicApp.ViewModels
                 SupplyChartData.Add(new ChartDataPoint { Label = "Out of Stock", Value = report.OutOfStockCount });
 
                 // ── SUPPLIES — movement WITHIN this period (supply_stock_logs) ──
-                var logs = await dataService.GetAllStockLogsForReportAsync(start, end);
-                report.PiecesRestocked = logs.Where(l => l.ChangeInPieces > 0).Sum(l => l.ChangeInPieces);
-                report.PiecesUsed = Math.Abs(logs.Where(l => l.ChangeInPieces < 0).Sum(l => l.ChangeInPieces));
+                var logs = await dataService.GetAllStockLogsForReportAsync(start, end); // logs that happened DURING the period, for the Restocked/Used totals
+                report.PiecesRestocked = logs.Where(l => l.ChangeInPieces > 0).Sum(l => l.ChangeInPieces); // positive changes = stock added
+                report.PiecesUsed = Math.Abs(logs.Where(l => l.ChangeInPieces < 0).Sum(l => l.ChangeInPieces)); // negative changes = stock consumed
 
                 CurrentReport = report;
             }
@@ -351,6 +442,7 @@ namespace ClinicApp.ViewModels
         // confirm, then deep-links via Shell route (all confirmed
         // registered in AppShell.cs).
 
+        // Tap on the Appointments stat area; shows a summary, then goes to the Appointments page if confirmed.
         [RelayCommand]
         async Task ViewAppointments()
         {
@@ -366,6 +458,7 @@ namespace ClinicApp.ViewModels
             if (go) await Shell.Current.GoToAsync(nameof(AppointmentPage));
         }
 
+        // Tap on the Billing stat area; shows a summary, then goes to Transaction History if confirmed.
         [RelayCommand]
         async Task ViewBilling()
         {
@@ -380,6 +473,7 @@ namespace ClinicApp.ViewModels
             if (go) await Shell.Current.GoToAsync(nameof(TransactionPage));
         }
 
+        // Tap on the Supplies stat area; names which items are low, then goes to Supply List if confirmed.
         [RelayCommand]
         async Task ViewSupplies()
         {
@@ -390,7 +484,7 @@ namespace ClinicApp.ViewModels
                            $"{CurrentReport.OutOfStockCount} out of stock.";
 
             if (CurrentReport.LowStockItemNames.Count > 0)
-                message += $"\n\nLow on: {string.Join(", ", CurrentReport.LowStockItemNames)}";
+                message += $"\n\nLow on: {string.Join(", ", CurrentReport.LowStockItemNames)}"; // name the actual items, not just a count
 
             message += "\n\nView the full supply list?";
 
@@ -399,9 +493,19 @@ namespace ClinicApp.ViewModels
             if (go) await Shell.Current.GoToAsync(nameof(SupplyListPage));
         }
 
-        // TODO: Treatment tap — no general "all treatments" page is
-        // registered in AppShell yet (TreatmentHistoryPage needs a
-        // specific patient id). Add a command here once we know where
-        // this should navigate.
+        // Tap on the Treatments stat area; no general all-treatments page exists, so this goes to Patient List instead.
+        [RelayCommand]
+        async Task ViewTreatments()
+        {
+            if (CurrentReport == null) return;
+
+            bool go = await Shell.Current.DisplayAlert(
+                "Treatments",
+                $"{CurrentReport.TotalTreatments} treatment(s) logged this period. " +
+                $"Most common: {CurrentReport.MostCommonTreatment}.\n\nView the patient list?",
+                "View", "Cancel");
+
+            if (go) await Shell.Current.GoToAsync(nameof(PatientListPage));
+        }
     }
 }

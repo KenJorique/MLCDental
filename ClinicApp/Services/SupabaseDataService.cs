@@ -1779,6 +1779,69 @@ namespace ClinicApp.Services
             }
         }
 
+        // Gets every appointment_entries row (the real schedule) within a date range, for the Reports page.
+        public async Task<List<SupabaseAppointmentEntry>> GetAllAppointmentEntriesForReportAsync(
+            DateTime rangeStart, DateTime rangeEnd)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseAppointmentEntry>().Get();
+
+                return result.Models
+                    .Where(a => a.AppointmentDateTime >= rangeStart && a.AppointmentDateTime < rangeEnd)
+                    .OrderBy(a => a.AppointmentDateTime)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllAppointmentEntriesForReport: {ex.Message}");
+                return new List<SupabaseAppointmentEntry>();
+            }
+        }
+
+        // Writes one row to cancelled_appointments — called right before an appointment_entries row gets deleted, so Reports still has something to count later.
+        public async Task LogCancelledAppointmentAsync(DateTime originalAppointmentDateTime, string? patientName)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var log = new SupabaseCancelledAppointment
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    AppointmentDateTime = originalAppointmentDateTime,
+                    PatientName = patientName,
+                    CancelledAt = DateTime.UtcNow
+                };
+                await _client!.From<SupabaseCancelledAppointment>().Insert(log);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] LogCancelledAppointment: {ex.Message}");
+            }
+        }
+
+        // Gets every logged cancellation whose ORIGINAL appointment date falls within a date range, for the Reports page.
+        public async Task<List<SupabaseCancelledAppointment>> GetAllCancelledAppointmentsForReportAsync(
+            DateTime rangeStart, DateTime rangeEnd)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseCancelledAppointment>().Get();
+
+                return result.Models
+                    .Where(c => c.AppointmentDateTime >= rangeStart && c.AppointmentDateTime < rangeEnd)
+                    .OrderBy(c => c.AppointmentDateTime)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllCancelledAppointmentsForReport: {ex.Message}");
+                return new List<SupabaseCancelledAppointment>();
+            }
+        }
+
         public async Task<List<SupabaseTreatmentHistory>> GetAllTreatmentHistoryForReportAsync(
     DateTime rangeStart, DateTime rangeEnd)
         {

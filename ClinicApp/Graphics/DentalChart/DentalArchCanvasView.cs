@@ -116,27 +116,27 @@ public class DentalArchCanvasView : SKCanvasView
         using var outlineStroke = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
-            Color = new SKColor(0xB0, 0xB8, 0xC4),
+            Color = new SKColor(0xC4, 0xDE, 0xC9),
             StrokeWidth = 1.4f,
             IsAntialias = true
         };
         using var crackStroke = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
-            Color = new SKColor(0x9A, 0xA3, 0xAE),
+            Color = new SKColor(0x9A, 0xB8, 0x9F),
             StrokeWidth = 1f,
             IsAntialias = true
         };
         using var selectionStroke = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
-            Color = new SKColor(0xFF, 0xA5, 0x00),
+            Color = new SKColor(0xC8, 0xA8, 0x4B),
             StrokeWidth = 2.5f,
             IsAntialias = true
         };
         using var labelPaint = new SKPaint
         {
-            Color = new SKColor(0x55, 0x55, 0x55),
+            Color = new SKColor(0x6B, 0x72, 0x80),
             IsAntialias = true
         };
         using var labelFont = new SKFont

@@ -20,7 +20,7 @@ namespace ClinicApp.ViewModels.TransactionVM
 
         public decimal TotalBalance { get; }
         public DateTime? NextDueDate { get; }
-        public DateTime MostRecentBillDate { get; }  
+        public DateTime MostRecentBillDate { get; }
         public decimal NextPaymentAmount { get; }
         public bool IsOverdue { get; }
         public bool IsDueSoon { get; }
@@ -47,7 +47,11 @@ namespace ClinicApp.ViewModels.TransactionVM
                 ? PrimaryBill.MonthlyPayment
                 : PrimaryBill.Balance;
 
-            IsOverdue = bills.Any(b => b.IsOverdue);
+            // Computed from NextDueDate (which already falls back to
+            // VisitDate+30 when DueDate is null) rather than
+            // SupabaseBill.IsOverdue, so the pill/filter never disagree
+            // with the due date actually shown on the card.
+            IsOverdue = NextDueDate.HasValue && NextDueDate.Value.Date < DateTime.Today;
 
             IsDueSoon = !IsOverdue && NextDueDate.HasValue &&
                         NextDueDate.Value.Date <= DateTime.Today.AddDays(DueSoonWindowDays) &&
@@ -69,7 +73,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 : 0;
 
         public string StatusLabel =>
-            IsOverdue ? (DaysOverdue > 0 ? $"Overdue · {DaysOverdue}d" : "Overdue")
+            IsOverdue ? "Overdue"
             : IsDueSoon ? "Due Soon"
             : string.Empty;
 
