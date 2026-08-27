@@ -1,17 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!--
-  HOW THIS PAGE IS LAID OUT
-  1. Tab bar at top (Daily / Weekly / Monthly) — tapping one calls
-     SetPeriodCommand, which rebuilds the dropdown below it.
-  2. Dropdown (Picker) — shows the periods actually available for the
-     selected tab (e.g. "Aug 20", "This Week"), capped by how much
-     real data exists. Picking one loads that period's report.
-  3. Five report cards, each: title, a real Syncfusion chart (with its
-     own legend/axes/data labels — nothing hand-drawn), then a compact
-     number summary row below. All reuse the app's existing
-     ElevatedCardStyle/CardSectionTitleStyle/etc. from Styles.xaml
-     rather than defining new card styles here.
--->
+ 
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:chart="clr-namespace:Syncfusion.Maui.Charts;assembly=Syncfusion.Maui.Charts"
@@ -19,53 +7,77 @@
              x:Class="ClinicApp.Views.ReportRelated.ReportsPage"
              Title="Reports"
              Shell.TabBarIsVisible="False"
+             Shell.BackgroundColor="{StaticResource Primary}"
+             Shell.TitleColor="White"
+             Shell.ForegroundColor="White"
              BackgroundColor="{StaticResource PageBg}">
 
 	<Grid RowDefinitions="Auto,Auto,*">
 
 		<!-- ── PERIOD TABS ── -->
-		<Grid Grid.Row="0" ColumnDefinitions="*,*,*" BackgroundColor="{StaticResource Primary}">
+		<Grid Grid.Row="0" ColumnDefinitions="*,*,*" BackgroundColor="{StaticResource PageBg}">
 
-			<VerticalStackLayout Grid.Column="0" Padding="0,14,0,10" Spacing="6">
+			<VerticalStackLayout Grid.Column="0" Spacing="0">
 				<VerticalStackLayout.GestureRecognizers>
 					<TapGestureRecognizer Command="{Binding SetPeriodCommand}" CommandParameter="Daily"/>
 				</VerticalStackLayout.GestureRecognizers>
-				<Label Text="DAILY" FontSize="13" FontAttributes="Bold"
-                       TextColor="White" HorizontalTextAlignment="Center"/>
-				<BoxView HeightRequest="3" Color="Transparent">
+				<Label Text="Daily" Padding="0,12" FontSize="14" HorizontalTextAlignment="Center"
+                       TextColor="{StaticResource Gray500}">
+					<Label.Triggers>
+						<DataTrigger TargetType="Label" Binding="{Binding SelectedPeriod}" Value="Daily">
+							<Setter Property="FontAttributes" Value="Bold"/>
+							<Setter Property="TextColor" Value="{StaticResource Primary}"/>
+						</DataTrigger>
+					</Label.Triggers>
+				</Label>
+				<BoxView HeightRequest="2.5" Color="{StaticResource Gray100}">
 					<BoxView.Triggers>
 						<DataTrigger TargetType="BoxView" Binding="{Binding SelectedPeriod}" Value="Daily">
-							<Setter Property="Color" Value="{StaticResource Gold}"/>
+							<Setter Property="Color" Value="{StaticResource Primary}"/>
 						</DataTrigger>
 					</BoxView.Triggers>
 				</BoxView>
 			</VerticalStackLayout>
 
-			<VerticalStackLayout Grid.Column="1" Padding="0,14,0,10" Spacing="6">
+			<VerticalStackLayout Grid.Column="1" Spacing="0">
 				<VerticalStackLayout.GestureRecognizers>
 					<TapGestureRecognizer Command="{Binding SetPeriodCommand}" CommandParameter="Weekly"/>
 				</VerticalStackLayout.GestureRecognizers>
-				<Label Text="WEEKLY" FontSize="13" FontAttributes="Bold"
-                       TextColor="White" HorizontalTextAlignment="Center"/>
-				<BoxView HeightRequest="3" Color="Transparent">
+				<Label Text="Weekly" Padding="0,12" FontSize="14" HorizontalTextAlignment="Center"
+                       TextColor="{StaticResource Gray500}">
+					<Label.Triggers>
+						<DataTrigger TargetType="Label" Binding="{Binding SelectedPeriod}" Value="Weekly">
+							<Setter Property="FontAttributes" Value="Bold"/>
+							<Setter Property="TextColor" Value="{StaticResource Primary}"/>
+						</DataTrigger>
+					</Label.Triggers>
+				</Label>
+				<BoxView HeightRequest="2.5" Color="{StaticResource Gray100}">
 					<BoxView.Triggers>
 						<DataTrigger TargetType="BoxView" Binding="{Binding SelectedPeriod}" Value="Weekly">
-							<Setter Property="Color" Value="{StaticResource Gold}"/>
+							<Setter Property="Color" Value="{StaticResource Primary}"/>
 						</DataTrigger>
 					</BoxView.Triggers>
 				</BoxView>
 			</VerticalStackLayout>
 
-			<VerticalStackLayout Grid.Column="2" Padding="0,14,0,10" Spacing="6">
+			<VerticalStackLayout Grid.Column="2" Spacing="0">
 				<VerticalStackLayout.GestureRecognizers>
 					<TapGestureRecognizer Command="{Binding SetPeriodCommand}" CommandParameter="Monthly"/>
 				</VerticalStackLayout.GestureRecognizers>
-				<Label Text="MONTHLY" FontSize="13" FontAttributes="Bold"
-                       TextColor="White" HorizontalTextAlignment="Center"/>
-				<BoxView HeightRequest="3" Color="Transparent">
+				<Label Text="Monthly" Padding="0,12" FontSize="14" HorizontalTextAlignment="Center"
+                       TextColor="{StaticResource Gray500}">
+					<Label.Triggers>
+						<DataTrigger TargetType="Label" Binding="{Binding SelectedPeriod}" Value="Monthly">
+							<Setter Property="FontAttributes" Value="Bold"/>
+							<Setter Property="TextColor" Value="{StaticResource Primary}"/>
+						</DataTrigger>
+					</Label.Triggers>
+				</Label>
+				<BoxView HeightRequest="2.5" Color="{StaticResource Gray100}">
 					<BoxView.Triggers>
 						<DataTrigger TargetType="BoxView" Binding="{Binding SelectedPeriod}" Value="Monthly">
-							<Setter Property="Color" Value="{StaticResource Gold}"/>
+							<Setter Property="Color" Value="{StaticResource Primary}"/>
 						</DataTrigger>
 					</BoxView.Triggers>
 				</BoxView>
@@ -73,12 +85,17 @@
 
 		</Grid>
 
-		<!-- ── DATE RANGE PICKER — plain Picker, default styling, no custom colors ── -->
-		<Picker Grid.Row="1"
-                ItemsSource="{Binding DateOptions}"
-                ItemDisplayBinding="{Binding Label}"
-                SelectedItem="{Binding SelectedDateOption}"
-                Margin="16,12,16,0"/>
+		<!-- ── DATE RANGE PICKER ── -->
+		<Border Grid.Row="1" Style="{StaticResource FormInputBox}" Margin="16,12,16,0">
+			<Picker ItemsSource="{Binding DateOptions}"
+                    ItemDisplayBinding="{Binding Label}"
+                    SelectedItem="{Binding SelectedDateOption}"
+                    TextColor="{StaticResource TextPrimary}"
+                    TitleColor="{StaticResource TextMuted}"
+                    BackgroundColor="Transparent"
+                    FontSize="14"
+                    VerticalOptions="Center"/>
+		</Border>
 
 		<!-- ── REPORT CONTENT ── -->
 		<ScrollView Grid.Row="2">
@@ -90,41 +107,14 @@
 				<VerticalStackLayout Spacing="14"
                         IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
 
-					<!-- ── APPOINTMENTS — donut, legend + data labels built in ── -->
+					<!-- ══════════════════════════════════════════════════
+                         APPOINTMENTS — Summary → Chart → Insight → Table/List
+                         ══════════════════════════════════════════════════ -->
 					<Border Style="{StaticResource ElevatedCardStyle}">
 						<VerticalStackLayout Spacing="10">
-							<!-- Tap the arrow to view the full appointments list -->
-							<Grid ColumnDefinitions="*,Auto">
-								<Label Grid.Column="0" Text="Appointments" Style="{StaticResource CardSectionTitleStyle}"/>
-								<Label Grid.Column="1" Text="&#xe5cc;" FontFamily="MaterialSymbolsRounded"
-                                       FontSize="22" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" IsVisible="{Binding IsDailyPeriod}">
-									<Label.GestureRecognizers>
-										<TapGestureRecognizer Command="{Binding ViewAppointmentsCommand}"/>
-									</Label.GestureRecognizers>
-								</Label>
-							</Grid>
+							<Label Text="Appointments" Style="{StaticResource CardSectionTitleStyle}"/>
 
-							<chart:SfCircularChart HeightRequest="220">
-								<chart:SfCircularChart.Legend>
-									<chart:ChartLegend Placement="Bottom"/>
-								</chart:SfCircularChart.Legend>
-								<chart:DoughnutSeries ItemsSource="{Binding AppointmentChartData}"
-                                                       XBindingPath="Label" YBindingPath="Value"
-                                                       ShowDataLabels="True">
-									<chart:DoughnutSeries.PaletteBrushes>
-										<SolidColorBrush Color="{StaticResource Primary}"/>
-										<SolidColorBrush Color="#F57C00"/>
-										<SolidColorBrush Color="{StaticResource StatusOut}"/>
-									</chart:DoughnutSeries.PaletteBrushes>
-									<chart:DoughnutSeries.DataLabelSettings>
-										<chart:CircularDataLabelSettings LabelPlacement="Outer"/>
-									</chart:DoughnutSeries.DataLabelSettings>
-								</chart:DoughnutSeries>
-							</chart:SfCircularChart>
-
-							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
-
-							<!-- Compact summary -->
+							<!-- Summary -->
 							<Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto">
 								<Label Grid.Row="0" Grid.Column="0" Text="{Binding CurrentReport.TotalAppointments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
 								<Label Grid.Row="0" Grid.Column="1" Text="{Binding CurrentReport.CompletedAppointments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
@@ -136,23 +126,139 @@
 								<Label Grid.Row="1" Grid.Column="2" Text="Pending" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
 								<Label Grid.Row="1" Grid.Column="3" Text="Cancelled" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
 							</Grid>
+
+							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+
+							<!-- Chart -->
+							<chart:SfCircularChart HeightRequest="220">
+								<chart:SfCircularChart.Legend>
+									<chart:ChartLegend Placement="Bottom"/>
+								</chart:SfCircularChart.Legend>
+								<chart:DoughnutSeries x:Name="AppointmentSeries"
+                                                       ItemsSource="{Binding AppointmentChartData}"
+                                                       XBindingPath="Label" YBindingPath="Value"
+                                                       ShowDataLabels="True">
+									<chart:DoughnutSeries.DataLabelSettings>
+										<chart:CircularDataLabelSettings LabelPlacement="Outer"/>
+									</chart:DoughnutSeries.DataLabelSettings>
+								</chart:DoughnutSeries>
+							</chart:SfCircularChart>
+
+							<!-- Insight — empty (and hidden) on Daily, where the list below stands in for it -->
+							<Border BackgroundColor="{StaticResource Secondary}" Padding="10,8" StrokeThickness="0"
+                                    IsVisible="{Binding CurrentReport.AppointmentsInsight, Converter={StaticResource StringNotEmptyConverter}}">
+								<Border.StrokeShape>
+									<RoundRectangle CornerRadius="8"/>
+								</Border.StrokeShape>
+								<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+									<Label Grid.Column="0" Text="&#xe0f0;" FontFamily="MaterialSymbolsRounded" FontSize="16" TextColor="{StaticResource Primary}" VerticalOptions="Start"/>
+									<Label Grid.Column="1" Text="{Binding CurrentReport.AppointmentsInsight}" FontSize="12" FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}" VerticalOptions="Center" LineBreakMode="WordWrap"/>
+								</Grid>
+							</Border>
+
+							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+
+							<!-- DAILY: combined, time-ordered list (Completed/Pending/No-show/Cancelled)-->
+							<VerticalStackLayout Spacing="0" IsVisible="{Binding ShowDailyAppointmentList}">
+								<Label Text="Today's Appointments" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gray500}" Margin="0,0,0,4"/>
+								<CollectionView ItemsSource="{Binding TodayAppointmentRows}">
+									<CollectionView.EmptyView>
+										<Label Text="No appointment activity for this day." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+									</CollectionView.EmptyView>
+									<CollectionView.ItemTemplate>
+										<DataTemplate>
+											<VerticalStackLayout>
+												<Grid ColumnDefinitions="60,*,Auto" ColumnSpacing="8" Padding="0,8">
+													<Label Grid.Column="0" Text="{Binding TimeLabel}" FontSize="12" TextColor="{StaticResource Gray500}" VerticalOptions="Center"/>
+													<Label Grid.Column="1" Text="{Binding PatientName}" FontSize="13" TextColor="{StaticResource Gray900}" VerticalOptions="Center" LineBreakMode="WordWrap"/>
+													<Border Grid.Column="2" BackgroundColor="{Binding StatusBgColor}" Padding="8,3" StrokeThickness="0" VerticalOptions="Center">
+														<Border.StrokeShape>
+															<RoundRectangle CornerRadius="10"/>
+														</Border.StrokeShape>
+														<Label Text="{Binding StatusLabel}" FontSize="10" FontAttributes="Bold" TextColor="{Binding StatusColor}"/>
+													</Border>
+												</Grid>
+												<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+											</VerticalStackLayout>
+										</DataTemplate>
+									</CollectionView.ItemTemplate>
+								</CollectionView>
+							</VerticalStackLayout>
+
+							<!-- WEEKLY: Day | Completed | Cancelled — one row per specific calendar day, Mon–Sat -->
+							<VerticalStackLayout Spacing="0" IsVisible="{Binding ShowWeeklyAppointmentTable}">
+								<Grid ColumnDefinitions="2*,1*,1*" Padding="0,0,0,6">
+									<Label Grid.Column="0" Text="Day" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}"/>
+									<Label Grid.Column="1" Text="Completed" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+									<Label Grid.Column="2" Text="Cancelled" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+								</Grid>
+								<BoxView HeightRequest="1" Color="{StaticResource Gray200}"/>
+								<CollectionView ItemsSource="{Binding AppointmentWeeklyRows}">
+									<CollectionView.EmptyView>
+										<Label Text="No appointment activity yet this week." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+									</CollectionView.EmptyView>
+									<CollectionView.ItemTemplate>
+										<DataTemplate>
+											<VerticalStackLayout>
+												<Grid ColumnDefinitions="2*,1*,1*" Padding="0,8">
+													<Label Grid.Column="0" Text="{Binding DayLabel}" FontSize="13" TextColor="{StaticResource Gray900}" LineBreakMode="WordWrap" VerticalOptions="Center"/>
+													<Label Grid.Column="1" Text="{Binding Completed}" FontSize="13" TextColor="{StaticResource Primary}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+													<Label Grid.Column="2" Text="{Binding Cancelled}" FontSize="13" TextColor="{StaticResource StatusOut}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+												</Grid>
+												<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+											</VerticalStackLayout>
+										</DataTemplate>
+									</CollectionView.ItemTemplate>
+								</CollectionView>
+							</VerticalStackLayout>
+
+							<!-- MONTHLY: Day | Completed | Cancelled — but "Day" is a WEEKDAY NAME, totals summed across the whole month. Fixed 6 rows (Mon–Sat), same column layout as Weekly above. -->
+							<VerticalStackLayout Spacing="0" IsVisible="{Binding ShowMonthlyAppointmentTable}">
+								<Grid ColumnDefinitions="2*,1*,1*" Padding="0,0,0,6">
+									<Label Grid.Column="0" Text="Day" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}"/>
+									<Label Grid.Column="1" Text="Completed" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+									<Label Grid.Column="2" Text="Cancelled" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+								</Grid>
+								<BoxView HeightRequest="1" Color="{StaticResource Gray200}"/>
+								<CollectionView ItemsSource="{Binding AppointmentMonthlyRows}">
+									<CollectionView.EmptyView>
+										<Label Text="No appointment activity yet this month." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+									</CollectionView.EmptyView>
+									<CollectionView.ItemTemplate>
+										<DataTemplate>
+											<VerticalStackLayout>
+												<Grid ColumnDefinitions="2*,1*,1*" Padding="0,8">
+													<Label Grid.Column="0" Text="{Binding DayLabel}" FontSize="13" TextColor="{StaticResource Gray900}" LineBreakMode="WordWrap" VerticalOptions="Center"/>
+													<Label Grid.Column="1" Text="{Binding Completed}" FontSize="13" TextColor="{StaticResource Primary}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+													<Label Grid.Column="2" Text="{Binding Cancelled}" FontSize="13" TextColor="{StaticResource StatusOut}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+												</Grid>
+												<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+											</VerticalStackLayout>
+										</DataTemplate>
+									</CollectionView.ItemTemplate>
+								</CollectionView>
+							</VerticalStackLayout>
+
 						</VerticalStackLayout>
 					</Border>
 
-					<!-- ── TREATMENTS — real horizontal bar chart via IsTransposed ── -->
+					<!-- ══════════════════════════════════════════════════
+                         TREATMENTS — Summary → Chart → Insight → Table
+                         ══════════════════════════════════════════════════ -->
 					<Border Style="{StaticResource ElevatedCardStyle}">
 						<VerticalStackLayout Spacing="10">
-							<!-- Tap the arrow to view the patient list -->
-							<Grid ColumnDefinitions="*,Auto">
-								<Label Grid.Column="0" Text="Treatments" Style="{StaticResource CardSectionTitleStyle}"/>
-								<Label Grid.Column="1" Text="&#xe5cc;" FontFamily="MaterialSymbolsRounded"
-                                       FontSize="22" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" IsVisible="{Binding IsDailyPeriod}">
-									<Label.GestureRecognizers>
-										<TapGestureRecognizer Command="{Binding ViewTreatmentsCommand}"/>
-									</Label.GestureRecognizers>
-								</Label>
-							</Grid>
+							<Label Text="Treatments" Style="{StaticResource CardSectionTitleStyle}"/>
 
+							<!-- Summary — just the total; "most common" now lives in the insight below instead of being duplicated here -->
+							<VerticalStackLayout HorizontalOptions="Start">
+								<Label Text="{Binding CurrentReport.TotalTreatments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Start"/>
+								<Label Text="Total Treatments" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Start"/>
+							</VerticalStackLayout>
+
+							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+
+							<!-- Chart -->
 							<chart:SfCartesianChart HeightRequest="{Binding TreatmentsChartHeight}" IsTransposed="True">
 								<chart:SfCartesianChart.XAxes>
 									<!-- Long service names wrap onto a 2nd line instead of stretching the axis wide -->
@@ -178,35 +284,73 @@
 								</chart:ColumnSeries>
 							</chart:SfCartesianChart>
 
+							<!-- Insight -->
+							<Border BackgroundColor="{StaticResource Secondary}" Padding="10,8" StrokeThickness="0"
+                                    IsVisible="{Binding CurrentReport.TreatmentsInsight, Converter={StaticResource StringNotEmptyConverter}}">
+								<Border.StrokeShape>
+									<RoundRectangle CornerRadius="8"/>
+								</Border.StrokeShape>
+								<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+									<Label Grid.Column="0" Text="&#xe0f0;" FontFamily="MaterialSymbolsRounded" FontSize="16" TextColor="{StaticResource Primary}" VerticalOptions="Start"/>
+									<Label Grid.Column="1" Text="{Binding CurrentReport.TreatmentsInsight}" FontSize="12" FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}" VerticalOptions="Center" LineBreakMode="WordWrap"/>
+								</Grid>
+							</Border>
+
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
-							<Grid ColumnDefinitions="*,*">
-								<VerticalStackLayout>
-									<Label Text="{Binding CurrentReport.TotalTreatments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Start"/>
-									<Label Text="Total Treatments" Style="{StaticResource MutedCaptionStyle}"/>
-								</VerticalStackLayout>
-								<VerticalStackLayout Grid.Column="1">
-									<Label Text="{Binding CurrentReport.MostCommonTreatment}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="End" LineBreakMode="TailTruncation"/>
-									<Label Text="Most Common" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="End"/>
-								</VerticalStackLayout>
-							</Grid>
+							<!-- Table: Treatment | Count | % of Total -->
+							<VerticalStackLayout Spacing="0">
+								<Grid ColumnDefinitions="2*,1*,1*" Padding="0,0,0,6">
+									<Label Grid.Column="0" Text="Treatment" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}"/>
+									<Label Grid.Column="1" Text="Count" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+									<Label Grid.Column="2" Text="% of Total" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+								</Grid>
+								<BoxView HeightRequest="1" Color="{StaticResource Gray200}"/>
+								<CollectionView ItemsSource="{Binding TreatmentTableRows}">
+									<CollectionView.EmptyView>
+										<Label Text="No treatments logged yet this period." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+									</CollectionView.EmptyView>
+									<CollectionView.ItemTemplate>
+										<DataTemplate>
+											<VerticalStackLayout>
+												<Grid ColumnDefinitions="2*,1*,1*" Padding="0,8">
+													<Label Grid.Column="0" Text="{Binding Treatment}" FontSize="13" TextColor="{StaticResource Gray900}" LineBreakMode="WordWrap" VerticalOptions="Center"/>
+													<Label Grid.Column="1" Text="{Binding Count}" FontSize="13" TextColor="{StaticResource Gray900}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+													<Label Grid.Column="2" Text="{Binding PercentOfTotal, StringFormat='{0:N0}%'}" FontSize="13" TextColor="{StaticResource Gray900}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+												</Grid>
+												<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+											</VerticalStackLayout>
+										</DataTemplate>
+									</CollectionView.ItemTemplate>
+								</CollectionView>
+							</VerticalStackLayout>
+
 						</VerticalStackLayout>
 					</Border>
 
-					<!-- ── BILLING — line chart, real X (date) / Y (amount) axes ── -->
+					<!-- ══════════════════════════════════════════════════
+                         BILLING — Summary → Chart → Insight → Table
+                         ══════════════════════════════════════════════════ -->
 					<Border Style="{StaticResource ElevatedCardStyle}">
 						<VerticalStackLayout Spacing="10">
-							<!-- Tap the arrow to view the full transaction history -->
-							<Grid ColumnDefinitions="*,Auto">
-								<Label Grid.Column="0" Text="Billing" Style="{StaticResource CardSectionTitleStyle}"/>
-								<Label Grid.Column="1" Text="&#xe5cc;" FontFamily="MaterialSymbolsRounded"
-                                       FontSize="22" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" IsVisible="{Binding IsDailyPeriod}">
-									<Label.GestureRecognizers>
-										<TapGestureRecognizer Command="{Binding ViewBillingCommand}"/>
-									</Label.GestureRecognizers>
-								</Label>
+							<Label Text="Billing" Style="{StaticResource CardSectionTitleStyle}"/>
+
+							<!-- Summary -->
+							<Grid ColumnDefinitions="*,*">
+								<VerticalStackLayout>
+									<Label Text="{Binding CurrentReport.TotalRevenue, StringFormat='₱{0:N2}'}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Start" TextColor="{StaticResource Primary}"/>
+									<Label Text="Collected" Style="{StaticResource MutedCaptionStyle}"/>
+								</VerticalStackLayout>
+								<VerticalStackLayout Grid.Column="1">
+									<Label Text="{Binding CurrentReport.OutstandingBalance, StringFormat='₱{0:N2}'}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="End" TextColor="{StaticResource StatusOut}"/>
+									<Label Text="Outstanding" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="End"/>
+								</VerticalStackLayout>
 							</Grid>
 
+							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+
+							<!-- Chart -->
 							<chart:SfCartesianChart HeightRequest="220">
 								<!-- Tooltip content shown on tap: date/hour + peso amount, styled green to match the line -->
 								<chart:SfCartesianChart.Resources>
@@ -263,55 +407,60 @@
 								   ShowDataLabels="{Binding ShowBillingDataLabels}"/>
 							</chart:SfCartesianChart>
 
+							<!-- Insight -->
+							<Border BackgroundColor="{StaticResource Secondary}" Padding="10,8" StrokeThickness="0"
+                                    IsVisible="{Binding CurrentReport.BillingInsight, Converter={StaticResource StringNotEmptyConverter}}">
+								<Border.StrokeShape>
+									<RoundRectangle CornerRadius="8"/>
+								</Border.StrokeShape>
+								<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+									<Label Grid.Column="0" Text="&#xe0f0;" FontFamily="MaterialSymbolsRounded" FontSize="16" TextColor="{StaticResource Primary}" VerticalOptions="Start"/>
+									<Label Grid.Column="1" Text="{Binding CurrentReport.BillingInsight}" FontSize="12" FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}" VerticalOptions="Center" LineBreakMode="WordWrap"/>
+								</Grid>
+							</Border>
+
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
-							<Grid ColumnDefinitions="*,*">
-								<VerticalStackLayout>
-									<Label Text="{Binding CurrentReport.TotalRevenue, StringFormat='₱{0:N2}'}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Start" TextColor="{StaticResource Primary}"/>
-									<Label Text="Collected" Style="{StaticResource MutedCaptionStyle}"/>
-								</VerticalStackLayout>
-								<VerticalStackLayout Grid.Column="1">
-									<Label Text="{Binding CurrentReport.OutstandingBalance, StringFormat='₱{0:N2}'}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="End" TextColor="{StaticResource StatusOut}"/>
-									<Label Text="Outstanding" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="End"/>
-								</VerticalStackLayout>
-							</Grid>
+							<!-- Table: Top 5 Services by Revenue — the only Billing table; runs every period since it isn't day-bucketed -->
+							<VerticalStackLayout Spacing="0">
+								<Label Text="Top Services by Revenue" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gray500}" Margin="0,0,0,6"/>
+								<Grid ColumnDefinitions="2*,1*,1.2*" Padding="0,0,0,6">
+									<Label Grid.Column="0" Text="Service" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}"/>
+									<Label Grid.Column="1" Text="Times" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+									<Label Grid.Column="2" Text="Revenue" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+								</Grid>
+								<BoxView HeightRequest="1" Color="{StaticResource Gray200}"/>
+								<CollectionView ItemsSource="{Binding TopServiceRows}">
+									<CollectionView.EmptyView>
+										<Label Text="No billed services yet this period." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+									</CollectionView.EmptyView>
+									<CollectionView.ItemTemplate>
+										<DataTemplate>
+											<VerticalStackLayout>
+												<Grid ColumnDefinitions="2*,1*,1.2*" Padding="0,8">
+													<Label Grid.Column="0" Text="{Binding Service}" FontSize="13" TextColor="{StaticResource Gray900}" LineBreakMode="WordWrap" VerticalOptions="Center"/>
+													<Label Grid.Column="1" Text="{Binding TimesBilled}" FontSize="13" TextColor="{StaticResource Gray900}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+													<Label Grid.Column="2" Text="{Binding Revenue, StringFormat='₱{0:N0}'}" FontSize="13" TextColor="{StaticResource Primary}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+												</Grid>
+												<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+											</VerticalStackLayout>
+										</DataTemplate>
+									</CollectionView.ItemTemplate>
+								</CollectionView>
+							</VerticalStackLayout>
+
 						</VerticalStackLayout>
 					</Border>
 
-					<!-- ── MEDICAL SUPPLIES — donut, legend + data labels built in ── -->
+					<!-- ══════════════════════════════════════════════════
+                         MEDICAL SUPPLIES — Summary → Chart → Insight → Table
+                         ══════════════════════════════════════════════════ -->
 					<Border Style="{StaticResource ElevatedCardStyle}">
 						<VerticalStackLayout Spacing="10">
-							<!-- Tap the arrow to view the full supply list -->
-							<Grid ColumnDefinitions="*,Auto">
-								<Label Grid.Column="0" Text="Medical Supplies" Style="{StaticResource CardSectionTitleStyle}"/>
-								<Label Grid.Column="1" Text="&#xe5cc;" FontFamily="MaterialSymbolsRounded"
-                                       FontSize="22" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" IsVisible="{Binding IsDailyPeriod}">
-									<Label.GestureRecognizers>
-										<TapGestureRecognizer Command="{Binding ViewSuppliesCommand}"/>
-									</Label.GestureRecognizers>
-								</Label>
-							</Grid>
+							<Label Text="Medical Supplies" Style="{StaticResource CardSectionTitleStyle}"/>
 
-							<chart:SfCircularChart HeightRequest="220">
-								<chart:SfCircularChart.Legend>
-									<chart:ChartLegend Placement="Bottom"/>
-								</chart:SfCircularChart.Legend>
-								<chart:DoughnutSeries ItemsSource="{Binding SupplyChartData}"
-                                                       XBindingPath="Label" YBindingPath="Value"
-                                                       ShowDataLabels="True">
-									<chart:DoughnutSeries.PaletteBrushes>
-										<SolidColorBrush Color="{StaticResource Primary}"/>
-										<SolidColorBrush Color="#F57C00"/>
-										<SolidColorBrush Color="{StaticResource StatusOut}"/>
-									</chart:DoughnutSeries.PaletteBrushes>
-									<chart:DoughnutSeries.DataLabelSettings>
-										<chart:CircularDataLabelSettings LabelPlacement="Outer"/>
-									</chart:DoughnutSeries.DataLabelSettings>
-								</chart:DoughnutSeries>
-							</chart:SfCircularChart>
-
-							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
-
+							<!-- Summary -->
 							<Grid ColumnDefinitions="*,*,*,*">
 								<VerticalStackLayout>
 									<Label Text="{Binding CurrentReport.TotalSupplies}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
@@ -332,7 +481,6 @@
 							</Grid>
 
 							<!-- Movement THIS period, from supply_stock_logs -->
-							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 							<Grid ColumnDefinitions="*,*">
 								<VerticalStackLayout>
 									<Label Text="{Binding CurrentReport.PiecesRestocked, StringFormat='+{0}'}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Start" TextColor="{StaticResource Primary}"/>
@@ -343,6 +491,66 @@
 									<Label Text="Used this period" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="End"/>
 								</VerticalStackLayout>
 							</Grid>
+
+							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+
+							<!-- Chart -->
+							<chart:SfCircularChart HeightRequest="220">
+								<chart:SfCircularChart.Legend>
+									<chart:ChartLegend Placement="Bottom"/>
+								</chart:SfCircularChart.Legend>
+								<chart:DoughnutSeries x:Name="SupplyChartSeries"
+                                                       ItemsSource="{Binding SupplyChartData}"
+                                                       XBindingPath="Label" YBindingPath="Value"
+                                                       ShowDataLabels="True">
+									<chart:DoughnutSeries.DataLabelSettings>
+										<chart:CircularDataLabelSettings LabelPlacement="Outer"/>
+									</chart:DoughnutSeries.DataLabelSettings>
+								</chart:DoughnutSeries>
+							</chart:SfCircularChart>
+
+							<!-- Insight -->
+							<Border BackgroundColor="{StaticResource Secondary}" Padding="10,8" StrokeThickness="0"
+                                    IsVisible="{Binding CurrentReport.SuppliesInsight, Converter={StaticResource StringNotEmptyConverter}}">
+								<Border.StrokeShape>
+									<RoundRectangle CornerRadius="8"/>
+								</Border.StrokeShape>
+								<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+									<Label Grid.Column="0" Text="&#xe0f0;" FontFamily="MaterialSymbolsRounded" FontSize="16" TextColor="{StaticResource Primary}" VerticalOptions="Start"/>
+									<Label Grid.Column="1" Text="{Binding CurrentReport.SuppliesInsight}" FontSize="12" FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}" VerticalOptions="Center" LineBreakMode="WordWrap"/>
+								</Grid>
+							</Border>
+
+							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+
+							<!-- Table: Name | Used | Restocked, ranked by most used -->
+							<VerticalStackLayout Spacing="0">
+								<Grid ColumnDefinitions="2*,1*,1*" Padding="0,0,0,6">
+									<Label Grid.Column="0" Text="Name" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}"/>
+									<Label Grid.Column="1" Text="Used" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+									<Label Grid.Column="2" Text="Restocked" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+								</Grid>
+								<BoxView HeightRequest="1" Color="{StaticResource Gray200}"/>
+								<CollectionView ItemsSource="{Binding SupplyUsageRows}">
+									<CollectionView.EmptyView>
+										<Label Text="No supply movement recorded yet this period." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+									</CollectionView.EmptyView>
+									<CollectionView.ItemTemplate>
+										<DataTemplate>
+											<VerticalStackLayout>
+												<Grid ColumnDefinitions="2*,1*,1*" Padding="0,8">
+													<Label Grid.Column="0" Text="{Binding Name}" FontSize="13" TextColor="{StaticResource Gray900}" LineBreakMode="WordWrap" VerticalOptions="Center"/>
+													<Label Grid.Column="1" Text="{Binding Used}" FontSize="13" TextColor="{StaticResource StatusOut}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+													<Label Grid.Column="2" Text="{Binding Restocked}" FontSize="13" TextColor="{StaticResource Primary}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+												</Grid>
+												<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+											</VerticalStackLayout>
+										</DataTemplate>
+									</CollectionView.ItemTemplate>
+								</CollectionView>
+							</VerticalStackLayout>
+
 						</VerticalStackLayout>
 					</Border>
 

@@ -97,7 +97,7 @@
                            FontSize="26" TextColor="{StaticResource PrimaryGreen}"
                            VerticalOptions="Start" Margin="0,2,0,0"/>
 					<VerticalStackLayout Grid.Column="1" Spacing="2">
-						<Label Text="Reports Generation" FontSize="16" FontAttributes="Bold"
+						<Label Text="Reports" FontSize="16" FontAttributes="Bold"
                                TextColor="{StaticResource PrimaryGreen}"/>
 						<Label Text="Daily, weekly &amp; monthly reports" FontSize="13"
                                TextColor="{StaticResource TextMuted}"/>

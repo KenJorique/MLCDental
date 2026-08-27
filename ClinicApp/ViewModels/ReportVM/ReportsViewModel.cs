@@ -10,48 +10,21 @@ using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels
 {
-    // ── HOW THIS PAGE WORKS ──────────────────────────────────────────
-    // 1. Three tabs (Daily/Weekly/Monthly) pick a GRANULARITY, not a
-    //    single fixed period. Tapping a tab calls SetPeriod, which
-    //    rebuilds the dropdown (DateOptions) for that granularity —
-    //    e.g. Daily rebuilds to "the last 30 days" (Sundays skipped,
-    //    clinic is closed), Weekly to "the last 4 weeks," Monthly to
-    //    "the last 3 months."
-    // 2. The dropdown is capped to how far back real data actually
-    //    goes (EnsureEarliestDateAsync), so a brand-new clinic sees a
-    //    short dropdown instead of a long one full of empty periods.
-    // 3. Picking a dropdown entry (SelectedDateOption) triggers
-    //    LoadReport, which pulls all 5 report sections for that exact
-    //    date range and fills 4 ObservableCollection<ChartDataPoint>
-    //    properties — the page's Syncfusion chart series bind directly
-    //    to these via ItemsSource/XBindingPath/YBindingPath.
-    // 4. Billing chart granularity depends on the tab, and always
-    //    zooms INTO the selected period (never a trend across separate
-    //    periods anymore):
-    //    - Daily: hourly bars for the SELECTED day, using CreatedAt
-    //      (real time-of-day), bucketed to clinic hours.
-    //    - Weekly/Monthly: one bar per day inside the selected
-    //      week/month (7 days, or ~28-31 days), using VisitDate.
-    // 5. Each report card's stat area is tappable — confirms with the
-    //    user, then deep-links to the relevant list page.
-    // 6. Appointments: appointment_entries only holds NOT-YET-FINISHED
-    //    visits (the row gets deleted, not marked "completed", once a
-    //    visit is fully processed — see ReceiptViewModel.Done()). So
-    //    Completed comes from Bills instead; Pending/Cancelled come
-    //    from whatever's still sitting in appointment_entries, with a
-    //    report-time no-show rule for entries left over from a day
-    //    that's already fully ended.
-    // ───────────────────────────────────────────────────────────────
     public partial class ReportsViewModel : ObservableObject
     {
         readonly SupabaseDataService dataService;
 
         // Clinic operating hours, used to bucket the Daily billing
-        // chart into hourly bars. Adjust these two numbers if the
-        // clinic's actual hours differ (24-hour format, CloseHour is
-        // exclusive — 17 means "up to but not including 5 PM").
+        // chart into hourly bars. 
         const int ClinicOpenHour = 8;
         const int ClinicCloseHour = 17;
+
+        // Clinic operating days, Monday–Saturday 
+        static readonly DayOfWeek[] ClinicWeekdays =
+        {
+            DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+            DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday
+        };
 
         // Earliest date any real data exists (earliest booking or bill).
         // Computed once and cached — see EnsureEarliestDateAsync.
@@ -68,11 +41,13 @@ namespace ClinicApp.ViewModels
         // Whether the Billing line chart shows a number label on every point. Off for Monthly (too many points, labels overlap the line) — on for Daily/Weekly.
         [ObservableProperty] private bool showBillingDataLabels = true;
 
-        // Whether the chevron/navigation icons show on the report cards — only on the Daily tab, per request.
-        [ObservableProperty] private bool isDailyPeriod = true;
-
         // Treatments chart height, sized to the number of treatment categories so Daily/Weekly stay compact while Monthly (usually more categories) gets room to breathe. Set in LoadReport.
         [ObservableProperty] private double treatmentsChartHeight = 240;
+
+        // ── Which appointments view to show under the chart. Exactly one of these three is true at a time — set in SetPeriod. ──
+        [ObservableProperty] private bool showDailyAppointmentList = true;
+        [ObservableProperty] private bool showWeeklyAppointmentTable;
+        [ObservableProperty] private bool showMonthlyAppointmentTable;
 
         public ObservableCollection<DateRangeOption> DateOptions { get; } = new();
 
@@ -80,11 +55,20 @@ namespace ClinicApp.ViewModels
 
         // Chart data — the page's Syncfusion series bind straight to
         // these (ItemsSource="{Binding AppointmentChartData}" etc.).
-        // Cleared and rebuilt every LoadReport call.
+        // Cleared and rebuilt every LoadReport call.|
+
         public ObservableCollection<ChartDataPoint> AppointmentChartData { get; } = new();
         public ObservableCollection<ChartDataPoint> SupplyChartData { get; } = new();
         public ObservableCollection<ChartDataPoint> BillingChartData { get; } = new();
         public ObservableCollection<ChartDataPoint> TreatmentChartData { get; } = new();
+
+        // ── Table-row collections backing the CollectionViews added under each chart. Cleared and rebuilt every LoadReport call, same as the chart data above. ──
+        public ObservableCollection<TodayAppointmentRow> TodayAppointmentRows { get; } = new();
+        public ObservableCollection<AppointmentDayRow> AppointmentWeeklyRows { get; } = new();
+        public ObservableCollection<AppointmentWeekdayRow> AppointmentMonthlyRows { get; } = new();
+        public ObservableCollection<TreatmentRow> TreatmentTableRows { get; } = new();
+        public ObservableCollection<TopServiceRow> TopServiceRows { get; } = new();
+        public ObservableCollection<SupplyUsageRow> SupplyUsageRows { get; } = new();
 
         // Injects the shared data service used for every Supabase call on this page.
         public ReportsViewModel(SupabaseDataService dataService)
@@ -96,9 +80,7 @@ namespace ClinicApp.ViewModels
         public void OnAppearing() => _ = SetPeriod("Daily");
 
         // Tapping a Daily/Weekly/Monthly tab lands here. Rebuilds the
-        // dropdown for that granularity and auto-selects the most
-        // recent entry, which triggers LoadReport via
-        // OnSelectedDateOptionChanged below.
+        // dropdown for that granularity 
         [RelayCommand]
         async Task SetPeriod(string period)
         {
@@ -112,7 +94,11 @@ namespace ClinicApp.ViewModels
             // Daily shows hours, so the axis label changes; Monthly has too many points for on-chart labels to stay readable, so those are hidden there (values are still visible via tooltip in the chart).
             BillingAxisTitle = SelectedPeriod == ReportPeriod.Daily ? "Hour" : "Date";
             ShowBillingDataLabels = SelectedPeriod != ReportPeriod.Monthly;
-            IsDailyPeriod = SelectedPeriod == ReportPeriod.Daily; // chevrons only show on Daily, per request
+
+            // Which appointments view shows
+            ShowDailyAppointmentList = SelectedPeriod == ReportPeriod.Daily;
+            ShowWeeklyAppointmentTable = SelectedPeriod == ReportPeriod.Weekly;
+            ShowMonthlyAppointmentTable = SelectedPeriod == ReportPeriod.Monthly;
 
             await EnsureEarliestDateAsync();
 
@@ -131,10 +117,7 @@ namespace ClinicApp.ViewModels
             if (value != null) _ = LoadReport();
         }
 
-        // Finds the earliest booking/bill date once and caches it, so
-        // every dropdown rebuild after the first doesn't re-fetch. This
-        // is what makes the dropdown "shrink" for a new clinic instead
-        // of always showing a fixed 30/4/3 count.
+        // Finds the earliest booking/bill date once and caches it
         async Task EnsureEarliestDateAsync()
         {
             if (_earliestDataDate.HasValue) return;
@@ -158,8 +141,6 @@ namespace ClinicApp.ViewModels
             catch
             {
                 // If this fails for any reason, fall back to "today" —
-                // worst case the dropdown just shows one entry instead
-                // of crashing the page.
                 _earliestDataDate = DateTime.Today;
             }
         }
@@ -175,10 +156,6 @@ namespace ClinicApp.ViewModels
             switch (period)
             {
                 case ReportPeriod.Daily:
-                    // Clinic is closed Sundays — skip them so the
-                    // dropdown never offers a day that's guaranteed
-                    // to show an empty report. Still counts back 30
-                    // calendar days; Sundays just aren't added.
                     for (int i = 0; i < 30; i++)
                     {
                         var day = today.AddDays(-i);
@@ -253,6 +230,76 @@ namespace ClinicApp.ViewModels
             return options;
         }
 
+        // Same Completed/Cancelled classification the period-level
+        // totals use above (LoadReport), just narrowed to one calendar
+        // day. Shared by the Weekly table and the Monthly weekday
+        // aggregation, so both always agree with each other and with
+        // the top-level totals.
+        static (int Completed, int Cancelled) GetDayAppointmentCounts(
+            DateTime day,
+            List<Models.SupabaseModels.SupabaseBill> billsInRange,
+            List<Models.SupabaseModels.SupabaseCancelledAppointment> cancelledLogs,
+            List<Models.SupabaseModels.SupabaseAppointmentEntry> entries,
+            DateTime today)
+        {
+            var dayEnd = day.AddDays(1);
+
+            int completed = billsInRange.Count(b => b.VisitDate >= day && b.VisitDate < dayEnd);
+            int explicitCancelled = cancelledLogs.Count(c => c.AppointmentDateTime >= day && c.AppointmentDateTime < dayEnd);
+
+            // No-show only applies once the day is fully over — an
+            // entry left on a day still in progress or in the future
+            // is Pending, not a no-show.
+            int noShow = day.Date < today
+                ? entries.Count(e => e.AppointmentDateTime >= day && e.AppointmentDateTime < dayEnd)
+                : 0;
+
+            return (completed, explicitCancelled + noShow);
+        }
+
+        // Builds the "Busiest day: X — N completed" insight. Lists
+        static string BuildBusiestDayInsight(IEnumerable<(string Label, int Completed)> rows, string noneMessage)
+        {
+            var list = rows.ToList();
+            int maxCompleted = list.Count > 0 ? list.Max(r => r.Completed) : 0;
+            if (maxCompleted <= 0) return noneMessage;
+
+            var tiedNames = list.Where(r => r.Completed == maxCompleted).Select(r => r.Label).ToList();
+
+            string names = tiedNames.Count switch
+            {
+                1 => tiedNames[0],
+                2 => $"{tiedNames[0]} and {tiedNames[1]}",
+                _ => $"{string.Join(", ", tiedNames.Take(tiedNames.Count - 1))} and {tiedNames[^1]}"
+            };
+
+            string suffix = tiedNames.Count > 1
+                ? $" — {maxCompleted} completed each"
+                : $" — {maxCompleted} completed";
+
+            return $"Busiest day: {names}{suffix}";
+        }
+
+        // Builds the "Most common: X — N%" insight. 
+        static string BuildMostCommonTreatmentInsight(IReadOnlyList<TreatmentRow> rows)
+        {
+            if (rows.Count == 0) return "No treatments logged yet this period.";
+
+            int maxCount = rows.Max(r => r.Count);
+            var tied = rows.Where(r => r.Count == maxCount).ToList();
+            double pct = tied[0].PercentOfTotal;
+
+            string names = tied.Count switch
+            {
+                1 => tied[0].Treatment,
+                2 => $"{tied[0].Treatment} and {tied[1].Treatment}",
+                _ => $"{string.Join(", ", tied.Take(tied.Count - 1).Select(t => t.Treatment))} and {tied[^1].Treatment}"
+            };
+
+            string suffix = tied.Count > 1 ? $" — {pct:N0}% each" : $" — {pct:N0}%";
+            return $"Most common: {names}{suffix}";
+        }
+
         [RelayCommand]
         async Task LoadReport()
         {
@@ -273,25 +320,16 @@ namespace ClinicApp.ViewModels
                 var billsInRange = allBills.Where(b => b.VisitDate >= start && b.VisitDate < end).ToList();
 
                 // ── APPOINTMENTS ──
-                // appointment_entries only holds NOT-YET-FINISHED visits —
-                // ReceiptViewModel.Done() deletes the row the moment a visit
-                // is fully processed, it never marks it "completed". So a
-                // finished visit's only remaining trace is its Bill.
                 var entries = await dataService.GetAllAppointmentEntriesForReportAsync(start, end);
                 var today = DateTime.Today;
 
-                report.CompletedAppointments = billsInRange.Count; // a bill existing for this date IS the "this visit happened" signal, since the entry that produced it is already gone
+                report.CompletedAppointments = billsInRange.Count; // a bill existing for this date IS the "this visit happened" signal
 
-                // Explicit cancellations — CancelAppointment() logs one row here BEFORE
-                // deleting the entry, since the entry's Status never actually reaches
-                // "cancelled" before it's gone (the row is deleted, not status-flipped).
+                // Explicit cancellations — CancelAppointment() logs one row here 
                 var cancelledLogs = await dataService.GetAllCancelledAppointmentsForReportAsync(start, end);
                 var explicitlyCancelled = cancelledLogs.Count;
 
-                // No-show rule: an entry left over from a day that's already
-                // FULLY ended (not just "later today") without being
-                // explicitly cancelled or converted into a bill. Never
-                // applies mid-day — only once the calendar day is over.
+                // No-show rule: an entry left over from a day that's already FULLY ended 
                 var noShowPastDay = entries.Count(e => e.AppointmentDateTime.Date < today);
 
                 report.CancelledAppointments = explicitlyCancelled + noShowPastDay;
@@ -306,7 +344,112 @@ namespace ClinicApp.ViewModels
                 AppointmentChartData.Add(new ChartDataPoint { Label = "Pending", Value = report.PendingAppointments });
                 AppointmentChartData.Add(new ChartDataPoint { Label = "Cancelled", Value = report.CancelledAppointments });
 
-                // ── TREATMENTS (condition-based — see note below) ──
+                // ── Appointments table/list + insight — shape depends entirely on the selected tab ──
+                TodayAppointmentRows.Clear();
+                AppointmentWeeklyRows.Clear();
+                AppointmentMonthlyRows.Clear();
+                report.AppointmentsInsight = string.Empty;
+
+                if (SelectedPeriod == ReportPeriod.Daily)
+                {
+                    var rows = new List<TodayAppointmentRow>();
+
+                    foreach (var bill in billsInRange)
+                    {
+                        rows.Add(new TodayAppointmentRow
+                        {
+                            SortTime = bill.CreatedAt,
+                            TimeLabel = bill.CreatedAt.ToString("h:mm tt"),
+                            PatientName = string.IsNullOrWhiteSpace(bill.PatientName) ? "—" : bill.PatientName,
+                            StatusLabel = "Completed",
+                            StatusColor = Color.FromArgb("#388E3C"),
+                            StatusBgColor = Color.FromArgb("#E8F5E9")
+                        });
+                    }
+
+                    foreach (var entry in entries)
+                    {
+                        bool isNoShow = entry.AppointmentDateTime.Date < today;
+
+                        rows.Add(new TodayAppointmentRow
+                        {
+                            SortTime = entry.AppointmentDateTime,
+                            TimeLabel = entry.AppointmentDateTime.ToString("h:mm tt"),
+                            PatientName = string.IsNullOrWhiteSpace(entry.PatientName) ? "—" : entry.PatientName,
+                            StatusLabel = isNoShow ? "No-show" : "Pending",
+                            StatusColor = isNoShow ? Color.FromArgb("#D32F2F") : Color.FromArgb("#F57C00"),
+                            StatusBgColor = isNoShow ? Color.FromArgb("#FCEAEA") : Color.FromArgb("#FFF3E0")
+                        });
+                    }
+
+                    foreach (var cancelled in cancelledLogs)
+                    {
+                        rows.Add(new TodayAppointmentRow
+                        {
+                            SortTime = cancelled.AppointmentDateTime,
+                            TimeLabel = cancelled.AppointmentDateTime.ToString("h:mm tt"),
+                            PatientName = string.IsNullOrWhiteSpace(cancelled.PatientName) ? "—" : cancelled.PatientName,
+                            StatusLabel = "Cancelled",
+                            StatusColor = Color.FromArgb("#D32F2F"),
+                            StatusBgColor = Color.FromArgb("#FCEAEA")
+                        });
+                    }
+
+                    foreach (var row in rows.OrderBy(r => r.SortTime))
+                        TodayAppointmentRows.Add(row);
+                }
+                else if (SelectedPeriod == ReportPeriod.Weekly)
+                {
+                    // One row per clinic day (Mon–Sat) inside the selected week.
+                    for (var day = start.Date; day < end.Date; day = day.AddDays(1))
+                    {
+                        if (day.DayOfWeek == DayOfWeek.Sunday) continue; // clinic closed
+
+                        var (completed, cancelled) = GetDayAppointmentCounts(day, billsInRange, cancelledLogs, entries, today);
+                        AppointmentWeeklyRows.Add(new AppointmentDayRow
+                        {
+                            Date = day,
+                            DayLabel = $"{day:MMM d} ({day:ddd})",
+                            Completed = completed,
+                            Cancelled = cancelled
+                        });
+                    }
+
+                    report.AppointmentsInsight = BuildBusiestDayInsight(
+                        AppointmentWeeklyRows.Select(r => (r.Date.DayOfWeek.ToString(), r.Completed)),
+                        "No appointments completed yet this week.");
+                }
+                else // Monthly
+                {
+                    // Aggregate every day in the month by WEEKDAY NAME
+                    var weekdayTotals = new Dictionary<DayOfWeek, (int Completed, int Cancelled)>();
+
+                    for (var day = start.Date; day < end.Date; day = day.AddDays(1))
+                    {
+                        if (day.DayOfWeek == DayOfWeek.Sunday) continue; // clinic closed
+
+                        var (completed, cancelled) = GetDayAppointmentCounts(day, billsInRange, cancelledLogs, entries, today);
+                        var existing = weekdayTotals.TryGetValue(day.DayOfWeek, out var v) ? v : (Completed: 0, Cancelled: 0);
+                        weekdayTotals[day.DayOfWeek] = (existing.Completed + completed, existing.Cancelled + cancelled);
+                    }
+
+                    foreach (var dow in ClinicWeekdays)
+                    {
+                        var totals = weekdayTotals.TryGetValue(dow, out var v) ? v : (Completed: 0, Cancelled: 0);
+                        AppointmentMonthlyRows.Add(new AppointmentWeekdayRow
+                        {
+                            DayLabel = dow.ToString(),
+                            Completed = totals.Completed,
+                            Cancelled = totals.Cancelled
+                        });
+                    }
+
+                    report.AppointmentsInsight = BuildBusiestDayInsight(
+                        AppointmentMonthlyRows.Select(r => (r.DayLabel, r.Completed)),
+                        "No appointments completed yet this month.");
+                }
+
+                // ── TREATMENTS (condition-based) ──
                 var treatments = await dataService.GetAllTreatmentHistoryForReportAsync(start, end);
                 report.TotalTreatments = treatments.Count;
                 report.TreatmentBreakdown = treatments
@@ -323,6 +466,16 @@ namespace ClinicApp.ViewModels
                 // ~50dp per row is enough for a 2-line wrapped label; 240 is the floor so the card never looks squashed with few categories
                 TreatmentsChartHeight = Math.Max(240, report.TreatmentBreakdown.Count * 50);
 
+                // ── Treatments table (Treatment | Count | % of Total) + insight ──
+                TreatmentTableRows.Clear();
+                foreach (var kv in report.TreatmentBreakdown.OrderByDescending(kv => kv.Value))
+                {
+                    double pct = report.TotalTreatments > 0 ? (double)kv.Value / report.TotalTreatments * 100.0 : 0;
+                    TreatmentTableRows.Add(new TreatmentRow { Treatment = kv.Key, Count = kv.Value, PercentOfTotal = pct });
+                }
+
+                report.TreatmentsInsight = BuildMostCommonTreatmentInsight(TreatmentTableRows);
+
                 report.TotalRevenue = billsInRange.Sum(b => b.AmountPaid);
                 report.OutstandingBalance = billsInRange.Sum(b => b.Balance);
 
@@ -330,11 +483,6 @@ namespace ClinicApp.ViewModels
 
                 if (SelectedPeriod == ReportPeriod.Daily)
                 {
-                    // Hourly breakdown of the SELECTED day (not "last 7
-                    // days" like before, which ignored which date you
-                    // picked). Uses CreatedAt since it has real
-                    // time-of-day; VisitDate is date-only. Bucketed to
-                    // clinic hours so it isn't 24 mostly-empty bars.
                     for (int hour = ClinicOpenHour; hour < ClinicCloseHour; hour++)
                     {
                         var hourStart = start.AddHours(hour);
@@ -347,11 +495,6 @@ namespace ClinicApp.ViewModels
                 }
                 else
                 {
-                    // Weekly/Monthly: zoom INTO the selected period —
-                    // one bar per day inside it (7 for a week, ~28-31
-                    // for a month) — instead of a trend across separate
-                    // weeks/months. Sunday is skipped since the clinic
-                    // is always closed then (Weekly ends up with 6 bars).
                     for (var day = start.Date; day < end.Date; day = day.AddDays(1))
                     {
                         if (day.DayOfWeek == DayOfWeek.Sunday) continue; // clinic closed, no data possible
@@ -374,15 +517,31 @@ namespace ClinicApp.ViewModels
                     .GroupBy(i => string.IsNullOrWhiteSpace(i.ServiceName) ? "Unspecified" : i.ServiceName)
                     .ToDictionary(g => g.Key, g => g.Count());
 
+                // ── "Top Services by Revenue" table (top 5) + Billing insight — the only Billing table now ──
+                TopServiceRows.Clear();
+                var topServices = itemsInRange
+                    .GroupBy(i => string.IsNullOrWhiteSpace(i.ServiceName) ? "Unspecified" : i.ServiceName)
+                    .Select(g => new TopServiceRow
+                    {
+                        Service = g.Key,
+                        TimesBilled = g.Count(),
+                        Revenue = g.Sum(i => i.Subtotal)
+                    })
+                    .OrderByDescending(r => r.Revenue)
+                    .Take(5)
+                    .ToList();
+
+                foreach (var row in topServices)
+                    TopServiceRows.Add(row);
+
+                report.BillingInsight = TopServiceRows.Count > 0
+                    ? $"Top earner: {TopServiceRows[0].Service} — ₱{TopServiceRows[0].Revenue:N0}"
+                    : "No billed services yet this period.";
+
                 // ── SUPPLIES — reconstructed AS OF the end of the selected period, not just "right now" ──
                 var supplies = await dataService.GetSuppliesAsync(); // today's live quantities — the starting point we work backward from
                 report.TotalSupplies = supplies.Count;
 
-                // Every log entry that happened AFTER this period ended — subtracting these
-                // from today's live quantity "undoes" everything that's happened since,
-                // leaving what stock actually looked like at the end of the period. For a
-                // period that includes today (e.g. the Daily tab on "Today"), there are no
-                // future logs yet, so this naturally just equals the live snapshot.
                 var logsAfterPeriod = await dataService.GetAllStockLogsForReportAsync(end, DateTime.MaxValue);
 
                 var lowStockNames = new List<string>(); // names of items that were low as of that period, for the tap-to-view alert
@@ -424,6 +583,28 @@ namespace ClinicApp.ViewModels
                 report.PiecesRestocked = logs.Where(l => l.ChangeInPieces > 0).Sum(l => l.ChangeInPieces); // positive changes = stock added
                 report.PiecesUsed = Math.Abs(logs.Where(l => l.ChangeInPieces < 0).Sum(l => l.ChangeInPieces)); // negative changes = stock consumed
 
+                // ── Supplies table (Name | Used | Restocked, ranked by Used) + insight ──
+                SupplyUsageRows.Clear();
+                var supplyUsage = supplies
+                    .Select(s =>
+                    {
+                        var supplyLogs = logs.Where(l => l.SupplyId == s.Id).ToList();
+                        int used = Math.Abs(supplyLogs.Where(l => l.ChangeInPieces < 0).Sum(l => l.ChangeInPieces));
+                        int restocked = supplyLogs.Where(l => l.ChangeInPieces > 0).Sum(l => l.ChangeInPieces);
+                        return new SupplyUsageRow { Name = s.Name, Used = used, Restocked = restocked };
+                    })
+                    .Where(r => r.Used > 0 || r.Restocked > 0) // no movement this period — not worth a row
+                    .OrderByDescending(r => r.Used)
+                    .Take(5) // top 5 keeps this readable on mobile; the rest are still reflected in the summary totals above
+                    .ToList();
+
+                foreach (var row in supplyUsage)
+                    SupplyUsageRows.Add(row);
+
+                report.SuppliesInsight = SupplyUsageRows.Count > 0 && SupplyUsageRows[0].Used > 0
+                    ? $"Most used: {SupplyUsageRows[0].Name} — {SupplyUsageRows[0].Used} used"
+                    : "No supply usage recorded yet this period.";
+
                 CurrentReport = report;
             }
             catch (Exception ex)
@@ -435,77 +616,6 @@ namespace ClinicApp.ViewModels
             {
                 IsBusy = false;
             }
-        }
-
-        // ── Tap-to-confirm-then-navigate, one per card ──────────────
-        // Each stat area shows what's relevant, asks the user to
-        // confirm, then deep-links via Shell route (all confirmed
-        // registered in AppShell.cs).
-
-        // Tap on the Appointments stat area; shows a summary, then goes to the Appointments page if confirmed.
-        [RelayCommand]
-        async Task ViewAppointments()
-        {
-            if (CurrentReport == null) return;
-
-            bool go = await Shell.Current.DisplayAlert(
-                "Appointments",
-                $"{CurrentReport.TotalAppointments} appointment(s) this period " +
-                $"({CurrentReport.CompletedAppointments} done, {CurrentReport.PendingAppointments} pending, " +
-                $"{CurrentReport.CancelledAppointments} cancelled).\n\nView the full appointments list?",
-                "View", "Cancel");
-
-            if (go) await Shell.Current.GoToAsync(nameof(AppointmentPage));
-        }
-
-        // Tap on the Billing stat area; shows a summary, then goes to Transaction History if confirmed.
-        [RelayCommand]
-        async Task ViewBilling()
-        {
-            if (CurrentReport == null) return;
-
-            bool go = await Shell.Current.DisplayAlert(
-                "Billing",
-                $"₱{CurrentReport.TotalRevenue:N2} collected, ₱{CurrentReport.OutstandingBalance:N2} outstanding this period.\n\n" +
-                "View the full transaction history?",
-                "View", "Cancel");
-
-            if (go) await Shell.Current.GoToAsync(nameof(TransactionPage));
-        }
-
-        // Tap on the Supplies stat area; names which items are low, then goes to Supply List if confirmed.
-        [RelayCommand]
-        async Task ViewSupplies()
-        {
-            if (CurrentReport == null) return;
-
-            var message = $"{CurrentReport.TotalSupplies} total supply item(s): " +
-                           $"{CurrentReport.InStockCount} in stock, {CurrentReport.LowStockItemCount} low, " +
-                           $"{CurrentReport.OutOfStockCount} out of stock.";
-
-            if (CurrentReport.LowStockItemNames.Count > 0)
-                message += $"\n\nLow on: {string.Join(", ", CurrentReport.LowStockItemNames)}"; // name the actual items, not just a count
-
-            message += "\n\nView the full supply list?";
-
-            bool go = await Shell.Current.DisplayAlert("Medical Supplies", message, "View", "Cancel");
-
-            if (go) await Shell.Current.GoToAsync(nameof(SupplyListPage));
-        }
-
-        // Tap on the Treatments stat area; no general all-treatments page exists, so this goes to Patient List instead.
-        [RelayCommand]
-        async Task ViewTreatments()
-        {
-            if (CurrentReport == null) return;
-
-            bool go = await Shell.Current.DisplayAlert(
-                "Treatments",
-                $"{CurrentReport.TotalTreatments} treatment(s) logged this period. " +
-                $"Most common: {CurrentReport.MostCommonTreatment}.\n\nView the patient list?",
-                "View", "Cancel");
-
-            if (go) await Shell.Current.GoToAsync(nameof(PatientListPage));
         }
     }
 }
