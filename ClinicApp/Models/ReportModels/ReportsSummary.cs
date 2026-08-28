@@ -1,9 +1,7 @@
 ﻿namespace ClinicApp.Models.ReportModels
 {
     // Plain data holder for one period's report — filled in by
-    // ReportsViewModel.LoadReport(). No UI/chart logic lives here on
-    // purpose, so this stays reusable if the report is ever shown
-    // somewhere other than the Reports page 
+    // ReportsViewModel.LoadReport(). 
     public class ReportsSummary
     {
         public string PeriodLabel { get; set; } = string.Empty;
@@ -15,8 +13,6 @@
         public int CompletedAppointments { get; set; }
         public int PendingAppointments { get; set; }
         public int CancelledAppointments { get; set; }
-
-        // Short, highlighted takeaway for the Appointments card, e.g.
         public string AppointmentsInsight { get; set; } = string.Empty;
 
         // Treatments
@@ -42,6 +38,7 @@
         public int LowStockItemCount { get; set; }
         public int OutOfStockCount { get; set; }
         public List<string> LowStockItemNames { get; set; } = new();
+        public List<string> OutOfStockItemNames { get; set; } = new();
 
         // Supplies — movement WITHIN the selected period, from supply_stock_logs 
         public int PiecesRestocked { get; set; }
@@ -73,10 +70,7 @@
         public string Label { get; set; } = string.Empty;
     }
 
-    // One point/segment/bar for a Syncfusion chart series. Used for all
-    // four charts — Syncfusion's series bind via
-    // XBindingPath/YBindingPath to named properties, so one simple
-    // shared shape covers every chart on this page.
+    // One point/segment/bar for a Syncfusion chart series.
     public class ChartDataPoint
     {
         public string Label { get; set; } = string.Empty;
@@ -84,7 +78,6 @@
     }
 
     // One row of the Weekly appointments table: Day | Completed | Cancelled.
-    // One row per specific calendar day (Mon–Sat) inside the selected week.
     public class AppointmentDayRow
     {
         public DateTime Date { get; set; }
@@ -101,9 +94,7 @@
         public int Cancelled { get; set; }
     }
 
-    // One row of the Today appointment list (Daily tab) — a unified,
-    // time-ordered view combining bills (Completed), still-open entries
-    // (Pending/No-show) and explicit cancellations for the selected day.
+    // One row of the Today appointment list (Daily tab) 
     public class TodayAppointmentRow
     {
         // Not displayed — used only to sort the combined list by time.
@@ -139,5 +130,14 @@
         public string Name { get; set; } = string.Empty;
         public int Used { get; set; }
         public int Restocked { get; set; }
+    }
+
+    // One row of the "Low & Out of Stock" list 
+    public class SupplyAlertRow
+    {
+        public string Name { get; set; } = string.Empty;
+        public string StatusLabel { get; set; } = string.Empty; // "Out of Stock" or "Low Stock"
+        public Color StatusColor { get; set; } = Colors.Gray;
+        public Color StatusBgColor { get; set; } = Colors.LightGray;
     }
 }

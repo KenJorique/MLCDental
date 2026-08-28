@@ -16,8 +16,8 @@ namespace ClinicApp.ViewModels
 
         // Clinic operating hours, used to bucket the Daily billing
         // chart into hourly bars. 
-        const int ClinicOpenHour = 8;
-        const int ClinicCloseHour = 17;
+        // const int ClinicOpenHour = 8;
+        // const int ClinicCloseHour = 17;
 
         // Clinic operating days, Monday–Saturday 
         static readonly DayOfWeek[] ClinicWeekdays =
@@ -40,6 +40,9 @@ namespace ClinicApp.ViewModels
 
         // Whether the Billing line chart shows a number label on every point. Off for Monthly (too many points, labels overlap the line) — on for Daily/Weekly.
         [ObservableProperty] private bool showBillingDataLabels = true;
+
+        // Whether the Billing line chart shows at all. Off for Daily: 
+        [ObservableProperty] private bool showBillingChart = true;
 
         // Treatments chart height, sized to the number of treatment categories so Daily/Weekly stay compact while Monthly (usually more categories) gets room to breathe. Set in LoadReport.
         [ObservableProperty] private double treatmentsChartHeight = 240;
@@ -69,6 +72,7 @@ namespace ClinicApp.ViewModels
         public ObservableCollection<TreatmentRow> TreatmentTableRows { get; } = new();
         public ObservableCollection<TopServiceRow> TopServiceRows { get; } = new();
         public ObservableCollection<SupplyUsageRow> SupplyUsageRows { get; } = new();
+        public ObservableCollection<SupplyAlertRow> SupplyAlertRows { get; } = new();
 
         // Injects the shared data service used for every Supabase call on this page.
         public ReportsViewModel(SupabaseDataService dataService)
@@ -94,6 +98,7 @@ namespace ClinicApp.ViewModels
             // Daily shows hours, so the axis label changes; Monthly has too many points for on-chart labels to stay readable, so those are hidden there (values are still visible via tooltip in the chart).
             BillingAxisTitle = SelectedPeriod == ReportPeriod.Daily ? "Hour" : "Date";
             ShowBillingDataLabels = SelectedPeriod != ReportPeriod.Monthly;
+            ShowBillingChart = SelectedPeriod != ReportPeriod.Daily;
 
             // Which appointments view shows
             ShowDailyAppointmentList = SelectedPeriod == ReportPeriod.Daily;
@@ -459,16 +464,19 @@ namespace ClinicApp.ViewModels
                     ? report.TreatmentBreakdown.OrderByDescending(kv => kv.Value).First().Key
                     : "—";
 
+                // Top 10 only — the full breakdown can run long, and a chart/table with everything on it stops being readable on mobile
+                var topTreatments = report.TreatmentBreakdown.OrderByDescending(kv => kv.Value).Take(10).ToList();
+
                 TreatmentChartData.Clear();
-                foreach (var kv in report.TreatmentBreakdown.OrderByDescending(kv => kv.Value))
+                foreach (var kv in topTreatments)
                     TreatmentChartData.Add(new ChartDataPoint { Label = kv.Key, Value = kv.Value });
 
                 // ~50dp per row is enough for a 2-line wrapped label; 240 is the floor so the card never looks squashed with few categories
-                TreatmentsChartHeight = Math.Max(240, report.TreatmentBreakdown.Count * 50);
+                TreatmentsChartHeight = Math.Max(240, topTreatments.Count * 50);
 
-                // ── Treatments table (Treatment | Count | % of Total) + insight ──
+                // ── Treatments table (Treatment | Count | % of Total) + insight — % is still of the period's grand total, not just the top 10 shown ──
                 TreatmentTableRows.Clear();
-                foreach (var kv in report.TreatmentBreakdown.OrderByDescending(kv => kv.Value))
+                foreach (var kv in topTreatments)
                 {
                     double pct = report.TotalTreatments > 0 ? (double)kv.Value / report.TotalTreatments * 100.0 : 0;
                     TreatmentTableRows.Add(new TreatmentRow { Treatment = kv.Key, Count = kv.Value, PercentOfTotal = pct });
@@ -545,6 +553,7 @@ namespace ClinicApp.ViewModels
                 var logsAfterPeriod = await dataService.GetAllStockLogsForReportAsync(end, DateTime.MaxValue);
 
                 var lowStockNames = new List<string>(); // names of items that were low as of that period, for the tap-to-view alert
+                var outOfStockNames = new List<string>(); // names of items that were fully out as of that period
                 int inStockAsOf = 0, lowAsOf = 0, outAsOf = 0; // per-item classification counters for that point in time
 
                 foreach (var supply in supplies)
@@ -558,7 +567,10 @@ namespace ClinicApp.ViewModels
                     var quantityAsOfPeriod = supply.QuantityInPieces - changesSincePeriod;
 
                     if (quantityAsOfPeriod <= 0)
+                    {
                         outAsOf++;
+                        outOfStockNames.Add(supply.Name);
+                    }
                     else if (quantityAsOfPeriod <= supply.MinimumStockPieces)
                     {
                         lowAsOf++;
@@ -572,11 +584,19 @@ namespace ClinicApp.ViewModels
                 report.LowStockItemCount = lowAsOf;
                 report.InStockCount = inStockAsOf;
                 report.LowStockItemNames = lowStockNames;
+                report.OutOfStockItemNames = outOfStockNames;
 
                 SupplyChartData.Clear();
                 SupplyChartData.Add(new ChartDataPoint { Label = "In Stock", Value = report.InStockCount });
                 SupplyChartData.Add(new ChartDataPoint { Label = "Low Stock", Value = report.LowStockItemCount });
                 SupplyChartData.Add(new ChartDataPoint { Label = "Out of Stock", Value = report.OutOfStockCount });
+
+                // ── "Low & Out of Stock" list — names the chart's Low/Out slices, since a count alone doesn't say WHICH supplies need restocking. Out of Stock first (most urgent), then Low Stock.
+                SupplyAlertRows.Clear();
+                foreach (var name in outOfStockNames)
+                    SupplyAlertRows.Add(new SupplyAlertRow { Name = name, StatusLabel = "Out of Stock", StatusColor = Color.FromArgb("#D32F2F"), StatusBgColor = Color.FromArgb("#FCEAEA") });
+                foreach (var name in lowStockNames)
+                    SupplyAlertRows.Add(new SupplyAlertRow { Name = name, StatusLabel = "Low Stock", StatusColor = Color.FromArgb("#F57C00"), StatusBgColor = Color.FromArgb("#FFF3E0") });
 
                 // ── SUPPLIES — movement WITHIN this period (supply_stock_logs) ──
                 var logs = await dataService.GetAllStockLogsForReportAsync(start, end); // logs that happened DURING the period, for the Restocked/Used totals

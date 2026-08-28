@@ -9,4 +9,15 @@ public partial class AddUserPage : ContentPage
         InitializeComponent();
         BindingContext = vm;
     }
+
+    protected override bool OnBackButtonPressed()
+    {
+        if (BindingContext is AddUserViewModel vm)
+        {
+            vm.CancelCommand.Execute(null);
+            return true; // we own navigation now
+        }
+
+        return base.OnBackButtonPressed();
+    }
 }

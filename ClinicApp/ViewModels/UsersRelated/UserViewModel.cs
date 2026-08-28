@@ -5,6 +5,7 @@ using ClinicApp.Views.UsersRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace ClinicApp.ViewModels.UsersRelated;
 
@@ -14,10 +15,13 @@ public partial class UserViewModel : ObservableObject
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isRefreshing;
 
+    // The staff list bound to the CollectionView.
     public ObservableCollection<UserCardViewModel> Users { get; set; } = new();
 
+    // Injects the database service used for reading/writing staff records.
     public UserViewModel(DatabaseService db) => _db = db;
 
+    // Loads (or reloads) the staff list from the database.
     [RelayCommand]
     public async Task LoadUsers()
     {
@@ -41,7 +45,7 @@ public partial class UserViewModel : ObservableObject
         }
     }
 
-    // Tap on card → open action sheet
+    // Opens the Edit/Delete action sheet for a tapped staff card.
     [RelayCommand]
     async Task ShowActionSheet(UserCardViewModel card)
     {
@@ -78,6 +82,7 @@ public partial class UserViewModel : ObservableObject
         await sheet.ShowAsync();
     }
 
+    // Confirms with the user, then soft-deletes the staff record and removes it from the list.
     private async Task SoftDeleteUserAsync(UserCardViewModel card)
     {
         bool confirm = await Shell.Current.DisplayAlert(
@@ -88,11 +93,13 @@ public partial class UserViewModel : ObservableObject
         if (!confirm) return;
 
         await _db.DeleteUser(card.User); // now soft deletes
+
         var existing = Users.FirstOrDefault(u => u.User.UserID == card.User.UserID);
         if (existing is not null)
             Users.Remove(existing);
     }
 
+    // Navigates to the Add Staff form.
     [RelayCommand]
     async Task GoToAddUser() =>
         await Shell.Current.GoToAsync(nameof(AddUserPage));

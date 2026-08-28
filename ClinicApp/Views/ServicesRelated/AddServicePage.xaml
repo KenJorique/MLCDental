@@ -1,44 +1,84 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClinicApp.ViewModels.ServicesRelatedVM"
              x:Class="ClinicApp.Views.ServicesRelated.AddServicePage"
+             x:DataType="vm:AddServiceViewModel"
              Title="{Binding PageTitle}"
-             Shell.TabBarIsVisible="False">
+             Shell.NavBarIsVisible="True"
+             Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+             Shell.TitleColor="White"
+             Shell.ForegroundColor="White"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource PageBg}"
+             x:Name="ThisPage">
+
+	<!-- Intercept the nav-bar back arrow so it goes through the same
+         discard-confirmation flow as the Cancel button below. -->
+	<Shell.BackButtonBehavior>
+		<BackButtonBehavior Command="{Binding Source={x:Reference ThisPage}, Path=BindingContext.CancelCommand}"/>
+	</Shell.BackButtonBehavior>
 
 	<Grid RowDefinitions="*,Auto">
 
 		<ScrollView Grid.Row="0">
-			<VerticalStackLayout Padding="20" Spacing="12">
+			<VerticalStackLayout Padding="20,20,20,24">
 
-				<Label Text="Service Name" FontAttributes="Bold"/>
-				<Entry Placeholder="Enter service name"
-                       Text="{Binding ServiceName}" />
+				<Label Style="{StaticResource FormFieldLabel}">
+					<Label.FormattedText>
+						<FormattedString>
+							<Span Text="Service Name "/>
+							<Span Text="*" TextColor="{StaticResource PrimaryGreen}"/>
+						</FormattedString>
+					</Label.FormattedText>
+				</Label>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Placeholder="Enter service name"
+                           Text="{Binding ServiceName}"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
 
-				<Label Text="Price" FontAttributes="Bold"/>
-				<Grid ColumnDefinitions="Auto,*">
-					<Label Grid.Column="0" Text="₱"
-                           VerticalOptions="Center" Margin="0,0,8,0" FontSize="16"/>
-					<Entry Grid.Column="1"
-                           Placeholder="0.00"
-                           Text="{Binding ServicePrice}"
-                           Keyboard="Numeric" />
-				</Grid>
+				<Label Style="{StaticResource FormFieldLabel}">
+					<Label.FormattedText>
+						<FormattedString>
+							<Span Text="Price "/>
+							<Span Text="*" TextColor="{StaticResource PrimaryGreen}"/>
+						</FormattedString>
+					</Label.FormattedText>
+				</Label>
+				<Border Style="{StaticResource FormInputBox}">
+					<Grid ColumnDefinitions="Auto,*">
+						<Label Grid.Column="0" Text="₱"
+                               VerticalOptions="Center"
+                               Margin="0,0,6,0"
+                               FontSize="14"
+                               TextColor="{StaticResource TextMuted}"/>
+						<Entry Grid.Column="1"
+                               Placeholder="0.00"
+                               Text="{Binding ServicePrice}"
+                               Keyboard="Numeric"
+                               Style="{StaticResource FormEntry}"/>
+					</Grid>
+				</Border>
 
-				<Label Text="Description" FontAttributes="Bold"/>
-				<Editor Placeholder="Enter description"
-                        Text="{Binding ServiceDescription}"
-                        HeightRequest="100" />
+				<Label Text="Description" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBoxTall}">
+					<Editor Placeholder="Enter description (optional)"
+                            Text="{Binding ServiceDescription}"
+                            Style="{StaticResource FormEditor}"/>
+				</Border>
 
 			</VerticalStackLayout>
 		</ScrollView>
 
-		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,10" ColumnSpacing="12"
-              BackgroundColor="White">
+		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,12" ColumnSpacing="12"
+              BackgroundColor="{StaticResource White}">
 			<Button Grid.Column="0" Text="Cancel"
                     Command="{Binding CancelCommand}"
-                    BackgroundColor="LightGray" TextColor="Black"/>
+                    Style="{StaticResource SecondaryActionButtonStyle}"/>
 			<Button Grid.Column="1" Text="Save"
-                    Command="{Binding SaveCommand}"/>
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource PrimaryActionButtonStyle}"/>
 		</Grid>
 
 	</Grid>

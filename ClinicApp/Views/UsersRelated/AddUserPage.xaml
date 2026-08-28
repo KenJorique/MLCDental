@@ -1,89 +1,144 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClinicApp.ViewModels.UsersRelated"
+             xmlns:local="clr-namespace:ClinicApp.Converters"
              x:Class="ClinicApp.Views.UsersRelated.AddUserPage"
+             x:DataType="vm:AddUserViewModel"
              Title="{Binding PageTitle}"
-             Shell.TabBarIsVisible="False">
+             Shell.NavBarIsVisible="True"
+             Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+             Shell.TitleColor="White"
+             Shell.ForegroundColor="White"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource PageBg}"
+             x:Name="ThisPage">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="12">
+	<ContentPage.Resources>
+		<local:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter"/>
+		<local:BoolToStatusTextConverter x:Key="BoolToStatusTextConverter"/>
+	</ContentPage.Resources>
 
-            <Label Text="Full Name" FontAttributes="Bold"/>
-            <Entry Text="{Binding FullName}" Placeholder="Enter full name"/>
+	<!-- Intercept the nav-bar back arrow so it goes through the same
+         discard-confirmation flow as the Cancel button below. -->
+	<Shell.BackButtonBehavior>
+		<BackButtonBehavior Command="{Binding Source={x:Reference ThisPage}, Path=BindingContext.CancelCommand}"/>
+	</Shell.BackButtonBehavior>
 
-            <Label Text="Username" FontAttributes="Bold"/>
-            <Entry Text="{Binding Username}" Placeholder="Enter username"/>
+	<Grid RowDefinitions="*,Auto">
 
-            <Label Text="Password" FontAttributes="Bold"/>
-            <Entry Text="{Binding Password}" Placeholder="Enter password" IsPassword="True"/>
+		<ScrollView Grid.Row="0">
+			<VerticalStackLayout Padding="20,20,20,24">
 
-            <Label Text="Contact No." FontAttributes="Bold"/>
-            <Entry Text="{Binding ContactNo}"
-                   Placeholder="09xxxxxxxxx"
-                   Keyboard="Telephone"
-                   MaxLength="11"/>
+				<Label Style="{StaticResource FormFieldLabel}">
+					<Label.FormattedText>
+						<FormattedString>
+							<Span Text="Full Name "/>
+							<Span Text="*" TextColor="{StaticResource PrimaryGreen}"/>
+						</FormattedString>
+					</Label.FormattedText>
+				</Label>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Placeholder="Enter full name"
+                           Text="{Binding FullName}"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
 
-            <Label Text="Email Address" FontAttributes="Bold"/>
-            <Entry Text="{Binding Email}"
-                   Placeholder="email@example.com"
-                   Keyboard="Email"/>
+				<Label Text="Username" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Placeholder="Enter username"
+                           Text="{Binding Username}"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
 
-            <Label Text="Role" FontAttributes="Bold"/>
-            <Picker SelectedItem="{Binding Role}" Title="Select Role">
-                <Picker.ItemsSource>
-                    <x:Array Type="{x:Type x:String}">
-                        <x:String>Dentist</x:String>
-                        <x:String>Assistant</x:String>
-                        <x:String>Admin</x:String>
-                    </x:Array>
-                </Picker.ItemsSource>
-            </Picker>
+				<Label Text="Password" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Placeholder="Enter password"
+                           Text="{Binding Password}"
+                           IsPassword="True"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
 
-            <!-- Status switch: only visible when editing an existing user -->
-            <VerticalStackLayout IsVisible="{Binding IsEditMode}"
-                                 Spacing="8"
-                                 Margin="0,10,0,0">
+				<Label Text="Contact No." Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Placeholder="09xxxxxxxxx"
+                           Text="{Binding ContactNo}"
+                           Keyboard="Telephone"
+                           MaxLength="11"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
 
-                <Label Text="Status" FontAttributes="Bold"/>
+				<Label Text="Email Address" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Placeholder="email@example.com"
+                           Text="{Binding Email}"
+                           Keyboard="Email"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
 
-                <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+				<Label Style="{StaticResource FormFieldLabel}">
+					<Label.FormattedText>
+						<FormattedString>
+							<Span Text="Role "/>
+							<Span Text="*" TextColor="{StaticResource PrimaryGreen}"/>
+						</FormattedString>
+					</Label.FormattedText>
+				</Label>
+				<Border Style="{StaticResource FormInputBox}">
+					<Picker SelectedItem="{Binding Role}"
+                            Title="Select role"
+                            TitleColor="{StaticResource TextMuted}">
+						<Picker.ItemsSource>
+							<x:Array Type="{x:Type x:String}">
+								<x:String>Dentist</x:String>
+								<x:String>Assistant</x:String>
+								<x:String>Admin</x:String>
+							</x:Array>
+						</Picker.ItemsSource>
+					</Picker>
+				</Border>
 
-                    <!-- Colored dot reflects current switch state -->
-                    <Ellipse WidthRequest="12"
-                             HeightRequest="12"
-                             VerticalOptions="Center">
-                        <Ellipse.Fill>
-                            <Binding Path="IsActive">
-                                <Binding.Converter>
-                                    <local:BoolToStatusColorConverter xmlns:local="clr-namespace:ClinicApp.Converters"/>
-                                </Binding.Converter>
-                            </Binding>
-                        </Ellipse.Fill>
-                    </Ellipse>
+				<!-- Status switch: only visible when editing an existing user -->
+				<VerticalStackLayout IsVisible="{Binding IsEditMode}" Spacing="0">
 
-                    <Label VerticalOptions="Center" FontSize="15">
-                        <Label.Text>
-                            <Binding Path="IsActive">
-                                <Binding.Converter>
-                                    <local:BoolToStatusTextConverter xmlns:local="clr-namespace:ClinicApp.Converters"/>
-                                </Binding.Converter>
-                            </Binding>
-                        </Label.Text>
-                    </Label>
+					<Label Text="Status" Style="{StaticResource FormFieldLabel}"/>
 
-                    <!-- Toggle switch -->
-                    <Switch IsToggled="{Binding IsActive}" VerticalOptions="Center"/>
+					<Border Style="{StaticResource FormInputBox}" HeightRequest="50">
+						<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
 
-                </HorizontalStackLayout>
+							<Ellipse Grid.Column="0"
+                                     WidthRequest="10"
+                                     HeightRequest="10"
+                                     VerticalOptions="Center"
+                                     Fill="{Binding IsActive, Converter={StaticResource BoolToStatusColorConverter}}"/>
 
-            </VerticalStackLayout>
+							<Label Grid.Column="1"
+                                   FontSize="14"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   VerticalOptions="Center"
+                                   Text="{Binding IsActive, Converter={StaticResource BoolToStatusTextConverter}}"/>
 
-            <!-- Save button -->
-            <Button Text="Save"
+							<Switch Grid.Column="2"
+                                    IsToggled="{Binding IsActive}"
+                                    OnColor="{StaticResource PrimaryGreen}"
+                                    VerticalOptions="Center"/>
+						</Grid>
+					</Border>
+
+				</VerticalStackLayout>
+
+			</VerticalStackLayout>
+		</ScrollView>
+
+		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,12" ColumnSpacing="12"
+              BackgroundColor="{StaticResource White}">
+			<Button Grid.Column="0" Text="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Style="{StaticResource SecondaryActionButtonStyle}"/>
+			<Button Grid.Column="1" Text="Save"
                     Command="{Binding SaveUserCommand}"
-                    Margin="0,20,0,0"
-                    BackgroundColor="MediumPurple"/>
+                    Style="{StaticResource PrimaryActionButtonStyle}"/>
+		</Grid>
 
-        </VerticalStackLayout>
-    </ScrollView>
+	</Grid>
 </ContentPage>

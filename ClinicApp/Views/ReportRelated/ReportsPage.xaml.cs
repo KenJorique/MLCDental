@@ -28,7 +28,6 @@ public partial class ReportsPage : ContentPage
             return new SolidColorBrush(color);
 
         // Fallback so a missing resource key doesn't crash the page —
-        // shows up as gray if this ever happens, easy to spot.
         return new SolidColorBrush(Colors.Gray);
     }
 

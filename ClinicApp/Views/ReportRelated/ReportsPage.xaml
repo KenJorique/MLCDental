@@ -299,8 +299,9 @@
 
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
-							<!-- Table: Treatment | Count | % of Total -->
+							<!-- Table: Treatment | Count | % of Total — capped to the top 10 categories by count -->
 							<VerticalStackLayout Spacing="0">
+								<Label Text="Top 10 Treatments" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gray500}" Margin="0,0,0,6"/>
 								<Grid ColumnDefinitions="2*,1*,1*" Padding="0,0,0,6">
 									<Label Grid.Column="0" Text="Treatment" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}"/>
 									<Label Grid.Column="1" Text="Count" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
@@ -350,8 +351,8 @@
 
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
-							<!-- Chart -->
-							<chart:SfCartesianChart HeightRequest="220">
+							<!-- Chart — hidden on Daily; with one dentist, revenue-per-hour doesn't show a meaningful trend, just which treatment landed in which hour. Weekly/Monthly keep it since day-to-day revenue trend is meaningful. -->
+							<chart:SfCartesianChart HeightRequest="220" IsVisible="{Binding ShowBillingChart}">
 								<!-- Tooltip content shown on tap: date/hour + peso amount, styled green to match the line -->
 								<chart:SfCartesianChart.Resources>
 									<converters:ZeroAmountToVisibilityConverter x:Key="ZeroAmountToVisibilityConverter"/>
@@ -509,6 +510,35 @@
 								</chart:DoughnutSeries>
 							</chart:SfCircularChart>
 
+							<!-- "Low & Out of Stock" — names the Low/Out slices from the chart above, since a count alone doesn't say WHICH supplies to restock. Out of Stock listed first (most urgent). Shown first since it's the most actionable item on this card. -->
+							<VerticalStackLayout Spacing="0">
+								<Label Text="Low &amp; Out of Stock" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gray500}" Margin="0,0,0,6"/>
+								<CollectionView ItemsSource="{Binding SupplyAlertRows}">
+									<CollectionView.EmptyView>
+										<Label Text="All supplies sufficiently stocked as of this period." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+									</CollectionView.EmptyView>
+									<CollectionView.ItemTemplate>
+										<DataTemplate>
+											<VerticalStackLayout>
+												<Grid ColumnDefinitions="*,Auto" Padding="0,8">
+													<Label Grid.Column="0" Text="{Binding Name}" FontSize="13" TextColor="{StaticResource Gray900}" LineBreakMode="WordWrap" VerticalOptions="Center"/>
+													<!-- Pale bg + colored text, matching the Today's Appointments status pill style -->
+													<Border Grid.Column="1" BackgroundColor="{Binding StatusBgColor}" Padding="8,3" StrokeThickness="0" VerticalOptions="Center">
+														<Border.StrokeShape>
+															<RoundRectangle CornerRadius="10"/>
+														</Border.StrokeShape>
+														<Label Text="{Binding StatusLabel}" FontSize="10" FontAttributes="Bold" TextColor="{Binding StatusColor}"/>
+													</Border>
+												</Grid>
+												<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+											</VerticalStackLayout>
+										</DataTemplate>
+									</CollectionView.ItemTemplate>
+								</CollectionView>
+							</VerticalStackLayout>
+
+							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
+
 							<!-- Insight -->
 							<Border BackgroundColor="{StaticResource Secondary}" Padding="10,8" StrokeThickness="0"
                                     IsVisible="{Binding CurrentReport.SuppliesInsight, Converter={StaticResource StringNotEmptyConverter}}">
@@ -526,6 +556,7 @@
 
 							<!-- Table: Name | Used | Restocked, ranked by most used -->
 							<VerticalStackLayout Spacing="0">
+								<Label Text="Most Used Supplies" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gray500}" Margin="0,0,0,6"/>
 								<Grid ColumnDefinitions="2*,1*,1*" Padding="0,0,0,6">
 									<Label Grid.Column="0" Text="Name" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}"/>
 									<Label Grid.Column="1" Text="Used" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
