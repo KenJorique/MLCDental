@@ -49,6 +49,8 @@
             <converters:ClassIdToColorConverter x:Key="ClassIdToColorConverter"/>
             <converters:IntGreaterThanZeroConverter x:Key="IntGreaterThanZeroConverter"/>
 
+            <converters:PasswordToggleTextConverter x:Key="PasswordToggleTextConverter"/>
+
         </ResourceDictionary>
 	</Application.Resources>
 </Application>

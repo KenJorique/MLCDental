@@ -47,14 +47,21 @@ namespace ClinicApp
                     sp.GetRequiredService<DatabaseService>()));
             builder.Services.AddSingleton<BillDraftService>();
             builder.Services.AddSingleton<BillingService>();
-            // ── App ───────────────────────────────────────────────
-            // ── App ───────────────────────────────────────────────
+            builder.Services.AddSingleton<SessionService>();          // one session for the app's lifetime
+            builder.Services.AddSingleton<AuthenticationService>();    // stateless-ish, but fine as singleton
+                                                                       // DatabaseService is presumably already registered as a Singleton — leave as is.
+                                                                       // ── App ───────────────────────────────────────────────
+                                                                       // ── App ───────────────────────────────────────────────
             builder.Services.AddSingleton<App>(sp => new App(
                 sp.GetRequiredService<SupabaseDataService>(),
                 sp.GetRequiredService<DatabaseService>(),
                 sp.GetRequiredService<SupabaseRealtimeService>(),
-                sp.GetRequiredService<PatientListViewModel>()
+                sp.GetRequiredService<PatientListViewModel>(),
+                sp.GetRequiredService<SessionService>(),
+                sp.GetRequiredService<LoginPage>(),
+                sp.GetRequiredService<RememberMeService>()
             ));
+            builder.Services.AddSingleton<RememberMeService>();
 
             // ── Main pages ────────────────────────────────────────
             builder.Services.AddSingleton<HomePage>();
@@ -148,6 +155,14 @@ namespace ClinicApp
             builder.Services.AddTransient<AddUserPage>();
             builder.Services.AddTransient<AddUserViewModel>();
 
+            builder.Services.AddTransient<LoginViewModel>(sp => 
+                    new LoginViewModel(
+                        sp.GetRequiredService<AuthenticationService>(),
+                        sp.GetRequiredService<SessionService>(),
+                        sp.GetRequiredService<RememberMeService>()));
+            builder.Services.AddTransient<LoginPage>();
+            builder.Services.AddTransient<AppShell>();
+
             // Transactions  ─────────────────────────────────────────────
             builder.Services.AddTransient<TransactionViewModel>(s =>
                 new TransactionViewModel(
@@ -215,6 +230,7 @@ namespace ClinicApp
                 });
 #if DEBUG
             builder.Logging.AddDebug();
+
 #endif
             return builder.Build();
         }

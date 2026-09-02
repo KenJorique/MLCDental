@@ -1,4 +1,5 @@
 ﻿using ClinicApp.Models;
+using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
 using ClinicApp.Views.Shared;
 using ClinicApp.Views.UsersRelated;
@@ -11,12 +12,39 @@ namespace ClinicApp.ViewModels.UsersRelated;
 public partial class UserViewModel : ObservableObject
 {
     private readonly DatabaseService _db;
+    private readonly SupabaseDataService _supabaseData;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isRefreshing;
 
     public ObservableCollection<UserCardViewModel> Users { get; set; } = new();
 
-    public UserViewModel(DatabaseService db) => _db = db;
+    public UserViewModel(DatabaseService db, SupabaseDataService supabaseData)
+    {
+        _db = db;
+        _supabaseData = supabaseData;
+    }
+
+    // Called once from UserListPage.OnAppearing (mirrors
+    // PatientListViewModel.StartRealtimeAsync, minus the realtime
+    // subscription — a plain pull-and-backfill is enough for the staff
+    // list, which changes far less often than patients/bookings).
+    private bool _syncStarted = false;
+
+    public async Task StartSupabaseSyncAsync()
+    {
+        if (_syncStarted) return;
+        _syncStarted = true;
+
+        try
+        {
+            var remoteUsers = await _supabaseData.GetUsersAsync();
+            await _db.BackfillUserSupabaseIds(remoteUsers);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[UserSync] {ex.Message}");
+        }
+    }
 
     [RelayCommand]
     public async Task LoadUsers()
@@ -87,7 +115,14 @@ public partial class UserViewModel : ObservableObject
 
         if (!confirm) return;
 
-        await _db.DeleteUser(card.User); // now soft deletes
+        await _db.DeleteUser(card.User); // now soft deletes locally
+
+        // Mirror the soft delete to Supabase if this user was ever synced.
+        if (!string.IsNullOrEmpty(card.User.SupabaseId))
+        {
+            await _supabaseData.SoftDeleteUserAsync(new SupabaseUser { Id = card.User.SupabaseId });
+        }
+
         var existing = Users.FirstOrDefault(u => u.User.UserID == card.User.UserID);
         if (existing is not null)
             Users.Remove(existing);

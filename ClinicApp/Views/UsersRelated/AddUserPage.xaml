@@ -16,6 +16,9 @@
 
             <Label Text="Password" FontAttributes="Bold"/>
             <Entry Text="{Binding Password}" Placeholder="Enter password" IsPassword="True"/>
+            <Label Text="Leave blank when editing to keep the current password."
+                   FontSize="11" TextColor="Gray"
+                   IsVisible="{Binding IsEditMode}"/>
 
             <Label Text="Contact No." FontAttributes="Bold"/>
             <Entry Text="{Binding ContactNo}"
@@ -33,6 +36,7 @@
                 <Picker.ItemsSource>
                     <x:Array Type="{x:Type x:String}">
                         <x:String>Dentist</x:String>
+                        <x:String>Secretary</x:String>
                         <x:String>Assistant</x:String>
                         <x:String>Admin</x:String>
                     </x:Array>

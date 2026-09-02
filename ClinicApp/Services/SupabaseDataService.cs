@@ -3,7 +3,7 @@ using Supabase;
 
 namespace ClinicApp.Services
 {
-    public class SupabaseDataService
+    public partial class SupabaseDataService
     {
         private Client? _client;
         private readonly string _url;
@@ -191,7 +191,7 @@ namespace ClinicApp.Services
             try
             {
                 await EnsureInitializedAsync();
-               
+
 
                 var result = await _client!
                     .From<SupabaseAppointmentEntry>()

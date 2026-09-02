@@ -214,3 +214,14 @@ public class IntGreaterThanZeroConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         throw new NotImplementedException();
 }
+
+public class PasswordToggleTextConverter : IValueConverter
+{
+    // Bound to LoginViewModel.IsPasswordHidden — true means the password
+    // is currently masked, so the button should offer to "Show" it.
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => (value is bool hidden && hidden) ? "Show" : "Hide";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
