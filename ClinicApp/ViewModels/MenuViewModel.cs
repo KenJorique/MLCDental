@@ -12,9 +12,19 @@ namespace ClinicApp.ViewModels
 {
     public partial class MenuViewModel : ObservableObject
     {
+        private readonly SessionService _session;
+        private readonly RememberMeService _rememberMe; // ── NEW ──
+
         [ObservableProperty] private string googleEmail = "Not connected";
         [ObservableProperty] private string googleButtonText = "Connect";
         [ObservableProperty] private bool isGoogleConnected;
+        [ObservableProperty] private string loggedInAs = "";
+
+        public MenuViewModel(SessionService session, RememberMeService rememberMe) // ── CHANGED ──
+        {
+            _session = session;
+            _rememberMe = rememberMe;
+        }
 
         public void OnAppearing()
         {
@@ -26,11 +36,14 @@ namespace ClinicApp.ViewModels
                     ? Preferences.Get("google_email", "Connected")
                     : "Not connected";
                 GoogleButtonText = isSignedIn ? "Disconnect" : "Connect";
+
+                LoggedInAs = _session.IsAuthenticated
+                    ? $"{_session.FullName} ({_session.Role})"
+                    : "";
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MenuViewModel] OnAppearing error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MenuViewModel] OnAppearing error: {ex.Message}");
             }
         }
 
@@ -41,7 +54,6 @@ namespace ClinicApp.ViewModels
             {
                 if (Preferences.Get("google_signed_in", false))
                 {
-                    // Sign out safely
                     try { GoogleTasksService.Instance.SignOut(); }
                     catch { /* ignore if not initialized */ }
 
@@ -60,81 +72,69 @@ namespace ClinicApp.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MenuViewModel] GoogleSignIn error: {ex.Message}");
-                await Shell.Current.DisplayAlert("Error",
-                    $"Navigation failed: {ex.Message}", "OK");
+                System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoogleSignIn error: {ex.Message}");
+                await Shell.Current.DisplayAlert("Error", $"Navigation failed: {ex.Message}", "OK");
             }
         }
 
         [RelayCommand]
         async Task GoToServices()
         {
-            try
-            {
-                await Shell.Current.GoToAsync(nameof(ServiceListPage));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MenuViewModel] GoToServices: {ex.Message}");
-            }
+            try { await Shell.Current.GoToAsync(nameof(ServiceListPage)); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToServices: {ex.Message}"); }
         }
 
         [RelayCommand]
         async Task GoToUsers()
         {
-            try
-            {
-                await Shell.Current.GoToAsync(nameof(UserListPage));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MenuViewModel] GoToUsers: {ex.Message}");
-            }
+            try { await Shell.Current.GoToAsync(nameof(UserListPage)); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToUsers: {ex.Message}"); }
+        }
+
+        [RelayCommand]
+        async Task GoToAddStaff()
+        {
+            try { await Shell.Current.GoToAsync(nameof(AddUserPage)); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToAddStaff: {ex.Message}"); }
         }
 
         [RelayCommand]
         async Task GoToSupply()
         {
-            try
-            {
-                await Shell.Current.GoToAsync(nameof(SupplyListPage));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MenuViewModel] GoToSupply: {ex.Message}");
-            }
+            try { await Shell.Current.GoToAsync(nameof(SupplyListPage)); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToSupply: {ex.Message}"); }
         }
 
         [RelayCommand]
         async Task GoToPaymentManagement()
         {
-            try
-            {
-                await Shell.Current.GoToAsync(nameof(BalanceManagementPage));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MenuViewModel] GoToPaymentManagement: {ex.Message}");
-            }
+            try { await Shell.Current.GoToAsync(nameof(BalanceManagementPage)); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToPaymentManagement: {ex.Message}"); }
         }
 
         [RelayCommand]
         async Task GoToReports()
         {
-            try
-            {
-                await Shell.Current.GoToAsync(nameof(ReportsPage));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MenuViewModel] GoToReports: {ex.Message}");
-            }
+            try { await Shell.Current.GoToAsync(nameof(ReportsPage)); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToReports: {ex.Message}"); }
+        }
+
+        // ── CHANGED: now also revokes the "remember this device" token,
+        // so an explicit Log Out genuinely requires a fresh login next
+        // time — unlike an inactivity timeout, which leaves it intact. ──
+        [RelayCommand]
+        async Task Logout()
+        {
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Log Out",
+                "Are you sure you want to log out?",
+                "Log Out", "Cancel");
+
+            if (!confirm) return;
+
+            int userId = _session.UserId;
+            _session.Logout();
+            await _rememberMe.ForgetAsync(userId);
         }
     }
 }

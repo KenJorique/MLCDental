@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
- 
+
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:chart="clr-namespace:Syncfusion.Maui.Charts;assembly=Syncfusion.Maui.Charts"
@@ -381,8 +381,10 @@
 
 					<!-- ══════════════════════════════════════════════════
                          BILLING — Summary → Chart → Insight → Table
+                         Hidden entirely on Daily (ShowBillingChart doubles as the
+                         "not Daily" flag, already computed in ApplyGroupingFlags)
                          ══════════════════════════════════════════════════ -->
-					<Border Style="{StaticResource ElevatedCardStyle}">
+					<Border Style="{StaticResource ElevatedCardStyle}" IsVisible="{Binding ShowBillingChart}">
 						<VerticalStackLayout Spacing="10">
 							<Label Text="Billing" Style="{StaticResource CardSectionTitleStyle}"/>
 
@@ -400,8 +402,8 @@
 
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
-							<!-- Chart — hidden on Daily; with one dentist, revenue-per-hour doesn't show a meaningful trend, just which treatment landed in which hour. Weekly/Monthly keep it since day-to-day revenue trend is meaningful. -->
-							<chart:SfCartesianChart HeightRequest="220" IsVisible="{Binding ShowBillingChart}">
+							<!-- Chart -->
+							<chart:SfCartesianChart HeightRequest="220">
 								<!-- Tooltip content shown on tap: date/hour + peso amount, styled green to match the line -->
 								<chart:SfCartesianChart.Resources>
 									<converters:ZeroAmountToVisibilityConverter x:Key="ZeroAmountToVisibilityConverter"/>
@@ -570,41 +572,43 @@
 
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 
-							<!-- Insight -->
-							<Border BackgroundColor="{StaticResource Secondary}" Padding="10,8" StrokeThickness="0"
-                                    IsVisible="{Binding CurrentReport.SuppliesInsight, Converter={StaticResource StringNotEmptyConverter}}">
-								<Border.StrokeShape>
-									<RoundRectangle CornerRadius="8"/>
-								</Border.StrokeShape>
-								<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-									<Label Grid.Column="0" Text="&#xe0f0;" FontFamily="MaterialSymbolsRounded" FontSize="16" TextColor="{StaticResource Primary}" VerticalOptions="Start"/>
-									<Label Grid.Column="1" Text="{Binding CurrentReport.SuppliesInsight}" FontSize="12" FontAttributes="Bold"
-                                           TextColor="{StaticResource Primary}" VerticalOptions="Center" LineBreakMode="WordWrap"/>
-								</Grid>
-							</Border>
+							<!-- Header row + dropdown, side by side: label left, dropdown right -->
+							<Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+								<Label Grid.Column="0" Text="Supply Stock Status" FontSize="12" FontAttributes="Bold"
+                                       TextColor="{StaticResource Gray500}" VerticalOptions="Center"/>
+								<Border Grid.Column="1" StrokeThickness="1" Stroke="{StaticResource Gray200}" Padding="8,0"
+                                        WidthRequest="130" HorizontalOptions="End">
+									<Border.StrokeShape>
+										<RoundRectangle CornerRadius="6"/>
+									</Border.StrokeShape>
+									<Grid ColumnDefinitions="*,Auto">
+										<!-- StyleId marks this Picker specifically for the underline-removal handler in MauiProgram.cs — no other Picker is affected -->
+										<Picker Grid.Column="0" Grid.ColumnSpan="2" StyleId="NoUnderlinePicker"
+                                                ItemsSource="{Binding SupplyStatusOptions}" SelectedItem="{Binding SelectedSupplyStatusFilter}"
+                                                FontSize="12"/>
+										<Label Grid.Column="1" Text="&#xe5cf;" FontFamily="MaterialSymbolsRounded" FontSize="16"
+                                               TextColor="{StaticResource Gray500}" VerticalOptions="Center" InputTransparent="True"/>
+									</Grid>
+								</Border>
+							</Grid>
 
-							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
-
-							<!-- Table: Name | Used | Restocked, ranked by most used -->
+							<!-- Table: Supply Stock Status -->
 							<VerticalStackLayout Spacing="0">
-								<Label Text="Most Used Supplies" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gray500}" Margin="0,0,0,6"/>
-								<Grid ColumnDefinitions="2*,1*,1*" Padding="0,0,0,6">
-									<Label Grid.Column="0" Text="Name" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}"/>
-									<Label Grid.Column="1" Text="Used" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
-									<Label Grid.Column="2" Text="Restocked" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
+								<Grid ColumnDefinitions="2*,1*" Padding="0,6,0,6">
+									<Label Grid.Column="0" Text="Supply Name" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}"/>
+									<Label Grid.Column="1" Text="Quantity" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" HorizontalTextAlignment="End"/>
 								</Grid>
 								<BoxView HeightRequest="1" Color="{StaticResource Gray200}"/>
-								<CollectionView ItemsSource="{Binding SupplyUsageRows}">
+								<CollectionView ItemsSource="{Binding SupplyStatusRows}">
 									<CollectionView.EmptyView>
-										<Label Text="No supply movement recorded yet this period." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+										<Label Text="No supplies in this category for the selected period." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
 									</CollectionView.EmptyView>
 									<CollectionView.ItemTemplate>
 										<DataTemplate>
 											<VerticalStackLayout>
-												<Grid ColumnDefinitions="2*,1*,1*" Padding="0,8">
+												<Grid ColumnDefinitions="2*,1*" Padding="0,8">
 													<Label Grid.Column="0" Text="{Binding Name}" FontSize="13" TextColor="{StaticResource Gray900}" LineBreakMode="WordWrap" VerticalOptions="Center"/>
-													<Label Grid.Column="1" Text="{Binding Used}" FontSize="13" TextColor="{StaticResource StatusOut}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
-													<Label Grid.Column="2" Text="{Binding Restocked}" FontSize="13" TextColor="{StaticResource Primary}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
+													<Label Grid.Column="1" Text="{Binding Quantity}" FontSize="13" TextColor="{StaticResource Gray900}" HorizontalTextAlignment="End" VerticalOptions="Center"/>
 												</Grid>
 												<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 											</VerticalStackLayout>

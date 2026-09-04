@@ -105,7 +105,7 @@
 					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
                            FontSize="18" TextColor="{StaticResource TextMuted}" VerticalOptions="Center"/>
 				</Grid>
-				
+
 				<!-- User Management -->
 				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
 					<Grid.GestureRecognizers>
@@ -122,6 +122,34 @@
 					</VerticalStackLayout>
 					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
                            FontSize="18" TextColor="{StaticResource TextMuted}" VerticalOptions="Center"/>
+				</Grid>
+
+				<BoxView HeightRequest="1" BackgroundColor="#F0F0F0" Margin="14,0"/>
+
+				<!-- Log Out -->
+				<Grid ColumnDefinitions="Auto,*,Auto" Padding="14,14" ColumnSpacing="14">
+					<Grid.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding LogoutCommand}"/>
+					</Grid.GestureRecognizers>
+					<Border Grid.Column="0" WidthRequest="44" HeightRequest="44"
+							BackgroundColor="#FFEBEE" StrokeThickness="0">
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="10"/>
+						</Border.StrokeShape>
+						<Label FontFamily="MaterialSymbolsRounded" Text="&#xe9ba;"
+							   FontSize="22" TextColor="Crimson"
+							   HorizontalOptions="Center" VerticalOptions="Center"/>
+					</Border>
+					<VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+						<Label Text="Log Out" FontSize="15" FontAttributes="Bold"
+							   TextColor="Crimson"/>
+						<!-- Shows "Dr. Full Name (Dentist)" etc. — set in
+             MenuViewModel.OnAppearing() from SessionService -->
+						<Label Text="{Binding LoggedInAs}" FontSize="12"
+							   TextColor="{StaticResource TextMuted}"/>
+					</VerticalStackLayout>
+					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
+						   FontSize="18" TextColor="{StaticResource TextMuted}" VerticalOptions="Center"/>
 				</Grid>
 
 			</VerticalStackLayout>

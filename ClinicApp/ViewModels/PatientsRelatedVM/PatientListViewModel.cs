@@ -85,7 +85,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         // Called once from PatientListPage.OnAppearing
         private bool _realtimeStarted = false;
 
-        public async Task StartRealtimeAsync()
+        public async Task StartRealtimeAsync()  
         {
             if (_realtimeStarted) return;
             _realtimeStarted = true;
@@ -96,10 +96,11 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 var key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4YWNkcWtrb2NiamFpcXN6cHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NTExNTUsImV4cCI6MjA5NjAyNzE1NX0.Jt-Dsn6j3m9uL_R0A1Y0AVlUKBA_hmNI-NfHDBQYLUA";
 
                 await _realtime.InitializeAsync(url, key);
-
                 // Sync any patients/bookings missed while offline
                 await _realtime.SyncMissedPatientsAsync();
                 await _realtime.SyncMissedBookingsAsync();
+                await _realtime.SyncMissedTreatmentHistoryAsync();
+                await _realtime.SyncMissedToothRecordsAsync();
 
                 // Backfill SupabaseId for patients that don't have it yet
                 var allSupabase = await _supabaseData.GetPatientsAsync();
@@ -108,6 +109,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 // Subscribe to live changes
                 await _realtime.SubscribeToBookingsAsync();
                 await _realtime.SubscribeToPatientsAsync();
+                await _realtime.SubscribeToTreatmentHistoryAsync();
+                await _realtime.SubscribeToToothRecordsAsync();
 
                 // Temporary debug — check what's actually in Supabase bookings
                 var allBookings = await _supabaseData.GetAllBookingsDebugAsync();

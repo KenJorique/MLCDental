@@ -71,7 +71,33 @@ namespace ClinicApp.ViewModels
         public ObservableCollection<AppointmentWeekdayRow> AppointmentMonthlyRows { get; } = new();
         public ObservableCollection<TreatmentRow> TreatmentTableRows { get; } = new();
         public ObservableCollection<TopServiceRow> TopServiceRows { get; } = new();
-        public ObservableCollection<SupplyUsageRow> SupplyUsageRows { get; } = new();
+        // Dropdown options for the Supply Stock Status table.
+        public List<string> SupplyStatusOptions { get; } = new() { "Out of Stock", "Low Stock", "In Stock" };
+
+        [ObservableProperty]
+        string selectedSupplyStatusFilter = "Out of Stock";
+
+        public ObservableCollection<SupplyStockRow> SupplyStatusRows { get; } = new();
+
+        // Re-filters the table whenever the dropdown selection changes.
+        partial void OnSelectedSupplyStatusFilterChanged(string value) => ApplySupplyStatusFilter();
+
+        // Rebuilds SupplyStatusRows from CurrentReport for whichever category is selected.
+        void ApplySupplyStatusFilter()
+        {
+            SupplyStatusRows.Clear();
+            if (CurrentReport == null) return;
+
+            var rows = SelectedSupplyStatusFilter switch
+            {
+                "Low Stock" => CurrentReport.LowStockRows,
+                "In Stock" => CurrentReport.InStockRows,
+                _ => CurrentReport.OutOfStockRows
+            };
+
+            foreach (var row in rows)
+                SupplyStatusRows.Add(row);
+        }
 
         // Injects the shared data service used for every Supabase call on this page.
         public ReportsViewModel(SupabaseDataService dataService)
@@ -618,6 +644,9 @@ namespace ClinicApp.ViewModels
                 var lowStockNames = new List<string>(); // names of items that were low as of that period, for the tap-to-view alert
                 var outOfStockNames = new List<string>(); // names of items that were fully out as of that period
                 var inStockNames = new List<string>(); // names of items that were sufficiently stocked as of that period
+                var lowStockRows = new List<SupplyStockRow>(); // same, with quantity, for the Supply Stock Status table
+                var outOfStockRows = new List<SupplyStockRow>();
+                var inStockRows = new List<SupplyStockRow>();
                 int inStockAsOf = 0, lowAsOf = 0, outAsOf = 0; // per-item classification counters for that point in time
 
                 foreach (var supply in supplies)
@@ -634,16 +663,19 @@ namespace ClinicApp.ViewModels
                     {
                         outAsOf++;
                         outOfStockNames.Add(supply.Name);
+                        outOfStockRows.Add(new SupplyStockRow { Name = supply.Name, Quantity = quantityAsOfPeriod });
                     }
                     else if (quantityAsOfPeriod <= supply.MinimumStockPieces)
                     {
                         lowAsOf++;
                         lowStockNames.Add(supply.Name);
+                        lowStockRows.Add(new SupplyStockRow { Name = supply.Name, Quantity = quantityAsOfPeriod });
                     }
                     else
                     {
                         inStockAsOf++;
                         inStockNames.Add(supply.Name);
+                        inStockRows.Add(new SupplyStockRow { Name = supply.Name, Quantity = quantityAsOfPeriod });
                     }
                 }
 
@@ -653,6 +685,9 @@ namespace ClinicApp.ViewModels
                 report.LowStockItemNames = lowStockNames;
                 report.OutOfStockItemNames = outOfStockNames;
                 report.InStockItemNames = inStockNames;
+                report.LowStockRows = lowStockRows.OrderBy(r => r.Name).ToList();
+                report.OutOfStockRows = outOfStockRows.OrderBy(r => r.Name).ToList();
+                report.InStockRows = inStockRows.OrderBy(r => r.Name).ToList();
 
                 SupplyChartData.Clear();
                 SupplyChartData.Add(new ChartDataPoint { Label = "In Stock", Value = report.InStockCount });
@@ -664,29 +699,11 @@ namespace ClinicApp.ViewModels
                 report.PiecesRestocked = logs.Where(l => l.ChangeInPieces > 0).Sum(l => l.ChangeInPieces); // positive changes = stock added
                 report.PiecesUsed = Math.Abs(logs.Where(l => l.ChangeInPieces < 0).Sum(l => l.ChangeInPieces)); // negative changes = stock consumed
 
-                // ── Supplies table (Name | Used | Restocked, ranked by Used) + insight ──
-                SupplyUsageRows.Clear();
-                var supplyUsage = supplies
-                    .Select(s =>
-                    {
-                        var supplyLogs = logs.Where(l => l.SupplyId == s.Id).ToList();
-                        int used = Math.Abs(supplyLogs.Where(l => l.ChangeInPieces < 0).Sum(l => l.ChangeInPieces));
-                        int restocked = supplyLogs.Where(l => l.ChangeInPieces > 0).Sum(l => l.ChangeInPieces);
-                        return new SupplyUsageRow { Name = s.Name, Used = used, Restocked = restocked };
-                    })
-                    .Where(r => r.Used > 0 || r.Restocked > 0) // no movement this period — not worth a row
-                    .OrderByDescending(r => r.Used)
-                    .Take(5) // top 5 keeps this readable on mobile; the rest are still reflected in the summary totals above
-                    .ToList();
-
-                foreach (var row in supplyUsage)
-                    SupplyUsageRows.Add(row);
-
-                report.SuppliesInsight = SupplyUsageRows.Count > 0 && SupplyUsageRows[0].Used > 0
-                    ? $"Most used: {SupplyUsageRows[0].Name} — {SupplyUsageRows[0].Used} used"
-                    : "No supply usage recorded yet this period.";
-
                 CurrentReport = report;
+
+                // Out of Stock is the default — most urgent and keeps the table short — unless there's nothing in it, then Low Stock.
+                SelectedSupplyStatusFilter = report.OutOfStockRows.Count > 0 ? "Out of Stock" : "Low Stock";
+                ApplySupplyStatusFilter();
             }
             catch (Exception ex)
             {

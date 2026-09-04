@@ -18,6 +18,7 @@ using ClinicApp.Views.TransactionRelated;
 using ClinicApp.Views.UsersRelated;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Handlers;
 using The49.Maui.BottomSheet;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 using Syncfusion.Maui.Core.Hosting;
@@ -38,7 +39,7 @@ namespace ClinicApp
 
             // ── Google refresh token ──────────────────────────────
             Preferences.Set("google_refresh_token",
-     "1//0etnD-p20Px5wCgYIARAAGA4SNwF-L9IrRRqCR6LS1Egm5jBQzQycF9dM4KQ5KXD1wi8J9WHx6Yd4LWq9nd5aj0ZyZlOA1gP-wXM");
+     "1//04lNOw9Ik3RmfCgYIARAAGAQSNwF-L9IrWCDoRUW-BrnhpvGtUQvPJykV5kJQT-epjT75UhGphOTNb1Xr7wVCRE3XuNKKE8vY458");
             // Clear cached token so fresh one is fetched
             Preferences.Remove("google_access_token");
 
@@ -51,14 +52,21 @@ namespace ClinicApp
                     sp.GetRequiredService<DatabaseService>()));
             builder.Services.AddSingleton<BillDraftService>();
             builder.Services.AddSingleton<BillingService>();
-            // ── App ───────────────────────────────────────────────
-            // ── App ───────────────────────────────────────────────
+            builder.Services.AddSingleton<SessionService>();          // one session for the app's lifetime
+            builder.Services.AddSingleton<AuthenticationService>();    // stateless-ish, but fine as singleton
+                                                                       // DatabaseService is presumably already registered as a Singleton — leave as is.
+                                                                       // ── App ───────────────────────────────────────────────
+                                                                       // ── App ───────────────────────────────────────────────
             builder.Services.AddSingleton<App>(sp => new App(
                 sp.GetRequiredService<SupabaseDataService>(),
                 sp.GetRequiredService<DatabaseService>(),
                 sp.GetRequiredService<SupabaseRealtimeService>(),
-                sp.GetRequiredService<PatientListViewModel>()
+                sp.GetRequiredService<PatientListViewModel>(),
+                sp.GetRequiredService<SessionService>(),
+                sp.GetRequiredService<LoginPage>(),
+                sp.GetRequiredService<RememberMeService>()
             ));
+            builder.Services.AddSingleton<RememberMeService>();
 
             // ── Main pages ────────────────────────────────────────
             builder.Services.AddSingleton<HomeViewModel>(sp =>
@@ -139,7 +147,7 @@ namespace ClinicApp
             builder.Services.AddTransient<TreatmentHistoryViewModel>(sp =>
             new TreatmentHistoryViewModel(
                 sp.GetRequiredService<DatabaseService>(),
-            sp.GetRequiredService<SupabaseRealtimeService>()));
+                sp.GetRequiredService<SupabaseRealtimeService>()));
             builder.Services.AddTransient<CephalometricPage>();
             builder.Services.AddTransient<CephalometricViewModel>();
             builder.Services.AddTransient<VisitDetailsViewModel>();
@@ -156,6 +164,14 @@ namespace ClinicApp
             builder.Services.AddTransient<UserListPage>();
             builder.Services.AddTransient<AddUserPage>();
             builder.Services.AddTransient<AddUserViewModel>();
+
+            builder.Services.AddTransient<LoginViewModel>(sp =>
+                    new LoginViewModel(
+                        sp.GetRequiredService<AuthenticationService>(),
+                        sp.GetRequiredService<SessionService>(),
+                        sp.GetRequiredService<RememberMeService>()));
+            builder.Services.AddTransient<LoginPage>();
+            builder.Services.AddTransient<AppShell>();
 
             // Transactions  ─────────────────────────────────────────────
             builder.Services.AddTransient<TransactionViewModel>(s =>
@@ -232,7 +248,20 @@ namespace ClinicApp
                 });
 #if DEBUG
             builder.Logging.AddDebug();
+
 #endif
+
+            // Removes the native Android underline, but ONLY from the one Picker marked
+            // StyleId="NoUnderlinePicker" (the Supply Stock Status dropdown on Reports) —
+            // every other Picker in the app keeps its normal underline.
+#if ANDROID
+            PickerHandler.Mapper.AppendToMapping("RemovePickerUnderline", (handler, view) =>
+            {
+                if (view is Picker picker && picker.StyleId == "NoUnderlinePicker")
+                    handler.PlatformView.Background = null;
+            });
+#endif
+
             return builder.Build();
         }
     }

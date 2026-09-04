@@ -27,6 +27,7 @@ public class CephalometricMeasurement
     public string? LandmarkData { get; set; }
 }
 
+
 public class MeasurementResult
 {
     public string MeasurementName { get; set; } = "";

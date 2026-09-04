@@ -46,13 +46,15 @@
         public List<string> OutOfStockItemNames { get; set; } = new();
         public List<string> InStockItemNames { get; set; } = new();
 
+        // Name + quantity (as of period end) for the Supply Stock Status table's dropdown categories.
+        public List<SupplyStockRow> LowStockRows { get; set; } = new();
+        public List<SupplyStockRow> OutOfStockRows { get; set; } = new();
+        public List<SupplyStockRow> InStockRows { get; set; } = new();
+
         // Supplies — movement WITHIN the selected period, from supply_stock_logs 
         public int PiecesRestocked { get; set; }
         public int PiecesUsed { get; set; }
 
-        // Short takeaway for the Supplies card, e.g.
-        // "Most used: Gauze Pads — 42 used".
-        public string SuppliesInsight { get; set; } = string.Empty;
 
         // Services Rendered
         public int TotalServicesRendered { get; set; }
@@ -130,12 +132,10 @@
         public decimal Revenue { get; set; }
     }
 
-    // One row of the Supplies table: Name | Used | Restocked. Ranked by
-    // Used descending; only items with movement in the period are shown.
-    public class SupplyUsageRow
+    // One row of the Supply Stock Status table: Name | Quantity (as of the selected period's end).
+    public class SupplyStockRow
     {
         public string Name { get; set; } = string.Empty;
-        public int Used { get; set; }
-        public int Restocked { get; set; }
+        public int Quantity { get; set; }
     }
 }

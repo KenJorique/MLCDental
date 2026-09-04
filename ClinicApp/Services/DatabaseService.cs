@@ -9,7 +9,7 @@ using SQLite;
 
 namespace ClinicApp.Services;
 
-public class DatabaseService
+public partial class DatabaseService
 {
     // SQLite async connection, initialized once via Init()
     SQLiteAsyncConnection? _database;
@@ -23,7 +23,7 @@ public class DatabaseService
     {
 
 
-        
+
         // Already fully initialised — skip
         if (_database != null) return;
 
@@ -48,6 +48,10 @@ public class DatabaseService
             try { await _database.CreateTableAsync<Patient>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Patient: {ex.Message}"); }
 
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN RememberTokenHash TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN RememberTokenExpiresAt TEXT"); }
+            catch { /* already exists */ }
 
             // Clear synced booking cache so missed bookings get re-synced
             try
@@ -101,6 +105,49 @@ public class DatabaseService
             catch { /* already exists */ }
             try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsActive INTEGER DEFAULT 1"); }
             catch { /* already exists */ }
+
+            // ── Auth migration: hashed password + brute-force/session columns ──
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN PasswordHash TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN FailedLoginAttempts INTEGER DEFAULT 0"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN LockedUntil TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN LastLoginAt TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN CreatedAt TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN UpdatedAt TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN SupabaseId TEXT DEFAULT ''"); }
+            catch { /* already exists */ }
+
+            // One-time migration: any row that still has a plaintext Password
+            // and no PasswordHash yet gets hashed in place, then the plaintext
+            // column is cleared. Safe to run every startup — it's a no-op
+            // once every row has been migrated.
+            try
+            {
+                var toMigrate = await _database!.Table<User>()
+                    .Where(u => u.PasswordHash == null || u.PasswordHash == "")
+                    .ToListAsync();
+
+                foreach (var u in toMigrate)
+                {
+                    if (!string.IsNullOrEmpty(u.Password))
+                    {
+                        u.PasswordHash = PasswordHasher.Hash(u.Password);
+                        u.Password = null; // never keep the plaintext around
+                        u.UpdatedAt = DateTime.UtcNow;
+                        await _database!.UpdateAsync(u);
+                        System.Diagnostics.Debug.WriteLine($"[DB] Migrated plaintext password for UserID={u.UserID}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DB] Password migration error: {ex.Message}");
+            }
 
             try { await _database.CreateTableAsync<ToothRecord>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ToothRecord table: {ex.Message}"); }
@@ -167,11 +214,28 @@ public class DatabaseService
                 var userCount = await _database.Table<User>().CountAsync();
                 if (userCount == 0)
                 {
+                    // NOTE: these are placeholder dev-only accounts. Change or
+                    // delete them before this ever ships to a real device —
+                    // dentist accounts should be created through a controlled
+                    // admin process, not a public register screen (there isn't one).
+                    var now = DateTime.UtcNow;
                     await _database.InsertAllAsync(new List<User>
-                    {
-                        new User { FullName = "Dr. Full Name",  Username = "dentist1", Password = "123", Role = "Dentist",   IsActive = true },
-                        new User { FullName = "Assistant Name", Username = "staff1",   Password = "123", Role = "Assistant", IsActive = true }
-                    });
+            {
+                new User
+                {
+                    FullName = "Dr. Full Name", Username = "dentist1",
+                    PasswordHash = PasswordHasher.Hash("dentist1!"),
+                    Role = "Dentist", IsActive = true,
+                    CreatedAt = now, UpdatedAt = now
+                },
+                new User
+                {
+                    FullName = "Secretary Name", Username = "secretary2",
+                    PasswordHash = PasswordHasher.Hash("secretary02!"),
+                    Role = "Secretary", IsActive = true,
+                    CreatedAt = now, UpdatedAt = now
+                }
+            });
                     System.Diagnostics.Debug.WriteLine("[DB] Default users seeded.");
                 }
             }
@@ -526,9 +590,22 @@ public class DatabaseService
                                .ToListAsync();
     }
 
+    // Callers (e.g. AddUserViewModel) set the plaintext User.Password field
+    // from the form. This hashes it into PasswordHash and wipes the
+    // plaintext before anything ever reaches the database.
     public async Task AddUser(User user)
     {
         await Init();
+
+        if (string.IsNullOrWhiteSpace(user.Password))
+            throw new InvalidOperationException("A password is required to create a user.");
+
+        var now = DateTime.UtcNow;
+        user.PasswordHash = PasswordHasher.Hash(user.Password);
+        user.Password = null;
+        user.CreatedAt = now;
+        user.UpdatedAt = now;
+
         await _database!.InsertAsync(user);
     }
 
@@ -536,12 +613,37 @@ public class DatabaseService
     {
         await Init();
         user.IsDeleted = true;
+        user.UpdatedAt = DateTime.UtcNow;
         return await _database!.UpdateAsync(user);
     }
 
+    // If the caller populated the plaintext Password field (admin is
+    // resetting/changing this user's password), re-hash it. Otherwise the
+    // existing PasswordHash is left untouched. Also preserves every field
+    // the edit form doesn't expose (SupabaseId, lockout state, CreatedAt,
+    // LastLoginAt) — sqlite-net's UpdateAsync writes every mapped column,
+    // so building a fresh User() and updating it directly would silently
+    // wipe those back to their defaults.
     public async Task UpdateUser(User user)
     {
         await Init();
+
+        var existing = await _database!.Table<User>()
+            .Where(u => u.UserID == user.UserID)
+            .FirstOrDefaultAsync();
+
+        user.PasswordHash = !string.IsNullOrWhiteSpace(user.Password)
+            ? PasswordHasher.Hash(user.Password)
+            : existing?.PasswordHash;
+
+        user.SupabaseId = existing?.SupabaseId ?? "";
+        user.FailedLoginAttempts = existing?.FailedLoginAttempts ?? 0;
+        user.LockedUntil = existing?.LockedUntil;
+        user.LastLoginAt = existing?.LastLoginAt;
+        user.CreatedAt = existing?.CreatedAt ?? DateTime.UtcNow;
+
+        user.Password = null;
+        user.UpdatedAt = DateTime.UtcNow;
         await _database!.UpdateAsync(user);
     }
 
