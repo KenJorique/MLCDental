@@ -39,5 +39,14 @@ namespace ClinicApp.Models.SupabaseModels
 
         [Column("google_task_id")]
         public string? GoogleTaskId { get; set; }
+
+        [Column("treatment_sequence_id")]
+        public string? TreatmentSequenceId { get; set; }
+
+        [Column("session_number")]
+        public int? SessionNumber { get; set; }
+
+        [Column("total_sessions")]
+        public int? TotalSessions { get; set; }
     }
 }

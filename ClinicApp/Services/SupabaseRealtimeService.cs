@@ -13,7 +13,8 @@ namespace ClinicApp.Services
         private bool _initialized = false;
 
         public event Action? OnNewBookingReceived;
-        public event Action? OnPatientChanged;  // ← new event
+        public event Action? OnPatientChanged;
+        public event Action? OnUserChanged;
 
         public SupabaseRealtimeService(DatabaseService db)
         {
@@ -396,6 +397,86 @@ namespace ClinicApp.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Sync] SyncMissedToothRecords error: {ex.Message}");
+            }
+        }
+
+        // Realtime insert/update handler for staff accounts. Mirrors
+        // SubscribeToPatientsAsync/SubscribeToToothRecordsAsync exactly —
+        // same channel-per-table pattern, same Insert+Update handling.
+        public async Task SubscribeToUsersAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-users");
+                channel.Register(new PostgresChangesOptions("public", "users"));
+
+                // New staff account added on another device → sync to local SQLite
+                channel.AddPostgresChangeHandler(ListenType.Inserts, async (sender, change) =>
+                {
+                    try
+                    {
+                        var su = change.Model<SupabaseUser>();
+                        if (su == null) return;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Realtime] New user from another device: {su.Username}");
+                        await _db.SyncUserFromSupabaseAsync(su);
+                        MainThread.BeginInvokeOnMainThread(() => OnUserChanged?.Invoke());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Realtime] User insert error: {ex.Message}");
+                    }
+                });
+
+                // Staff account edited (or soft-deleted) on another device → update local SQLite
+                channel.AddPostgresChangeHandler(ListenType.Updates, async (sender, change) =>
+                {
+                    try
+                    {
+                        var su = change.Model<SupabaseUser>();
+                        if (su == null) return;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Realtime] User updated from another device: {su.Username}");
+                        await _db.SyncUserFromSupabaseAsync(su);
+                        MainThread.BeginInvokeOnMainThread(() => OnUserChanged?.Invoke());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Realtime] User update error: {ex.Message}");
+                    }
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine("[Realtime] Subscribed to users.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Realtime] SubscribeUsers error: {ex.Message}");
+            }
+        }
+
+        // Catch-up pull for whatever happened while this device was
+        // offline/closed — same role as SyncMissedPatientsAsync /
+        // SyncMissedToothRecordsAsync. Call this once at startup, same
+        // place those are called from.
+        public async Task SyncMissedUsersAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var result = await _client.From<SupabaseUser>().Get();
+                int count = 0;
+                foreach (var su in result.Models)
+                {
+                    await _db.SyncUserFromSupabaseAsync(su);
+                    count++;
+                }
+                System.Diagnostics.Debug.WriteLine($"[Sync] Missed users synced: {count}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sync] SyncMissedUsers error: {ex.Message}");
             }
         }
 

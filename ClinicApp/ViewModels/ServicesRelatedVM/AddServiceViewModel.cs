@@ -19,6 +19,18 @@ public partial class AddServiceViewModel : ObservableObject
     [ObservableProperty] decimal servicePrice;
     [ObservableProperty] string? serviceDescription;
 
+    // ── Multi-session configuration ──
+    [ObservableProperty] bool requiresMultipleSessions;
+    [ObservableProperty] int totalSessions = 2;
+    [ObservableProperty] int followupIntervalDays = 14;
+
+    partial void OnRequiresMultipleSessionsChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowSessionFields));
+    }
+
+    public bool ShowSessionFields => RequiresMultipleSessions;
+
     partial void OnServiceIdChanged(string? value)
     {
         if (!string.IsNullOrWhiteSpace(value))
@@ -39,6 +51,10 @@ public partial class AddServiceViewModel : ObservableObject
                 ServiceName = service.Name;
                 ServicePrice = service.BasePrice;
                 ServiceDescription = service.Description;
+                RequiresMultipleSessions = service.RequiresMultipleSessions;
+                TotalSessions = service.DefaultTotalSessions ?? 2;
+                FollowupIntervalDays = service.FollowupIntervalDays ?? 14;
+                OnPropertyChanged(nameof(ShowSessionFields));
             });
         }
     }
@@ -58,6 +74,23 @@ public partial class AddServiceViewModel : ObservableObject
             await Shell.Current.DisplayAlert("Validation", "Please enter a valid price.", "OK");
             return;
         }
+        if (RequiresMultipleSessions && TotalSessions < 2)
+        {
+            await Shell.Current.DisplayAlert("Validation", "Multi-session services need at least 2 sessions.", "OK");
+            return;
+        }
+
+        // Recurring/open-ended services (e.g. Braces Adjustment) can leave TotalSessions
+        // blank-equivalent by using a very high number staff won't hit — simplest is to let
+        // DefaultTotalSessions be null when RequiresMultipleSessions is on but the treatment
+        // has no fixed session count. Here we treat "1" typed by staff as "not fixed" → null.
+        int? resolvedTotalSessions = RequiresMultipleSessions
+            ? (TotalSessions > 1 ? TotalSessions : null)
+            : null;
+
+        int? resolvedInterval = RequiresMultipleSessions && FollowupIntervalDays > 0
+            ? FollowupIntervalDays
+            : null;
 
         if (!string.IsNullOrWhiteSpace(ServiceId))
         {
@@ -68,6 +101,10 @@ public partial class AddServiceViewModel : ObservableObject
                 service.Name = ServiceName;
                 service.BasePrice = ServicePrice;
                 service.Description = ServiceDescription;
+                service.RequiresMultipleSessions = RequiresMultipleSessions;
+                service.DefaultTotalSessions = resolvedTotalSessions;
+                service.FollowupIntervalDays = resolvedInterval;
+
                 var success = await _supabase.UpdateServiceAsync(service);
                 if (!success)
                 {
@@ -84,6 +121,9 @@ public partial class AddServiceViewModel : ObservableObject
                 BasePrice = ServicePrice,
                 Description = ServiceDescription,
                 IsActive = true,
+                RequiresMultipleSessions = RequiresMultipleSessions,
+                DefaultTotalSessions = resolvedTotalSessions,
+                FollowupIntervalDays = resolvedInterval,
                 CreatedAt = DateTime.UtcNow
             });
 

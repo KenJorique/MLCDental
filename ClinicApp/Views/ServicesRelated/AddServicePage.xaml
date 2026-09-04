@@ -5,41 +5,80 @@
              Title="{Binding PageTitle}"
              Shell.TabBarIsVisible="False">
 
-	<Grid RowDefinitions="*,Auto">
+    <Grid RowDefinitions="*,Auto">
 
-		<ScrollView Grid.Row="0">
-			<VerticalStackLayout Padding="20" Spacing="12">
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="20" Spacing="12">
 
-				<Label Text="Service Name" FontAttributes="Bold"/>
-				<Entry Placeholder="Enter service name"
+                <Label Text="Service Name" FontAttributes="Bold"/>
+                <Entry Placeholder="Enter service name"
                        Text="{Binding ServiceName}" />
 
-				<Label Text="Price" FontAttributes="Bold"/>
-				<Grid ColumnDefinitions="Auto,*">
-					<Label Grid.Column="0" Text="₱"
+                <Label Text="Price" FontAttributes="Bold"/>
+                <Grid ColumnDefinitions="Auto,*">
+                    <Label Grid.Column="0" Text="₱"
                            VerticalOptions="Center" Margin="0,0,8,0" FontSize="16"/>
-					<Entry Grid.Column="1"
+                    <Entry Grid.Column="1"
                            Placeholder="0.00"
                            Text="{Binding ServicePrice}"
                            Keyboard="Numeric" />
-				</Grid>
+                </Grid>
 
-				<Label Text="Description" FontAttributes="Bold"/>
-				<Editor Placeholder="Enter description"
+                <Label Text="Description" FontAttributes="Bold"/>
+                <Editor Placeholder="Enter description"
                         Text="{Binding ServiceDescription}"
                         HeightRequest="100" />
 
-			</VerticalStackLayout>
-		</ScrollView>
+                <!-- ══ Multi-session configuration ══ -->
+                <BoxView HeightRequest="1" BackgroundColor="LightGray" Margin="0,10,0,4"/>
 
-		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,10" ColumnSpacing="12"
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Grid.Column="0" Text="Requires Multiple Sessions"
+                           FontAttributes="Bold" VerticalOptions="Center"/>
+                    <Switch Grid.Column="1" IsToggled="{Binding RequiresMultipleSessions}"/>
+                </Grid>
+                <Label Text="Turn this on for treatments like Dental Crown, Root Canal, or Braces Adjustment that need a follow-up visit."
+                       FontSize="12" TextColor="Gray"/>
+
+                <VerticalStackLayout Spacing="12" IsVisible="{Binding ShowSessionFields}">
+
+                    <Label Text="Total Sessions" FontAttributes="Bold"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Entry Grid.Column="0"
+                               Text="{Binding TotalSessions}"
+                               Keyboard="Numeric"
+                               Placeholder="e.g. 2"/>
+                        <Stepper Grid.Column="1" Minimum="2" Maximum="12"
+                                 Value="{Binding TotalSessions}"/>
+                    </Grid>
+                    <Label Text="Leave as-is for a fixed count (e.g. 2 for Crown). For open-ended/recurring treatments like Braces Adjustment, staff will just keep scheduling follow-ups — set this to 1 session if there's no fixed total."
+                           FontSize="12" TextColor="Gray"/>
+
+                    <Label Text="Recommended Follow-up Interval (days)" FontAttributes="Bold"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Entry Grid.Column="0"
+                               Text="{Binding FollowupIntervalDays}"
+                               Keyboard="Numeric"
+                               Placeholder="e.g. 14"/>
+                        <Stepper Grid.Column="1" Minimum="1" Maximum="180"
+                                 Value="{Binding FollowupIntervalDays}"/>
+                    </Grid>
+                    <Label Text="Used to suggest the next appointment date — staff can still pick a different date manually."
+                           FontSize="12" TextColor="Gray"/>
+
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,10" ColumnSpacing="12"
               BackgroundColor="White">
-			<Button Grid.Column="0" Text="Cancel"
+            <Button Grid.Column="0" Text="Cancel"
                     Command="{Binding CancelCommand}"
                     BackgroundColor="LightGray" TextColor="Black"/>
-			<Button Grid.Column="1" Text="Save"
+            <Button Grid.Column="1" Text="Save"
                     Command="{Binding SaveCommand}"/>
-		</Grid>
+        </Grid>
 
-	</Grid>
+    </Grid>
 </ContentPage>

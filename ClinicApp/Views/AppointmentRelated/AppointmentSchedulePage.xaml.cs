@@ -37,6 +37,7 @@ namespace ClinicApp.Views.AppointmentRelated
             try
             {
                 await _vm.LoadAppointments();
+                await _vm.LoadPendingFollowUpsAsync();   // ? added
 
                 if (!_subscribed)
                 {
@@ -45,7 +46,6 @@ namespace ClinicApp.Views.AppointmentRelated
                     await _realtime.SubscribeToAppointmentEntriesAsync();
                 }
 
-                // Force initial calendar draw
                 if (_vm.IsCalendarView)
                     OnCalendarNeedsRedraw();
             }
@@ -53,8 +53,7 @@ namespace ClinicApp.Views.AppointmentRelated
             {
                 System.Diagnostics.Debug.WriteLine($"[AppointmentSchedulePage] {ex.Message}");
             }
-            // Force redraw after load
-            await Task.Delay(100); // small delay
+            await Task.Delay(100);
             CalendarGraphics?.Invalidate();
         }
 

@@ -20,20 +20,26 @@
                                 CommandParameter="{Binding .}"/>
 						</Frame.GestureRecognizers>
 
-						<Grid ColumnDefinitions="*,Auto">
-                            <Label Grid.Column="0"
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                            <Label Grid.Row="0" Grid.Column="0"
                                    Text="{Binding ServiceName}"
                                    FontAttributes="Bold"
                                    FontSize="16"
                                    VerticalOptions="Center"/>
-                            <Label Grid.Column="1"
+                            <Label Grid.Row="0" Grid.Column="1"
                                    Text="{Binding PriceDisplay}"
                                    FontAttributes="Bold"
                                    FontSize="16"
                                    TextColor="MediumPurple"
                                    VerticalOptions="Center"/>
+                            <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
+                                   Spacing="4" Margin="0,4,0,0"
+                                   IsVisible="{Binding RequiresMultipleSessions}">
+                                <Label Text="↻" FontSize="12" TextColor="#D97706" FontAttributes="Bold"/>
+                                <Label Text="{Binding SessionSummary}" FontSize="12" TextColor="#D97706"/>
+                            </HorizontalStackLayout>
                         </Grid>
-					</Frame>
+                    </Frame>
 
 				</DataTemplate>
 			</CollectionView.ItemTemplate>

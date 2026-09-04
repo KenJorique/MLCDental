@@ -101,6 +101,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 await _realtime.SyncMissedBookingsAsync();
                 await _realtime.SyncMissedTreatmentHistoryAsync();
                 await _realtime.SyncMissedToothRecordsAsync();
+                await _realtime.SyncMissedUsersAsync();
 
                 // Backfill SupabaseId for patients that don't have it yet
                 var allSupabase = await _supabaseData.GetPatientsAsync();
@@ -111,6 +112,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 await _realtime.SubscribeToPatientsAsync();
                 await _realtime.SubscribeToTreatmentHistoryAsync();
                 await _realtime.SubscribeToToothRecordsAsync();
+                await _realtime.SubscribeToUsersAsync();
 
                 // Temporary debug — check what's actually in Supabase bookings
                 var allBookings = await _supabaseData.GetAllBookingsDebugAsync();

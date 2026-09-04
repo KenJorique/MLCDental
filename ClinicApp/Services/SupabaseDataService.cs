@@ -1551,5 +1551,160 @@ namespace ClinicApp.Services
                 return new List<SupabaseBillItem>();
             }
         }
+
+        // ── Treatment Sequences ───────────────────────────────────────
+
+        public async Task<SupabaseService?> GetServiceByIdAsync(string serviceId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                return await _client!
+                    .From<SupabaseService>()
+                    .Where(s => s.Id == serviceId)
+                    .Single();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetServiceById: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<SupabaseTreatmentSequence>> GetTreatmentSequencesForPatientAsync(string patientId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTreatmentSequence>()
+                    .Where(t => t.PatientId == patientId)
+                    .Order("created_at", Supabase.Postgrest.Constants.Ordering.Ascending)
+                    .Get();
+                return result.Models ?? new List<SupabaseTreatmentSequence>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetTreatmentSequencesForPatient: {ex.Message}");
+                return new List<SupabaseTreatmentSequence>();
+            }
+        }
+
+        /// Most recent open (awaiting_schedule/scheduled) sequence for this patient+service,
+        /// or the latest completed one if the treatment has no open row.
+        public async Task<SupabaseTreatmentSequence?> GetActiveSequenceAsync(string patientId, string serviceId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTreatmentSequence>()
+                    .Where(t => t.PatientId == patientId && t.ServiceId == serviceId)
+                    .Order("session_number", Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+
+                var all = result.Models ?? new List<SupabaseTreatmentSequence>();
+                return all.FirstOrDefault(t => t.Status != "completed") ?? all.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetActiveSequence: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// Records a just-billed session for a multi-session service. Advances the session
+        /// number from any prior row for this patient+service (starts at 1 if none exists).
+        /// Returns null if a duplicate would be created (an awaiting_schedule/scheduled row
+        /// for this patient+service already exists — i.e. staff hasn't done the next visit yet).
+        public async Task<SupabaseTreatmentSequence?> RecordCompletedSessionAsync(
+            string patientId, string patientName, SupabaseService service, string? sourceAppointmentId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var previous = await GetActiveSequenceAsync(patientId, service.Id);
+
+                // Guard against double-recording the same session (e.g. a bill retried)
+                if (previous != null && previous.Status != "completed")
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Supabase] RecordCompletedSession: open sequence already exists for {service.Name}, skipping duplicate.");
+                    return null;
+                }
+
+                int nextSessionNumber = (previous?.SessionNumber ?? 0) + 1;
+                int totalSessions = previous?.TotalSessions ?? service.DefaultTotalSessions ?? 1;
+                bool isFinal = nextSessionNumber >= totalSessions;
+
+                var row = new SupabaseTreatmentSequence
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    PatientId = patientId,
+                    PatientName = patientName,
+                    ServiceId = service.Id,
+                    ServiceName = service.Name,
+                    SessionNumber = nextSessionNumber,
+                    TotalSessions = totalSessions,
+                    SourceAppointmentId = sourceAppointmentId,
+                    Status = isFinal ? "completed" : "awaiting_schedule",
+                    RecommendedDate = (!isFinal && service.FollowupIntervalDays.HasValue)
+                        ? DateTime.UtcNow.AddDays(service.FollowupIntervalDays.Value)
+                        : null,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                var result = await _client!.From<SupabaseTreatmentSequence>().Insert(row);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] RecordCompletedSession: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// Links a newly booked follow-up appointment back to its treatment sequence row.
+        public async Task LinkNextAppointmentToSequenceAsync(string sequenceId, string nextAppointmentCorrelationId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var row = await _client!
+                    .From<SupabaseTreatmentSequence>()
+                    .Where(t => t.Id == sequenceId)
+                    .Single();
+                if (row == null) return;
+
+                row.NextAppointmentId = nextAppointmentCorrelationId;
+                row.Status = "scheduled";
+                await _client!.From<SupabaseTreatmentSequence>().Update(row);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] LinkNextAppointmentToSequence: {ex.Message}");
+            }
+        }
+
+        /// Every sequence row still waiting to be scheduled — feeds the schedule page's banner.
+        public async Task<List<SupabaseTreatmentSequence>> GetPendingFollowUpsAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTreatmentSequence>()
+                    .Where(t => t.Status == "awaiting_schedule")
+                    .Order("recommended_date", Supabase.Postgrest.Constants.Ordering.Ascending)
+                    .Get();
+                return result.Models ?? new List<SupabaseTreatmentSequence>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetPendingFollowUps: {ex.Message}");
+                return new List<SupabaseTreatmentSequence>();
+            }
+        }
     }
 }

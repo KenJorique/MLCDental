@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using ClinicApp.Views.AppointmentRelated;
 using ClinicApp.Views;
 using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.SupabaseModels;
 
 namespace ClinicApp.ViewModels
 {
@@ -58,7 +59,9 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private string todayLabel = "Today";
         [ObservableProperty] private string weekLabel = "This week";
         [ObservableProperty] private bool selectedFromWeekSection;
-
+        public ObservableCollection<SupabaseTreatmentSequence> PendingFollowUps { get; } = new();
+        [ObservableProperty] private int followUpsNeededCount;
+        [ObservableProperty] private bool hasFollowUpsNeeded;
         AppointmentDetailSheet? _detailSheet;
         // Add these properties
         partial void OnSelectedFromWeekSectionChanged(bool value)
@@ -721,6 +724,31 @@ namespace ClinicApp.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[EmailPatient] Error: {ex.Message}");
                 await Shell.Current.DisplayAlert("Error", "Unable to open email app.", "OK");
             }
+        }
+
+        public async Task LoadPendingFollowUpsAsync()
+        {
+            try
+            {
+                var pending = await _supabaseData.GetPendingFollowUpsAsync();
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    PendingFollowUps.Clear();
+                    foreach (var p in pending) PendingFollowUps.Add(p);
+                    FollowUpsNeededCount = PendingFollowUps.Count;
+                    HasFollowUpsNeeded = FollowUpsNeededCount > 0;
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AppointmentScheduleVM] LoadPendingFollowUps: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        async Task GoToFollowUps()
+        {
+            await Shell.Current.GoToAsync(nameof(PendingFollowUpsPage));
         }
 
     }

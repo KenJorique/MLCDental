@@ -13,21 +13,33 @@ public partial class UserViewModel : ObservableObject
 {
     private readonly DatabaseService _db;
     private readonly SupabaseDataService _supabaseData;
+    private readonly SupabaseRealtimeService _realtime; // ── NEW ──
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isRefreshing;
 
     public ObservableCollection<UserCardViewModel> Users { get; set; } = new();
 
-    public UserViewModel(DatabaseService db, SupabaseDataService supabaseData)
+    public UserViewModel(DatabaseService db, SupabaseDataService supabaseData, SupabaseRealtimeService realtime)
     {
         _db = db;
         _supabaseData = supabaseData;
+        _realtime = realtime;
+
+        // ── NEW: another device adding/editing/removing a staff account
+        // shows up here live, same as patients do elsewhere in the app.
+        // Safe to add more than once if StartSupabaseSyncAsync somehow
+        // runs twice — _syncStarted below guards the actual subscribe
+        // call, this just wires the UI reaction.
+        _realtime.OnUserChanged += async () => await LoadUsers();
     }
 
-    // Called once from UserListPage.OnAppearing (mirrors
-    // PatientListViewModel.StartRealtimeAsync, minus the realtime
-    // subscription — a plain pull-and-backfill is enough for the staff
-    // list, which changes far less often than patients/bookings).
+    // Called once from UserListPage.OnAppearing. Backfills SupabaseId
+    // links so this device's rows are matched up with their Supabase
+    // counterparts. The actual realtime subscription + missed-changes
+    // catch-up for "users" now lives in PatientListViewModel.
+    // StartRealtimeAsync (started once at app startup, alongside every
+    // other table's subscription) — NOT here, to avoid opening a second
+    // "realtime-users" channel on top of that one.
     private bool _syncStarted = false;
 
     public async Task StartSupabaseSyncAsync()

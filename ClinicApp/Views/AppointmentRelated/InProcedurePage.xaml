@@ -86,12 +86,12 @@
                                         <Label Text="In Procedure" TextColor="#F57C00" FontSize="11" FontAttributes="Bold" />
                                     </Border>
                                     <Label Grid.Row="1" Grid.Column="0" Text="{Binding AppointmentDateTime}" TextColor="#6B7280" FontSize="13" />
-                                    <ImageButton Grid.Row="1" Grid.Column="1"
+                                    <!--<ImageButton Grid.Row="1" Grid.Column="1"
                                                  Source="call_icon.png"
                                                  WidthRequest="28" HeightRequest="28"
                                                  BackgroundColor="Transparent"
                                                  Command="{Binding Source={RelativeSource AncestorType={x:Type vm:InProcedureViewModel}}, Path=CallPatientCommand}"
-                                                 CommandParameter="{Binding Phone}" />
+                                                 CommandParameter="{Binding Phone}" />-->
                                 </Grid>
                             </Border>
                         </DataTemplate>

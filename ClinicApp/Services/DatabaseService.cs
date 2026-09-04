@@ -121,6 +121,26 @@ public partial class DatabaseService
             catch { /* already exists */ }
             try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN SupabaseId TEXT DEFAULT ''"); }
             catch { /* already exists */ }
+            try
+            {
+                await _database!.ExecuteAsync(
+                    "ALTER TABLE AppointmentEntry ADD COLUMN TreatmentSequenceId TEXT");
+            }
+            catch { /* already exists */ }
+
+            try
+            {
+                await _database!.ExecuteAsync(
+                    "ALTER TABLE AppointmentEntry ADD COLUMN SessionNumber INTEGER");
+            }
+            catch { /* already exists */ }
+
+            try
+            {
+                await _database!.ExecuteAsync(
+                    "ALTER TABLE AppointmentEntry ADD COLUMN TotalSessions INTEGER");
+            }
+            catch { /* already exists */ }
 
             // One-time migration: any row that still has a plaintext Password
             // and no PasswordHash yet gets hashed in place, then the plaintext
@@ -644,6 +664,124 @@ public partial class DatabaseService
         user.UpdatedAt = DateTime.UtcNow;
         await _database!.UpdateAsync(user);
     }
+
+    public async Task<User?> GetUserBySupabaseId(string supabaseId)
+    {
+        await Init();
+        return await _database!.Table<User>()
+            .Where(u => u.SupabaseId == supabaseId)
+            .FirstOrDefaultAsync();
+    }
+
+    // Matches by Username, since — unlike patients — it's guaranteed
+    // unique and stable, rather than a fuzzy name+phone heuristic.
+    public async Task BackfillUserSupabaseIds(List<SupabaseUser> supabaseUsers)
+    {
+        await Init();
+        foreach (var su in supabaseUsers)
+        {
+            if (string.IsNullOrEmpty(su.Id) || string.IsNullOrEmpty(su.Username)) continue;
+
+            var local = await _database!.Table<User>()
+                .Where(u => u.Username == su.Username && u.SupabaseId == "")
+                .FirstOrDefaultAsync();
+
+            if (local != null)
+            {
+                local.SupabaseId = su.Id;
+                await _database!.UpdateAsync(local);
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Backfill] Linked UserID={local.UserID} → SupabaseId={su.Id}");
+            }
+        }
+    }
+
+    // Called right after a successful SupabaseDataService.AddUserAsync so
+    // the local row remembers the remote row's id for future updates/deletes.
+    public async Task SetUserSupabaseId(int userId, string supabaseId)
+    {
+        await Init();
+        var user = await _database!.Table<User>().Where(u => u.UserID == userId).FirstOrDefaultAsync();
+        if (user is null) return;
+        user.SupabaseId = supabaseId;
+        await _database!.UpdateAsync(user);
+    }
+
+    // ── NEW: realtime insert/update handler — called from
+    // SupabaseRealtimeService.SubscribeToUsersAsync() and
+    // SyncMissedUsersAsync() whenever a staff account was added/edited on
+    // ANOTHER device. Mirrors SyncPatientFromSupabase/
+    // SyncTreatmentHistoryFromSupabase's shape: match by SupabaseId first
+    // (falling back to Username for a row that hasn't been backfilled
+    // yet), then insert-or-update locally.
+    //
+    // Deliberately only copies profile/account fields — NOT
+    // FailedLoginAttempts, LockedUntil, LastLoginAt, or the
+    // RememberMe token fields. Those are per-device security state; a
+    // profile edit made on another device should never reset this
+    // device's lockout counter or silently invalidate its remembered
+    // login. (Login attempts/lockouts and "remember me" are intentionally
+    // local-only and never pushed to Supabase in the first place — see
+    // AddUserViewModel.SyncUserToSupabaseAsync — so there's nothing
+    // meaningful to pull for those fields anyway.)
+    public async Task SyncUserFromSupabaseAsync(SupabaseUser su)
+    {
+        await Init();
+        if (string.IsNullOrEmpty(su.Id)) return;
+
+        var local = await _database!.Table<User>()
+            .Where(u => u.SupabaseId == su.Id)
+            .FirstOrDefaultAsync();
+
+        // Not linked by SupabaseId yet — try Username so we don't create
+        // a duplicate row for an account this device already knows about
+        // (e.g. it was seeded/created locally before ever syncing).
+        if (local is null && !string.IsNullOrEmpty(su.Username))
+        {
+            local = await _database!.Table<User>()
+                .Where(u => u.Username == su.Username)
+                .FirstOrDefaultAsync();
+        }
+
+        if (local is null)
+        {
+            // Brand new account this device has never seen — insert it.
+            var newUser = new User
+            {
+                SupabaseId = su.Id,
+                FullName = su.FullName,
+                Username = su.Username,
+                PasswordHash = su.PasswordHash, // already hashed remotely — copy as-is, never re-hash
+                Role = su.Role,
+                ContactNo = su.ContactNo,
+                Email = su.Email,
+                IsActive = su.IsActive,
+                IsDeleted = su.IsDeleted,
+                CreatedAt = su.CreatedAt,
+                UpdatedAt = su.UpdatedAt,
+            };
+            await _database!.InsertAsync(newUser);
+            System.Diagnostics.Debug.WriteLine($"[UserRealtime] Inserted new user '{su.Username}' from remote.");
+            return;
+        }
+
+        // Existing local row — update the synced fields only, leave this
+        // device's security/session state alone (see method comment above).
+        local.SupabaseId = su.Id;
+        local.FullName = su.FullName;
+        local.Username = su.Username;
+        local.PasswordHash = su.PasswordHash;
+        local.Role = su.Role;
+        local.ContactNo = su.ContactNo;
+        local.Email = su.Email;
+        local.IsActive = su.IsActive;
+        local.IsDeleted = su.IsDeleted;
+        local.UpdatedAt = su.UpdatedAt;
+
+        await _database!.UpdateAsync(local);
+        System.Diagnostics.Debug.WriteLine($"[UserRealtime] Updated user '{su.Username}' from remote.");
+    }
+
 
     // =========================
     // TOOTH RECORD CRUD

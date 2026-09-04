@@ -125,6 +125,42 @@
                 </Grid>
             </Border>
 
+            <!-- Follow-ups needed banner -->
+            <Border BackgroundColor="{StaticResource Gold}"
+            IsVisible="{Binding HasFollowUpsNeeded}"
+            Padding="12,8">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding GoToFollowUpsCommand}"/>
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Label Grid.Column="0"
+                   FontFamily="MaterialSymbolsRoundedFilled"
+                   Text="&#xe5d5;"
+                   FontSize="16" TextColor="White"
+                   VerticalOptions="Center" Margin="0,0,6,0"/>
+                    <Label Grid.Column="1"
+                   TextColor="White" FontSize="13"
+                   VerticalOptions="Center">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="{Binding FollowUpsNeededCount}" TextColor="White" FontAttributes="Bold"/>
+                                <Span Text=" follow-up(s) need scheduling" TextColor="White" FontAttributes="Bold"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
+                        <Label Text="Schedule"
+                       TextColor="White"
+                       FontSize="13" FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+                        <Label FontFamily="MaterialSymbolsRoundedFilled"
+                       Text="&#xe941;"
+                       FontSize="16" TextColor="White"
+                       VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Grid>
+            </Border>
+
         </VerticalStackLayout>
 
 
@@ -229,23 +265,33 @@
                                                                               Path=BindingContext.SelectWeekAppointmentCommand}"
                                                                     CommandParameter="{Binding .}"/>
 															</Frame.GestureRecognizers>
-															<Grid ColumnDefinitions="*,Auto">
-																<Label Grid.Column="0"
+                                                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                                                <Label Grid.Row="0" Grid.Column="0"
                                                                        Text="{Binding PatientName}"
                                                                        FontSize="15" FontAttributes="Bold"
                                                                        TextColor="{StaticResource Gray800}"
                                                                        VerticalOptions="Center"/>
-																<Border Grid.Column="1"
+                                                                <Border Grid.Row="0" Grid.Column="1"
                                                                         BackgroundColor="{Binding StatusColor}"
                                                                         StrokeShape="RoundRectangle 6"
                                                                         StrokeThickness="0" Padding="8,3"
                                                                         VerticalOptions="Center">
-																	<Label Text="{Binding StatusLabel}"
+                                                                    <Label Text="{Binding StatusLabel}"
                                                                            FontSize="12" FontAttributes="Bold"
                                                                            TextColor="White"/>
-																</Border>
-															</Grid>
-														</Frame>
+                                                                </Border>
+                                                                <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
+                                                                       Spacing="4" Margin="0,4,0,0"
+                                                                       IsVisible="{Binding IsFollowUp}">
+                                                                    <Label FontFamily="MaterialSymbolsRoundedFilled"
+                                                                           Text="&#xe5d5;" FontSize="12"
+                                                                           TextColor="{StaticResource Gold}"/>
+                                                                    <Label Text="{Binding SessionBadge}"
+                                                                           FontSize="11" FontAttributes="Bold"
+                                                                           TextColor="{StaticResource Gold}"/>
+                                                                </HorizontalStackLayout>
+                                                            </Grid>
+                                                        </Frame>
 													</Grid>
 												</DataTemplate>
 											</CollectionView.ItemTemplate>

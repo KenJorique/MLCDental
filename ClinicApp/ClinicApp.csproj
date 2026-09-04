@@ -127,13 +127,22 @@
 	  <MauiXaml Update="Views\AppointmentRelated\AppointmentPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>  
+	  <MauiXaml Update="Views\AppointmentRelated\FollowUpRequiredSheet.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>  
 	  <MauiXaml Update="Views\AppointmentRelated\InProcedurePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>  
+	  <MauiXaml Update="Views\AppointmentRelated\PendingFollowUpsPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentRelated\ReschedulePage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentRelated\AppointmentSchedulePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\AppointmentRelated\ScheduleNextAppointmentPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentRelated\WalkInBookingPage.xaml">

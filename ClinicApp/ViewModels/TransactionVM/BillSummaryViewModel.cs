@@ -1,6 +1,10 @@
 ﻿using ClinicApp.Helpers;
 using ClinicApp.Models;
+using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Models.TransactionModels;
 using ClinicApp.Services;
+using ClinicApp.Views;
+using ClinicApp.Views.AppointmentRelated;
 using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -41,6 +45,14 @@ public partial class BillSummaryViewModel : ObservableObject
     public string SubtotalDisplay => $"₱{Subtotal:N2}";
     public string DiscountDisplay => $"₱{DiscountAmount:N2}";
     public string TotalDisplay => $"₱{Total:N2}";
+
+    // ── Follow-up detection ──────────────────────────────────────
+    public ObservableCollection<SupabaseTreatmentSequence> PendingFollowUps { get; } = new();
+    [ObservableProperty] bool showFollowUpSheet;
+
+    FollowUpRequiredSheet? _followUpSheet;
+    SupabaseBill? _pendingNavBill;
+    BillDraft? _pendingNavDraft;
 
     public BillSummaryViewModel(BillingService billing, SupabaseDataService supabase)
     {
@@ -188,19 +200,105 @@ public partial class BillSummaryViewModel : ObservableObject
                     "OK");
             }
 
-            await Shell.Current.GoToAsync(
-                $"{nameof(PaymentPage)}" +
-                $"?billId={result.Bill.Id}" +
-                $"&patientId={Uri.EscapeDataString(result.Bill.PatientId)}" +
-                $"&patientName={Uri.EscapeDataString(result.Bill.PatientName)}" +
-                $"&appointmentEntryId={Uri.EscapeDataString(draft.AppointmentEntryId ?? string.Empty)}" +
-                $"&supabaseEntryId={Uri.EscapeDataString(draft.SupabaseEntryId ?? string.Empty)}" +
-                $"&supabaseBookingId={Uri.EscapeDataString(draft.SupabaseBookingId ?? string.Empty)}");
+            // ── Detect any service that requires another treatment session ──
+            var newlyOpenedFollowUps = new List<SupabaseTreatmentSequence>();
+            foreach (var line in draft.Services)
+            {
+                var service = await _supabase.GetServiceByIdAsync(line.ServiceId);
+                if (service == null || !service.RequiresMultipleSessions)
+                    continue;
+
+                var sequence = await _supabase.RecordCompletedSessionAsync(
+                    draft.PatientId, draft.PatientName, service, draft.SupabaseBookingId);
+
+                if (sequence != null && sequence.Status == "awaiting_schedule")
+                    newlyOpenedFollowUps.Add(sequence);
+            }
+
+            if (newlyOpenedFollowUps.Count > 0)
+            {
+                // Hold the payment-page navigation until staff dismisses the follow-up sheet
+                _pendingNavBill = result.Bill;
+                _pendingNavDraft = draft;
+
+                PendingFollowUps.Clear();
+                foreach (var f in newlyOpenedFollowUps)
+                    PendingFollowUps.Add(f);
+
+                _followUpSheet = new FollowUpRequiredSheet { BindingContext = this };
+                ShowFollowUpSheet = true;
+                await _followUpSheet.ShowAsync();
+                return;
+            }
+
+            await GoToPaymentAsync(result.Bill, draft);
         }
         finally
         {
             IsBusy = false;
             ProceedCommand.NotifyCanExecuteChanged();
         }
+    }
+
+    async Task GoToPaymentAsync(SupabaseBill bill, BillDraft draft)
+    {
+        await Shell.Current.GoToAsync(
+            $"{nameof(PaymentPage)}" +
+            $"?billId={bill.Id}" +
+            $"&patientId={Uri.EscapeDataString(bill.PatientId)}" +
+            $"&patientName={Uri.EscapeDataString(bill.PatientName)}" +
+            $"&appointmentEntryId={Uri.EscapeDataString(draft.AppointmentEntryId ?? string.Empty)}" +
+            $"&supabaseEntryId={Uri.EscapeDataString(draft.SupabaseEntryId ?? string.Empty)}" +
+            $"&supabaseBookingId={Uri.EscapeDataString(draft.SupabaseBookingId ?? string.Empty)}");
+    }
+
+    async Task CloseFollowUpSheetAsync()
+    {
+        if (_followUpSheet == null) return;
+        var sheet = _followUpSheet;
+        _followUpSheet = null;
+        try { await sheet.DismissAsync(); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BillSummary] CloseFollowUpSheet: {ex.Message}"); }
+    }
+
+    /// Staff picks a specific pending session to schedule right now.
+    [RelayCommand]
+    async Task ScheduleFollowUpNow(SupabaseTreatmentSequence sequence)
+    {
+        if (sequence == null) return;
+
+        ShowFollowUpSheet = false;
+        await CloseFollowUpSheetAsync();
+
+        var draft = BillDraftStore.Current;
+
+        await Shell.Current.GoToAsync(
+            $"{nameof(ScheduleNextAppointmentPage)}" +
+            $"?sequenceId={Uri.EscapeDataString(sequence.Id)}" +
+            $"&patientId={Uri.EscapeDataString(sequence.PatientId)}" +
+            $"&patientName={Uri.EscapeDataString(sequence.PatientName)}" +
+            $"&phone={Uri.EscapeDataString(draft?.Phone ?? string.Empty)}" +
+            $"&email={Uri.EscapeDataString(string.Empty)}" +
+            $"&serviceId={Uri.EscapeDataString(sequence.ServiceId)}" +
+            $"&serviceName={Uri.EscapeDataString(sequence.ServiceName)}" +
+            $"&sessionNumber={sequence.SessionNumber + 1}" +
+            $"&totalSessions={sequence.TotalSessions}" +
+            $"&recommendedDate={Uri.EscapeDataString(sequence.RecommendedDate?.ToString("o") ?? string.Empty)}");
+
+        PendingFollowUps.Remove(sequence);
+        if (PendingFollowUps.Count == 0 && _pendingNavBill != null && _pendingNavDraft != null)
+            await GoToPaymentAsync(_pendingNavBill, _pendingNavDraft);
+    }
+
+    /// Staff defers scheduling — the sequence stays "awaiting_schedule" and will show up
+    /// in the Appointment Schedule page's "Follow-ups Needed" banner.
+    [RelayCommand]
+    async Task ContinueToPayment()
+    {
+        ShowFollowUpSheet = false;
+        await CloseFollowUpSheetAsync();
+
+        if (_pendingNavBill != null && _pendingNavDraft != null)
+            await GoToPaymentAsync(_pendingNavBill, _pendingNavDraft);
     }
 }

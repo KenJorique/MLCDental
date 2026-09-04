@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClinicApp.ViewModels"
+             xmlns:sm="clr-namespace:ClinicApp.Models.SupabaseModels"
+             x:Class="ClinicApp.Views.AppointmentRelated.PendingFollowUpsPage"
+             x:DataType="vm:PendingFollowUpsViewModel"
+             Title="Follow-ups Needed"
+             Shell.NavBarIsVisible="True"
+             Shell.TabBarIsVisible="False"
+             Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+             Shell.TitleColor="White"
+             BackgroundColor="{StaticResource PageBg}">
+
+    <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsBusy}">
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="10">
+
+                <Label Text="No pending follow-ups." FontSize="13"
+                       TextColor="{StaticResource Gray400}"
+                       IsVisible="{Binding HasNone}"/>
+
+                <CollectionView ItemsSource="{Binding FollowUps}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="sm:SupabaseTreatmentSequence">
+                            <Border BackgroundColor="White" StrokeThickness="1"
+                                    Stroke="{StaticResource Gray200}" Padding="14,12" Margin="0,0,0,10">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12"/>
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                        <Label Text="{Binding PatientName}" FontSize="15"
+                                               FontAttributes="Bold" TextColor="{StaticResource Gray800}"/>
+                                        <Label Text="{Binding ServiceName}" FontSize="13"
+                                               TextColor="{StaticResource Gray700}"/>
+                                        <Label Text="{Binding SessionDisplay}" FontSize="12"
+                                               TextColor="{StaticResource Gray400}"/>
+                                        <Label FontSize="12" TextColor="{StaticResource Gold}">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="Recommended: " />
+                                                    <Span Text="{Binding RecommendedDateDisplay}" FontAttributes="Bold"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" Text="Schedule"
+                                            BackgroundColor="{StaticResource Primary}" TextColor="White"
+                                            CornerRadius="8" FontSize="12" HeightRequest="36"
+                                            VerticalOptions="Center"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PendingFollowUpsViewModel}},
+                                                      Path=ScheduleNowCommand}"
+                                            CommandParameter="{Binding .}"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

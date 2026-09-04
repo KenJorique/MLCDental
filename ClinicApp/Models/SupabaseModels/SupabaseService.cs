@@ -25,6 +25,15 @@ namespace ClinicApp.Models.SupabaseModels
         [Column("created_at")]
         public DateTime CreatedAt { get; set; }
 
+        [Column("requires_multiple_sessions")]
+        public bool RequiresMultipleSessions { get; set; }
+
+        [Column("default_total_sessions")]
+        public int? DefaultTotalSessions { get; set; }
+
+        [Column("followup_interval_days")]
+        public int? FollowupIntervalDays { get; set; }
+
         [JsonIgnore]
         public string PriceDisplay =>
             BasePrice == 0 ? "No charge" : $"₱{BasePrice:N2}";
