@@ -2,18 +2,18 @@ using ClinicApp.ViewModels;
 
 namespace ClinicApp.Views;
 
-public partial class HomePage : ContentPage
+public partial class ActivityLogPage : ContentPage
 {
-    readonly HomeViewModel vm;
+    readonly ActivityLogViewModel vm;
 
-    // Injects the Home ViewModel and sets it as this page's binding context.
-    public HomePage(HomeViewModel vm)
+    // Injects the ViewModel and sets it as this page's binding context.
+    public ActivityLogPage(ActivityLogViewModel vm)
     {
         InitializeComponent();
         BindingContext = this.vm = vm;
     }
 
-    // Refreshes every section each time the Home tab becomes visible.
+    // Loads the full activity list each time this page is shown.
     protected override void OnAppearing()
     {
         base.OnAppearing();

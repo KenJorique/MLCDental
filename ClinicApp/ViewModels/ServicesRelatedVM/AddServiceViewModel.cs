@@ -68,9 +68,7 @@ public partial class AddServiceViewModel : ObservableObject
         }
     }
 
-    // ─── Save command ────────────────────────────────────────
-    // Validates the form, saves to Supabase, then confirms and navigates back.
-
+    // Validates, saves (or updates) the service, and logs the activity.
     [RelayCommand]
     async Task Save()
     {
@@ -91,6 +89,8 @@ public partial class AddServiceViewModel : ObservableObject
             var service = list.FirstOrDefault(s => s.Id == ServiceId);
             if (service != null)
             {
+                var oldPrice = service.BasePrice;
+
                 service.Name = ServiceName;
                 service.BasePrice = ServicePrice;
                 service.Description = ServiceDescription;
@@ -100,6 +100,10 @@ public partial class AddServiceViewModel : ObservableObject
                     await Shell.Current.DisplayAlert("Error", "Could not update the service.", "OK");
                     return;
                 }
+
+                if (oldPrice != ServicePrice)
+                    await _supabase.LogActivityAsync("ServicePriceChanged",
+                        $"{ServiceName}'s price changed from ₱{oldPrice:N2} to ₱{ServicePrice:N2}");
             }
         }
         else
@@ -118,6 +122,8 @@ public partial class AddServiceViewModel : ObservableObject
                 await Shell.Current.DisplayAlert("Error", "Could not save the service.", "OK");
                 return;
             }
+
+            await _supabase.LogActivityAsync("NewService", $"New service {ServiceName} added");
         }
 
         _isDirty = false;
@@ -132,8 +138,7 @@ public partial class AddServiceViewModel : ObservableObject
         await Shell.Current.GoToAsync("..");
     }
 
-    // ─── Cancel command ──────────────────────────────────────
-
+    // Confirms discard if there are unsaved edits, then goes back.
     [RelayCommand]
     async Task Cancel()
     {

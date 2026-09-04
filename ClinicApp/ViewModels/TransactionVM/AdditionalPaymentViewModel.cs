@@ -8,16 +8,8 @@ using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels.TransactionVM;
 
-// Handles paying down an EXISTING bill's remaining balance — reached from
-// the Transaction/Ledger page's "Add payment" pill, or from BillDetailsPage's
-// "Add Payment" button. Deliberately kept separate from PaymentViewModel
-// (which is only for the very first payment on a brand-new bill, straight
-// out of Bill Summary): the two screens show different information (Balance
-// + last-paid-date here, vs. Due Today there) and have different validation
-// rules (no forced minimum here — see IsAlreadyPaid below), so branching one
-// ViewModel for both would mean juggling two sets of rules in the same
-// place. Splitting them keeps each one simple and keeps the first-payment
-// flow from BillSummaryViewModel completely unaffected by this one.
+// Pays down an EXISTING bill's balance (from the Ledger or Bill Details "Add Payment" button).
+// Kept separate from PaymentViewModel, which only handles the first payment on a brand-new bill.
 [QueryProperty(nameof(BillId), "billId")]
 [QueryProperty(nameof(PatientId), "patientId")]
 [QueryProperty(nameof(PatientName), "patientName")]
@@ -25,6 +17,7 @@ public partial class AdditionalPaymentViewModel : ObservableObject
 {
     private readonly SupabaseDataService _supabase;
 
+    // Injects the shared data service.
     public AdditionalPaymentViewModel(SupabaseDataService supabase)
     {
         _supabase = supabase;
@@ -54,15 +47,13 @@ public partial class AdditionalPaymentViewModel : ObservableObject
     [ObservableProperty]
     private string errorMessage = string.Empty;
 
-    // Every payment recorded on this bill so far, newest first — shown as
-    // a payment history list rather than just the single most recent one,
-    // so staff can see the full trail (useful on installment bills with
-    // several advance/partial payments) before recording another.
+    // Every payment on this bill, newest first — full trail, not just the latest.
     public ObservableCollection<SupabasePayment> PaymentHistory { get; } = new();
 
     public bool HasPaymentHistory => PaymentHistory.Count > 0;
     public bool HasNoPaymentHistory => !HasPaymentHistory;
 
+    // Loads the bill once BillId is set via navigation.
     partial void OnBillIdChanged(string value)
     {
         if (!string.IsNullOrWhiteSpace(value))
@@ -72,6 +63,7 @@ public partial class AdditionalPaymentViewModel : ObservableObject
         }
     }
 
+    // Loads the bill and its payment history, then refreshes computed display properties.
     private async Task LoadBillAsync()
     {
         IsBusy = true;
@@ -111,26 +103,18 @@ public partial class AdditionalPaymentViewModel : ObservableObject
     // on BillDetailsPage, so the wording is consistent across the app.
     public string PaidDisplay => Bill == null ? "₱0.00" : $"₱{Bill.AmountPaid:N2}";
 
-    // "Balance" is the headline figure on this page — the whole remaining
-    // amount owed on the bill (Total − AmountPaid), not a per-visit minimum
-    // like PaymentPage's "Due Today". Bill.Balance already IS Total −
-    // AmountPaid (kept in sync by RecordPaymentAsync), so no separate
-    // calculation is needed here.
+    // Remaining amount owed (Total − AmountPaid), the headline figure on this page.
     public string BalanceDisplay => Bill == null ? "₱0.00" : $"₱{Bill.Balance:N2}";
 
     public bool IsAlreadyPaid => Bill != null && Bill.Balance <= 0;
 
     public string PaymentAmountDisplay => $"₱{PaymentAmount:N2}";
 
-    // No forced minimum on this page — whatever staff typed is what's
-    // required, capped at the remaining balance. Anything beyond the
-    // balance is Change, same cash-register behavior as PaymentPage.
+    // No forced minimum — whatever's typed is required, capped at the remaining balance.
     private decimal RequiredAmount =>
         Bill == null ? 0 : Math.Min(PaymentAmount, Bill.Balance);
 
-    // Flags an amount wildly larger than what's owed (an extra zero,
-    // etc.) — same generous-multiple approach as PaymentViewModel, so a
-    // normal "gave more cash, get change back" amount doesn't trip it.
+    // Flags an amount far larger than what's owed (e.g. an extra typed zero).
     public bool IsAmountTooLarge =>
         Bill != null && Bill.Balance > 0 && PaymentAmount > Bill.Balance * 2;
 
@@ -143,6 +127,7 @@ public partial class AdditionalPaymentViewModel : ObservableObject
 
     public bool HasChange => Change > 0;
 
+    // Clamps negative input and refreshes the computed display properties.
     partial void OnPaymentAmountChanged(decimal value)
     {
         if (value < 0)
@@ -159,6 +144,7 @@ public partial class AdditionalPaymentViewModel : ObservableObject
         if (HasError) HasError = false;
     }
 
+    // Validates, records the payment, logs it, and moves to the receipt.
     [RelayCommand]
     private async Task RecordPayment()
     {
@@ -212,12 +198,9 @@ public partial class AdditionalPaymentViewModel : ObservableObject
                 return;
             }
 
-            // Same ".." pop-then-navigate pattern as PaymentViewModel, so
-            // Receipt's back button skips past this page too. No
-            // appointmentEntryId/supabaseEntryId/supabaseBookingId here —
-            // those only apply to the fresh-bill-from-appointment flow;
-            // ReceiptViewModel.Done() already no-ops cleanly when they're
-            // blank.
+            await _supabase.LogActivityAsync("Payment", $"{PatientName} paid ₱{amountToRecord:N2}");
+
+            // Uses "../ReceiptPage" so Receipt's back button also skips this page.
             await Shell.Current.GoToAsync(
                 $"../{nameof(ReceiptPage)}" +
                 $"?billId={Bill.Id}" +

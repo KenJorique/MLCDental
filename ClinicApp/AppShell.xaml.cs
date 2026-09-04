@@ -70,7 +70,7 @@ namespace ClinicApp
 
             //Reports
             Routing.RegisterRoute(nameof(Views.ReportRelated.ReportsPage), typeof(Views.ReportRelated.ReportsPage));
-
+            Routing.RegisterRoute(nameof(ActivityLogPage), typeof(ActivityLogPage));
         }
 
         protected override void OnAppearing()

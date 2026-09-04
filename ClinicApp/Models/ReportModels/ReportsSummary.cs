@@ -15,6 +15,11 @@
         public int CancelledAppointments { get; set; }
         public string AppointmentsInsight { get; set; } = string.Empty;
 
+        // Patient names behind each count above — feeds the tap-to-view alert on the summary counts.
+        public List<string> CompletedAppointmentNames { get; set; } = new();
+        public List<string> PendingAppointmentNames { get; set; } = new();
+        public List<string> CancelledAppointmentNames { get; set; } = new();
+
         // Treatments
         public int TotalTreatments { get; set; }
         public Dictionary<string, int> TreatmentBreakdown { get; set; } = new();
@@ -39,6 +44,7 @@
         public int OutOfStockCount { get; set; }
         public List<string> LowStockItemNames { get; set; } = new();
         public List<string> OutOfStockItemNames { get; set; } = new();
+        public List<string> InStockItemNames { get; set; } = new();
 
         // Supplies — movement WITHIN the selected period, from supply_stock_logs 
         public int PiecesRestocked { get; set; }
@@ -57,7 +63,8 @@
     {
         Daily,
         Weekly,
-        Monthly
+        Monthly,
+        Custom
     }
 
     // One selectable entry in the period dropdown — e.g. "Aug 20, 2026"
@@ -130,14 +137,5 @@
         public string Name { get; set; } = string.Empty;
         public int Used { get; set; }
         public int Restocked { get; set; }
-    }
-
-    // One row of the "Low & Out of Stock" list 
-    public class SupplyAlertRow
-    {
-        public string Name { get; set; } = string.Empty;
-        public string StatusLabel { get; set; } = string.Empty; // "Out of Stock" or "Low Stock"
-        public Color StatusColor { get; set; } = Colors.Gray;
-        public Color StatusBgColor { get; set; } = Colors.LightGray;
     }
 }

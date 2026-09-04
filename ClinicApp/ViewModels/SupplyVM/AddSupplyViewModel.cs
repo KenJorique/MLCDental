@@ -35,6 +35,7 @@ public partial class AddSupplyViewModel : ObservableObject
     [ObservableProperty] private string nameError = string.Empty;
     [ObservableProperty] private bool canSave;
 
+    // Injects the shared data service.
     public AddSupplyViewModel(SupabaseDataService supabase)
     {
         _supabase = supabase;
@@ -42,15 +43,18 @@ public partial class AddSupplyViewModel : ObservableObject
         showPiecesPerUnit = false;
     }
 
+    // Loads the item for editing once SupplyId is set via navigation.
     partial void OnSupplyIdChanged(string? value)
     {
         if (!string.IsNullOrWhiteSpace(value))
             MainThread.BeginInvokeOnMainThread(async () => await LoadForEditAsync(value));
     }
 
+    // Re-validates on name/minimum-stock changes.
     partial void OnItemNameChanged(string value) => ValidateForm();
     partial void OnMinimumStockChanged(int value) => ValidateForm();
 
+    // Toggles the pieces-per-unit field and recalculates total pieces.
     partial void OnSelectedUnitChanged(string value)
     {
         ShowPiecesPerUnit = value != "Per Piece";
@@ -60,6 +64,7 @@ public partial class AddSupplyViewModel : ObservableObject
         ValidateForm();
     }
 
+    // Recalculates total pieces on quantity/pieces-per-unit changes.
     partial void OnPiecesPerUnitChanged(int value)
     {
         RecalculateTotal();
@@ -72,6 +77,7 @@ public partial class AddSupplyViewModel : ObservableObject
         ValidateForm();
     }
 
+    // Computes TotalPieces from unit quantity and pieces-per-unit.
     private void RecalculateTotal()
     {
         TotalPieces = ShowPiecesPerUnit
@@ -79,6 +85,7 @@ public partial class AddSupplyViewModel : ObservableObject
             : UnitQuantity;
     }
 
+    // Loads an existing item's fields into the form for editing.
     private async Task LoadForEditAsync(string id)
     {
         try
@@ -104,12 +111,14 @@ public partial class AddSupplyViewModel : ObservableObject
         }
     }
 
+    // Requires a name and a non-negative minimum stock.
     private void ValidateForm()
     {
         NameError = string.IsNullOrWhiteSpace(ItemName) ? "Item name is required." : string.Empty;
         CanSave = string.IsNullOrWhiteSpace(NameError) && MinimumStock >= 0;
     }
 
+    // Saves the item (update or create), applies initial stock, and logs new items.
     [RelayCommand]
     async Task SaveAsync()
     {
@@ -161,6 +170,8 @@ public partial class AddSupplyViewModel : ObservableObject
                 if (TotalPieces > 0)
                     await _supabase.ApplyStockChangeAsync(newItem.Id, TotalPieces, "Restocked",
                         "Initial stock on creation");
+
+                await _supabase.LogActivityAsync("NewSupplyItem", $"New item {newItem.Name} added");
             }
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
@@ -175,6 +186,7 @@ public partial class AddSupplyViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    // Discards and goes back.
     [RelayCommand]
     async Task CancelAsync() => await Shell.Current.GoToAsync("..");
 }

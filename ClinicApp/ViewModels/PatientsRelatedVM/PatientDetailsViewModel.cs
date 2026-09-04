@@ -11,7 +11,14 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM;
 public partial class PatientDetailsViewModel : ObservableObject
 {
     readonly DatabaseService _db;
-    public PatientDetailsViewModel(DatabaseService db) => _db = db;
+    readonly SupabaseDataService _supabase;
+
+    // Injects the local and Supabase data services.
+    public PatientDetailsViewModel(DatabaseService db, SupabaseDataService supabase)
+    {
+        _db = db;
+        _supabase = supabase;
+    }
 
     [ObservableProperty] int patientId;
     [ObservableProperty] bool isBusy;
@@ -307,6 +314,7 @@ public partial class PatientDetailsViewModel : ObservableObject
             });
     }
 
+    // Saves the Personal Info tab and logs the update.
     [RelayCommand]
     async Task SavePersonalRecord()
     {
@@ -348,6 +356,8 @@ public partial class PatientDetailsViewModel : ObservableObject
             FullName = p.FullName;
             PersonalLastUpdated = $"Last updated: {today}";
             IsPersonalEditMode = false;
+
+            await _supabase.LogActivityAsync("PatientUpdated", $"{p.FullName}'s info was updated");
         }
         catch (Exception ex)
         {

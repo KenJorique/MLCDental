@@ -199,6 +199,7 @@ public partial class AddPatientViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    // Validates the form, saves locally and to Supabase, and logs the activity.
     [RelayCommand]
     async Task SavePatient()
     {
@@ -228,6 +229,8 @@ public partial class AddPatientViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            bool isNewPatient = PatientId <= 0;
+
             // ── 1. Save to local SQLite ───────────────────────────────
             Patient p;
             if (PatientId > 0)
@@ -305,6 +308,10 @@ public partial class AddPatientViewModel : ObservableObject
 
             // ── 2. Sync to Supabase — errors shown to user ────────────
             await SyncToSupabaseAsync(pid);
+
+            await _supabase.LogActivityAsync(
+                isNewPatient ? "NewPatient" : "PatientUpdated",
+                isNewPatient ? $"New patient {p.FullName} added" : $"{p.FullName}'s info was updated");
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
                 await Shell.Current.GoToAsync(".."));

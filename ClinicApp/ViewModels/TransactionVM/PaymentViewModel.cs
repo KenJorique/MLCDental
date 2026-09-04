@@ -13,6 +13,7 @@ public partial class PaymentViewModel : ObservableObject
     private readonly SupabaseDataService _supabase;
     private readonly BillingService _billing;
 
+    // Injects the shared data service and billing service.
     public PaymentViewModel(SupabaseDataService supabase, BillingService billing)
     {
         _supabase = supabase;
@@ -36,6 +37,7 @@ public partial class PaymentViewModel : ObservableObject
 
     private string? _pendingBillId;
 
+    // Resets the form and pulls the current bill draft's display values.
     public void LoadDraft()
     {
         var draft = BillDraftStore.Current;
@@ -71,18 +73,12 @@ public partial class PaymentViewModel : ObservableObject
     public string DiscountDisplay => $"₱{Draft?.DiscountAmount ?? 0:N2}";
     public string TotalDisplay => $"₱{Draft?.Total ?? 0:N2}";
 
-    // "Due Today" — draft.AmountDueToday is already the exact figure
-    // BillingService.CreateBillAsync will use as the new bill's
-    // MinimumDueToday, computed client-side in BillSummaryViewModel with
-    // no DB round-trip needed (unlike AdditionalPaymentViewModel's
-    // existing-bill case, where it has to be fetched live from bill_items
-    // that already exist in Supabase).
+    // Amount due today, computed client-side from the draft (no DB round-trip needed).
     public decimal MinimumDueToday => Draft?.AmountDueToday ?? 0;
 
     public string MinimumDueTodayDisplay => $"₱{MinimumDueToday:N2}";
 
-    // Shown only in the "amount too large" warning text — before creation,
-    // Balance and Total are the same thing (nothing's been paid yet).
+    // Before creation, Balance equals Total — nothing's been paid yet.
     public string BalanceDisplay => TotalDisplay;
 
     public string PaymentAmountDisplay => $"₱{PaymentAmount:N2}";
@@ -107,6 +103,7 @@ public partial class PaymentViewModel : ObservableObject
 
     public bool HasChange => Change > 0;
 
+    // Clamps negative input and refreshes the computed display properties.
     partial void OnPaymentAmountChanged(decimal value)
     {
         if (value < 0)
@@ -124,6 +121,7 @@ public partial class PaymentViewModel : ObservableObject
         if (HasError) HasError = false;
     }
 
+    // Creates the bill (first attempt only) and records the payment, logging both.
     [RelayCommand]
     private async Task RecordPayment()
     {
@@ -168,13 +166,7 @@ public partial class PaymentViewModel : ObservableObject
         {
             var billId = _pendingBillId;
 
-            // Only actually create the bill (and everything that comes
-            // with it — bill_items, tooth/chart records, treatment
-            // history, and supply deduction) the first time through. If
-            // this is a retry after RecordPaymentAsync failed below on a
-            // previous attempt, _pendingBillId is already set and this
-            // whole step is skipped — the bill already exists (and
-            // supplies were already deducted) from that first attempt.
+            // Only creates the bill on the first attempt — a retry after a failed RecordPaymentAsync reuses _pendingBillId.
             if (billId == null)
             {
                 var billResult = await _billing.CreateBillAsync(
@@ -190,13 +182,9 @@ public partial class PaymentViewModel : ObservableObject
                 billId = billResult.Bill.Id;
                 _pendingBillId = billId;
 
-                // Auto-deduct linked supplies for every service on this
-                // bill — moved here from BillSummaryViewModel.Proceed()
-                // now that bill creation itself happens here instead of on
-                // Bill Summary. Runs only on this first successful
-                // creation (guarded by the same billId == null check
-                // above), so a retry after a later RecordPaymentAsync
-                // failure won't deduct stock a second time.
+                await _supabase.LogActivityAsync("AppointmentCompleted", $"{draft.PatientName}'s appointment was completed");
+
+                // Deducts linked supplies for every service on this bill (only runs on first creation).
                 var lowStockItems = new List<string>();
                 foreach (var service in draft.Services)
                 {
@@ -225,6 +213,8 @@ public partial class PaymentViewModel : ObservableObject
                 ErrorMessage = error ?? "Failed to record payment.";
                 return;
             }
+
+            await _supabase.LogActivityAsync("Payment", $"{draft.PatientName} paid ₱{amountToRecord:N2}");
 
             var amountReceived = PaymentAmount;
             var change = Change;

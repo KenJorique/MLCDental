@@ -1,5 +1,4 @@
-﻿
-using ClinicApp.Models;
+﻿using ClinicApp.Models;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -15,6 +14,7 @@ namespace ClinicApp.ViewModels
     {
         private static readonly TimeZoneInfo PhZone = GetPhilippineZone();
 
+        // Resolves the Philippine time zone, with a manual UTC+8 fallback.
         private static TimeZoneInfo GetPhilippineZone()
         {
             foreach (var id in new[] { "Asia/Manila", "Philippine Standard Time", "UTC+8" })
@@ -47,12 +47,14 @@ namespace ClinicApp.ViewModels
 
         private TimeSlotItem? _selectedSlot;
 
+        // Injects the data service and seeds empty time slots.
         public RescheduleViewModel(SupabaseDataService supabaseData)
         {
             _supabaseData = supabaseData;
             InitializeEmptySlots();
         }
 
+        // Fills TimeSlots with the clinic's fixed hours, all initially open.
         void InitializeEmptySlots()
         {
             var hours = new[] { 10, 11, 13, 14, 15, 16 };
@@ -71,6 +73,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Picks the default date (skipping Sunday) and loads its slots.
         public async Task InitializeAsync()
         {
             // Skip Sundays for default date
@@ -82,6 +85,7 @@ namespace ClinicApp.ViewModels
             await LoadSlotsForDateAsync(date);
         }
 
+        // Loads available time slots for the given date, checking both bookings and appointment entries.
         public async Task LoadSlotsForDateAsync(DateTime date)
         {
             // Block Sundays
@@ -163,6 +167,7 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
+        // Selects a slot, deselecting any other.
         void SelectSlot(TimeSlotItem slot)
         {
             if (slot == null || slot.IsTaken) return;
@@ -181,6 +186,7 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
+        // Applies the new time to the booking/entry and logs the activity.
         async Task ConfirmReschedule()
         {
             if (_selectedSlot == null || string.IsNullOrEmpty(BookingId))
@@ -243,6 +249,9 @@ namespace ClinicApp.ViewModels
                     $"{PatientName}'s appointment has been rescheduled to\n{SelectedSummary}",
                     "OK");
 
+                await _supabaseData.LogActivityAsync("AppointmentRescheduled",
+                    $"{PatientName}'s appointment was rescheduled to {SelectedSummary}");
+
                 await Shell.Current.GoToAsync("..");
             }
             catch (Exception ex)
@@ -256,6 +265,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Discards and goes back.
         [RelayCommand]
         async Task Cancel()
         {
@@ -290,6 +300,7 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] Color statusColor = Color.FromArgb("#2E7D32");
         [ObservableProperty] string statusText = "Available";
 
+        // Recomputes this slot's colors/status text from its taken/selected state.
         public void RefreshColors()
         {
             if (_isTaken)

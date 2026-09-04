@@ -61,6 +61,11 @@ namespace ClinicApp
             ));
 
             // ── Main pages ────────────────────────────────────────
+            builder.Services.AddSingleton<HomeViewModel>(sp =>
+               new HomeViewModel(
+                   sp.GetRequiredService<SupabaseDataService>(),
+                   sp.GetRequiredService<AppointmentScheduleViewModel>()
+               ));
             builder.Services.AddSingleton<HomePage>();
             builder.Services.AddSingleton<MenuViewModel>();
             builder.Services.AddSingleton<MenuPage>();
@@ -207,6 +212,10 @@ namespace ClinicApp
             builder.Services.AddTransient<ReportsViewModel>(sp =>
             new ReportsViewModel(
                 sp.GetRequiredService<SupabaseDataService>()));
+            builder.Services.AddTransient<Views.ActivityLogPage>();
+            // Log
+            builder.Services.AddTransient<ActivityLogViewModel>(sp =>
+                new ActivityLogViewModel(sp.GetRequiredService<SupabaseDataService>()));
 
             builder
                 .UseMauiApp<App>()

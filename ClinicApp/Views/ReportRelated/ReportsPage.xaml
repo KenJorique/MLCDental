@@ -15,7 +15,7 @@
 	<Grid RowDefinitions="Auto,Auto,*">
 
 		<!-- ── PERIOD TABS ── -->
-		<Grid Grid.Row="0" ColumnDefinitions="*,*,*" BackgroundColor="{StaticResource PageBg}">
+		<Grid Grid.Row="0" ColumnDefinitions="*,*,*,*" BackgroundColor="{StaticResource PageBg}">
 
 			<VerticalStackLayout Grid.Column="0" Spacing="0">
 				<VerticalStackLayout.GestureRecognizers>
@@ -83,10 +83,34 @@
 				</BoxView>
 			</VerticalStackLayout>
 
+			<!-- Custom — opens the range-picker bottom sheet (code-behind) instead of loading immediately, since there's no default range to show until the user picks one -->
+			<VerticalStackLayout Grid.Column="3" Spacing="0">
+				<VerticalStackLayout.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnCustomTabTapped"/>
+				</VerticalStackLayout.GestureRecognizers>
+				<Label Text="Custom" Padding="0,12" FontSize="14" HorizontalTextAlignment="Center"
+                       TextColor="{StaticResource Gray500}">
+					<Label.Triggers>
+						<DataTrigger TargetType="Label" Binding="{Binding SelectedPeriod}" Value="Custom">
+							<Setter Property="FontAttributes" Value="Bold"/>
+							<Setter Property="TextColor" Value="{StaticResource Primary}"/>
+						</DataTrigger>
+					</Label.Triggers>
+				</Label>
+				<BoxView HeightRequest="2.5" Color="{StaticResource Gray100}">
+					<BoxView.Triggers>
+						<DataTrigger TargetType="BoxView" Binding="{Binding SelectedPeriod}" Value="Custom">
+							<Setter Property="Color" Value="{StaticResource Primary}"/>
+						</DataTrigger>
+					</BoxView.Triggers>
+				</BoxView>
+			</VerticalStackLayout>
+
 		</Grid>
 
-		<!-- ── DATE RANGE PICKER ── -->
-		<Border Grid.Row="1" Style="{StaticResource FormInputBox}" Margin="16,12,16,0">
+		<!-- ── DATE RANGE PICKER — Daily/Weekly/Monthly only ── -->
+		<Border Grid.Row="1" Style="{StaticResource FormInputBox}" Margin="16,12,16,0"
+                IsVisible="{Binding IsCustomPeriodActive, Converter={StaticResource InvertedBoolConverter}}">
 			<Picker ItemsSource="{Binding DateOptions}"
                     ItemDisplayBinding="{Binding Label}"
                     SelectedItem="{Binding SelectedDateOption}"
@@ -95,6 +119,15 @@
                     BackgroundColor="Transparent"
                     FontSize="14"
                     VerticalOptions="Center"/>
+		</Border>
+
+		<!-- ── CUSTOM RANGE ROW — shown once a custom range is applied; tap to reopen the picker and choose a different range ── -->
+		<Border Grid.Row="1" Style="{StaticResource FormInputBox}" Margin="16,12,16,0"
+                IsVisible="{Binding IsCustomPeriodActive}">
+			<Border.GestureRecognizers>
+				<TapGestureRecognizer Tapped="OnCustomTabTapped"/>
+			</Border.GestureRecognizers>
+			<Label Text="{Binding DateRangeLabel}" TextColor="{StaticResource TextPrimary}" FontSize="14" VerticalOptions="Center"/>
 		</Border>
 
 		<!-- ── REPORT CONTENT ── -->
@@ -114,17 +147,33 @@
 						<VerticalStackLayout Spacing="10">
 							<Label Text="Appointments" Style="{StaticResource CardSectionTitleStyle}"/>
 
-							<!-- Summary -->
-							<Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto">
-								<Label Grid.Row="0" Grid.Column="0" Text="{Binding CurrentReport.TotalAppointments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
-								<Label Grid.Row="0" Grid.Column="1" Text="{Binding CurrentReport.CompletedAppointments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
-								<Label Grid.Row="0" Grid.Column="2" Text="{Binding CurrentReport.PendingAppointments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
-								<Label Grid.Row="0" Grid.Column="3" Text="{Binding CurrentReport.CancelledAppointments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
-
-								<Label Grid.Row="1" Grid.Column="0" Text="Total" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
-								<Label Grid.Row="1" Grid.Column="1" Text="Done" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
-								<Label Grid.Row="1" Grid.Column="2" Text="Pending" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
-								<Label Grid.Row="1" Grid.Column="3" Text="Cancelled" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
+							<!-- Summary — Completed / Pending / Cancelled counts are tappable, each opens an alert listing the specific patients -->
+							<Grid ColumnDefinitions="*,*,*,*">
+								<VerticalStackLayout>
+									<Label Text="{Binding CurrentReport.TotalAppointments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
+									<Label Text="Total" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
+								</VerticalStackLayout>
+								<VerticalStackLayout Grid.Column="1">
+									<VerticalStackLayout.GestureRecognizers>
+										<TapGestureRecognizer Command="{Binding ShowAppointmentListCommand}" CommandParameter="Completed"/>
+									</VerticalStackLayout.GestureRecognizers>
+									<Label Text="{Binding CurrentReport.CompletedAppointments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
+									<Label Text="Done" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
+								</VerticalStackLayout>
+								<VerticalStackLayout Grid.Column="2">
+									<VerticalStackLayout.GestureRecognizers>
+										<TapGestureRecognizer Command="{Binding ShowAppointmentListCommand}" CommandParameter="Pending"/>
+									</VerticalStackLayout.GestureRecognizers>
+									<Label Text="{Binding CurrentReport.PendingAppointments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
+									<Label Text="Pending" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
+								</VerticalStackLayout>
+								<VerticalStackLayout Grid.Column="3">
+									<VerticalStackLayout.GestureRecognizers>
+										<TapGestureRecognizer Command="{Binding ShowAppointmentListCommand}" CommandParameter="Cancelled"/>
+									</VerticalStackLayout.GestureRecognizers>
+									<Label Text="{Binding CurrentReport.CancelledAppointments}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
+									<Label Text="Cancelled" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
+								</VerticalStackLayout>
 							</Grid>
 
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
@@ -461,21 +510,30 @@
 						<VerticalStackLayout Spacing="10">
 							<Label Text="Medical Supplies" Style="{StaticResource CardSectionTitleStyle}"/>
 
-							<!-- Summary -->
+							<!-- Summary — In Stock / Low / Out of Stock counts are tappable, each opens an alert listing the specific supplies -->
 							<Grid ColumnDefinitions="*,*,*,*">
 								<VerticalStackLayout>
 									<Label Text="{Binding CurrentReport.TotalSupplies}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center"/>
 									<Label Text="Total" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
 								</VerticalStackLayout>
 								<VerticalStackLayout Grid.Column="1">
+									<VerticalStackLayout.GestureRecognizers>
+										<TapGestureRecognizer Command="{Binding ShowSupplyListCommand}" CommandParameter="In Stock"/>
+									</VerticalStackLayout.GestureRecognizers>
 									<Label Text="{Binding CurrentReport.InStockCount}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center" TextColor="{StaticResource Primary}"/>
 									<Label Text="In Stock" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
 								</VerticalStackLayout>
 								<VerticalStackLayout Grid.Column="2">
+									<VerticalStackLayout.GestureRecognizers>
+										<TapGestureRecognizer Command="{Binding ShowSupplyListCommand}" CommandParameter="Low Stock"/>
+									</VerticalStackLayout.GestureRecognizers>
 									<Label Text="{Binding CurrentReport.LowStockItemCount}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center" TextColor="{StaticResource StatusLow}"/>
 									<Label Text="Low" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
 								</VerticalStackLayout>
 								<VerticalStackLayout Grid.Column="3">
+									<VerticalStackLayout.GestureRecognizers>
+										<TapGestureRecognizer Command="{Binding ShowSupplyListCommand}" CommandParameter="Out of Stock"/>
+									</VerticalStackLayout.GestureRecognizers>
 									<Label Text="{Binding CurrentReport.OutOfStockCount}" Style="{StaticResource CardRowValueStyle}" HorizontalTextAlignment="Center" TextColor="{StaticResource StatusOut}"/>
 									<Label Text="Out" Style="{StaticResource MutedCaptionStyle}" HorizontalTextAlignment="Center"/>
 								</VerticalStackLayout>
@@ -509,33 +567,6 @@
 									</chart:DoughnutSeries.DataLabelSettings>
 								</chart:DoughnutSeries>
 							</chart:SfCircularChart>
-
-							<!-- "Low & Out of Stock" — names the Low/Out slices from the chart above, since a count alone doesn't say WHICH supplies to restock. Out of Stock listed first (most urgent). Shown first since it's the most actionable item on this card. -->
-							<VerticalStackLayout Spacing="0">
-								<Label Text="Low &amp; Out of Stock" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gray500}" Margin="0,0,0,6"/>
-								<CollectionView ItemsSource="{Binding SupplyAlertRows}">
-									<CollectionView.EmptyView>
-										<Label Text="All supplies sufficiently stocked as of this period." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
-									</CollectionView.EmptyView>
-									<CollectionView.ItemTemplate>
-										<DataTemplate>
-											<VerticalStackLayout>
-												<Grid ColumnDefinitions="*,Auto" Padding="0,8">
-													<Label Grid.Column="0" Text="{Binding Name}" FontSize="13" TextColor="{StaticResource Gray900}" LineBreakMode="WordWrap" VerticalOptions="Center"/>
-													<!-- Pale bg + colored text, matching the Today's Appointments status pill style -->
-													<Border Grid.Column="1" BackgroundColor="{Binding StatusBgColor}" Padding="8,3" StrokeThickness="0" VerticalOptions="Center">
-														<Border.StrokeShape>
-															<RoundRectangle CornerRadius="10"/>
-														</Border.StrokeShape>
-														<Label Text="{Binding StatusLabel}" FontSize="10" FontAttributes="Bold" TextColor="{Binding StatusColor}"/>
-													</Border>
-												</Grid>
-												<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
-											</VerticalStackLayout>
-										</DataTemplate>
-									</CollectionView.ItemTemplate>
-								</CollectionView>
-							</VerticalStackLayout>
 
 							<BoxView HeightRequest="1" Color="{StaticResource Gray100}"/>
 

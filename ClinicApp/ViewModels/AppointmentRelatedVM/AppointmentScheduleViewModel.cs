@@ -402,6 +402,9 @@ namespace ClinicApp.ViewModels
                 System.Diagnostics.Debug.WriteLine(
                     $"[CancelAppointment] Cleaned up booking {SelectedAppointment.SupabaseBookingId}");
 
+                await _supabaseData.LogActivityAsync("AppointmentCancelled",
+                    $"{SelectedAppointment.PatientName}'s appointment was cancelled");
+
                 ShowDetail = false;
                 SelectedAppointment = null;
                 await CloseSheetAsync();

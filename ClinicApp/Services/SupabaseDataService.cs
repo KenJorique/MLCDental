@@ -1877,5 +1877,66 @@ namespace ClinicApp.Services
                 return new List<SupabaseBillItem>();
             }
         }
+
+        // ── Activity Log ──────────────────────────────────────────
+
+        // Writes one activity row. Call this from wherever the actual action happens (payment recorded, patient added, etc.).
+        public async Task LogActivityAsync(string type, string description, string? relatedId = null)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                await _client!.From<SupabaseActivityLog>().Insert(new SupabaseActivityLog
+                {
+                    Type = type,
+                    Description = description,
+                    RelatedId = relatedId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] LogActivity: {ex.Message}");
+            }
+        }
+
+        // Newest activities first, capped to count — used by Home's Recent Activity card.
+        public async Task<List<SupabaseActivityLog>> GetRecentActivitiesAsync(int count = 10)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseActivityLog>()
+                    .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Limit(count)
+                    .Get();
+                return result.Models ?? new List<SupabaseActivityLog>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetRecentActivities: {ex.Message}");
+                return new List<SupabaseActivityLog>();
+            }
+        }
+
+        // Full activity history, newest first — used by the "View All" page.
+        public async Task<List<SupabaseActivityLog>> GetAllActivitiesAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseActivityLog>()
+                    .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseActivityLog>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllActivities: {ex.Message}");
+                return new List<SupabaseActivityLog>();
+            }
+        }
     }
 }

@@ -19,8 +19,10 @@ public partial class AddStockViewModel : ObservableObject
     [ObservableProperty] private DateTime expirationDate = DateTime.Today.AddYears(1);
     [ObservableProperty] private string qtyError = string.Empty;
 
+    // Injects the shared data service.
     public AddStockViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
+    // Validates quantity, applies the stock change, updates expiration if needed, and logs it.
     [RelayCommand]
     async Task SaveAsync()
     {
@@ -34,17 +36,18 @@ public partial class AddStockViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            var item = await _supabase.GetSupplyByIdAsync(SupplyId);
+
             await _supabase.ApplyStockChangeAsync(SupplyId, AddQty, "Restocked", string.Empty);
 
-            if (HasExpirationParam)
+            if (HasExpirationParam && item is not null)
             {
-                var item = await _supabase.GetSupplyByIdAsync(SupplyId);
-                if (item is not null)
-                {
-                    item.ExpirationDate = ExpirationDate;
-                    await _supabase.UpdateSupplyAsync(item);
-                }
+                item.ExpirationDate = ExpirationDate;
+                await _supabase.UpdateSupplyAsync(item);
             }
+
+            await _supabase.LogActivityAsync("StockChange",
+                $"{item?.Name ?? "Item"} restocked, +{AddQty} pcs");
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
                 await Shell.Current.GoToAsync(".."));
@@ -57,6 +60,7 @@ public partial class AddStockViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    // Discards and goes back.
     [RelayCommand]
     async Task CancelAsync() => await Shell.Current.GoToAsync("..");
 }

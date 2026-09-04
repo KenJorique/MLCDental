@@ -26,11 +26,14 @@ public partial class ReduceStockViewModel : ObservableObject
 
     public string MaxAvailableText => $"Maximum available: {CurrentStock} pcs";
 
+    // Injects the shared data service.
     public ReduceStockViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
+    // Refreshes the "Maximum available" text when CurrentStock changes.
     partial void OnCurrentStockChanged(int value) =>
         OnPropertyChanged(nameof(MaxAvailableText));
 
+    // Validates quantity, applies the reduction, and logs it.
     [RelayCommand]
     async Task SaveAsync()
     {
@@ -49,7 +52,12 @@ public partial class ReduceStockViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            var item = await _supabase.GetSupplyByIdAsync(SupplyId);
+
             await _supabase.ApplyStockChangeAsync(SupplyId, -ReduceQty, SelectedType, string.Empty);
+
+            await _supabase.LogActivityAsync("StockChange",
+                $"{item?.Name ?? "Item"} marked {SelectedType.ToLower()}, -{ReduceQty} pcs");
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
                 await Shell.Current.GoToAsync(".."));
@@ -62,6 +70,7 @@ public partial class ReduceStockViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    // Discards and goes back.
     [RelayCommand]
     async Task CancelAsync() => await Shell.Current.GoToAsync("..");
 }

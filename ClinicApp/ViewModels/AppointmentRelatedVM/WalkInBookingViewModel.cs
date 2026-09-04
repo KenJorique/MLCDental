@@ -297,6 +297,7 @@ namespace ClinicApp.ViewModels
             finally { IsLoadingSlots = false; }
         }
 
+        // Selects a time slot and refreshes the summary.
         [RelayCommand]
         void SelectSlot(TimeSlotItem slot)
         {
@@ -317,6 +318,7 @@ namespace ClinicApp.ViewModels
             UpdateSummary();
         }
 
+        // Rebuilds the confirmation summary text.
         void UpdateSummary()
         {
             if (string.IsNullOrWhiteSpace(FullName) || _selectedSlot == null)
@@ -405,8 +407,8 @@ namespace ClinicApp.ViewModels
                         _existingPatient = await _supabase.AddPatientAsync(supabasePatient);
                         if (_existingPatient != null)
                         {
-                            patient.SupabaseId = _existingPatient.Id;   
-                            await _db.UpdatePatient(patient);           
+                            patient.SupabaseId = _existingPatient.Id;
+                            await _db.UpdatePatient(patient);
                         }
                     }
                 }
@@ -466,6 +468,9 @@ namespace ClinicApp.ViewModels
                     return;
                 }
 
+                await _supabase.LogActivityAsync("NewBooking",
+                    $"New appointment booked for {FullName} on {localTime:MMM d, h:mm tt}");
+
                 _selectedSlot.IsTaken = true;
                 _selectedSlot.IsSelected = false;
                 _selectedSlot.RefreshColors();
@@ -508,6 +513,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Discards the form and goes back.
         [RelayCommand]
         async Task Cancel() => await Shell.Current.GoToAsync("..");
     }
