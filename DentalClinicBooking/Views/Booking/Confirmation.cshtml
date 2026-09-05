@@ -1,9 +1,8 @@
 ﻿@{
     ViewData["Title"] = "Booking Confirmed";
-    var name = TempData["PatientName"]?.ToString() ?? "Patient";
-    var date = TempData["AppointmentDate"]?.ToString() ?? "";
+    var name = TempData["PatientName"]?.ToString() ?? "Patient"; // fallback label if TempData didn't survive the redirect
+    var date = TempData["AppointmentDate"]?.ToString() ?? ""; // formatted local date/time string set by the controller
     // var service = TempData["Service"]?.ToString() ?? "";
-    var isExisting = TempData["IsExisting"] as bool? ?? false;
 }
 
 <div class="container py-5">
@@ -41,27 +40,11 @@
                         <p class="mb-0 ms-4">@service</p> *@
                     </div>
                 }
-                @if (isExisting)
-                {
-                    <div class="alert alert-clinic-info text-start small">
-                        <i class="bi bi-person-check me-2"></i>
-                        Welcome back! Your appointment request has been received.
-                        Our staff will confirm your schedule shortly.
-                    </div>
-                }
-                else
-                {
-                    <div class="alert alert-clinic-info text-start small">
-                        <i class="bi bi-info-circle me-2"></i>
-                        Thank you for registering with us! Our clinic staff will
-                        contact you to <strong>confirm your schedule</strong>.
-                    </div>
-                }
-
+                <!-- Single note, same wording for both existing and new patients. -->
                 <div class="alert alert-clinic-info text-start small">
                     <i class="bi bi-info-circle me-2"></i>
-                    Our clinic staff will contact you to <strong>confirm your schedule</strong>.
-                    Please keep your phone available.
+                    Thanks for booking with us! Our clinic staff will contact you to
+                    <strong>confirm your schedule</strong>. Please keep your phone available.
                 </div>
 
                 <div class="d-grid gap-2 mt-3">

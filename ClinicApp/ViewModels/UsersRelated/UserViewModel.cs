@@ -28,7 +28,7 @@ public partial class UserViewModel : ObservableObject
     // PatientListViewModel.StartRealtimeAsync, minus the realtime
     // subscription — a plain pull-and-backfill is enough for the staff
     // list, which changes far less often than patients/bookings).
-    private bool _syncStarted = false;
+    private bool _syncStarted = true;
 
     public async Task StartSupabaseSyncAsync()
     {

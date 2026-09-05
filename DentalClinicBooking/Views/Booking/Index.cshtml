@@ -51,9 +51,7 @@
                         <span asp-validation-for="FullName"
                               class="text-danger small"></span>
 
-                        <!-- Existing-patient name suggestions. Selecting one
-                             only fills this field — phone/email/notes are
-                             intentionally left untouched. -->
+                        <!-- Existing-patient name suggestions. Selecting one fills FullName only. -->
                         <div id="nameSuggestions"
                              class="list-group position-absolute w-100 shadow-sm d-none"
                              style="z-index:1000; top:100%;">
@@ -142,10 +140,7 @@
                     <input type="hidden" asp-for="AppointmentDateStr" id="AppointmentDateStr" />
                     <input type="hidden" asp-for="AppointmentTimeStr" id="AppointmentTimeStr" />
 
-                    <!-- PH-local date/hour of the selected slot — used by the
-                         server for a real-time re-check right before saving,
-                         independent of how AppointmentDate above ends up
-                         interpreted (UTC vs local) by model binding. -->
+                    <!-- PH-local date/hour of the selected slot, for the server's own re-check right before saving. -->
                     <input type="hidden" name="selectedDateStr" id="selectedDateStr" />
                     <input type="hidden" name="selectedHour" id="selectedHour" />
 
@@ -189,6 +184,39 @@
     </div>
 </div>
 
+<!-- Review-before-submit modal — shown after client-side validation passes, before the real POST. -->
+<div class="modal fade" id="confirmBookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-clipboard2-check text-primary me-2"></i>Confirm Your Booking
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Please review your details before submitting.</p>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2"><span class="fw-semibold">Name:</span> <span id="confirmName"></span></li>
+                    <li class="mb-2"><span class="fw-semibold">Phone:</span> <span id="confirmPhone"></span></li>
+                    <li class="mb-2 d-none" id="confirmEmailRow">
+                        <span class="fw-semibold">Email:</span> <span id="confirmEmail"></span>
+                    </li>
+                    <li class="mb-2"><span class="fw-semibold">Date:</span> <span id="confirmDate"></span></li>
+                    <li class="mb-2"><span class="fw-semibold">Time:</span> <span id="confirmTime"></span></li>
+                    <li class="d-none" id="confirmNotesRow">
+                        <span class="fw-semibold">Notes:</span> <span id="confirmNotes"></span>
+                    </li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go Back</button>
+                <button type="button" class="btn btn-clinic" id="confirmSubmitBtn">Confirm Booking</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     @await Html.PartialAsync("_ValidationScripts")
 
@@ -207,11 +235,12 @@
         const phoneInput       = document.getElementById('phoneInput');
         const phoneError       = document.getElementById('phoneError');
 
-        let selectedTime   = null;
-        let isDayFull      = false;
+        let selectedTime        = null;
+        let selectedTimeDisplay = null; // e.g. "10:00 AM" — kept for the review modal
+        let isDayFull            = false;
+        let bookingConfirmed    = false; // set true once the user hits "Confirm Booking" in the review modal
 
-        // ── Phone: plain input, digits-only formatting only.
-        //    No lookup, no autofill — just basic format feedback. ──────
+        // Phone field: digits-only formatting and basic validation feedback only — no lookup or autofill.
         phoneInput.addEventListener('input', function () {
             this.value = this.value.replace(/\D/g, '');
 
@@ -227,7 +256,7 @@
             }
         });
 
-        // ── Date selection ────────────────────────────────────────────
+        // Blocks Sundays and triggers an availability lookup when the date changes.
         dateInput.addEventListener('change', async function () {
             const val = this.value;
             if (!val) return;
@@ -319,6 +348,7 @@
                         btn.classList.add('btn-primary', 'active-slot');
 
                         selectedTime = slot.time;
+                        selectedTimeDisplay = slot.display;
                         slotError.classList.add('d-none');
 
                         const [hours, minutes] = slot.time.split(':');
@@ -344,9 +374,11 @@
             });
         }
 
+        // Clears the slot grid and selection state back to "no date picked yet".
         function resetSlots() {
             slotGrid.innerHTML   = '';
             selectedTime         = null;
+            selectedTimeDisplay  = null;
             dateStrEl.value      = '';
             timeStrEl.value      = '';
             selectedDateEl.value = '';
@@ -357,10 +389,13 @@
             noDateSel.classList.remove('d-none');
         }
 
-        // ── Form submit validation ────────────────────────────────────
-        document.getElementById('bookingForm')
-            .addEventListener('submit', function (e) {
+        // Validates the form, then opens the review modal instead of submitting immediately.
+        const bookingForm = document.getElementById('bookingForm');
+        bookingForm.addEventListener('submit', function (e) {
 
+            if (bookingConfirmed) return; // real submit, triggered from the modal — let it through
+
+            e.preventDefault();
             let valid = true;
 
             const phone = phoneInput.value;
@@ -375,12 +410,55 @@
             }
 
             if (isDayFull) {
-                e.preventDefault();
                 alert('No time slots are available on this date. Please select another date.');
                 return;
             }
 
-            if (!valid) e.preventDefault();
+            if (!valid) return;
+
+            showBookingReview();
+        });
+
+        // Formats a yyyy-MM-dd string as "Month D, YYYY" for the review modal.
+        function formatDisplayDate(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+
+        // Fills the review modal with the current form values and shows it.
+        function showBookingReview() {
+            document.getElementById('confirmName').textContent = fullNameInput.value.trim();
+            document.getElementById('confirmPhone').textContent = phoneInput.value.trim();
+            document.getElementById('confirmDate').textContent = formatDisplayDate(dateStrEl.value);
+            document.getElementById('confirmTime').textContent = selectedTimeDisplay || '';
+
+            const emailVal = document.getElementById('Email').value.trim();
+            const emailRow = document.getElementById('confirmEmailRow');
+            if (emailVal) {
+                document.getElementById('confirmEmail').textContent = emailVal;
+                emailRow.classList.remove('d-none');
+            } else {
+                emailRow.classList.add('d-none');
+            }
+
+            const notesVal = document.getElementById('Notes').value.trim();
+            const notesRow = document.getElementById('confirmNotesRow');
+            if (notesVal) {
+                document.getElementById('confirmNotes').textContent = notesVal;
+                notesRow.classList.remove('d-none');
+            } else {
+                notesRow.classList.add('d-none');
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('confirmBookingModal'));
+            modal.show();
+        }
+
+        // "Confirm Booking" in the review modal — flags the next submit as real, then triggers it.
+        document.getElementById('confirmSubmitBtn').addEventListener('click', function () {
+            bookingConfirmed = true;
+            bootstrap.Modal.getInstance(document.getElementById('confirmBookingModal'))?.hide();
+            bookingForm.requestSubmit();
         });
 
         // Set default date to tomorrow, skip Sunday
@@ -390,10 +468,7 @@
         dateInput.value = tomorrow.toISOString().split('T')[0];
         dateInput.dispatchEvent(new Event('change'));
 
-        // ── Patient Name autocomplete ───────────────────────────────
-        // The ONLY patient-suggestion feature on this form. Selecting a
-        // suggestion fills FullName ONLY — phone/email/notes are left
-        // exactly as the patient typed them.
+        // Patient name autocomplete — the only suggestion feature on this form; selecting one fills FullName only.
         const fullNameInput   = document.getElementById('fullNameInput');
         const nameSuggestions = document.getElementById('nameSuggestions');
         let nameSearchTimeout = null;

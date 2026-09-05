@@ -5,17 +5,15 @@ public partial class ItemActionSheet : BottomSheet
 {
     private bool _isFullyShown = false;
 
+    // Sets up show/hide event guards; IsCancelable stays default (True) so drag works.
     public ItemActionSheet()
     {
         InitializeComponent();
 
-        // Block backdrop-tap-to-dismiss until the open animation completes
-        IsCancelable = false;
-
+        // Track open animation and disable Android shape animation.
         Showing += (s, e) =>
         {
             _isFullyShown = false;
-            IsCancelable = false;
 #if ANDROID
             Controller?.Behavior?.DisableShapeAnimations();
 #endif
@@ -24,7 +22,6 @@ public partial class ItemActionSheet : BottomSheet
         Shown += (s, e) =>
         {
             _isFullyShown = true;
-            IsCancelable = true; // now safe to dismiss via backdrop
         };
 
         Dismissed += (s, e) =>
@@ -33,6 +30,7 @@ public partial class ItemActionSheet : BottomSheet
         };
     }
 
+    // Fills in title, subtitle, and action rows for this sheet.
     public void Configure(string title, string subtitle, IEnumerable<ActionSheetOption> options)
     {
         TitleLabel.Text = title;
@@ -43,8 +41,10 @@ public partial class ItemActionSheet : BottomSheet
             ActionsContainer.Children.Add(BuildRow(option));
     }
 
+    // Builds one tappable row (icon + label + subtitle + chevron) for an option.
     private Border BuildRow(ActionSheetOption option)
     {
+        // Icon glyph shown inside the round icon background.
         var iconLabel = new Label
         {
             Text = option.Icon,
@@ -54,6 +54,8 @@ public partial class ItemActionSheet : BottomSheet
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
         };
+
+        // Round colored background behind the icon.
         var iconContainer = new Border
         {
             BackgroundColor = option.IconBackgroundColor,
@@ -63,6 +65,8 @@ public partial class ItemActionSheet : BottomSheet
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 22 },
             Content = iconLabel,
         };
+
+        // Main bold label text.
         var mainLabel = new Label
         {
             Text = option.Label,
@@ -71,6 +75,8 @@ public partial class ItemActionSheet : BottomSheet
             TextColor = option.LabelColor,
             VerticalOptions = LayoutOptions.Center,
         };
+
+        // Smaller gray subtitle text, hidden if empty.
         var subtitleLabel = new Label
         {
             Text = option.Subtitle,
@@ -79,6 +85,8 @@ public partial class ItemActionSheet : BottomSheet
             IsVisible = !string.IsNullOrWhiteSpace(option.Subtitle),
             VerticalOptions = LayoutOptions.Center,
         };
+
+        // Stacks main label and subtitle vertically.
         var textStack = new VerticalStackLayout
         {
             Margin = new Thickness(12, 0, 0, 0),
@@ -86,6 +94,8 @@ public partial class ItemActionSheet : BottomSheet
             VerticalOptions = LayoutOptions.Center,
             Children = { mainLabel, subtitleLabel },
         };
+
+        // Right-side arrow indicator.
         var chevron = new Label
         {
             Text = "\ue5cc",
@@ -94,6 +104,8 @@ public partial class ItemActionSheet : BottomSheet
             TextColor = Color.FromArgb("#BDBDBD"),
             VerticalOptions = LayoutOptions.Center,
         };
+
+        // Lays out icon, text, and chevron in a row.
         var grid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitionCollection
@@ -107,6 +119,8 @@ public partial class ItemActionSheet : BottomSheet
         grid.Add(iconContainer, 0);
         grid.Add(textStack, 1);
         grid.Add(chevron, 2);
+
+        // Card-style wrapper for the whole row.
         var row = new Border
         {
             Margin = new Thickness(16, 0, 16, 10),
@@ -118,6 +132,7 @@ public partial class ItemActionSheet : BottomSheet
             Content = grid,
         };
 
+        // Dismisses the sheet then runs the option's action on tap.
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (s, e) =>
         {

@@ -92,6 +92,15 @@ public partial class HomeViewModel : ObservableObject
     {
         NeedsAttentionRows.Clear();
 
+        if (ScheduleVM.PendingBookingsCount > 0)
+        {
+            NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
+            {
+                Text = $"{ScheduleVM.PendingBookingsCount} Appointment{(ScheduleVM.PendingBookingsCount == 1 ? "" : "s")} Awaiting Confirmation",
+                Route = nameof(AppointmentPage)
+            });
+        }
+
         var overdueCount = 0;
         var dueSoonCount = 0;
         if (unpaidBills.Count > 0)
@@ -127,14 +136,7 @@ public partial class HomeViewModel : ObservableObject
             });
         }
 
-        if (ScheduleVM.PendingBookingsCount > 0)
-        {
-            NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
-            {
-                Text = $"{ScheduleVM.PendingBookingsCount} Appointment{(ScheduleVM.PendingBookingsCount == 1 ? "" : "s")} Awaiting Confirmation",
-                Route = nameof(AppointmentPage)
-            });
-        }
+        
 
         var outOfStockCount = supplies.Count(s => s.IsOutOfStock);
         var lowStockCount = supplies.Count(s => s.IsLowStock && !s.IsOutOfStock);

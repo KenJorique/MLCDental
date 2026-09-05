@@ -576,8 +576,8 @@
 							<Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
 								<Label Grid.Column="0" Text="Supply Stock Status" FontSize="12" FontAttributes="Bold"
                                        TextColor="{StaticResource Gray500}" VerticalOptions="Center"/>
-								<Border Grid.Column="1" StrokeThickness="1" Stroke="{StaticResource Gray200}" Padding="8,0"
-                                        WidthRequest="130" HorizontalOptions="End">
+								<Border Grid.Column="1" StrokeThickness="1" Stroke="{StaticResource Gray200}" Padding="8,-7"
+                                        WidthRequest="120" HorizontalOptions="End">
 									<Border.StrokeShape>
 										<RoundRectangle CornerRadius="6"/>
 									</Border.StrokeShape>

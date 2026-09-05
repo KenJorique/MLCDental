@@ -8,11 +8,11 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels
+{
+    public partial class AppointmentViewModel : ObservableObject
     {
-        public partial class AppointmentViewModel : ObservableObject
-        {
-            readonly DatabaseService _db;
-            readonly SupabaseDataService _supabaseData;
+        readonly DatabaseService _db;
+        readonly SupabaseDataService _supabaseData;
 
         public ObservableCollection<BookingCardViewModel> PendingBookings { get; set; } = new();
 
@@ -25,6 +25,7 @@ namespace ClinicApp.ViewModels
         // Capital H — matches XAML binding exactly
         public bool HasPending => PendingCount > 0;
 
+        // Injects local + remote data services.
         public AppointmentViewModel(DatabaseService db, SupabaseDataService supabaseData)
         {
             _db = db;
@@ -98,6 +99,7 @@ namespace ClinicApp.ViewModels
             await _pendingSheet.ShowAsync();
         }
 
+        // Dismisses the pending-detail bottom sheet, if one is open.
         async Task CloseSheetAsync()
         {
             if (_pendingSheet == null) return;
@@ -110,6 +112,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Opens the device dialer with the given phone number.
         [RelayCommand]
         async Task CallPatient(string phoneNumber)
         {
@@ -137,6 +140,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Approves a pending booking: resolves/updates the patient record, creates the appointment entry, and syncs to Google Tasks.
         [RelayCommand]
         async Task Approve(BookingCardViewModel card)
         {
@@ -153,12 +157,7 @@ namespace ClinicApp.ViewModels
             IsLoading = true;
             try
             {
-                // Only create new patient if not existing
-                // Replace the existing patient check section with this:
-
-                // Always check by phone first — prevents duplicates regardless of flag.
-                // Track the resolved patient (existing or newly-created) so its Supabase Id
-                // can be linked onto the appointment entry below.
+                // Match by phone first (existing or new) so its Id can link to the appointment entry below.
                 SupabasePatient? patient = null;
 
                 if (!string.IsNullOrEmpty(booking.Phone))
@@ -205,17 +204,29 @@ namespace ClinicApp.ViewModels
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[Approve] Patient already exists — skipping creation");
+                    // Existing patient — if this booking used a different number, overwrite the old one (Supabase + local).
+                    if (!string.IsNullOrEmpty(booking.Phone) && patient.Phone != booking.Phone)
+                    {
+                        patient.Phone = booking.Phone;
+                        await _supabaseData.UpdatePatientAsync(patient);
+                        await _db.SyncPatientFromSupabase(patient);
+
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Approve] Phone updated for existing patient: {patient.Id}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Approve] Patient already exists — no phone change");
+                    }
                 }
 
-                // Rest of approve flow stays the same...
-                // 1. Treat the booking's appointment date as Local time (Philippine Time)
+                // Booking's appointment date treated as PH local time.
                 var localDate = booking.AppointmentDate.Kind == DateTimeKind.Utc
                     ? booking.AppointmentDate.ToLocalTime()
                     : DateTime.SpecifyKind(booking.AppointmentDate, DateTimeKind.Local);
 
-                // 2. Derive the true UTC equivalent for Supabase storage (subtracts 8 hours)
+                // UTC equivalent, for Supabase storage.
                 var utcDate = localDate.ToUniversalTime();
 
                 var localEntry = new AppointmentEntry
@@ -233,9 +244,7 @@ namespace ClinicApp.ViewModels
                 var supEntry = new SupabaseAppointmentEntry
                 {
                     SupabaseBookingId = booking.Id,
-                    // BUGFIX (Ken's improvement, folded in): previously this was never set,
-                    // leaving the appointment entry with no link back to the patient record.
-                    PatientId = patient?.Id ?? "",
+                    PatientId = patient?.Id ?? "", // links the entry back to the patient record
                     PatientName = booking.FullName ?? "",
                     Phone = booking.Phone ?? "",
                     Email = booking.Email ?? "",
@@ -291,6 +300,7 @@ namespace ClinicApp.ViewModels
             return date.AddDays(-diff).Date;
         }
 
+        // Closes the sheet and navigates to ReschedulePage for this booking.
         [RelayCommand]
         async Task Reschedule(BookingCardViewModel card)
         {
@@ -303,13 +313,10 @@ namespace ClinicApp.ViewModels
 
             await CloseSheetAsync();
 
-            // 1. (Optional) Remove the status update alert if you want it to navigate instantly,
-            // or keep it if you want them to confirm they are changing it right now.
             var currentDt = booking.AppointmentDate != DateTime.MinValue
                 ? booking.AppointmentDate.ToString("MMM dd, yyyy h:mm tt")
                 : "Unknown";
 
-            // 2. Navigate straight to the ReschedulePage, passing the required query parameters
             await Shell.Current.GoToAsync(
                 $"{nameof(ReschedulePage)}" +
                 $"?bookingId={Uri.EscapeDataString(booking.Id)}" +
@@ -317,6 +324,7 @@ namespace ClinicApp.ViewModels
                 $"&currentDateTime={Uri.EscapeDataString(currentDt)}");
         }
 
+        // Reverts a booking's status back to pending.
         [RelayCommand]
         async Task MoveToPending(BookingCardViewModel card)
         {
@@ -373,6 +381,7 @@ namespace ClinicApp.ViewModels
             finally { IsLoading = false; }
         }
 
+        // Completes an appointment: closes its Google Task, then deletes it everywhere (Supabase + local).
         [RelayCommand]
         async Task MarkComplete(BookingCardViewModel card)
         {
@@ -390,12 +399,11 @@ namespace ClinicApp.ViewModels
             IsLoading = true;
             try
             {
-                // 1. Get the appointment entry before deleting
+                // Get the entry before deleting so its Google Task can be completed first.
                 var entries = await _supabaseData.GetAppointmentEntriesAsync();
                 var entry = entries.FirstOrDefault(
                     e => e.SupabaseBookingId == booking.Id);
 
-                // 2. Complete Google Task if exists
                 try
                 {
                     var accessToken = await _supabaseData.GetFreshAccessTokenAsync();
@@ -413,14 +421,12 @@ namespace ClinicApp.ViewModels
                         $"[MarkComplete] Google Tasks: {googleEx.Message}");
                 }
 
-                // 3. Delete from Supabase appointment_entries immediately
+                // Remove the appointment + booking from Supabase, then the local mirror.
                 if (entry != null && !string.IsNullOrEmpty(entry.Id))
                     await _supabaseData.DeleteAppointmentEntryAsync(entry.Id);
 
-                // 4. Delete from Supabase bookings immediately
                 await _supabaseData.DeleteBookingAsync(booking.Id);
 
-                // 5. Delete from local SQLite immediately
                 await _db.ExecuteAsync(
                     "DELETE FROM AppointmentEntry WHERE SupabaseBookingId = ?",
                     booking.Id);
@@ -428,7 +434,6 @@ namespace ClinicApp.ViewModels
                 System.Diagnostics.Debug.WriteLine(
                     $"[MarkComplete] {booking.FullName} removed from all lists");
 
-                // 6. Refresh the list — booking gone immediately
                 await FetchAndPopulate();
 
                 await Shell.Current.DisplayAlert("Completed",
@@ -445,14 +450,12 @@ namespace ClinicApp.ViewModels
         }
     }
 
-    /// <summary>
-    /// Wraps a SupabaseBooking for the card list — kept as a thin passthrough wrapper
-    /// (no expand/collapse state; cards are always shown fully expanded).
-    /// </summary>
+    // Thin passthrough wrapper around a SupabaseBooking for the card list — always shown fully expanded.
     public partial class BookingCardViewModel : ObservableObject
     {
         public SupabaseBooking Booking { get; }
 
+        // Wraps the given booking for display.
         public BookingCardViewModel(SupabaseBooking booking)
         {
             Booking = booking;
