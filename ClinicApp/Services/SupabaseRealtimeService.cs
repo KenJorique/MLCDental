@@ -15,6 +15,7 @@ namespace ClinicApp.Services
         public event Action? OnNewBookingReceived;
         public event Action? OnPatientChanged;
         public event Action? OnUserChanged;
+        public event Action? OnTreatmentSequenceChanged;
 
         public SupabaseRealtimeService(DatabaseService db)
         {
@@ -480,5 +481,39 @@ namespace ClinicApp.Services
             }
         }
 
+        public async Task SubscribeToTreatmentSequencesAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-treatment-sequences");
+                channel.Register(new PostgresChangesOptions("public", "treatment_sequences"));
+
+                channel.AddPostgresChangeHandler(ListenType.Inserts, (sender, change) =>
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[Realtime] New treatment sequence from another device");
+                    MainThread.BeginInvokeOnMainThread(() =>
+                        OnTreatmentSequenceChanged?.Invoke());
+                });
+
+                channel.AddPostgresChangeHandler(ListenType.Updates, (sender, change) =>
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[Realtime] Treatment sequence updated from another device");
+                    MainThread.BeginInvokeOnMainThread(() =>
+                        OnTreatmentSequenceChanged?.Invoke());
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine(
+                    "[Realtime] Subscribed to treatment_sequences.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Realtime] SubscribeTreatmentSequences error: {ex.Message}");
+            }
+        }
     }
 }

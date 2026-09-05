@@ -37,13 +37,16 @@ namespace ClinicApp.Views.AppointmentRelated
             try
             {
                 await _vm.LoadAppointments();
-                await _vm.LoadPendingFollowUpsAsync();   // ? added
+                await _vm.LoadPendingFollowUpsAsync();
 
                 if (!_subscribed)
                 {
                     _subscribed = true;
                     _realtime.OnAppointmentChanged += async () => await _vm.LoadAppointments();
                     await _realtime.SubscribeToAppointmentEntriesAsync();
+
+                    _realtime.OnTreatmentSequenceChanged += async () => await _vm.LoadPendingFollowUpsAsync();
+                    await _realtime.SubscribeToTreatmentSequencesAsync();
                 }
 
                 if (_vm.IsCalendarView)

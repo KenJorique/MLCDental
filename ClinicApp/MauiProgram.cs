@@ -119,7 +119,10 @@ namespace ClinicApp
             builder.Services.AddTransient<PendingFollowUpsViewModel>(sp =>
     new PendingFollowUpsViewModel(
         sp.GetRequiredService<SupabaseDataService>()));
-            builder.Services.AddTransient<PendingFollowUpsPage>();
+            builder.Services.AddTransient<PendingFollowUpsPage>(sp =>
+    new PendingFollowUpsPage(
+        sp.GetRequiredService<PendingFollowUpsViewModel>(),
+        sp.GetRequiredService<SupabaseRealtimeService>()));
 
             // ── Patients ──────────────────────────────────────────
             builder.Services.AddSingleton<PatientListViewModel>(sp =>

@@ -205,10 +205,26 @@ namespace ClinicApp.ViewModels
 
                 await _supabase.LinkNextAppointmentToSequenceAsync(SequenceId, correlationId);
 
+                try
+                {
+                    await _supabase.SyncToGoogleTasksAsync(
+                        "",
+                        PatientName,
+                        $"{ServiceName} — Session {SessionNumber} of {TotalSessions} (Follow-up)",
+                        localTime,
+                        Phone,
+                        noteText);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ScheduleNextAppointment] GoogleTasks: {ex.Message}");
+                }
+
                 await Shell.Current.DisplayAlert(
                     "✓ Follow-up Scheduled",
                     $"{PatientName}'s next session is booked for\n{SelectedSummary}",
                     "Done");
+
 
                 await Shell.Current.GoToAsync("..");
             }
