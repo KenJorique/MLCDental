@@ -2,6 +2,7 @@
 using ClinicApp.Services;
 using ClinicApp.Views.Shared;
 using ClinicApp.Views.SupplyRelated;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -24,7 +25,7 @@ public partial class SupplyListViewModel : ObservableObject
     [ObservableProperty] private string currentFilter = "All";
     [ObservableProperty] private string currentSortOption = "Default";
 
-    // ── Filter pill counts ──────────────────────────────────────────
+    // Filter pill counts.
     [ObservableProperty] private int allCount;
     [ObservableProperty] private int lowStockOnlyCount;
     [ObservableProperty] private int outOfStockCount;
@@ -74,7 +75,7 @@ public partial class SupplyListViewModel : ObservableObject
         OnPropertyChanged(nameof(EmptyStateMessage));
     }
 
-    // Re-filters when the filter changes — covers filter pills and the incoming ?filter= query.
+    // Re-filters when the filter pill or the incoming ?filter= query changes.
     partial void OnCurrentFilterChanged(string value)
     {
         ApplyFilterAndSort();
@@ -140,18 +141,18 @@ public partial class SupplyListViewModel : ObservableObject
         IsEmpty = FilteredCards.Count == 0;
     }
 
-    // "Default" sort: out of stock, then low stock, then in stock — alphabetical within each group.
+    // Sorts by status priority by default, or by the picked sort option.
     private IEnumerable<SupplyCardViewModel> ApplySort(IEnumerable<SupplyCardViewModel> source) =>
         CurrentSortOption switch
         {
-            "Recently Updated" => source.OrderByDescending(c => c.Supply.UpdatedAt),
-            "Name (A-Z)" => source.OrderBy(c => c.Supply.Name, StringComparer.OrdinalIgnoreCase),
-            "Name (Z-A)" => source.OrderByDescending(c => c.Supply.Name, StringComparer.OrdinalIgnoreCase),
+            "Ascending" => source.OrderBy(c => c.Supply.Name, StringComparer.OrdinalIgnoreCase),
+            "Descending" => source.OrderByDescending(c => c.Supply.Name, StringComparer.OrdinalIgnoreCase),
             "Stock: Low to High" => source.OrderBy(c => c.Supply.QuantityInPieces),
             "Stock: High to Low" => source.OrderByDescending(c => c.Supply.QuantityInPieces),
             _ => source.OrderBy(StatusPriority).ThenBy(c => c.Supply.Name, StringComparer.OrdinalIgnoreCase)
         };
 
+    // Out of stock first, then low stock, then everything else.
     private static int StatusPriority(SupplyCardViewModel c) =>
         c.IsOutOfStock ? 0 : c.IsLowStock ? 1 : 2;
 
@@ -175,7 +176,7 @@ public partial class SupplyListViewModel : ObservableObject
     {
         var result = await Shell.Current.DisplayActionSheet(
             "Sort By", "Cancel", null,
-            "Recently Updated", "Name (A-Z)", "Name (Z-A)",
+            "Ascending", "Descending",
             "Stock: Low to High", "Stock: High to Low");
 
         if (result is null || result == "Cancel") return;
@@ -294,14 +295,16 @@ public partial class SupplyListViewModel : ObservableObject
         await sheet.ShowAsync();
     }
 
-    // Confirms, then deletes the item and removes it from both card lists.
+    // Confirms with the popup, then deletes the item, logs it, and removes it from both card lists.
     private async Task DeleteSupplyAsync(SupplyCardViewModel card)
     {
-        bool ok = await Shell.Current.DisplayAlert(
-            "Remove Supply",
+        var popup = new ConfirmationPopup(
+            "Remove Supply?",
             $"Remove \"{card.Supply.Name}\" from the supply list?",
-            "Remove", "Cancel");
-        if (!ok) return;
+            confirmText: "Remove");
+
+        var result = await Shell.Current.ShowPopupAsync(popup);
+        if (result is not bool confirmed || !confirmed) return;
 
         IsBusy = true;
         try
@@ -312,6 +315,8 @@ public partial class SupplyListViewModel : ObservableObject
                 await Shell.Current.DisplayAlert("Error", "Could not delete item. Try again.", "OK");
                 return;
             }
+
+            await _supabase.LogActivityAsync("SupplyDeleted", $"{card.Supply.Name} was deleted");
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

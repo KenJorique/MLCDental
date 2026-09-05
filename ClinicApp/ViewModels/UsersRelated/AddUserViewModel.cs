@@ -16,6 +16,9 @@ public partial class AddUserViewModel : ObservableObject
     // user already has a Supabase row (update) or not (insert).
     private string _existingSupabaseId = "";
 
+    // Captured on load so SaveUser can detect an Active → Inactive edit.
+    private bool _wasActiveBeforeEdit = true;
+
     // Injects the local and Supabase data services.
     public AddUserViewModel(DatabaseService db, SupabaseDataService supabaseData)
     {
@@ -63,6 +66,7 @@ public partial class AddUserViewModel : ObservableObject
             ContactNo = user.ContactNo;
             Email = user.Email;
             IsActive = user.IsActive;
+            _wasActiveBeforeEdit = user.IsActive;
             _existingSupabaseId = user.SupabaseId;
         }
     }
@@ -99,12 +103,19 @@ public partial class AddUserViewModel : ObservableObject
             IsActive = UserId > 0 ? IsActive : true
         };
 
+        var isNewUser = UserId == 0;
+
         if (UserId > 0)
             await _db.UpdateUser(user); // hashes Password if provided, preserves everything else
         else
             await _db.AddUser(user);    // sets user.UserID + user.PasswordHash on the object
 
         await SyncUserToSupabaseAsync(user);
+
+        if (isNewUser)
+            await _supabaseData.LogActivityAsync("NewUser", $"New staff account {user.FullName} added");
+        else if (_wasActiveBeforeEdit && !IsActive)
+            await _supabaseData.LogActivityAsync("UserDeactivated", $"{user.FullName}'s account was deactivated");
 
         await Shell.Current.GoToAsync("..");
     }

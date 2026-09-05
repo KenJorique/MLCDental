@@ -18,18 +18,17 @@ public partial class UserViewModel : ObservableObject
 
     public ObservableCollection<UserCardViewModel> Users { get; set; } = new();
 
+    // Injects the local and Supabase data services.
     public UserViewModel(DatabaseService db, SupabaseDataService supabaseData)
     {
         _db = db;
         _supabaseData = supabaseData;
     }
 
-    // Called once from UserListPage.OnAppearing (mirrors
-    // PatientListViewModel.StartRealtimeAsync, minus the realtime
-    // subscription — a plain pull-and-backfill is enough for the staff
-    // list, which changes far less often than patients/bookings).
+    // Set once StartSupabaseSyncAsync has run, so it doesn't repeat every OnAppearing.
     private bool _syncStarted = true;
 
+    // Pulls remote users and backfills local Supabase IDs (no realtime — staff lists change rarely).
     public async Task StartSupabaseSyncAsync()
     {
         if (_syncStarted) return;
@@ -46,6 +45,7 @@ public partial class UserViewModel : ObservableObject
         }
     }
 
+    // Loads the staff list from local SQLite.
     [RelayCommand]
     public async Task LoadUsers()
     {
@@ -106,6 +106,7 @@ public partial class UserViewModel : ObservableObject
         await sheet.ShowAsync();
     }
 
+    // Confirms, then soft-deletes the user locally and on Supabase, and logs it.
     private async Task SoftDeleteUserAsync(UserCardViewModel card)
     {
         bool confirm = await Shell.Current.DisplayAlert(
@@ -123,11 +124,14 @@ public partial class UserViewModel : ObservableObject
             await _supabaseData.SoftDeleteUserAsync(new SupabaseUser { Id = card.User.SupabaseId });
         }
 
+        await _supabaseData.LogActivityAsync("UserDeleted", $"{card.User.FullName} was removed from staff");
+
         var existing = Users.FirstOrDefault(u => u.User.UserID == card.User.UserID);
         if (existing is not null)
             Users.Remove(existing);
     }
 
+    // Opens the Add Staff page.
     [RelayCommand]
     async Task GoToAddUser() =>
         await Shell.Current.GoToAsync(nameof(AddUserPage));

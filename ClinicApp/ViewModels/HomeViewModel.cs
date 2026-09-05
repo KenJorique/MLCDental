@@ -16,7 +16,7 @@ public partial class HomeViewModel : ObservableObject
 {
     readonly SupabaseDataService dataService;
 
-    // Owns Today's Appointments data and the SelectTodayAppointmentCommand that opens the modal sheet — reused as-is rather than duplicated here.
+    // Shared with the Appointment tab, so Today's Appointments and its modal-open command aren't duplicated here.
     public AppointmentScheduleViewModel ScheduleVM { get; }
 
     [ObservableProperty] private bool isBusy;
@@ -29,14 +29,14 @@ public partial class HomeViewModel : ObservableObject
     public ObservableCollection<NeedsAttentionSummaryRow> NeedsAttentionRows { get; } = new();
     public ObservableCollection<Models.SupabaseModels.SupabaseActivityLog> RecentActivities { get; } = new();
 
-    // Injects the shared data service and the singleton schedule ViewModel (so its Today's Appointments/commands are shared with the Appointment tab).
+    // Injects the shared data service and schedule ViewModel.
     public HomeViewModel(SupabaseDataService dataService, AppointmentScheduleViewModel scheduleVM)
     {
         this.dataService = dataService;
         ScheduleVM = scheduleVM;
     }
 
-    // Refreshes every section on the page — called from OnAppearing. Runs everything in parallel so the page settles fast instead of queueing one wait behind another.
+    // Refreshes every section in parallel — called from OnAppearing.
     [RelayCommand]
     async Task Load()
     {
@@ -56,7 +56,7 @@ public partial class HomeViewModel : ObservableObject
             foreach (var activity in activitiesTask.Result)
                 RecentActivities.Add(activity);
 
-            // Needs ScheduleVM.PendingBookingsCount, which scheduleTask just refreshed — built synchronously now that everything's in.
+            // Needs ScheduleVM.PendingBookingsCount, refreshed by scheduleTask above.
             BuildNeedsAttentionRows(unpaidBillsTask.Result, suppliesTask.Result);
         }
         catch (Exception ex)
@@ -67,7 +67,7 @@ public partial class HomeViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
-    // Computes the 4 stat cards — same Done/Pending/Cancelled definitions ReportsViewModel uses for its Daily tab, narrowed to just today.
+    // Computes the 4 stat cards for today, matching ReportsViewModel's Daily-tab definitions.
     async Task LoadTodayOverviewAsync()
     {
         var today = DateTime.Today;
@@ -85,27 +85,16 @@ public partial class HomeViewModel : ObservableObject
         TotalAppointments = DoneAppointments + PendingAppointments + CancelledAppointments;
     }
 
-    // Builds the Needs Attention summary lines, grouped Bills → Appointments → Stock. Each line is skipped when its count is 0.
-    // NOTE: the "?filter=" routes below assume BalanceManagementViewModel/SupplyListViewModel can accept a starting filter via query property —
-    // see the note back in chat; without that addition these will open the page but land on its default "All" tab, not the specific one.
+    // Builds Needs Attention in urgency order: confirmations, overdue, out of stock, due soon, low stock.
     void BuildNeedsAttentionRows(List<Models.SupabaseModels.SupabaseBill> unpaidBills, List<Models.SupabaseModels.SupabaseSupplyItem> supplies)
     {
         NeedsAttentionRows.Clear();
-
-        if (ScheduleVM.PendingBookingsCount > 0)
-        {
-            NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
-            {
-                Text = $"{ScheduleVM.PendingBookingsCount} Appointment{(ScheduleVM.PendingBookingsCount == 1 ? "" : "s")} Awaiting Confirmation",
-                Route = nameof(AppointmentPage)
-            });
-        }
 
         var overdueCount = 0;
         var dueSoonCount = 0;
         if (unpaidBills.Count > 0)
         {
-            // Same grouping BalanceManagementViewModel uses — counts patients, not raw bills, so the numbers agree.
+            // Same per-patient grouping BalanceManagementViewModel uses, so the counts always agree.
             var patients = unpaidBills
                 .Where(b => b.Balance > 0)
                 .GroupBy(b => string.IsNullOrWhiteSpace(b.PatientId)
@@ -118,12 +107,39 @@ public partial class HomeViewModel : ObservableObject
             dueSoonCount = patients.Count(p => p.IsDueSoon);
         }
 
+        var outOfStockCount = supplies.Count(s => s.IsOutOfStock);
+        var lowStockCount = supplies.Count(s => s.IsLowStock && !s.IsOutOfStock);
+
+        if (ScheduleVM.PendingBookingsCount > 0)
+        {
+            NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
+            {
+                Text = $"{ScheduleVM.PendingBookingsCount} Appointment{(ScheduleVM.PendingBookingsCount == 1 ? "" : "s")} Awaiting Confirmation",
+                IconGlyph = "\ue8b5", // schedule
+                IconColor = Color.FromArgb("#E65100"),
+                Route = nameof(AppointmentPage)
+            });
+        }
+
         if (overdueCount > 0)
         {
             NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
             {
                 Text = $"{overdueCount} Patient{(overdueCount == 1 ? "" : "s")} with Overdue Bills",
+                IconGlyph = "\ue8a1", // payment
+                IconColor = Color.FromArgb("#C62828"),
                 Route = $"{nameof(BalanceManagementPage)}?filter={Uri.EscapeDataString("Overdue")}"
+            });
+        }
+
+        if (outOfStockCount > 0)
+        {
+            NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
+            {
+                Text = $"{outOfStockCount} Out of Stock Item{(outOfStockCount == 1 ? "" : "s")}",
+                IconGlyph = "\ue928", // remove_shopping_cart
+                IconColor = Color.FromArgb("#C62828"),
+                Route = $"{nameof(SupplyListPage)}?filter={Uri.EscapeDataString("Out of Stock")}"
             });
         }
 
@@ -132,21 +148,9 @@ public partial class HomeViewModel : ObservableObject
             NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
             {
                 Text = $"{dueSoonCount} Patient{(dueSoonCount == 1 ? "" : "s")} with Bills Due Soon",
+                IconGlyph = "\ue8a1", // payment
+                IconColor = Color.FromArgb("#F9A825"),
                 Route = $"{nameof(BalanceManagementPage)}?filter={Uri.EscapeDataString("DueSoon")}"
-            });
-        }
-
-        
-
-        var outOfStockCount = supplies.Count(s => s.IsOutOfStock);
-        var lowStockCount = supplies.Count(s => s.IsLowStock && !s.IsOutOfStock);
-
-        if (outOfStockCount > 0)
-        {
-            NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
-            {
-                Text = $"{outOfStockCount} Out of Stock Item{(outOfStockCount == 1 ? "" : "s")}",
-                Route = $"{nameof(SupplyListPage)}?filter={Uri.EscapeDataString("Out of Stock")}"
             });
         }
 
@@ -155,12 +159,14 @@ public partial class HomeViewModel : ObservableObject
             NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
             {
                 Text = $"{lowStockCount} Low Stock Item{(lowStockCount == 1 ? "" : "s")}",
+                IconGlyph = "\ue1a1", // inventory
+                IconColor = Color.FromArgb("#F9A825"),
                 Route = $"{nameof(SupplyListPage)}?filter={Uri.EscapeDataString("Low Stock")}"
             });
         }
     }
 
-    // Tapping a Needs Attention summary line — opens that category's list page (pre-filtered, once the target ViewModel supports it).
+    // Opens the tapped Needs Attention row's list page (pre-filtered where supported).
     [RelayCommand]
     async Task OpenNeedsAttentionRow(NeedsAttentionSummaryRow row)
     {
@@ -168,13 +174,21 @@ public partial class HomeViewModel : ObservableObject
         await Shell.Current.GoToAsync(row.Route);
     }
 
-    // Quick Actions — "+ Add Appointment" (no dedicated page exists yet, so this opens the walk-in booking flow).
+    // Quick Actions — opens the walk-in booking flow (no dedicated "add appointment" page exists).
     [RelayCommand]
     async Task AddAppointment() => await Shell.Current.GoToAsync(nameof(WalkInBookingPage));
 
-    // Quick Actions — "+ Add Patient".
+    // Quick Actions — opens Add Patient.
     [RelayCommand]
     async Task AddPatient() => await Shell.Current.GoToAsync(nameof(AddPatientPage));
+
+    // Quick Actions — opens Balance Management to pick who's paying.
+    [RelayCommand]
+    async Task RecordPayment() => await Shell.Current.GoToAsync(nameof(BalanceManagementPage));
+
+    // Quick Actions — opens the Supply list.
+    [RelayCommand]
+    async Task ManageSupply() => await Shell.Current.GoToAsync(nameof(SupplyListPage));
 
     // "View All" next to Recent Activity — opens the full activity history.
     [RelayCommand]

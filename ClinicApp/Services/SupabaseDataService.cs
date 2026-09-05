@@ -832,6 +832,50 @@ namespace ClinicApp.Services
             }
         }
 
+        // Looks up a patient by comparing the booking's full name against FirstName+LastName combined, whitespace/case normalized — avoids brittle first/last splitting mismatches.
+        public async Task<SupabasePatient?> GetPatientByNameAsync(string fullName)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var targetTokens = TokenizeName(fullName);
+                if (targetTokens.Count == 0)
+                    return null;
+
+                var result = await _client!.From<SupabasePatient>().Get();
+                var patients = result.Models ?? new List<SupabasePatient>();
+
+                return patients.FirstOrDefault(p =>
+                    NamesMatch(targetTokens, TokenizeName($"{p.FirstName} {p.LastName}")));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetPatientByName: {ex.Message}");
+                return null;
+            }
+        }
+
+        // Splits a name into lowercase word tokens, for tolerant comparisons.
+        private static HashSet<string> TokenizeName(string name) =>
+            (name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => w.Trim().ToLowerInvariant())
+                .ToHashSet();
+
+        // Matches names ignoring word order and tolerating extra words (e.g. a middle name) — the shorter name's words must all appear in the longer one.
+        private static bool NamesMatch(HashSet<string> a, HashSet<string> b)
+        {
+            if (a.Count == 0 || b.Count == 0) return false;
+            var shorter = a.Count <= b.Count ? a : b;
+            var longer = a.Count <= b.Count ? b : a;
+
+            // Guards against a single common word (e.g. "Maria") loosely matching any longer name that happens to contain it.
+            if (shorter.Count < 2 && shorter.Count != longer.Count) return false;
+
+            return shorter.IsSubsetOf(longer);
+        }
+
+        // Looks up a patient by phone, matching on the last 7 digits to tolerate formatting differences.
         public async Task<SupabasePatient?> GetPatientByPhoneAsync(string phone)
         {
             try

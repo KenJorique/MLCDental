@@ -15,9 +15,9 @@ public class SupabaseActivityLog : BaseModel
     [PrimaryKey("id", false)]
     public string Id { get; set; } = string.Empty;
 
-    // One of: NewPatient, PatientUpdated, Payment, AppointmentCompleted, NewBooking,
-    // AppointmentCancelled, AppointmentRescheduled, StockChange, NewSupplyItem,
-    // NewService, ServicePriceChanged.
+    // One of: NewPatient, PatientUpdated, PatientDeleted, Payment, AppointmentCompleted, NewBooking,
+    // AppointmentCancelled, AppointmentRescheduled, StockChange, NewSupplyItem, SupplyDeleted,
+    // NewService, ServicePriceChanged, ServiceDeleted, NewUser, UserDeactivated, UserDeleted.
     [Column("type")]
     public string Type { get; set; } = string.Empty;
 
@@ -32,13 +32,14 @@ public class SupabaseActivityLog : BaseModel
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
 
-    // Icon glyph per activity type, for the Recent Activity list.
+    // Icon glyph per activity type — kept for future use even though the current list view is icon-free.
     [Ignore]
     [JsonIgnore]
     public string IconGlyph => Type switch
     {
         "NewPatient" => "\ue7fe",
         "PatientUpdated" => "\ue3c9",
+        "PatientDeleted" => "\ue872",
         "Payment" => "\ue8a1",
         "AppointmentCompleted" => "\ue614",
         "NewBooking" => "\ue878",
@@ -46,8 +47,13 @@ public class SupabaseActivityLog : BaseModel
         "AppointmentRescheduled" => "\uf540",
         "StockChange" => "\ue1a1",
         "NewSupplyItem" => "\ue145",
+        "SupplyDeleted" => "\ue872",
         "NewService" => "\ue145",
         "ServicePriceChanged" => "\ue227",
+        "ServiceDeleted" => "\ue872",
+        "NewUser" => "\ue7fe",
+        "UserDeactivated" => "\ue897",
+        "UserDeleted" => "\ue872",
         _ => "\ue88e"
     };
 
@@ -58,6 +64,7 @@ public class SupabaseActivityLog : BaseModel
     {
         "NewPatient" => Color.FromArgb("#1565C0"),
         "PatientUpdated" => Color.FromArgb("#6A1B9A"),
+        "PatientDeleted" => Color.FromArgb("#C62828"),
         "Payment" => Color.FromArgb("#2E7D32"),
         "AppointmentCompleted" => Color.FromArgb("#2E7D32"),
         "NewBooking" => Color.FromArgb("#C8A84B"),
@@ -65,8 +72,13 @@ public class SupabaseActivityLog : BaseModel
         "AppointmentRescheduled" => Color.FromArgb("#F57C00"),
         "StockChange" => Color.FromArgb("#6A1B9A"),
         "NewSupplyItem" => Color.FromArgb("#00897B"),
+        "SupplyDeleted" => Color.FromArgb("#C62828"),
         "NewService" => Color.FromArgb("#3949AB"),
         "ServicePriceChanged" => Color.FromArgb("#F57C00"),
+        "ServiceDeleted" => Color.FromArgb("#C62828"),
+        "NewUser" => Color.FromArgb("#1565C0"),
+        "UserDeactivated" => Color.FromArgb("#C62828"),
+        "UserDeleted" => Color.FromArgb("#C62828"),
         _ => Color.FromArgb("#6E6E6E")
     };
 

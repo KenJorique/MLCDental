@@ -1,7 +1,7 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Services;
-using ClinicApp.Views.Shared;
 using ClinicApp.Views.ServicesRelated;
+using ClinicApp.Views.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -71,7 +71,6 @@ public partial class ServiceViewModel : ObservableObject
     private void ApplyFilterAndSort()
     {
         IEnumerable<ServiceCardViewModel> query = ServiceCards;
-
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
             var term = SearchText.Trim();
@@ -79,18 +78,17 @@ public partial class ServiceViewModel : ObservableObject
                 !string.IsNullOrEmpty(c.ServiceName) &&
                 c.ServiceName.Contains(term, StringComparison.OrdinalIgnoreCase));
         }
-
         query = CurrentSort switch
         {
             "PriceLowHigh" => query.OrderBy(c => c.Service.BasePrice),
             "PriceHighLow" => query.OrderByDescending(c => c.Service.BasePrice),
+            "Ascending" => query.OrderBy(c => c.ServiceName, StringComparer.OrdinalIgnoreCase),
+            "Descending" => query.OrderByDescending(c => c.ServiceName, StringComparer.OrdinalIgnoreCase),
             _ => query.OrderBy(c => c.ServiceName, StringComparer.OrdinalIgnoreCase),
         };
-
         FilteredCards.Clear();
         foreach (var c in query)
             FilteredCards.Add(c);
-
         if (ServiceCards.Count == 0)
         {
             EmptyStateTitle = "No services yet";
@@ -103,21 +101,24 @@ public partial class ServiceViewModel : ObservableObject
         }
     }
 
-    // Sort icon → shows the action sheet with the 3 sort options.
+    // Sort icon → shows the action sheet with the sort options.
     [RelayCommand]
     async Task ShowSortOptions()
     {
         string action = await Shell.Current.DisplayActionSheet(
             "Sort by", "Cancel", null,
-            "Name (A–Z)", "Price: Low to High", "Price: High to Low");
+            "Price: Low to High", "Price: High to Low", "Ascending", "Descending");
 
         CurrentSort = action switch
         {
-            "Name (A–Z)" => "Name",
             "Price: Low to High" => "PriceLowHigh",
             "Price: High to Low" => "PriceHighLow",
+            "Ascending" => "Ascending",
+            "Descending" => "Descending",
             _ => CurrentSort, // "Cancel" or dismissed — leave sort unchanged
         };
+
+        ApplyFilterAndSort();
     }
 
     // Opens the Edit/Delete action sheet for a tapped service card.
@@ -175,6 +176,8 @@ public partial class ServiceViewModel : ObservableObject
             var success = await _supabase.DeleteServiceAsync(card.Service.Id);
             if (success)
             {
+                await _supabase.LogActivityAsync("ServiceDeleted", $"{card.Service.Name} was deleted");
+
                 var existing = ServiceCards.FirstOrDefault(c => c.Service.Id == card.Service.Id);
                 if (existing is not null)
                     ServiceCards.Remove(existing);

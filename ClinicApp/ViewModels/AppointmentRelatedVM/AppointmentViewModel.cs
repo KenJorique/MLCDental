@@ -87,8 +87,7 @@ namespace ClinicApp.ViewModels
 
         PendingDetailSheet? _pendingSheet;
 
-        // Opens the bottom detail sheet when a card is tapped — custom sheet matching
-        // AppointmentDetailSheet's layout (Date/Time/Contact+call, icon-row actions)
+        // Opens the bottom detail sheet when a card is tapped, matching AppointmentDetailSheet's layout.
         [RelayCommand]
         async Task ShowBookingDetail(BookingCardViewModel card)
         {
@@ -140,7 +139,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
-        // Approves a pending booking: resolves/updates the patient record, creates the appointment entry, and syncs to Google Tasks.
+        // Approves a pending booking: resolves/creates the patient record (Supabase + local, phone kept in sync), creates the appointment entry, and syncs to Google Tasks.
         [RelayCommand]
         async Task Approve(BookingCardViewModel card)
         {
@@ -157,20 +156,31 @@ namespace ClinicApp.ViewModels
             IsLoading = true;
             try
             {
-                // Match by phone first (existing or new) so its Id can link to the appointment entry below.
+                // Resolve the patient: Supabase phone match, then Supabase name match, then a local-DB fallback (in case this patient was never synced to Supabase).
                 SupabasePatient? patient = null;
+                Patient? localOnlyMatch = null;
 
                 if (!string.IsNullOrEmpty(booking.Phone))
-                {
                     patient = await _supabaseData.GetPatientByPhoneAsync(booking.Phone);
 
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[Approve] Existing patient: {(patient != null ? patient.Id : "NONE")}");
-                }
+                if (patient == null && !string.IsNullOrEmpty(booking.FullName))
+                    patient = await _supabaseData.GetPatientByNameAsync(booking.FullName);
 
                 if (patient == null)
                 {
-                    // Create new patient — only if truly doesn't exist
+                    var localPatients = await _db.GetPatients();
+                    localOnlyMatch = localPatients.FirstOrDefault(p =>
+                        NormalizeName(p.FullName) == NormalizeName(booking.FullName ?? "") ||
+                        (!string.IsNullOrEmpty(booking.Phone) && PhoneEndsMatch(p.MobileNo, booking.Phone)));
+                }
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Approve] Match — Supabase: {(patient != null ? patient.Id : "NONE")}, " +
+                    $"local-only: {(localOnlyMatch != null ? localOnlyMatch.PatientID.ToString() : "NONE")}");
+
+                if (patient == null && localOnlyMatch == null)
+                {
+                    // No match anywhere — genuinely a new patient.
                     var parts = (booking.FullName ?? "").Trim().Split(' ', 2);
                     var localPatient = new Patient
                     {
@@ -202,9 +212,9 @@ namespace ClinicApp.ViewModels
                     System.Diagnostics.Debug.WriteLine(
                         $"[Approve] New patient created: {localPatient.FirstName}");
                 }
-                else
+                else if (patient != null)
                 {
-                    // Existing patient — if this booking used a different number, overwrite the old one (Supabase + local).
+                    // Matched on Supabase — overwrite the phone there and locally if this booking used a different number.
                     if (!string.IsNullOrEmpty(booking.Phone) && patient.Phone != booking.Phone)
                     {
                         patient.Phone = booking.Phone;
@@ -214,11 +224,35 @@ namespace ClinicApp.ViewModels
                         System.Diagnostics.Debug.WriteLine(
                             $"[Approve] Phone updated for existing patient: {patient.Id}");
                     }
-                    else
+                }
+                else if (localOnlyMatch != null)
+                {
+                    // Found locally but never made it to Supabase — update the phone locally, then push this patient to Supabase now.
+                    if (!string.IsNullOrEmpty(booking.Phone))
+                        localOnlyMatch.MobileNo = booking.Phone;
+
+                    var supPatient = new SupabasePatient
                     {
-                        System.Diagnostics.Debug.WriteLine(
-                            $"[Approve] Patient already exists — no phone change");
+                        FirstName = localOnlyMatch.FirstName,
+                        LastName = localOnlyMatch.LastName,
+                        Phone = localOnlyMatch.MobileNo,
+                        Email = localOnlyMatch.Email,
+                        ReasonForConsultation = localOnlyMatch.ReasonForConsultation,
+                        ReferredBy = localOnlyMatch.ReferredBy,
+                        DateRegistered = DateTime.UtcNow
+                    };
+                    var inserted = await _supabaseData.AddPatientAsync(supPatient);
+
+                    if (inserted != null)
+                    {
+                        localOnlyMatch.SupabaseId = inserted.Id;
+                        patient = inserted;
                     }
+
+                    await _db.UpdatePatient(localOnlyMatch);
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Approve] Local-only patient synced to Supabase: {localOnlyMatch.PatientID}");
                 }
 
                 // Booking's appointment date treated as PH local time.
@@ -447,6 +481,22 @@ namespace ClinicApp.ViewModels
                 await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
             }
             finally { IsLoading = false; }
+        }
+
+        // Collapses whitespace and lowercases a name, for tolerant comparisons against the local patient list.
+        private static string NormalizeName(string name) =>
+            string.Join(' ', (name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim().ToLowerInvariant();
+
+        // Compares two phone numbers by their last 7 digits, to tolerate formatting differences.
+        private static bool PhoneEndsMatch(string a, string b)
+        {
+            var digitsA = new string((a ?? "").Where(char.IsDigit).ToArray());
+            var digitsB = new string((b ?? "").Where(char.IsDigit).ToArray());
+            if (digitsA.Length == 0 || digitsB.Length == 0) return false;
+
+            var tailA = digitsA.Length >= 7 ? digitsA[^7..] : digitsA;
+            var tailB = digitsB.Length >= 7 ? digitsB[^7..] : digitsB;
+            return tailA == tailB;
         }
     }
 
