@@ -2,10 +2,9 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ClinicApp.ViewModels"
-             xmlns:sm="clr-namespace:ClinicApp.Models.SupabaseModels"
              x:Class="ClinicApp.Views.AppointmentRelated.PendingFollowUpsPage"
              x:DataType="vm:PendingFollowUpsViewModel"
-             Title="Follow-ups Needed"
+             Title="Follow-ups"
              Shell.NavBarIsVisible="True"
              Shell.TabBarIsVisible="False"
              Shell.BackgroundColor="{StaticResource PrimaryGreen}"
@@ -14,22 +13,26 @@
 
     <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsBusy}">
         <ScrollView>
-            <VerticalStackLayout Padding="16" Spacing="10">
+            <VerticalStackLayout Padding="16" Spacing="20">
 
-                <Label Text="No pending follow-ups." FontSize="13"
+                <Label Text="No follow-ups to manage." FontSize="13"
                        TextColor="{StaticResource Gray400}"
                        IsVisible="{Binding HasNone}"/>
 
-                <CollectionView ItemsSource="{Binding FollowUps}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="sm:SupabaseTreatmentSequence">
-                            <Border BackgroundColor="White" StrokeThickness="1"
-                                    Stroke="{StaticResource Gray200}" Padding="14,12" Margin="0,0,0,10">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12"/>
-                                </Border.StrokeShape>
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <VerticalStackLayout Grid.Column="0" Spacing="4">
+                <!-- ══ Needs Scheduling ══ -->
+                <VerticalStackLayout Spacing="8" IsVisible="{Binding HasNeedsScheduling}">
+                    <Label Text="Needs Scheduling" FontSize="14" FontAttributes="Bold"
+                           TextColor="{StaticResource Gray800}"/>
+
+                    <CollectionView ItemsSource="{Binding NeedsScheduling}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:FollowUpDisplayItem">
+                                <Border BackgroundColor="White" StrokeThickness="1"
+                                        Stroke="{StaticResource Gray200}" Padding="14,12" Margin="0,0,0,10">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12"/>
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="8">
                                         <Label Text="{Binding PatientName}" FontSize="15"
                                                FontAttributes="Bold" TextColor="{StaticResource Gray800}"/>
                                         <Label Text="{Binding ServiceName}" FontSize="13"
@@ -44,19 +47,136 @@
                                                 </FormattedString>
                                             </Label.FormattedText>
                                         </Label>
+
+                                        <DatePicker Date="{Binding SelectedDate}"
+                                                    MinimumDate="{Binding MinDate}"
+                                                    MaximumDate="{Binding MaxDate}"
+                                                    FontSize="13" Margin="0,4,0,0"/>
+
+                                        <ActivityIndicator IsRunning="{Binding IsLoadingSlots}"
+                                                           IsVisible="{Binding IsLoadingSlots}"/>
+                                        <Label Text="No slots available for this day." FontSize="12"
+                                               TextColor="{StaticResource Gray400}"
+                                               IsVisible="{Binding HasNoSlots}"/>
+
+                                        <FlexLayout x:Name="NeedsSlotHost" BindableLayout.ItemsSource="{Binding TimeSlots}"
+                                                    Wrap="Wrap" JustifyContent="Start">
+                                            <BindableLayout.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:TimeSlotItem">
+                                                    <Border Margin="3" StrokeShape="RoundRectangle 8"
+                                                            Stroke="{Binding BorderColor}"
+                                                            BackgroundColor="{Binding BackgroundColor}" Padding="0">
+                                                        <Border.GestureRecognizers>
+                                                            <TapGestureRecognizer
+                                                                Command="{Binding Source={x:Reference NeedsSlotHost}, Path=BindingContext.SelectSlotCommand}"
+                                                                CommandParameter="{Binding .}"/>
+                                                        </Border.GestureRecognizers>
+                                                        <Label Text="{Binding Display}" FontSize="13" FontAttributes="Bold"
+                                                               TextColor="{Binding TextColor}"
+                                                               Padding="10,6" HorizontalOptions="Center"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </BindableLayout.ItemTemplate>
+                                        </FlexLayout>
+
+                                        <Label Text="{Binding SelectedSummary}" FontSize="12"
+                                               TextColor="{StaticResource Primary}" FontAttributes="Bold"
+                                               IsVisible="{Binding HasSelection}"/>
+
+                                        <Button Text="Create Follow-up Appointment"
+                                                BackgroundColor="{StaticResource Primary}" TextColor="White"
+                                                CornerRadius="8" FontSize="13" HeightRequest="38"
+                                                IsEnabled="{Binding HasSelection}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PendingFollowUpsViewModel}},
+                                                          Path=CreateFollowUpCommand}"
+                                                CommandParameter="{Binding .}"/>
                                     </VerticalStackLayout>
-                                    <Button Grid.Column="1" Text="Schedule"
-                                            BackgroundColor="{StaticResource Primary}" TextColor="White"
-                                            CornerRadius="8" FontSize="12" HeightRequest="36"
-                                            VerticalOptions="Center"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PendingFollowUpsViewModel}},
-                                                      Path=ScheduleNowCommand}"
-                                            CommandParameter="{Binding .}"/>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+
+                <!-- ══ Already Scheduled — editable inline ══ -->
+                <VerticalStackLayout Spacing="8" IsVisible="{Binding HasAlreadyScheduled}">
+                    <Label Text="Scheduled Follow-ups" FontSize="14" FontAttributes="Bold"
+                           TextColor="{StaticResource Gray800}"/>
+
+                    <CollectionView ItemsSource="{Binding AlreadyScheduled}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:FollowUpDisplayItem">
+                                <Border BackgroundColor="White" StrokeThickness="1"
+                                        Stroke="{StaticResource Gray200}" Padding="14,12" Margin="0,0,0,10">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12"/>
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="8">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                                <Label Text="{Binding PatientName}" FontSize="15"
+                                                       FontAttributes="Bold" TextColor="{StaticResource Gray800}"/>
+                                                <Label Text="{Binding ServiceName}" FontSize="13"
+                                                       TextColor="{StaticResource Gray700}"/>
+                                                <Label Text="{Binding SessionDisplay}" FontSize="12"
+                                                       TextColor="{StaticResource Gray400}"/>
+                                                <Label Text="{Binding CurrentAppointmentDisplay}" FontSize="13"
+                                                       FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
+                                            </VerticalStackLayout>
+
+                                            <Button Grid.Column="1" Text="Edit Date"
+                                                    BackgroundColor="Transparent" TextColor="{StaticResource Primary}"
+                                                    FontSize="12" HeightRequest="34" VerticalOptions="Start"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PendingFollowUpsViewModel}},
+                                                              Path=ToggleEditDateCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                        </Grid>
+
+                                        <VerticalStackLayout Spacing="8" IsVisible="{Binding IsEditingDate}">
+                                            <DatePicker Date="{Binding SelectedDate}"
+                                                        MinimumDate="{Binding MinDate}"
+                                                        MaximumDate="{Binding MaxDate}"
+                                                        FontSize="13"/>
+
+                                            <ActivityIndicator IsRunning="{Binding IsLoadingSlots}"
+                                                               IsVisible="{Binding IsLoadingSlots}"/>
+                                            <Label Text="No slots available for this day." FontSize="12"
+                                                   TextColor="{StaticResource Gray400}"
+                                                   IsVisible="{Binding HasNoSlots}"/>
+
+                                            <FlexLayout x:Name="EditSlotHost" BindableLayout.ItemsSource="{Binding TimeSlots}"
+                                                        Wrap="Wrap" JustifyContent="Start">
+                                                <BindableLayout.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:TimeSlotItem">
+                                                        <Border Margin="3" StrokeShape="RoundRectangle 8"
+                                                                Stroke="{Binding BorderColor}"
+                                                                BackgroundColor="{Binding BackgroundColor}" Padding="0">
+                                                            <Border.GestureRecognizers>
+                                                                <TapGestureRecognizer
+                                                                    Command="{Binding Source={x:Reference EditSlotHost}, Path=BindingContext.SelectSlotCommand}"
+                                                                    CommandParameter="{Binding .}"/>
+                                                            </Border.GestureRecognizers>
+                                                            <Label Text="{Binding Display}" FontSize="13" FontAttributes="Bold"
+                                                                   TextColor="{Binding TextColor}"
+                                                                   Padding="10,6" HorizontalOptions="Center"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </BindableLayout.ItemTemplate>
+                                            </FlexLayout>
+
+                                            <Button Text="Save New Date"
+                                                    IsEnabled="{Binding HasSelection}"
+                                                    BackgroundColor="{StaticResource Primary}" TextColor="White"
+                                                    CornerRadius="8" FontSize="13" HeightRequest="38"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PendingFollowUpsViewModel}},
+                                                              Path=SaveDateChangeCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                        </VerticalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
 
             </VerticalStackLayout>
         </ScrollView>

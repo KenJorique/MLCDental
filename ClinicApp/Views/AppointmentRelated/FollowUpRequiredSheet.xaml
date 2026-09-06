@@ -3,10 +3,10 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:the49="https://schemas.the49.com/dotnet/2023/maui"
-    xmlns:sm="clr-namespace:ClinicApp.Models.SupabaseModels"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels"
     x:Class="ClinicApp.Views.AppointmentRelated.FollowUpRequiredSheet"
-    Shell.TabBarIsVisible="True"
     HasHandle="False"
+    Shell.TabBarIsVisible="False"
     HasBackdrop="True"
     CornerRadius="20"
     IsCancelable="False"
@@ -31,19 +31,19 @@
         </Grid>
 
         <Label Padding="20,0" Margin="0,0,0,16"
-               Text="One or more services on this bill need another session."
+               Text="Pick a date and time for the next session before continuing."
                FontSize="13" TextColor="{StaticResource Gray400}"/>
 
         <CollectionView ItemsSource="{Binding PendingFollowUps}" Margin="20,0">
             <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="sm:SupabaseTreatmentSequence">
+                <DataTemplate x:DataType="vm:FollowUpDisplayItem">
                     <Border BackgroundColor="{StaticResource PageBg}" StrokeThickness="1"
                             Stroke="{StaticResource Gray200}" Padding="14,12" Margin="0,0,0,10">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12"/>
                         </Border.StrokeShape>
 
-                        <VerticalStackLayout Spacing="6">
+                        <VerticalStackLayout Spacing="8">
                             <Label Text="{Binding ServiceName}" FontSize="15" FontAttributes="Bold"
                                    TextColor="{StaticResource Gray800}"/>
                             <Label Text="{Binding SessionDisplay}" FontSize="12"
@@ -57,12 +57,48 @@
                                 </Label.FormattedText>
                             </Label>
 
-                            <Button Text="Schedule Next Appointment"
+                            <DatePicker Date="{Binding SelectedDate}"
+                                        MinimumDate="{Binding MinDate}"
+                                        MaximumDate="{Binding MaxDate}"
+                                        FontSize="13" Margin="0,4,0,0"/>
+
+                            <ActivityIndicator IsRunning="{Binding IsLoadingSlots}"
+                                               IsVisible="{Binding IsLoadingSlots}"/>
+
+                            <Label Text="No slots available for this day." FontSize="12"
+                                   TextColor="{StaticResource Gray400}"
+                                   IsVisible="{Binding HasNoSlots}"/>
+
+                            <FlexLayout x:Name="SlotHost" BindableLayout.ItemsSource="{Binding TimeSlots}"
+                                        Wrap="Wrap" JustifyContent="Start">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:TimeSlotItem">
+                                        <Border Margin="3" StrokeShape="RoundRectangle 8"
+                                                Stroke="{Binding BorderColor}"
+                                                BackgroundColor="{Binding BackgroundColor}" Padding="0">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={x:Reference SlotHost}, Path=BindingContext.SelectSlotCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                            </Border.GestureRecognizers>
+                                            <Label Text="{Binding Display}" FontSize="13" FontAttributes="Bold"
+                                                   TextColor="{Binding TextColor}"
+                                                   Padding="10,6" HorizontalOptions="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </FlexLayout>
+
+                            <Label Text="{Binding SelectedSummary}" FontSize="12" TextColor="{StaticResource Primary}"
+                                   FontAttributes="Bold" IsVisible="{Binding HasSelection}"/>
+
+                            <Button Text="Create Follow-up Appointment"
                                     BackgroundColor="{StaticResource Primary}"
                                     TextColor="White" CornerRadius="10"
-                                    FontSize="13" HeightRequest="40" Margin="0,4,0,0"
+                                    FontSize="13" HeightRequest="40" Margin="0,2,0,0"
+                                    IsEnabled="{Binding HasSelection}"
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type the49:BottomSheet}},
-                                              Path=BindingContext.ScheduleFollowUpNowCommand}"
+                                              Path=BindingContext.CreateFollowUpNowCommand}"
                                     CommandParameter="{Binding .}"/>
                         </VerticalStackLayout>
                     </Border>
@@ -70,7 +106,7 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <Button Text="Continue to Payment (schedule later)"
+        <Button Text="Skip All — Continue to Payment"
                 BackgroundColor="Transparent"
                 TextColor="{StaticResource Gray400}"
                 FontSize="13" Margin="20,10,20,0"

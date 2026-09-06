@@ -42,7 +42,9 @@ namespace ClinicApp.ViewModels
         /// <summary>List content (including its "no appointments" text) is hidden only during the
         /// very first load — not on every refresh/week-nav, so the list doesn't disappear and
         /// get replaced by the big spinner on every quick tap.</summary>
-        public bool ShowListContent => IsListView && !IsInitialLoading;
+        public bool ShowListContent => IsListView && !IsInitialLoading; 
+        static readonly TimeZoneInfo ManilaTz =
+    TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
 
         partial void OnIsInitialLoadingChanged(bool value) => OnPropertyChanged(nameof(ShowListContent));
         partial void OnIsListViewChanged(bool value) => OnPropertyChanged(nameof(ShowListContent));
@@ -63,7 +65,8 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private int followUpsNeededCount;
         [ObservableProperty] private bool hasFollowUpsNeeded;
         AppointmentDetailSheet? _detailSheet;
-        // Add these properties
+        bool _isLoadingFollowUps;
+        bool _followUpsReloadRequested;
         partial void OnSelectedFromWeekSectionChanged(bool value)
         {
             OnPropertyChanged(nameof(CanChangeDate));
@@ -428,35 +431,33 @@ namespace ClinicApp.ViewModels
                         };
 
                 var approvedEntries = entries
-                    .Where(e => activeStatuses.Contains(e.Status))
-                    .Where(e =>
-                    {
-                        var dt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
-                            ? e.AppointmentDateTime.ToLocalTime()
-                            : e.AppointmentDateTime;
+                     .Where(e => activeStatuses.Contains(e.Status))
+                     .Where(e =>
+                     {
+                         var dt = TimeZoneInfo.ConvertTimeFromUtc(
+    SupabaseDataService.NormalizeSupabaseUtc(e.AppointmentDateTime), ManilaTz);
 
-                        return dt.Date >= WeekStart.Date &&
-                               dt.Date < WeekStart.AddDays(7).Date;
-                    })
-                    .Select(e =>
-                    {
-                        var localDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
-                            ? e.AppointmentDateTime.ToLocalTime()
-                            : e.AppointmentDateTime;
+                         return dt.Date >= WeekStart.Date &&
+                                dt.Date < WeekStart.AddDays(7).Date;
+                     })
+                     .Select(e =>
+                     {
+                         var localDt = TimeZoneInfo.ConvertTimeFromUtc(
+    SupabaseDataService.NormalizeSupabaseUtc(e.AppointmentDateTime), ManilaTz);
 
-                        return new AppointmentEntry
-                        {
-                            SupabaseBookingId = e.SupabaseBookingId,
-                            PatientName = e.PatientName,
-                            PatientSupabaseId = e.PatientId,
-                            Phone = e.Phone ?? "",
-                            Email = e.Email ?? "",
-                            Notes = e.Notes ?? "",
-                            AppointmentDateTime = localDt.ToString("yyyy-MM-dd HH:mm:ss"),
-                            Status = e.Status,
-                            GoogleTaskId = e.GoogleTaskId ?? ""
-                        };
-                    }).ToList();
+                         return new AppointmentEntry
+                         {
+                             SupabaseBookingId = e.SupabaseBookingId,
+                             PatientName = e.PatientName,
+                             PatientSupabaseId = e.PatientId,
+                             Phone = e.Phone ?? "",
+                             Email = e.Email ?? "",
+                             Notes = e.Notes ?? "",
+                             AppointmentDateTime = localDt.ToString("yyyy-MM-dd HH:mm:ss"),
+                             Status = e.Status,
+                             GoogleTaskId = e.GoogleTaskId ?? ""
+                         };
+                     }).ToList();
 
                 var allEntries = approvedEntries
                     .OrderBy(e => e.AppointmentDateTimeParsed)
@@ -728,20 +729,37 @@ namespace ClinicApp.ViewModels
 
         public async Task LoadPendingFollowUpsAsync()
         {
+            if (_isLoadingFollowUps)
+            {
+                _followUpsReloadRequested = true;
+                return;
+            }
+
+            _isLoadingFollowUps = true;
             try
             {
-                var pending = await _supabaseData.GetPendingFollowUpsAsync();
-                await MainThread.InvokeOnMainThreadAsync(() =>
+                do
                 {
-                    PendingFollowUps.Clear();
-                    foreach (var p in pending) PendingFollowUps.Add(p);
-                    FollowUpsNeededCount = PendingFollowUps.Count;
-                    HasFollowUpsNeeded = FollowUpsNeededCount > 0;
-                });
+                    _followUpsReloadRequested = false;
+                    var pending = await _supabaseData.GetPendingFollowUpsAsync();
+
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        PendingFollowUps.Clear();
+                        foreach (var p in pending) PendingFollowUps.Add(p);
+                        FollowUpsNeededCount = PendingFollowUps.Count;
+                        HasFollowUpsNeeded = FollowUpsNeededCount > 0;
+                    });
+                }
+                while (_followUpsReloadRequested);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[AppointmentScheduleVM] LoadPendingFollowUps: {ex.Message}");
+            }
+            finally
+            {
+                _isLoadingFollowUps = false;
             }
         }
 
@@ -750,6 +768,8 @@ namespace ClinicApp.ViewModels
         {
             await Shell.Current.GoToAsync(nameof(PendingFollowUpsPage));
         }
+
+
 
     }
 

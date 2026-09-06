@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models.SupabaseModels;
+﻿using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.SupabaseModels;
 using Supabase;
 
 namespace ClinicApp.Services
@@ -730,72 +731,84 @@ namespace ClinicApp.Services
             }
         }
 
+        static readonly TimeZoneInfo ManilaTz =
+    TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
+
+        /// The Supabase client deserializes `timestamptz` columns already converted to this
+        /// device's local time zone (confirmed against real data — every stored row comes back
+        /// shifted by exactly the Manila UTC+8 offset, with Kind mislabeled as Unspecified).
+        /// This reverses that shift, returning the TRUE UTC instant the column actually stores,
+        /// so every other method in this file can keep treating AppointmentDateTime as real UTC.
+        public static DateTime NormalizeSupabaseUtc(DateTime deserializedValue)
+        {
+            var asManilaLocal = DateTime.SpecifyKind(deserializedValue, DateTimeKind.Unspecified);
+            return TimeZoneInfo.ConvertTimeToUtc(asManilaLocal, ManilaTz);
+        }
+
         public async Task<List<DateTime>> GetBookedTimeSlotsForDateAsync(DateTime date)
         {
             try
             {
                 await EnsureInitializedAsync();
-
                 var result = await _client!
                     .From<SupabaseAppointmentEntry>()
                     .Get();
-                System.Diagnostics.Debug.WriteLine(
-    $"Appointment Entries Count = {result.Models.Count}");
 
-                foreach (var a in result.Models)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"{a.PatientName} | {a.AppointmentDateTime:o} | {a.Status}");
-                }
                 return result.Models
                     .Where(x =>
                     {
-                        var local = x.AppointmentDateTime.ToLocalTime();
+                        if (x.Status == "cancelled" || x.Status == "completed" || x.Status == "rejected")
+                            return false;
 
-                        return local.Date == date.Date &&
-                               x.Status != "cancelled" &&
-                               x.Status != "completed" &&
-                               x.Status != "rejected";
+                        var utc = NormalizeSupabaseUtc(x.AppointmentDateTime);
+                        var localPh = TimeZoneInfo.ConvertTimeFromUtc(utc, ManilaTz);
+                        return localPh.Date == date.Date;
                     })
-                    .Select(x => x.AppointmentDateTime)
-                    .ToList();
+                    .Select(x =>
+                    {
+                        var utc = NormalizeSupabaseUtc(x.AppointmentDateTime);
+                        var localPh = TimeZoneInfo.ConvertTimeFromUtc(utc, ManilaTz);
 
+                        var normalizedLocal = new DateTime(
+                            localPh.Year, localPh.Month, localPh.Day, localPh.Hour, 0, 0);
+
+                        return TimeZoneInfo.ConvertTimeToUtc(normalizedLocal, ManilaTz);
+                    })
+                    .ToList();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(ex);
-
                 return new List<DateTime>();
             }
         }
 
-        public async Task<bool> IsSlotAvailableAsync(DateTime utcTime)
+        public async Task<bool> IsSlotAvailableAsync(DateTime utcTime, string? excludeSupabaseBookingId = null)
         {
             await EnsureInitializedAsync();
-
             var result = await _client!
                 .From<SupabaseAppointmentEntry>()
                 .Get();
-            System.Diagnostics.Debug.WriteLine(
-    $"Appointment Entries Count = {result.Models.Count}");
 
-            foreach (var a in result.Models)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"{a.PatientName} | {a.AppointmentDateTime:o} | {a.Status}");
-            }
+            var targetLocal = TimeZoneInfo.ConvertTimeFromUtc(
+                DateTime.SpecifyKind(utcTime, DateTimeKind.Utc), ManilaTz);
+
             return !result.Models.Any(a =>
             {
-                var dt = a.AppointmentDateTime.ToUniversalTime();
+                if (a.Status == "cancelled" || a.Status == "completed" || a.Status == "rejected")
+                    return false;
 
-                return dt.Year == utcTime.Year &&
-                       dt.Month == utcTime.Month &&
-                       dt.Day == utcTime.Day &&
-                       dt.Hour == utcTime.Hour &&
-                       dt.Minute == utcTime.Minute &&
-                       a.Status != "cancelled" &&
-                       a.Status != "completed" &&
-                       a.Status != "rejected";
+                if (excludeSupabaseBookingId != null &&
+                    a.SupabaseBookingId == excludeSupabaseBookingId)
+                    return false;
+
+                var entryUtc = NormalizeSupabaseUtc(a.AppointmentDateTime);
+                var dtLocal = TimeZoneInfo.ConvertTimeFromUtc(entryUtc, ManilaTz);
+
+                return dtLocal.Year == targetLocal.Year &&
+                       dtLocal.Month == targetLocal.Month &&
+                       dtLocal.Day == targetLocal.Day &&
+                       dtLocal.Hour == targetLocal.Hour;
             });
         }
 
@@ -809,14 +822,21 @@ namespace ClinicApp.Services
 
                 var result = await _client!
                     .From<SupabaseAppointmentEntry>()
-                    .Where(x => x.Id == appointmentEntryId)
+                    .Where(x => x.SupabaseBookingId == appointmentEntryId)
                     .Single();
 
                 if (result == null)
-                    return;
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Supabase] Reschedule: no appointment found for SupabaseBookingId={appointmentEntryId}");
+                    throw new InvalidOperationException("Appointment not found — it may have already been completed or removed.");
+                }
 
                 result.AppointmentDateTime = newUtcTime;
-                result.Status = "rescheduled";
+                // Status intentionally left unchanged — flipping it to "rescheduled"
+                // can drop the appointment out of whatever status-filtered list/day
+                // view was already displaying it. The new date/time is the only
+                // thing that needs to change.
 
                 await _client!
                     .From<SupabaseAppointmentEntry>()
@@ -1704,6 +1724,159 @@ namespace ClinicApp.Services
             {
                 System.Diagnostics.Debug.WriteLine($"[Supabase] GetPendingFollowUps: {ex.Message}");
                 return new List<SupabaseTreatmentSequence>();
+            }
+        }
+
+        public async Task<SupabasePatient?> GetPatientByIdAsync(string patientId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                return await _client!
+                    .From<SupabasePatient>()
+                    .Where(p => p.Id == patientId)
+                    .Single();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetPatientById: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// Creates the follow-up AppointmentEntry (local + Supabase), tags it as the
+        /// continued session, links it back to the sequence, and syncs a Google Task —
+        /// the single place both the bill-completion sheet and the pending-follow-ups
+        /// list call into, so there's one creation path instead of a dedicated page.
+        public async Task<bool> CreateFollowUpAppointmentAsync(
+    DatabaseService db,
+    SupabaseTreatmentSequence sequence,
+    string phone,
+    string email,
+    DateTime localAppointmentDateTime,
+    DateTime utcAppointmentDateTime)
+        {
+            try
+            {
+                var available = await IsSlotAvailableAsync(utcAppointmentDateTime);
+                if (!available) return false;
+
+                var correlationId = Guid.NewGuid().ToString();
+                var nextSessionNumber = sequence.SessionNumber + 1;
+                var noteText = $"Follow-up: {sequence.ServiceName} — Session {nextSessionNumber} of {sequence.TotalSessions}";
+
+                var localEntry = new AppointmentEntry
+                {
+                    SupabaseBookingId = correlationId,
+                    PatientName = sequence.PatientName,
+                    PatientSupabaseId = sequence.PatientId,
+                    Phone = phone,
+                    Email = email,
+                    Notes = noteText,
+                    AppointmentDateTime = localAppointmentDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Status = "approved",
+                    TreatmentSequenceId = sequence.Id,
+                    SessionNumber = nextSessionNumber,
+                    TotalSessions = sequence.TotalSessions
+                };
+                await db.AddAppointmentEntry(localEntry);
+
+                var supEntry = new SupabaseAppointmentEntry
+                {
+                    SupabaseBookingId = correlationId,
+                    PatientName = sequence.PatientName,
+                    PatientId = sequence.PatientId,
+                    Phone = phone,
+                    Email = email,
+                    Notes = noteText,
+                    AppointmentDateTime = utcAppointmentDateTime,
+                    Status = "approved",
+                    TreatmentSequenceId = sequence.Id,
+                    SessionNumber = nextSessionNumber,
+                    TotalSessions = sequence.TotalSessions
+                };
+
+                var created = await AddAppointmentEntryAsync(supEntry);
+                if (created == null) return false;
+
+                await LinkNextAppointmentToSequenceAsync(sequence.Id, correlationId);
+
+                try
+                {
+                    await SyncToGoogleTasksAsync(
+                        "", sequence.PatientName, noteText, localAppointmentDateTime, phone, noteText);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Supabase] CreateFollowUpAppointment GoogleTasks: {ex.Message}");
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] CreateFollowUpAppointment: {ex.Message}");
+                return false;
+            }
+        }
+        public async Task<List<SupabaseTreatmentSequence>> GetScheduledFollowUpsAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseTreatmentSequence>()
+                    .Where(t => t.Status == "scheduled")
+                    .Order("recommended_date", Supabase.Postgrest.Constants.Ordering.Ascending)
+                    .Get();
+                return result.Models ?? new List<SupabaseTreatmentSequence>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetScheduledFollowUps: {ex.Message}");
+                return new List<SupabaseTreatmentSequence>();
+            }
+        }
+
+        public async Task<SupabaseAppointmentEntry?> GetAppointmentEntryByBookingIdAsync(string supabaseBookingId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                return await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Where(x => x.SupabaseBookingId == supabaseBookingId)
+                    .Single();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAppointmentEntryByBookingId: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// Correctly matches by supabase_booking_id (the correlation id this app actually
+        /// controls at creation time) rather than the row's DB-generated id.
+        public async Task<bool> UpdateAppointmentEntryDateTimeAsync(string supabaseBookingId, DateTime newUtcTime)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var entry = await _client!
+                    .From<SupabaseAppointmentEntry>()
+                    .Where(x => x.SupabaseBookingId == supabaseBookingId)
+                    .Single();
+                if (entry == null) return false;
+
+                entry.AppointmentDateTime = newUtcTime;
+                entry.Status = "rescheduled";
+                await _client!.From<SupabaseAppointmentEntry>().Update(entry);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateAppointmentEntryDateTime: {ex.Message}");
+                return false;
             }
         }
     }

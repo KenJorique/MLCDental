@@ -142,9 +142,6 @@
 	  <MauiXaml Update="Views\AppointmentRelated\AppointmentSchedulePage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\AppointmentRelated\ScheduleNextAppointmentPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentRelated\WalkInBookingPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

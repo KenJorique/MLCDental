@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models.AppointmentModels;
+﻿
+using ClinicApp.Models.AppointmentModels;
 using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
@@ -141,7 +142,10 @@ namespace ClinicApp.ViewModels
                 }
 
             }
-            [RelayCommand]
+
+        static readonly TimeZoneInfo ManilaTz =
+    TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
+        [RelayCommand]
             async Task Approve(SupabaseBooking booking)
             {
                 if (booking == null) return;
@@ -223,29 +227,42 @@ namespace ClinicApp.ViewModels
 
                 System.Diagnostics.Debug.WriteLine(
                             $"[Approve] New patient created: {patient.FirstName}");
-                    
-                  
 
-                    // Rest of approve flow stays the same...
-                    // 1. Treat the booking's appointment date as Local time (Philippine Time)
-                    var localDate = booking.AppointmentDate.Kind == DateTimeKind.Utc
-                        ? booking.AppointmentDate.ToLocalTime()
-                        : DateTime.SpecifyKind(booking.AppointmentDate, DateTimeKind.Local);
 
-                    // 2. Derive the true UTC equivalent for Supabase storage (subtracts 8 hours)
-                    var utcDate = localDate.ToUniversalTime();
 
-                    var localEntry = new AppointmentEntry
-                    {
-                        SupabaseBookingId = booking.Id,
-                        PatientName = booking.FullName ?? "",
-                        Phone = booking.Phone ?? "",
-                        Email = booking.Email ?? "",
-                        Notes = booking.Notes ?? "",
-                        AppointmentDateTime = localDate.ToString("yyyy-MM-dd HH:mm:ss"),
-                        Status = "approved"
-                    };
-                    await _db.AddAppointmentEntry(localEntry);
+                // 1. Treat the booking's appointment date as Local time (Philippine Time)
+                var localDate = booking.AppointmentDate.Kind == DateTimeKind.Utc
+                    ? booking.AppointmentDate.ToLocalTime()
+                    : DateTime.SpecifyKind(booking.AppointmentDate, DateTimeKind.Local);
+
+                // 2. Derive the true UTC equivalent for Supabase storage (subtracts 8 hours)
+                var slotUtc = TimeZoneInfo.ConvertTimeToUtc(localDate, ManilaTz);
+
+                // ── Guard against double-booking: another booking for this exact
+                // slot may have already been approved while this one sat pending ──
+                var slotStillFree = await _supabaseData.IsSlotAvailableAsync(slotUtc);
+                if (!slotStillFree)
+                {
+                    await Shell.Current.DisplayAlert(
+                        "Slot Already Taken",
+                        $"{booking.FullName}'s requested time ({localDate:MMM dd, yyyy h:mm tt}) " +
+                        "has already been booked by another approved appointment. " +
+                        "Please reschedule this booking to a different time before approving.",
+                        "OK");
+                    return;
+                }
+
+                var localEntry = new AppointmentEntry
+                {
+                    SupabaseBookingId = booking.Id,
+                    PatientName = booking.FullName ?? "",
+                    Phone = booking.Phone ?? "",
+                    Email = booking.Email ?? "",
+                    Notes = booking.Notes ?? "",
+                    AppointmentDateTime = localDate.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Status = "approved"
+                };
+                await _db.AddAppointmentEntry(localEntry);
 
                 var supEntry = new SupabaseAppointmentEntry
                 {
@@ -255,7 +272,7 @@ namespace ClinicApp.ViewModels
                     Phone = booking.Phone ?? "",
                     Email = booking.Email ?? "",
                     Notes = booking.Notes ?? "",
-                    AppointmentDateTime = utcDate,
+                    AppointmentDateTime = slotUtc,
                     Status = "approved"
                 };
                 await _supabaseData.AddAppointmentEntryAsync(supEntry);
@@ -442,7 +459,7 @@ namespace ClinicApp.ViewModels
                 await FetchAndPopulate();
 
                     await Shell.Current.DisplayAlert("Completed",
-                        $"{booking.FullName}'s appointment has been completed " +
+                        $"{booking.FullName}'s appointment has been completed " +   
                         "and removed from the list.", "OK");
                 }
                 catch (Exception ex)

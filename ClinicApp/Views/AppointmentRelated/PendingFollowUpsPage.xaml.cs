@@ -8,6 +8,7 @@ namespace ClinicApp.Views.AppointmentRelated
         readonly PendingFollowUpsViewModel _vm;
         readonly SupabaseRealtimeService _realtime;
         bool _subscribed = false;
+        Func<Task>? _onTreatmentSequenceChanged;
 
         public PendingFollowUpsPage(PendingFollowUpsViewModel vm, SupabaseRealtimeService realtime)
         {
@@ -25,9 +26,22 @@ namespace ClinicApp.Views.AppointmentRelated
             if (!_subscribed)
             {
                 _subscribed = true;
-                _realtime.OnTreatmentSequenceChanged += async () => await _vm.LoadAsync();
+                _onTreatmentSequenceChanged = async () => await _vm.LoadAsync();
+                _realtime.OnTreatmentSequenceChanged += Invoke;
                 await _realtime.SubscribeToTreatmentSequencesAsync();
             }
         }
+
+        protected override void OnDisappearing()
+        {
+            if (_subscribed && _onTreatmentSequenceChanged != null)
+            {
+                _realtime.OnTreatmentSequenceChanged -= Invoke;
+                _subscribed = false;
+            }
+            base.OnDisappearing();
+        }
+
+        void Invoke() => _ = _onTreatmentSequenceChanged?.Invoke();
     }
 }

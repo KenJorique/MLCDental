@@ -111,14 +111,12 @@ namespace ClinicApp
         sp.GetRequiredService<SupabaseDataService>()
     ));
             builder.Services.AddTransient<WalkInBookingPage>();
-            builder.Services.AddTransient<ScheduleNextAppointmentViewModel>(sp =>
-            new ScheduleNextAppointmentViewModel(
-                sp.GetRequiredService<DatabaseService>(),
-                sp.GetRequiredService<SupabaseDataService>()));
-            builder.Services.AddTransient<ScheduleNextAppointmentPage>();
+           
+           
             builder.Services.AddTransient<PendingFollowUpsViewModel>(sp =>
     new PendingFollowUpsViewModel(
-        sp.GetRequiredService<SupabaseDataService>()));
+        sp.GetRequiredService<SupabaseDataService>(),
+         sp.GetRequiredService<DatabaseService>()));
             builder.Services.AddTransient<PendingFollowUpsPage>(sp =>
     new PendingFollowUpsPage(
         sp.GetRequiredService<PendingFollowUpsViewModel>(),

@@ -17,6 +17,7 @@ public partial class BillSummaryViewModel : ObservableObject
 {
     readonly BillingService _billing;
     readonly SupabaseDataService _supabase;
+    readonly DatabaseService _db;
 
     public ObservableCollection<ServiceLineItem> Services { get; } = new();
 
@@ -46,18 +47,19 @@ public partial class BillSummaryViewModel : ObservableObject
     public string DiscountDisplay => $"₱{DiscountAmount:N2}";
     public string TotalDisplay => $"₱{Total:N2}";
 
-    // ── Follow-up detection ──────────────────────────────────────
-    public ObservableCollection<SupabaseTreatmentSequence> PendingFollowUps { get; } = new();
+    // ── Follow-up detection — dentist sets the date right here, no separate page ──
+    public ObservableCollection<FollowUpDisplayItem> PendingFollowUps { get; } = new();
     [ObservableProperty] bool showFollowUpSheet;
 
     FollowUpRequiredSheet? _followUpSheet;
     SupabaseBill? _pendingNavBill;
     BillDraft? _pendingNavDraft;
 
-    public BillSummaryViewModel(BillingService billing, SupabaseDataService supabase)
+    public BillSummaryViewModel(BillingService billing, SupabaseDataService supabase, DatabaseService db)
     {
         _billing = billing;
         _supabase = supabase;
+        _db = db;
         LoadDraft();
     }
 
@@ -201,7 +203,8 @@ public partial class BillSummaryViewModel : ObservableObject
             }
 
             // ── Detect any service that requires another treatment session ──
-            var newlyOpenedFollowUps = new List<SupabaseTreatmentSequence>();
+            // ── Detect any service that requires another treatment session ──
+            var newlyOpenedFollowUps = new List<FollowUpDisplayItem>();
             foreach (var line in draft.Services)
             {
                 var service = await _supabase.GetServiceByIdAsync(line.ServiceId);
@@ -212,12 +215,17 @@ public partial class BillSummaryViewModel : ObservableObject
                     draft.PatientId, draft.PatientName, service, draft.SupabaseBookingId);
 
                 if (sequence != null && sequence.Status == "awaiting_schedule")
-                    newlyOpenedFollowUps.Add(sequence);
+                {
+                    var item = new FollowUpDisplayItem(sequence, _supabase);
+                    await item.InitializeAsync();
+                    newlyOpenedFollowUps.Add(item);
+                }
             }
 
             if (newlyOpenedFollowUps.Count > 0)
             {
-                // Hold the payment-page navigation until staff dismisses the follow-up sheet
+                // Hold the payment-page navigation until the dentist has
+                // either scheduled or explicitly deferred every follow-up.
                 _pendingNavBill = result.Bill;
                 _pendingNavDraft = draft;
 
@@ -261,37 +269,50 @@ public partial class BillSummaryViewModel : ObservableObject
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BillSummary] CloseFollowUpSheet: {ex.Message}"); }
     }
 
-    /// Staff picks a specific pending session to schedule right now.
+    /// Dentist picked a date/time for this session right in the sheet — create
+    /// the follow-up appointment immediately, no navigation away from billing.
     [RelayCommand]
-    async Task ScheduleFollowUpNow(SupabaseTreatmentSequence sequence)
+    async Task CreateFollowUpNow(FollowUpDisplayItem item)
     {
-        if (sequence == null) return;
+        if (item == null || item.IsBusy || item.SelectedSlot == null) return;
 
-        ShowFollowUpSheet = false;
-        await CloseFollowUpSheetAsync();
+        item.IsBusy = true;
+        try
+        {
+            var phone = _pendingNavDraft?.Phone ?? string.Empty;
 
-        var draft = BillDraftStore.Current;
+            var success = await _supabase.CreateFollowUpAppointmentAsync(
+                _db, item.Sequence, phone, string.Empty,
+                item.SelectedSlotLocal!.Value, item.SelectedSlotUtc!.Value);
 
-        await Shell.Current.GoToAsync(
-            $"{nameof(ScheduleNextAppointmentPage)}" +
-            $"?sequenceId={Uri.EscapeDataString(sequence.Id)}" +
-            $"&patientId={Uri.EscapeDataString(sequence.PatientId)}" +
-            $"&patientName={Uri.EscapeDataString(sequence.PatientName)}" +
-            $"&phone={Uri.EscapeDataString(draft?.Phone ?? string.Empty)}" +
-            $"&email={Uri.EscapeDataString(string.Empty)}" +
-            $"&serviceId={Uri.EscapeDataString(sequence.ServiceId)}" +
-            $"&serviceName={Uri.EscapeDataString(sequence.ServiceName)}" +
-            $"&sessionNumber={sequence.SessionNumber + 1}" +
-            $"&totalSessions={sequence.TotalSessions}" +
-            $"&recommendedDate={Uri.EscapeDataString(sequence.RecommendedDate?.ToString("o") ?? string.Empty)}");
+            if (!success)
+            {
+                await Shell.Current.DisplayAlert(
+                    "Error",
+                    "That time slot may already be booked, or the appointment could not be saved. Please try a different time.",
+                    "OK");
+                return;
+            }
 
-        PendingFollowUps.Remove(sequence);
-        if (PendingFollowUps.Count == 0 && _pendingNavBill != null && _pendingNavDraft != null)
-            await GoToPaymentAsync(_pendingNavBill, _pendingNavDraft);
+            PendingFollowUps.Remove(item);
+
+            if (PendingFollowUps.Count == 0)
+            {
+                ShowFollowUpSheet = false;
+                await CloseFollowUpSheetAsync();
+
+                if (_pendingNavBill != null && _pendingNavDraft != null)
+                    await GoToPaymentAsync(_pendingNavBill, _pendingNavDraft);
+            }
+        }
+        finally
+        {
+            item.IsBusy = false;
+        }
     }
 
-    /// Staff defers scheduling — the sequence stays "awaiting_schedule" and will show up
-    /// in the Appointment Schedule page's "Follow-ups Needed" banner.
+    /// Defers every remaining follow-up — sequence rows stay "awaiting_schedule"
+    /// and show up in the Appointment Schedule page's "Follow-ups Needed" banner.
     [RelayCommand]
     async Task ContinueToPayment()
     {

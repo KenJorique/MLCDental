@@ -1,5 +1,4 @@
-﻿
-using ClinicApp.Models;
+﻿using ClinicApp.Models;
 using ClinicApp.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -48,9 +47,11 @@ namespace ClinicApp.ViewModels
             await LoadSlotsForDateAsync(date);
         }
 
+        static readonly TimeZoneInfo ManilaTz =
+     TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
+
         public async Task LoadSlotsForDateAsync(DateTime date)
         {
-            // Block Sundays
             if (date.DayOfWeek == DayOfWeek.Sunday)
             {
                 HasError = true;
@@ -70,23 +71,18 @@ namespace ClinicApp.ViewModels
 
             try
             {
-                // Get booked slots for this date
-                var bookedSlots = await _supabaseData
-                    .GetBookedTimeSlotsForDateAsync(date);
+                var bookedSlots = await _supabaseData.GetBookedTimeSlotsForDateAsync(date);
 
                 TimeSlots.Clear();
 
                 var hours = new[] { 10, 11, 13, 14, 15, 16 };
                 foreach (var h in hours)
                 {
-                    var slotTime = new DateTime(
-                        date.Year, date.Month, date.Day, h, 0, 0);
+                    var slotTime = new DateTime(date.Year, date.Month, date.Day, h, 0, 0);
 
-                    // Check if this slot is already taken
-                    var slotUtc = slotTime.ToUniversalTime();
+                    var slotUtc = TimeZoneInfo.ConvertTimeToUtc(slotTime, ManilaTz);
 
-                    var isTaken = bookedSlots.Any(b =>
-                        b == slotUtc);
+                    var isTaken = bookedSlots.Any(b => b == slotUtc);
 
                     var item = new TimeSlotItem
                     {
@@ -98,7 +94,6 @@ namespace ClinicApp.ViewModels
                     };
 
                     item.RefreshColors();
-
                     TimeSlots.Add(item);
                 }
 
@@ -116,16 +111,29 @@ namespace ClinicApp.ViewModels
         }
 
         [RelayCommand]
-        void SelectSlot(TimeSlotItem slot)
+        async Task SelectSlot(TimeSlotItem slot)
         {
-            if (slot == null || slot.IsTaken) return;
+            if (slot == null) return;
+
+            if (slot.IsTaken)
+            {
+                await Shell.Current.DisplayAlert(
+                    "Slot Unavailable",
+                    $"{slot.Display} is already booked. Please choose a different time.",
+                    "OK");
+                return;
+            }
 
             // Deselect all
             foreach (var s in TimeSlots)
+            {
                 s.IsSelected = false;
+                s.RefreshColors();
+            }
 
             // Select this one
             slot.IsSelected = true;
+            slot.RefreshColors();
             _selectedSlot = slot;
             HasSelection = true;
 
@@ -140,14 +148,37 @@ namespace ClinicApp.ViewModels
                 return;
 
             IsLoadingSlots = true;
+            HasError = false;
+            ErrorMessage = string.Empty;
+
             try
             {
                 // Convert Philippine time to UTC for storage
                 var utcTime = TimeZoneInfo.ConvertTimeToUtc(
                     _selectedSlot.SlotDateTime,
-                    TimeZoneInfo.FindSystemTimeZoneById(
-                        "Asia/Manila") ??
-                    TimeZoneInfo.Utc);
+                    ManilaTz);
+
+                // ── Final guard: re-check right before writing, in case another
+                // booking took this slot after the page loaded. Excludes this
+                // booking's own current appointment_entries row so rescheduling
+                // "into" its existing slot never false-blocks. ──
+                var stillFree = await _supabaseData.IsSlotAvailableAsync(utcTime, BookingId);
+                if (!stillFree)
+                {
+                    HasError = true;
+                    ErrorMessage = "This time slot was just booked by someone else. Please pick a different time.";
+
+                    await Shell.Current.DisplayAlert(
+                        "Slot No Longer Available",
+                        "That time slot has just been taken. Please choose another time.",
+                        "OK");
+
+                    // Refresh so the grid reflects reality
+                    HasSelection = false;
+                    _selectedSlot = null;
+                    await LoadSlotsForDateAsync(SelectedDate);
+                    return;
+                }
 
                 // Update booking in Supabase with new date
                 await _supabaseData.RescheduleBookingAsync(
@@ -187,7 +218,6 @@ namespace ClinicApp.ViewModels
 
         [ObservableProperty] bool isSelected;
 
-        // Call this after changing IsSelected to refresh bindings
         public void RefreshColors()
         {
             OnPropertyChanged(nameof(BackgroundColor));
