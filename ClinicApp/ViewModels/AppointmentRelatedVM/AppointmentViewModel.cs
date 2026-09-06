@@ -202,7 +202,6 @@ namespace ClinicApp.ViewModels
                         LastName = localPatient.LastName,
                         Phone = localPatient.MobileNo,
                         Email = localPatient.Email,
-                        ReasonForConsultation = localPatient.ReasonForConsultation,
                         ReferredBy = "Online Booking",
                         DateRegistered = DateTime.UtcNow
                     };

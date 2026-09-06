@@ -1259,10 +1259,6 @@ public partial class DatabaseService
                 existing.FaxNo = sp.FaxNo ?? "";
                 existing.Email = sp.Email ?? "";
                 existing.ReferredBy = sp.ReferredBy ?? "";
-                existing.ReasonForConsultation = sp.ReasonForConsultation ?? "";
-                existing.DentalInsurance = sp.DentalInsurance ?? "";
-                existing.InsuranceEffectiveDate = sp.InsuranceEffectiveDate.HasValue
-                                                    ? sp.InsuranceEffectiveDate.Value.ToString("yyyy-MM-dd") : "";
                 existing.SupabaseId = sp.Id;
                 await _database!.UpdateAsync(existing);
 
@@ -1292,10 +1288,6 @@ public partial class DatabaseService
                     FaxNo = sp.FaxNo ?? "",
                     Email = sp.Email ?? "",
                     ReferredBy = sp.ReferredBy ?? "",
-                    ReasonForConsultation = sp.ReasonForConsultation ?? "",
-                    DentalInsurance = sp.DentalInsurance ?? "",
-                    InsuranceEffectiveDate = sp.InsuranceEffectiveDate.HasValue
-                                                ? sp.InsuranceEffectiveDate.Value.ToString("yyyy-MM-dd") : "",
                     DateRegistered = sp.DateRegistered != default
                                                 ? sp.DateRegistered.ToString("yyyy-MM-dd")
                                                 : DateTime.Now.ToString("yyyy-MM-dd"),
@@ -1328,23 +1320,18 @@ public partial class DatabaseService
                     MobileNo = sp.GuardianMobile ?? ""
                 });
 
-            await SaveMedicalHistory(new MedicalHistory
-            {
-                PatientID = patientId,
-                BloodType = sp.BloodType ?? "",
-                BloodPressure = sp.BloodPressure ?? "",
-                BleedingTime = sp.BleedingTime ?? "",
-                PhysicianName = sp.PhysicianName ?? "",
-                IsGoodHealth = sp.GoodHealth,
-                IsPregnant = sp.Pregnant,
-                UnderMedicalTreatment = sp.UnderTreatment,
-                MedicationDetails = sp.MedicationDetails ?? "",
-                HasBeenHospitalized = sp.Hospitalized,
-                HospitalizationDetails = sp.HospitalizationDetails ?? "",
-                UsesTobacco = sp.UsesTobacco,
-                UsesAlcohol = sp.UsesAlcohol,
-                TakingMedications = sp.TakingMedications,
-            });
+            // Preserve local-only fields (BloodPressure, BleedingTime, PhysicianName, IsPregnant,
+            // MedicationDetails, HospitalizationDetails, UsesAlcohol, OtherCondition) — Supabase
+            // no longer carries these, so SaveMedicalHistory's full-row overwrite must start from
+            // whatever's already on file rather than blank defaults.
+            var existingHistory = await GetMedicalHistory(patientId) ?? new MedicalHistory { PatientID = patientId };
+            existingHistory.BloodType = sp.BloodType ?? "";
+            existingHistory.IsGoodHealth = sp.GoodHealth;
+            existingHistory.UnderMedicalTreatment = sp.UnderTreatment;
+            existingHistory.HasBeenHospitalized = sp.Hospitalized;
+            existingHistory.UsesTobacco = sp.UsesTobacco;
+            existingHistory.TakingMedications = sp.OnMedications;
+            await SaveMedicalHistory(existingHistory);
 
             await SaveAllergy(new Allergy
             {

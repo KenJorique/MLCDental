@@ -85,7 +85,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         // Called once from PatientListPage.OnAppearing
         private bool _realtimeStarted = false;
 
-        public async Task StartRealtimeAsync()  
+        public async Task StartRealtimeAsync()
         {
             if (_realtimeStarted) return;
             _realtimeStarted = true;
@@ -192,11 +192,6 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 FaxNo = sp.FaxNo ?? string.Empty,
                 Email = sp.Email ?? string.Empty,
                 ReferredBy = sp.ReferredBy ?? string.Empty,
-                ReasonForConsultation = sp.ReasonForConsultation ?? string.Empty,
-                DentalInsurance = sp.DentalInsurance ?? string.Empty,
-                InsuranceEffectiveDate = sp.InsuranceEffectiveDate.HasValue
-                                             ? sp.InsuranceEffectiveDate.Value.ToString("yyyy-MM-dd")
-                                             : string.Empty,
                 DateRegistered = sp.DateRegistered.ToString("yyyy-MM-dd"),
                 SupabaseId = sp.Id
             };
@@ -269,7 +264,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                     IconColor = Color.FromArgb("#1A6B2F"),
                     OnTapped = async () =>
                         await Shell.Current.GoToAsync(
-                            $"{nameof(PatientDetailsPage)}?id={card.Patient.PatientID}"),
+                            $"{nameof(PatientDetailsPage)}?patientId={card.Patient.PatientID}"),
                 },
                 new ActionSheetOption
                 {
@@ -365,7 +360,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         async Task ViewPatient(PatientCardViewModel card)
         {
             if (card is null) return;
-            await Shell.Current.GoToAsync($"{nameof(PatientDetailsPage)}?id={card.Patient.PatientID}");
+            await Shell.Current.GoToAsync($"{nameof(PatientDetailsPage)}?patientId={card.Patient.PatientID}");
         }
 
         [RelayCommand]

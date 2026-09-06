@@ -29,14 +29,9 @@ namespace ClinicApp.Models.SupabaseModels
         [Column("office_no")] public string? OfficeNo { get; set; }
         [Column("fax_no")] public string? FaxNo { get; set; }
         [Column("email")] public string? Email { get; set; }
-         
-        // Referral & Insurance
+
+        // Referral
         [Column("referred_by")] public string? ReferredBy { get; set; }
-        [Column("reason_for_consultation")] public string? ReasonForConsultation { get; set; }
-        [Column("dental_insurance")] public string? DentalInsurance { get; set; }
-        [Column("insurance_effective_date")] public DateTime? InsuranceEffectiveDate { get; set; }
-        [Column("has_insurance")] public bool HasInsurance { get; set; }
-        [Column("has_dental_insurance")] public bool HasDentalInsurance { get; set; }
 
         // Guardian
         [Column("guardian_name")] public string? GuardianName { get; set; }
@@ -44,23 +39,13 @@ namespace ClinicApp.Models.SupabaseModels
         [Column("guardian_occupation")] public string? GuardianOccupation { get; set; }
         [Column("guardian_mobile")] public string? GuardianMobile { get; set; }
 
-        // Medical History
+        // Medical History (Health Status)
         [Column("blood_type")] public string? BloodType { get; set; }
-        [Column("blood_pressure")] public string? BloodPressure { get; set; }
-        [Column("bleeding_time")] public string? BleedingTime { get; set; }
-        [Column("physician_name")] public string? PhysicianName { get; set; }
         [Column("good_health")] public bool GoodHealth { get; set; }
-        [Column("pregnant")] public bool Pregnant { get; set; }
         [Column("under_treatment")] public bool UnderTreatment { get; set; }
-        [Column("medication_details")] public string? MedicationDetails { get; set; }
         [Column("hospitalized")] public bool Hospitalized { get; set; }
-        [Column("hospitalization_details")] public string? HospitalizationDetails { get; set; }
         [Column("uses_tobacco")] public bool UsesTobacco { get; set; }
-        [Column("uses_alcohol")] public bool UsesAlcohol { get; set; }
         [Column("on_medications")] public bool OnMedications { get; set; }
-        [Column("taking_medications")] public bool TakingMedications { get; set; }
-        [Column("previous_dentist")] public string? PreviousDentist { get; set; }
-        [Column("last_dental_visit")] public string? LastDentalVisit { get; set; }
 
         // Allergies
         [Column("latex_allergy")] public bool LatexAllergy { get; set; }
@@ -72,10 +57,5 @@ namespace ClinicApp.Models.SupabaseModels
 
         // Conditions as comma-separated string
         [Column("conditions")] public string? Conditions { get; set; }
-
-        // Links to local SQLite PatientID
-        [Column("supabase_id")] public string? SupabaseId { get; set; }
-
-        
     }
 }

@@ -363,6 +363,12 @@ public partial class AddPatientViewModel : ObservableObject
             DateRegistered = DateTime.TryParse(saved.DateRegistered, out var reg)
                      ? reg.ToUniversalTime()  // ← Supabase needs UTC
                      : DateTime.UtcNow,
+            ReferredBy = saved.ReferredBy,
+            GoodHealth = m?.IsGoodHealth ?? true,
+            UnderTreatment = m?.UnderMedicalTreatment ?? false,
+            Hospitalized = m?.HasBeenHospitalized ?? false,
+            UsesTobacco = m?.UsesTobacco ?? false,
+            OnMedications = m?.TakingMedications ?? false,
             GuardianName = g?.GuardianName,
             GuardianRelationship = g?.RelationshipToPatient,
             GuardianOccupation = g?.Occupation,
