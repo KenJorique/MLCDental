@@ -2,6 +2,8 @@
 using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -29,6 +31,36 @@ namespace ClinicApp.ViewModels
             _supabase = supabase;
             InitializeEmptySlots();
         }
+
+        // ---------------------------------------------------------------
+        // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
+        // everywhere in this ViewModel with the app's dimmed-backdrop
+        // rounded-card popup.
+        // ---------------------------------------------------------------
+
+        static Page CurrentPage =>
+            Shell.Current?.CurrentPage
+            ?? Application.Current?.Windows.FirstOrDefault()?.Page
+            ?? throw new InvalidOperationException("No current page available to host the popup.");
+
+        // Yes/No confirmation. Returns true only if the confirm button was tapped.
+        static async Task<bool> ShowConfirmAsync(
+            string title, string message, string confirmText = "Yes", Color? confirmColor = null)
+        {
+            var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+            var result = await CurrentPage.ShowPopupAsync(popup);
+            return result is true;
+        }
+
+        // Plain OK-only notice (used in place of single-button DisplayAlert calls).
+        static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+        {
+            var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+            await CurrentPage.ShowPopupAsync(popup);
+        }
+
+        // Convenience wrapper for error alerts so call sites read the same as before.
+        static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
 
         // Pre-populate 6 empty slots so TimeSlots[0-5] bindings never crash
         void InitializeEmptySlots()
@@ -342,6 +374,14 @@ namespace ClinicApp.ViewModels
             if (!CanConfirm || _selectedSlot == null)
                 return;
 
+            bool confirmed = await ShowConfirmAsync(
+                "Confirm Booking",
+                $"Book this walk-in appointment for {FullName} on " +
+                $"{_selectedSlot.SlotDateTime:MMM dd, yyyy} at {_selectedSlot.Display}?",
+                "Yes, book");
+
+            if (!confirmed) return;
+
             HasError = false;
             IsBusy = true;
 
@@ -357,10 +397,9 @@ namespace ClinicApp.ViewModels
 
                 if (!available)
                 {
-                    await Shell.Current.DisplayAlert(
+                    await ShowNoticeAsync(
                         "Slot Taken",
-                        "This time slot has already been booked. Please choose another time.",
-                        "OK");
+                        "This time slot has already been booked. Please choose another time.");
 
                     await LoadSlotsAsync(AppointmentDate);
 
@@ -461,10 +500,7 @@ namespace ClinicApp.ViewModels
 
                 if (created == null)
                 {
-                    await Shell.Current.DisplayAlert(
-                        "Error",
-                        "Unable to save appointment.",
-                        "OK");
+                    await ShowErrorAsync("Unable to save appointment.");
                     return;
                 }
 
@@ -492,8 +528,8 @@ namespace ClinicApp.ViewModels
                     System.Diagnostics.Debug.WriteLine(ex.Message);
                 }
 
-                await Shell.Current.DisplayAlert(
-                    "✓ Booking Confirmed",
+                await ShowNoticeAsync(
+                    "Booking Confirmed",
                     $"Walk-in appointment booked!\n\n" +
                     $"Patient: {FullName}\n" +
                     $"Date: {localTime:MMM dd, yyyy}\n" +

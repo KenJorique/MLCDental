@@ -2,6 +2,7 @@
 using ClinicApp.Services;
 using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -164,19 +165,20 @@ public partial class ServiceViewModel : ObservableObject
     // Confirms with the user, then deletes the service and removes it from both lists.
     private async Task DeleteServiceAsync(ServiceCardViewModel card)
     {
-        bool answer = await Shell.Current.DisplayAlert(
-            "Delete Service",
-            $"Are you sure you want to delete \"{card.Service.Name}\"?",
-            "Delete", "Cancel");
+        var popup = new ConfirmationPopup(
+        "Delete Service?",
+        $"Are you sure you want to delete \"{card.Service.Name}\"?",
+        confirmText: "Delete");
 
-        if (!answer) return;
+        var result = await Shell.Current.ShowPopupAsync(popup);
+        if (result is not bool confirmed || !confirmed) return;
 
         try
         {
             var success = await _supabase.DeleteServiceAsync(card.Service.Id);
             if (success)
             {
-                await _supabase.LogActivityAsync("ServiceDeleted", $"{card.Service.Name} was deleted");
+                await _supabase.LogActivityAsync("ServiceDeleted", $"{card.Service.Name} service was deleted");
 
                 var existing = ServiceCards.FirstOrDefault(c => c.Service.Id == card.Service.Id);
                 if (existing is not null)

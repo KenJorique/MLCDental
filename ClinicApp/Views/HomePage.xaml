@@ -11,11 +11,6 @@
 	<ScrollView>
 		<VerticalStackLayout Padding="16" Spacing="18">
 
-			<!-- Small, non-blocking — the page itself renders immediately, this just hints a refresh is running -->
-			<ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
-                               Color="{StaticResource Primary}" HeightRequest="20" WidthRequest="20"
-                               HorizontalOptions="End"/>
-
 			<!-- ══════════════════════════════════════════
                  TODAY'S OVERVIEW — 4 stat cards, full width
                  ══════════════════════════════════════════ -->
@@ -233,7 +228,10 @@
 					</CollectionView.ItemTemplate>
 				</CollectionView>
 			</VerticalStackLayout>
-
+			<!-- Small, non-blocking — the page itself renders immediately, this just hints a refresh is running -->
+			<ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource Primary}" HeightRequest="20" WidthRequest="20"
+                               HorizontalOptions="End"/>
 		</VerticalStackLayout>
 	</ScrollView>
 

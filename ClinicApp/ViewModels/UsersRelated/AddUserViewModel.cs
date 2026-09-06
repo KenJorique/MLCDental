@@ -1,6 +1,8 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -12,8 +14,7 @@ public partial class AddUserViewModel : ObservableObject
     private readonly DatabaseService _db;
     private readonly SupabaseDataService _supabaseData;
 
-    // Not a form field — just carried along so SaveUser knows whether this
-    // user already has a Supabase row (update) or not (insert).
+    // Tracks whether this user already has a Supabase row (update) or not (insert).
     private string _existingSupabaseId = "";
 
     // Captured on load so SaveUser can detect an Active → Inactive edit.
@@ -25,6 +26,37 @@ public partial class AddUserViewModel : ObservableObject
         _db = db;
         _supabaseData = supabaseData;
     }
+
+    // ---------------------------------------------------------------
+    // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
+    // everywhere in this ViewModel with the app's dimmed-backdrop
+    // rounded-card popup.
+    // ---------------------------------------------------------------
+
+    // Resolves the page currently on screen, to host the popup.
+    static Page CurrentPage =>
+        Shell.Current?.CurrentPage
+        ?? Application.Current?.Windows.FirstOrDefault()?.Page
+        ?? throw new InvalidOperationException("No current page available to host the popup.");
+
+    // Shows a Yes/No popup and returns true only if confirmed.
+    static async Task<bool> ShowConfirmAsync(
+        string title, string message, string confirmText = "Yes", Color? confirmColor = null)
+    {
+        var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+        var result = await CurrentPage.ShowPopupAsync(popup);
+        return result is true;
+    }
+
+    // Shows a plain OK-only notice popup.
+    static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+    {
+        var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+        await CurrentPage.ShowPopupAsync(popup);
+    }
+
+    // Shows an OK-only error popup titled "Error".
+    static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
 
     // ─── Fields ─────────────────────────────────────────────
     [ObservableProperty] int userId;
@@ -42,7 +74,7 @@ public partial class AddUserViewModel : ObservableObject
     // Controls whether the Active/Inactive switch is shown (only on edit)
     [ObservableProperty] bool isEditMode = false;
 
-    // Loads the user for editing when UserId is set via navigation.
+    // Switches the page into edit mode and loads the user once UserId arrives.
     partial void OnUserIdChanged(int value)
     {
         if (value > 0)
@@ -61,7 +93,7 @@ public partial class AddUserViewModel : ObservableObject
         {
             FullName = user.FullName;
             Username = user.Username;
-            // Password intentionally left blank — leave blank to keep the current one, or type a new one to change it.
+            // Password left blank on purpose — blank keeps the current one.
             Role = user.Role;
             ContactNo = user.ContactNo;
             Email = user.Email;
@@ -78,7 +110,7 @@ public partial class AddUserViewModel : ObservableObject
         // Basic validation
         if (string.IsNullOrWhiteSpace(FullName) || string.IsNullOrWhiteSpace(Role))
         {
-            await Shell.Current.DisplayAlert("Validation", "Full name and role are required.", "OK");
+            await ShowNoticeAsync("Validation", "Full name and role are required.");
             return;
         }
 
@@ -86,7 +118,7 @@ public partial class AddUserViewModel : ObservableObject
         // leave it blank to keep the current one — see AddUser/UpdateUser).
         if (UserId == 0 && string.IsNullOrWhiteSpace(Password))
         {
-            await Shell.Current.DisplayAlert("Validation", "A password is required for a new account.", "OK");
+            await ShowNoticeAsync("Validation", "A password is required for a new account.");
             return;
         }
 
@@ -120,7 +152,7 @@ public partial class AddUserViewModel : ObservableObject
         await Shell.Current.GoToAsync("..");
     }
 
-    // Discards and goes back — this is what the page's back-button override calls.
+    // Discards and goes back — called by the page's back-button override too.
     [RelayCommand]
     async Task Cancel() => await Shell.Current.GoToAsync("..");
 
@@ -149,13 +181,9 @@ public partial class AddUserViewModel : ObservableObject
                 // ── TEMP DIAGNOSTIC — remove once this is confirmed working ──
                 if (saved is null || string.IsNullOrEmpty(saved.Id))
                 {
-                    await Shell.Current.DisplayAlert(
+                    await ShowNoticeAsync(
                         "Supabase sync",
-                        "Insert returned no row. Either the 'users' table " +
-                        "doesn't exist yet, or Row Level Security is blocking " +
-                        "the anon key. Check that users_table.sql was run, " +
-                        "including its RLS policy.",
-                        "OK");
+                        "Insert returned no row — check that users_table.sql (and its RLS policy) has been run.");
                     return;
                 }
                 // ── end temp diagnostic ──
@@ -169,11 +197,9 @@ public partial class AddUserViewModel : ObservableObject
                 // ── TEMP DIAGNOSTIC — remove once this is confirmed working ──
                 if (!updated)
                 {
-                    await Shell.Current.DisplayAlert(
+                    await ShowNoticeAsync(
                         "Supabase sync",
-                        "Update failed — check the Debug Output window for " +
-                        "the [Supabase] UpdateUser FAILED line.",
-                        "OK");
+                        "Update failed — check the Debug Output window for the [Supabase] UpdateUser FAILED line.");
                 }
                 // ── end temp diagnostic ──
             }
@@ -181,7 +207,7 @@ public partial class AddUserViewModel : ObservableObject
         catch (Exception ex)
         {
             // ── TEMP DIAGNOSTIC — remove once this is confirmed working ──
-            await Shell.Current.DisplayAlert("Supabase sync error", ex.Message, "OK");
+            await ShowErrorAsync(ex.Message);
             // ── end temp diagnostic ──
 
             System.Diagnostics.Debug.WriteLine($"[SyncUserToSupabase] {ex.Message}");

@@ -48,7 +48,7 @@ public partial class HomeViewModel : ObservableObject
             var overviewTask = LoadTodayOverviewAsync();
             var suppliesTask = dataService.GetSuppliesAsync();
             var unpaidBillsTask = dataService.GetUnpaidBillsAsync();
-            var activitiesTask = dataService.GetRecentActivitiesAsync(8);
+            var activitiesTask = dataService.GetRecentActivitiesAsync(5);
 
             await Task.WhenAll(scheduleTask, overviewTask, suppliesTask, unpaidBillsTask, activitiesTask);
 
@@ -137,7 +137,7 @@ public partial class HomeViewModel : ObservableObject
             NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
             {
                 Text = $"{outOfStockCount} Out of Stock Item{(outOfStockCount == 1 ? "" : "s")}",
-                IconGlyph = "\ue928", // remove_shopping_cart
+                IconGlyph = "\uf5a4", // remove_shopping_cart
                 IconColor = Color.FromArgb("#C62828"),
                 Route = $"{nameof(SupplyListPage)}?filter={Uri.EscapeDataString("Out of Stock")}"
             });
@@ -159,7 +159,7 @@ public partial class HomeViewModel : ObservableObject
             NeedsAttentionRows.Add(new NeedsAttentionSummaryRow
             {
                 Text = $"{lowStockCount} Low Stock Item{(lowStockCount == 1 ? "" : "s")}",
-                IconGlyph = "\ue1a1", // inventory
+                IconGlyph = "\uf5a4", // inventory
                 IconColor = Color.FromArgb("#F9A825"),
                 Route = $"{nameof(SupplyListPage)}?filter={Uri.EscapeDataString("Low Stock")}"
             });

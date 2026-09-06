@@ -22,7 +22,7 @@
 	<Grid RowDefinitions="*,Auto">
 
 		<ScrollView Grid.Row="0">
-			<VerticalStackLayout Padding="20,20,20,24">
+			<VerticalStackLayout Padding="20,10,20,24">
 
 				<Label Style="{StaticResource FormFieldLabel}">
 					<Label.FormattedText>

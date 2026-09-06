@@ -76,6 +76,25 @@ namespace ClinicApp.Services
             return saved;
         }
 
+        // Fetches one patient by their Supabase id — used to merge partial edits onto the full record before updating.
+        public async Task<SupabasePatient?> GetPatientByIdAsync(string id)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                if (string.IsNullOrEmpty(id)) return null;
+
+                var result = await _client!.From<SupabasePatient>().Where(p => p.Id == id).Get();
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetPatientById: {ex.Message}");
+                return null;
+            }
+        }
+
+        // Overwrites the FULL row — callers must merge onto the existing record first, or unset fields get blanked.
         public async Task<bool> UpdatePatientAsync(SupabasePatient patient)
         {
             try
@@ -93,6 +112,15 @@ namespace ClinicApp.Services
                 // Direct update using the model — supabase-csharp matches by PrimaryKey
                 var result = await _client!.From<SupabasePatient>().Update(patient);
                 System.Diagnostics.Debug.WriteLine($"[Supabase] Update done. Rows: {result.Models.Count}");
+
+                // A 0-row result means RLS silently blocked it (or the row's gone) — Postgres doesn't
+                // throw for that, so without this check the caller would wrongly believe it worked.
+                if (result.Models.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("[Supabase] UpdatePatient: 0 rows affected — check RLS UPDATE policy on 'patients'");
+                    return false;
+                }
+
                 return true;
             }
             catch (Exception ex)

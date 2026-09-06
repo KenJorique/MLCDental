@@ -1,6 +1,8 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -46,6 +48,36 @@ namespace ClinicApp.ViewModels
         public ObservableCollection<TimeSlotItem> TimeSlots { get; } = new();
 
         private TimeSlotItem? _selectedSlot;
+
+        // ---------------------------------------------------------------
+        // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
+        // everywhere in this ViewModel with the app's dimmed-backdrop
+        // rounded-card popup.
+        // ---------------------------------------------------------------
+
+        static Page CurrentPage =>
+            Shell.Current?.CurrentPage
+            ?? Application.Current?.Windows.FirstOrDefault()?.Page
+            ?? throw new InvalidOperationException("No current page available to host the popup.");
+
+        // Yes/No confirmation. Returns true only if the confirm button was tapped.
+        static async Task<bool> ShowConfirmAsync(
+            string title, string message, string confirmText = "Yes", Color? confirmColor = null)
+        {
+            var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+            var result = await CurrentPage.ShowPopupAsync(popup);
+            return result is true;
+        }
+
+        // Plain OK-only notice (used in place of single-button DisplayAlert calls).
+        static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+        {
+            var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+            await CurrentPage.ShowPopupAsync(popup);
+        }
+
+        // Convenience wrapper for error alerts so call sites read the same as before.
+        static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
 
         // Injects the data service and seeds empty time slots.
         public RescheduleViewModel(SupabaseDataService supabaseData)
@@ -192,6 +224,13 @@ namespace ClinicApp.ViewModels
             if (_selectedSlot == null || string.IsNullOrEmpty(BookingId))
                 return;
 
+            bool confirmed = await ShowConfirmAsync(
+                "Confirm Reschedule",
+                $"Reschedule {PatientName}'s appointment to {SelectedSummary}?",
+                "Yes, reschedule");
+
+            if (!confirmed) return;
+
             IsLoadingSlots = true;
             try
             {
@@ -244,10 +283,9 @@ namespace ClinicApp.ViewModels
                     await _supabaseData.AddAppointmentEntryAsync(replacement);
                 }
 
-                await Shell.Current.DisplayAlert(
+                await ShowNoticeAsync(
                     "Rescheduled",
-                    $"{PatientName}'s appointment has been rescheduled to\n{SelectedSummary}",
-                    "OK");
+                    $"{PatientName}'s appointment has been rescheduled to {SelectedSummary}");
 
                 await _supabaseData.LogActivityAsync("AppointmentRescheduled",
                     $"{PatientName}'s appointment was rescheduled to {SelectedSummary}");

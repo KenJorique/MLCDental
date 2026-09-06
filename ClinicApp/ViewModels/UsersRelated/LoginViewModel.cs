@@ -8,8 +8,9 @@ public partial class LoginViewModel : ObservableObject
 {
     private readonly AuthenticationService _auth;
     private readonly SessionService _session;
-    private readonly RememberMeService _rememberMe; // ── NEW ──
+    private readonly RememberMeService _rememberMe;
 
+    // Injects auth, session, and remember-me services.
     public LoginViewModel(AuthenticationService auth, SessionService session, RememberMeService rememberMe)
     {
         _auth = auth;
@@ -23,18 +24,23 @@ public partial class LoginViewModel : ObservableObject
     [ObservableProperty] bool isBusy;
     [ObservableProperty] string? errorMessage;
 
-    // ── NEW: bound to a checkbox on LoginPage.xaml ──
+    // Bound to the "Remember me" checkbox on LoginPage.xaml.
     [ObservableProperty] bool rememberMe;
 
     public bool CanLogin => !IsBusy && !string.IsNullOrWhiteSpace(Identifier) && !string.IsNullOrWhiteSpace(Password);
 
+    // Re-checks CanLogin whenever the identifier changes.
     partial void OnIdentifierChanged(string? value) => LoginCommand.NotifyCanExecuteChanged();
+    // Re-checks CanLogin whenever the password changes.
     partial void OnPasswordChanged(string? value) => LoginCommand.NotifyCanExecuteChanged();
+    // Re-checks CanLogin whenever the busy state changes.
     partial void OnIsBusyChanged(bool value) => LoginCommand.NotifyCanExecuteChanged();
 
+    // Flips the password field between hidden and visible.
     [RelayCommand]
     void TogglePasswordVisibility() => IsPasswordHidden = !IsPasswordHidden;
 
+    // Authenticates the user, starts the session, and opens the app.
     [RelayCommand(CanExecute = nameof(CanLogin))]
     async Task Login()
     {
@@ -53,7 +59,7 @@ public partial class LoginViewModel : ObservableObject
 
             _session.SignIn(result.User);
 
-            // ── NEW: only ever stores anything if the person opted in ──
+            // Only stores anything if the person opted in.
             if (RememberMe)
             {
                 await _rememberMe.RememberAsync(result.User.UserID);

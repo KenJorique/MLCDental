@@ -3,6 +3,8 @@ using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
 using ClinicApp.Views.AppointmentRelated;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -31,6 +33,36 @@ namespace ClinicApp.ViewModels
             _db = db;
             _supabaseData = supabaseData;
         }
+
+        // ---------------------------------------------------------------
+        // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
+        // everywhere in this ViewModel with the app's dimmed-backdrop
+        // rounded-card popup.
+        // ---------------------------------------------------------------
+
+        static Page CurrentPage =>
+            Shell.Current?.CurrentPage
+            ?? Application.Current?.Windows.FirstOrDefault()?.Page
+            ?? throw new InvalidOperationException("No current page available to host the popup.");
+
+        // Yes/No confirmation. Returns true only if the confirm button was tapped.
+        static async Task<bool> ShowConfirmAsync(
+            string title, string message, string confirmText = "Yes", Color? confirmColor = null)
+        {
+            var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+            var result = await CurrentPage.ShowPopupAsync(popup);
+            return result is true;
+        }
+
+        // Plain OK-only notice (used in place of single-button DisplayAlert calls).
+        static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+        {
+            var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+            await CurrentPage.ShowPopupAsync(popup);
+        }
+
+        // Convenience wrapper for error alerts so call sites read the same as before.
+        static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
 
         // Called from OnAppearing — not triggered by RefreshView
         public async Task LoadAppointments()
@@ -117,7 +149,7 @@ namespace ClinicApp.ViewModels
         {
             if (string.IsNullOrWhiteSpace(phoneNumber))
             {
-                await Shell.Current.DisplayAlert("Error", "No phone number available for this patient.", "OK");
+                await ShowNoticeAsync("Error", "No phone number available for this patient.");
                 return;
             }
 
@@ -129,13 +161,13 @@ namespace ClinicApp.ViewModels
                 }
                 else
                 {
-                    await Shell.Current.DisplayAlert("Not Supported", "Phone dialing is not supported on this device.", "OK");
+                    await ShowNoticeAsync("Not Supported", "Phone dialing is not supported on this device.");
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[CallPatient] Error: {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", "Unable to open phone dialer.", "OK");
+                await ShowErrorAsync("Unable to open phone dialer.");
             }
         }
 
@@ -146,10 +178,10 @@ namespace ClinicApp.ViewModels
             if (card == null) return;
             var booking = card.Booking;
 
-            bool confirm = await Shell.Current.DisplayAlert(
+            bool confirm = await ShowConfirmAsync(
                 "Approve Booking",
                 $"Approve booking for {booking.FullName}",
-                "Approve", "Cancel");
+                "Approve");
 
             if (!confirm) return;
 
@@ -310,11 +342,10 @@ namespace ClinicApp.ViewModels
                         $"[Approve] Google: {gEx.Message}");
                 }
 
-                await Shell.Current.DisplayAlert("Approved",
+                await ShowNoticeAsync("Approved",
                     booking.IsExistingPatient
                         ? $"{booking.FullName}'s appointment approved. (Existing patient)"
-                        : $"{booking.FullName} added to patient list and approved.",
-                    "OK");
+                        : $"{booking.FullName} added to patient list and approved.");
 
                 await CloseSheetAsync();
                 await FetchAndPopulate();
@@ -322,7 +353,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Approve] {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+                await ShowErrorAsync(ex.Message);
             }
             finally { IsLoading = false; }
         }
@@ -381,7 +412,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[MoveToPending] FAILED: {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", $"Failed: {ex.Message}", "OK");
+                await ShowErrorAsync($"Failed: {ex.Message}");
             }
             finally { IsLoading = false; }
         }
@@ -393,10 +424,10 @@ namespace ClinicApp.ViewModels
             if (card == null) return;
             var booking = card.Booking;
 
-            bool confirm = await Shell.Current.DisplayAlert(
+            bool confirm = await ShowConfirmAsync(
                 "Cancel Booking",
                 $"Cancel {booking.FullName}'s booking?\nThis cannot be undone.",
-                "Yes, cancel", "Keep");
+                "Yes, cancel");
 
             if (!confirm) return;
 
@@ -410,7 +441,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[CancelBooking] {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+                await ShowErrorAsync(ex.Message);
             }
             finally { IsLoading = false; }
         }
@@ -422,11 +453,11 @@ namespace ClinicApp.ViewModels
             if (card == null) return;
             var booking = card.Booking;
 
-            bool confirm = await Shell.Current.DisplayAlert(
+            bool confirm = await ShowConfirmAsync(
                 "Mark as Complete",
                 $"Mark {booking.FullName}'s appointment as completed?\n" +
                 "It will be removed from the appointment list.",
-                "Yes", "Cancel");
+                "Yes");
 
             if (!confirm) return;
 
@@ -470,15 +501,15 @@ namespace ClinicApp.ViewModels
 
                 await FetchAndPopulate();
 
-                await Shell.Current.DisplayAlert("Completed",
+                await ShowNoticeAsync("Completed",
                     $"{booking.FullName}'s appointment has been completed " +
-                    "and removed from the list.", "OK");
+                    "and removed from the list.");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(
                     $"[MarkComplete] {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+                await ShowErrorAsync(ex.Message);
             }
             finally { IsLoading = false; }
         }

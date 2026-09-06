@@ -316,7 +316,7 @@ public partial class SupplyListViewModel : ObservableObject
                 return;
             }
 
-            await _supabase.LogActivityAsync("SupplyDeleted", $"{card.Supply.Name} was deleted");
+            await _supabase.LogActivityAsync("SupplyDeleted", $"Item {card.Supply.Name} was deleted");
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

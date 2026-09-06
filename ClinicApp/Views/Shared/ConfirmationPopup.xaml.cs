@@ -1,14 +1,15 @@
 using CommunityToolkit.Maui.Views;
-using static Android.Webkit.ConsoleMessage;
 
 namespace ClinicApp.Views.Shared;
 
-// Reusable Yes/No confirmation dialog with a dimmed backdrop.
-// Closes with a bool result: true = confirmed, false = cancelled.
+// Reusable dialog with a dimmed backdrop. Works two ways:
+// - Confirm/Cancel mode (default): returns true/false.
+// - OK-only mode (showCancelButton: false): a plain notice, returns true when dismissed.
 public partial class ConfirmationPopup : Popup
 {
-    // Fills in the title, message, and confirm-button text/color.
-    public ConfirmationPopup(string title, string message, string confirmText = "Delete", Color? confirmColor = null)
+    // Fills in the title, message, and confirm-button text/color; hides Cancel for a plain notice.
+    public ConfirmationPopup(string title, string message, string confirmText = "Delete",
+        Color? confirmColor = null, bool showCancelButton = true)
     {
         InitializeComponent();
         TitleLabel.Text = title;
@@ -16,6 +17,12 @@ public partial class ConfirmationPopup : Popup
         ConfirmButton.Text = confirmText;
         if (confirmColor is not null)
             ConfirmButton.BackgroundColor = confirmColor;
+
+        if (!showCancelButton)
+        {
+            CancelButton.IsVisible = false;
+            Grid.SetColumnSpan(ConfirmButton, 2);
+        }
     }
 
     // Closes the popup with a "no" result.

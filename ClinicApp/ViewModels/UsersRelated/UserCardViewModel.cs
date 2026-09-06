@@ -14,7 +14,7 @@ public partial class UserCardViewModel : ObservableObject
         User = user;
     }
 
-    // Returns StatusGood (green) if active, StatusOut (red) if inactive —
+    // Returns the active/inactive dot color, from app resources with a fallback.
     public Color StatusColor
     {
         get
@@ -27,6 +27,6 @@ public partial class UserCardViewModel : ObservableObject
         }
     }
 
-    // Returns "Active" or "Inactive" label text
+    // Returns "Active" or "Inactive" label text.
     public string StatusText => User.IsActive ? "Active" : "Inactive";
 }

@@ -6,6 +6,8 @@
     x:Class="ClinicApp.Views.PatientsRelated.AddPatientPage"
     x:DataType="vm:AddPatientViewModel"
     Title="{Binding PageTitle}"
+	Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+    Shell.TitleColor="White"
     BackgroundColor="{StaticResource PageBg}"
     Shell.TabBarIsVisible="False">
 
@@ -301,11 +303,15 @@
 			</VerticalStackLayout>
 		</ScrollView>
 
-		<Grid Grid.Row="1" Padding="20,10,20,24" BackgroundColor="{StaticResource PageBg}">
-			<Button Text="Save Patient"
+		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,12" ColumnSpacing="12"
+              BackgroundColor="{StaticResource White}">
+			<Button Grid.Column="0" Text="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Style="{StaticResource SecondaryActionButtonStyle}"/>
+			<Button Grid.Column="1" Text="Save"
                     Command="{Binding SavePatientCommand}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
-                    Style="{StaticResource PrimaryButtonStyle}"/>
+                    Style="{StaticResource PrimaryActionButtonStyle}"/>
 		</Grid>
 	</Grid>
 </ContentPage>

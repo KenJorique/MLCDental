@@ -29,6 +29,7 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] bool isPersonalTabActive = true;
     [ObservableProperty] bool isMedicalTabActive = false;
 
+    // Switches to the Personal tab, discarding unsaved Medical edits if any.
     [RelayCommand]
     async Task SelectPersonalTab()
     {
@@ -53,6 +54,7 @@ public partial class PatientDetailsViewModel : ObservableObject
         IsPersonalEditMode = false;
     }
 
+    // Switches to the Medical tab, discarding unsaved Personal Info edits if any.
     [RelayCommand]
     async Task SelectMedicalTab()
     {
@@ -78,9 +80,11 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] bool isPersonalEditMode = false;
     [ObservableProperty] bool isMedicalEditMode = false;
 
+    // Toggles Personal Info edit mode.
     [RelayCommand]
     void TogglePersonalEdit() => IsPersonalEditMode = !IsPersonalEditMode;
 
+    // Toggles Medical edit mode, loading the condition checklist the first time.
     [RelayCommand]
     void ToggleMedicalEdit()
     {
@@ -176,6 +180,7 @@ public partial class PatientDetailsViewModel : ObservableObject
             MainThread.BeginInvokeOnMainThread(async () => await LoadPatientAsync(value));
     }
 
+    // Reloads the current patient's data.
     [RelayCommand]
     public async Task LoadPatient()
     {
@@ -183,6 +188,7 @@ public partial class PatientDetailsViewModel : ObservableObject
             await LoadPatientAsync(PatientId);
     }
 
+    // Loads a patient's full record into all the form fields.
     private async Task LoadPatientAsync(int id)
     {
         if (IsBusy) return;
@@ -272,6 +278,7 @@ public partial class PatientDetailsViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    // Builds the read-only "Conditions: X, Y, Z" summary text shown outside edit mode.
     private async Task BuildConditionsSummaryAsync(int patientId)
     {
         var patientConds = await _db.GetPatientConditions(patientId);
@@ -293,6 +300,7 @@ public partial class PatientDetailsViewModel : ObservableObject
         ConditionsText = parts.Count > 0 ? string.Join(", ", parts) : "None reported";
     }
 
+    // Loads the full condition checklist with this patient's selections pre-checked.
     private async Task LoadConditionsAsync()
     {
         await _db.EnsureDefaultConditions();
@@ -315,6 +323,7 @@ public partial class PatientDetailsViewModel : ObservableObject
     }
 
     // Saves the Personal Info tab and logs the update.
+    // Saves Personal Info locally and to Supabase, and logs the update.
     [RelayCommand]
     async Task SavePersonalRecord()
     {
@@ -353,6 +362,37 @@ public partial class PatientDetailsViewModel : ObservableObject
                 MobileNo = GuardianMobile.Trim(),
             });
 
+            // Mirror to Supabase too — merges onto the full existing record so Medical-tab fields aren't wiped out.
+            if (!string.IsNullOrEmpty(p.SupabaseId))
+            {
+                var remote = await _supabase.GetPatientByIdAsync(p.SupabaseId)
+                    ?? new Models.SupabaseModels.SupabasePatient { Id = p.SupabaseId };
+
+                remote.FirstName = p.FirstName;
+                remote.LastName = p.LastName;
+                remote.Nickname = p.Nickname;
+                remote.Gender = p.Gender;
+                remote.DateOfBirth = DateOfBirthDate;
+                remote.Nationality = p.Nationality;
+                remote.Religion = p.Religion;
+                remote.Occupation = p.Occupation;
+                remote.Address = p.Address;
+                remote.Phone = p.MobileNo;
+                remote.HomeNo = p.HomeNo;
+                remote.OfficeNo = p.OfficeNo;
+                remote.FaxNo = p.FaxNo;
+                remote.Email = p.Email;
+                remote.GuardianName = GuardianName.Trim();
+                remote.GuardianRelationship = GuardianRelationship;
+                remote.GuardianOccupation = GuardianOccupation.Trim();
+                remote.GuardianMobile = GuardianMobile.Trim();
+
+                var ok = await _supabase.UpdatePatientAsync(remote);
+                if (!ok)
+                    await Shell.Current.DisplayAlert("Sync Warning",
+                        "Saved locally but could not update cloud. Check your internet connection.", "OK");
+            }
+
             FullName = p.FullName;
             PersonalLastUpdated = $"Last updated: {today}";
             IsPersonalEditMode = false;
@@ -366,6 +406,7 @@ public partial class PatientDetailsViewModel : ObservableObject
         finally { IsSavingPersonal = false; }
     }
 
+    // Saves the Medical tab (history, allergies, conditions) locally and to Supabase.
     [RelayCommand]
     async Task UpdateMedicalRecord()
     {
@@ -403,6 +444,37 @@ public partial class PatientDetailsViewModel : ObservableObject
 
             var selectedIds = Conditions.Where(c => c.IsSelected).Select(c => c.ConditionID).ToList();
             await _db.SavePatientConditions(PatientId, selectedIds);
+
+            // Mirror to Supabase too — merges onto the full existing record so Personal Info fields aren't wiped out.
+            var p = await _db.GetPatientById(PatientId);
+            if (p is not null && !string.IsNullOrEmpty(p.SupabaseId))
+            {
+                var remote = await _supabase.GetPatientByIdAsync(p.SupabaseId)
+                    ?? new Models.SupabaseModels.SupabasePatient { Id = p.SupabaseId };
+
+                remote.BloodType = BloodType;
+                remote.GoodHealth = IsGoodHealth;
+                remote.Pregnant = IsPregnant;
+                remote.UnderTreatment = UnderMedicalTreatment;
+                remote.MedicationDetails = MedicationDetails;
+                remote.Hospitalized = HasBeenHospitalized;
+                remote.HospitalizationDetails = HospitalizationDetails;
+                remote.UsesTobacco = UsesTobacco;
+                remote.TakingMedications = TakingMedications;
+                remote.LatexAllergy = HasLatexAllergy;
+                remote.AspirinAllergy = HasAspirinAllergy;
+                remote.PenicillinAllergy = HasPenicillinAllergy;
+                remote.SulfaAllergy = HasSulfaAllergy;
+                remote.LocalAnestheticAllergy = HasLocalAnestheticAllergy;
+                remote.OtherAllergy = OtherAllergy;
+
+                var ok = await _supabase.UpdatePatientAsync(remote);
+                if (!ok)
+                    await Shell.Current.DisplayAlert("Sync Warning",
+                        "Saved locally but could not update cloud. Check your internet connection.", "OK");
+
+                await _supabase.LogActivityAsync("PatientUpdated", $"{p.FullName}'s medical record was updated");
+            }
 
             MedicalLastUpdated = $"Last updated: {today}";
             await BuildConditionsSummaryAsync(PatientId);

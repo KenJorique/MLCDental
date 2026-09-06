@@ -3,6 +3,7 @@ using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
 using ClinicApp.Views.Shared;
 using ClinicApp.Views.UsersRelated;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -25,10 +26,41 @@ public partial class UserViewModel : ObservableObject
         _supabaseData = supabaseData;
     }
 
+    // ---------------------------------------------------------------
+    // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
+    // everywhere in this ViewModel with the app's dimmed-backdrop
+    // rounded-card popup.
+    // ---------------------------------------------------------------
+
+    // Resolves the page currently on screen, to host the popup.
+    static Page CurrentPage =>
+        Shell.Current?.CurrentPage
+        ?? Application.Current?.Windows.FirstOrDefault()?.Page
+        ?? throw new InvalidOperationException("No current page available to host the popup.");
+
+    // Shows a Yes/No popup and returns true only if confirmed.
+    static async Task<bool> ShowConfirmAsync(
+        string title, string message, string confirmText = "Yes", Color? confirmColor = null)
+    {
+        var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+        var result = await CurrentPage.ShowPopupAsync(popup);
+        return result is true;
+    }
+
+    // Shows a plain OK-only notice popup.
+    static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+    {
+        var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+        await CurrentPage.ShowPopupAsync(popup);
+    }
+
+    // Shows an OK-only error popup titled "Error".
+    static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
+
     // Set once StartSupabaseSyncAsync has run, so it doesn't repeat every OnAppearing.
     private bool _syncStarted = true;
 
-    // Pulls remote users and backfills local Supabase IDs (no realtime — staff lists change rarely).
+    // Pulls remote users and backfills local Supabase IDs.
     public async Task StartSupabaseSyncAsync()
     {
         if (_syncStarted) return;
@@ -69,7 +101,7 @@ public partial class UserViewModel : ObservableObject
         }
     }
 
-    // Tap on card → open action sheet
+    // Opens the Edit/Delete action sheet for a tapped staff card.
     [RelayCommand]
     async Task ShowActionSheet(UserCardViewModel card)
     {
@@ -109,10 +141,10 @@ public partial class UserViewModel : ObservableObject
     // Confirms, then soft-deletes the user locally and on Supabase, and logs it.
     private async Task SoftDeleteUserAsync(UserCardViewModel card)
     {
-        bool confirm = await Shell.Current.DisplayAlert(
+        bool confirm = await ShowConfirmAsync(
             "Remove Staff",
             $"Remove \"{card.User.FullName}\" from the staff list?",
-            "Remove", "Cancel");
+            "Remove");
 
         if (!confirm) return;
 

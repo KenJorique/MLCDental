@@ -1,6 +1,8 @@
 ﻿using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -83,6 +85,18 @@ public partial class AddServiceViewModel : ObservableObject
             return;
         }
 
+        // Confirm before committing — 
+        var confirmPopup = new ConfirmationPopup(
+            "Save Service?",
+            PageTitle == "Edit Service"
+                ? $"Save changes to \"{ServiceName}\"?"
+                : $"Add \"{ServiceName}\" as a new service?",
+            confirmText: "Save",
+            confirmColor: Color.FromArgb("#2E7D32")); // primary green — non-destructive action
+
+        var confirmResult = await Shell.Current.ShowPopupAsync(confirmPopup);
+        if (confirmResult is not bool confirmed || !confirmed) return;
+
         if (!string.IsNullOrWhiteSpace(ServiceId))
         {
             var list = await _supabase.GetServicesAsync();
@@ -144,12 +158,14 @@ public partial class AddServiceViewModel : ObservableObject
     {
         if (_isDirty)
         {
-            bool discard = await Shell.Current.DisplayAlert(
-                "Discard changes?",
-                "Are you sure you want to discard the changes you made?",
-                "Discard", "Keep Editing");
+            var popup = new ConfirmationPopup(
+            "Discard Changes?",
+            "Are you sure you want to discard the changes you made?",
+            confirmText: "Discard",
+            confirmColor: Color.FromArgb("#DC143C")); 
 
-            if (!discard)
+            var result = await Shell.Current.ShowPopupAsync(popup);
+            if (result is not bool discard || !discard)
                 return;
         }
 

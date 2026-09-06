@@ -7,11 +7,10 @@
     x:Class="ClinicApp.Views.Shared.ConfirmationPopup"
     Color="Transparent">
 
-	<!-- No WidthRequest, so it shrinks/grows with the title + message.
-         Min/Max keep it from looking too skinny or too wide. -->
+	<!-- Fixed width so the card always looks intentional; height still
+         auto-fits whatever title/message text is passed in. -->
 	<Border BackgroundColor="White"
-            MinimumWidthRequest="240"
-            MaximumWidthRequest="340"
+            WidthRequest="320"
             Padding="24,22"
             StrokeThickness="0">
 		<Border.StrokeShape>
@@ -34,7 +33,7 @@
 
 			<!-- Cancel / Confirm buttons. -->
 			<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-				<Button Grid.Column="0" Text="Cancel" Clicked="OnCancelClicked"
+				<Button Grid.Column="0" x:Name="CancelButton" Text="Cancel" Clicked="OnCancelClicked"
                         BackgroundColor="{StaticResource Gray100}" TextColor="Black"/>
 				<Button Grid.Column="1" x:Name="ConfirmButton" Text="Delete" Clicked="OnConfirmClicked"
                         BackgroundColor="Crimson" TextColor="White"/>

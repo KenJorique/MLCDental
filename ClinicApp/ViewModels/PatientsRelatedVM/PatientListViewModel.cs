@@ -451,6 +451,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 $"&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
         }
 
+
         // Opens the tapped patient's billing/transaction page.
         [RelayCommand]
         async Task ViewTransactions(PatientCardViewModel card)

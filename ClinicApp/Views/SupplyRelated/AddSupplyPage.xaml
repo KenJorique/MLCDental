@@ -7,8 +7,11 @@
     x:Class="ClinicApp.Views.SupplyRelated.AddSupplyPage"
     x:DataType="vm:AddSupplyViewModel"
     Title="{Binding PageTitle}"
-    BackgroundColor="{StaticResource PageBg}"
-    Shell.TabBarIsVisible="False">
+	Shell.BackgroundColor="{StaticResource Primary}"
+    Shell.TitleColor="White"
+    Shell.ForegroundColor="White"
+    Shell.TabBarIsVisible="False"
+    BackgroundColor="{StaticResource PageBg}">
 
 	<Grid RowDefinitions="*,Auto">
 

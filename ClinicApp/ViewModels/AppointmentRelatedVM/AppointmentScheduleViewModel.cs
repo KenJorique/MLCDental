@@ -5,7 +5,9 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using ClinicApp.Views.AppointmentRelated;
 using ClinicApp.Views;
+using ClinicApp.Views.Shared;
 using ClinicApp.Models.AppointmentModels;
+using CommunityToolkit.Maui.Views;
 
 namespace ClinicApp.ViewModels
 {
@@ -89,15 +91,48 @@ namespace ClinicApp.ViewModels
             OnPropertyChanged(nameof(CanChangeDate));
         }
 
+        // ---------------------------------------------------------------
+        // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
+        // everywhere in this ViewModel with the app's dimmed-backdrop
+        // rounded-card popup.
+        //
+        // ConfirmationPopup.Close(bool) is a plain (non-generic) Popup,
+        // so ShowPopupAsync returns an object? that is either true, false,
+        // or null (if dismissed by tapping outside/back button).
+        // ---------------------------------------------------------------
+
+        static Page CurrentPage =>
+            Shell.Current?.CurrentPage
+            ?? Application.Current?.Windows.FirstOrDefault()?.Page
+            ?? throw new InvalidOperationException("No current page available to host the popup.");
+
+        // Yes/No confirmation. Returns true only if the confirm button was tapped.
+        static async Task<bool> ShowConfirmAsync(
+            string title, string message, string confirmText = "Yes", Color? confirmColor = null)
+        {
+            var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+            var result = await CurrentPage.ShowPopupAsync(popup);
+            return result is true;
+        }
+
+        // Plain OK-only notice (used in place of single-button DisplayAlert calls).
+        static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+        {
+            var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+            await CurrentPage.ShowPopupAsync(popup);
+        }
+
+        // Convenience wrapper for error alerts so call sites read the same as before.
+        static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
+
         [RelayCommand]
         async Task GoToPending()
         {
             if (!HasPendingBookings)
             {
-                await Shell.Current.DisplayAlert(
+                await ShowNoticeAsync(
                     "No Pending Bookings",
-                    "There are no bookings waiting for approval.",
-                    "OK");
+                    "There are no bookings waiting for approval.");
                 return;
             }
             await Shell.Current.GoToAsync(nameof(AppointmentPage));
@@ -115,7 +150,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[GoToInProcedure] {ex}");
-                await Shell.Current.DisplayAlert("Nav error", ex.Message, "OK");
+                await ShowNoticeAsync("Navigation Error", ex.Message);
             }
         }
 
@@ -310,7 +345,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UpdateAppointmentStage] {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+                await ShowErrorAsync(ex.Message);
             }
         }
 
@@ -320,10 +355,10 @@ namespace ClinicApp.ViewModels
         {
             if (SelectedAppointment == null) return;
 
-            bool confirm = await Shell.Current.DisplayAlert(
+            bool confirm = await ShowConfirmAsync(
                 "Set In Transit",
                 $"Mark {SelectedAppointment.PatientName} as currently in procedure?",
-                "Yes", "Cancel");
+                "Yes");
 
             if (!confirm) return;
 
@@ -341,10 +376,10 @@ namespace ClinicApp.ViewModels
                 $"PatientSupabaseId='{SelectedAppointment.PatientSupabaseId}' " +
                 $"Status='{SelectedAppointment.Status}'");
 
-            bool confirm = await Shell.Current.DisplayAlert(
+            bool confirm = await ShowConfirmAsync(
                 "Start Billing",
                 $"Procedure for {SelectedAppointment.PatientName} is done.\nStart billing now?",
-                "Yes, proceed", "Cancel");
+                "Yes, proceed");
 
             if (!confirm) return;
 
@@ -368,7 +403,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[ProceedToBilling] {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+                await ShowErrorAsync(ex.Message);
             }
         }
 
@@ -377,11 +412,11 @@ namespace ClinicApp.ViewModels
         {
             if (SelectedAppointment == null) return;
 
-            bool confirm = await Shell.Current.DisplayAlert(
+            bool confirm = await ShowConfirmAsync(
                 "Cancel appointment",
                 $"Cancel {SelectedAppointment.PatientName}'s appointment?\n" +
                 "This will also remove the booking from the system.",
-                "Yes, cancel", "Keep");
+                "Yes, cancel");
             if (!confirm) return;
 
             try
@@ -413,7 +448,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[CancelAppointment] {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+                await ShowErrorAsync(ex.Message);
             }
         }
 
@@ -621,11 +656,11 @@ namespace ClinicApp.ViewModels
         {
             if (SelectedAppointment == null) return;
 
-            bool confirm = await Shell.Current.DisplayAlert(
+            bool confirm = await ShowConfirmAsync(
                 "Delete appointment",
                 $"Permanently delete {SelectedAppointment.PatientName}'s appointment?\n" +
                 "This cannot be undone.",
-                "Delete", "Cancel");
+                "Delete");
             if (!confirm) return;
 
             try
@@ -649,7 +684,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[DeleteAppointment] {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+                await ShowErrorAsync(ex.Message);
             }
         }
 
@@ -658,7 +693,7 @@ namespace ClinicApp.ViewModels
         {
             if (string.IsNullOrWhiteSpace(phoneNumber))
             {
-                await Shell.Current.DisplayAlert("Error", "No phone number available for this patient.", "OK");
+                await ShowNoticeAsync("Error", "No phone number available for this patient.");
                 return;
             }
             try
@@ -666,12 +701,12 @@ namespace ClinicApp.ViewModels
                 if (PhoneDialer.Default.IsSupported)
                     PhoneDialer.Default.Open(phoneNumber);
                 else
-                    await Shell.Current.DisplayAlert("Not Supported", "Phone dialing is not supported on this device.", "OK");
+                    await ShowNoticeAsync("Not Supported", "Phone dialing is not supported on this device.");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[CallPatient] Error: {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", "Unable to open phone dialer.", "OK");
+                await ShowErrorAsync("Unable to open phone dialer.");
             }
         }
 
@@ -680,7 +715,7 @@ namespace ClinicApp.ViewModels
         {
             if (string.IsNullOrWhiteSpace(email))
             {
-                await Shell.Current.DisplayAlert("Error", "No email address available for this patient.", "OK");
+                await ShowNoticeAsync("Error", "No email address available for this patient.");
                 return;
             }
             try
@@ -691,7 +726,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[EmailPatient] Error: {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", "Unable to open email app.", "OK");
+                await ShowErrorAsync("Unable to open email app.");
             }
         }
     }
