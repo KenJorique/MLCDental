@@ -107,6 +107,75 @@ namespace ClinicApp.Services
             try
             {
                 await EnsureInitializedAsync();
+
+                var patientId = patient.Id;
+
+                // ── Bills + their line items + payments ──
+                var billsResult = await _client!
+                    .From<SupabaseBill>()
+                    .Where(b => b.PatientId == patientId)
+                    .Get();
+
+                foreach (var bill in billsResult.Models ?? new List<SupabaseBill>())
+                {
+                    var itemsResult = await _client!
+                        .From<SupabaseBillItem>()
+                        .Where(i => i.BillId == bill.Id)
+                        .Get();
+                    foreach (var item in itemsResult.Models ?? new List<SupabaseBillItem>())
+                        await _client!.From<SupabaseBillItem>().Delete(item);
+
+                    var paymentsResult = await _client!
+                        .From<SupabasePayment>()
+                        .Where(p => p.BillId == bill.Id)
+                        .Get();
+                    foreach (var payment in paymentsResult.Models ?? new List<SupabasePayment>())
+                        await _client!.From<SupabasePayment>().Delete(payment);
+
+                    await _client!.From<SupabaseBill>().Delete(bill);
+                }
+
+                // ── Transactions ──
+                var txResult = await _client!
+                    .From<SupabaseTransaction>()
+                    .Where(t => t.PatientId == patientId)
+                    .Get();
+                foreach (var tx in txResult.Models ?? new List<SupabaseTransaction>())
+                    await _client!.From<SupabaseTransaction>().Delete(tx);
+
+                // ── Treatment records ──
+                var trResult = await _client!
+                    .From<SupabaseTreatmentRecord>()
+                    .Where(r => r.PatientId == patientId)
+                    .Get();
+                foreach (var r in trResult.Models ?? new List<SupabaseTreatmentRecord>())
+                    await _client!.From<SupabaseTreatmentRecord>().Delete(r);
+
+                // ── Treatment history ──
+                var thResult = await _client!
+                    .From<SupabaseTreatmentHistory>()
+                    .Where(h => h.PatientId == patientId)
+                    .Get();
+                foreach (var h in thResult.Models ?? new List<SupabaseTreatmentHistory>())
+                    await _client!.From<SupabaseTreatmentHistory>().Delete(h);
+
+                // ── Tooth records ──
+                var toothResult = await _client!
+                    .From<SupabaseToothRecord>()
+                    .Where(r => r.PatientId == patientId)
+                    .Get();
+                foreach (var r in toothResult.Models ?? new List<SupabaseToothRecord>())
+                    await _client!.From<SupabaseToothRecord>().Delete(r);
+
+                // ── Treatment sequences ──
+                var seqResult = await _client!
+                    .From<SupabaseTreatmentSequence>()
+                    .Where(t => t.PatientId == patientId)
+                    .Get();
+                foreach (var s in seqResult.Models ?? new List<SupabaseTreatmentSequence>())
+                    await _client!.From<SupabaseTreatmentSequence>().Delete(s);
+
+                // ── Finally, the patient itself ──
                 await _client!.From<SupabasePatient>().Delete(patient);
             }
             catch (Exception ex)

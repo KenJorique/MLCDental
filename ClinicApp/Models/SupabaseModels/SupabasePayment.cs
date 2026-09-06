@@ -37,7 +37,7 @@ namespace ClinicApp.Models.SupabaseModels
 
         [Ignore]
         [JsonIgnore]
-    public string DateDisplay =>
-    PaymentDate.ToString("MMM dd, yyyy h:mm tt");
+        public string DateDisplay =>
+        PaymentDate.ToString("MMM dd, yyyy h:mm tt");
     }
 }
