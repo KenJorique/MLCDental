@@ -6,6 +6,7 @@ using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Models.SupplyModels;
 using ClinicApp.Models.TreatmentModels;
 using SQLite;
+using System.Linq;
 
 namespace ClinicApp.Services;
 
@@ -1310,15 +1311,23 @@ public partial class DatabaseService
     {
         try
         {
-            if (!string.IsNullOrEmpty(sp.GuardianName))
-                await SaveGuardian(new Guardian
-                {
-                    PatientID = patientId,
-                    GuardianName = sp.GuardianName,
-                    RelationshipToPatient = sp.GuardianRelationship ?? "",
-                    Occupation = sp.GuardianOccupation ?? "",
-                    MobileNo = sp.GuardianMobile ?? ""
-                });
+            // Guardian is now a shared entity in Supabase — resolve the
+            // referenced row and copy its details into the local per-patient
+            // Guardian record (local SQLite stays denormalized as before;
+            // only the Supabase side needed deduplicating).
+            if (sp.GuardianId.HasValue)
+            {
+                var guardian = await _supabase.GetGuardianByIdAsync(sp.GuardianId.Value);
+                if (guardian != null)
+                    await SaveGuardian(new Guardian
+                    {
+                        PatientID = patientId,
+                        GuardianName = guardian.Name,
+                        RelationshipToPatient = sp.GuardianRelationship ?? "",
+                        Occupation = guardian.Occupation ?? "",
+                        MobileNo = guardian.Mobile ?? ""
+                    });
+            }
 
             // Preserve local-only fields (BloodPressure, BleedingTime, PhysicianName, IsPregnant,
             // MedicationDetails, HospitalizationDetails, UsesAlcohol, OtherCondition) — Supabase
@@ -1343,6 +1352,30 @@ public partial class DatabaseService
                 HasLocalAnestheticAllergy = sp.LocalAnestheticAllergy,
                 OtherAllergy = sp.OtherAllergy ?? ""
             });
+
+            // Medical conditions now live in Supabase's normalized patient_conditions
+            // join table instead of a comma-separated string on the patient row, so
+            // pull the selected condition names and reconcile against the local
+            // MedicalCondition/PatientCondition tables by name.
+            if (!string.IsNullOrEmpty(sp.Id))
+            {
+                var remoteLinks = await _supabase.GetPatientConditionsAsync(sp.Id);
+                var remoteDefs = await _supabase.GetMedicalConditionsAsync();
+                var remoteIds = remoteLinks.Select(l => l.ConditionId).ToHashSet();
+                var selectedNames = remoteDefs
+                    .Where(c => remoteIds.Contains(c.Id))
+                    .Select(c => c.Name)
+                    .ToHashSet();
+
+                await EnsureDefaultConditions();
+                var localDefs = await GetAllConditions();
+                var localIds = localDefs
+                    .Where(c => selectedNames.Contains(c.ConditionName))
+                    .Select(c => c.ConditionID)
+                    .ToList();
+
+                await SavePatientConditions(patientId, localIds);
+            }
         }
         catch (Exception ex)
         {

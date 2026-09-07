@@ -33,11 +33,11 @@ namespace ClinicApp.Models.SupabaseModels
         // Referral
         [Column("referred_by")] public string? ReferredBy { get; set; }
 
-        // Guardian
-        [Column("guardian_name")] public string? GuardianName { get; set; }
+        // Guardian — shared entity (see SupabaseGuardian); relationship stays
+        // here because it describes this patient's pairing with that guardian,
+        // not the guardian as a person.
+        [Column("guardian_id")] public long? GuardianId { get; set; }
         [Column("guardian_relationship")] public string? GuardianRelationship { get; set; }
-        [Column("guardian_occupation")] public string? GuardianOccupation { get; set; }
-        [Column("guardian_mobile")] public string? GuardianMobile { get; set; }
 
         // Medical History (Health Status)
         [Column("blood_type")] public string? BloodType { get; set; }
@@ -54,8 +54,5 @@ namespace ClinicApp.Models.SupabaseModels
         [Column("sulfa_allergy")] public bool SulfaAllergy { get; set; }
         [Column("local_anesthetic_allergy")] public bool LocalAnestheticAllergy { get; set; }
         [Column("other_allergy")] public string? OtherAllergy { get; set; }
-
-        // Conditions as comma-separated string
-        [Column("conditions")] public string? Conditions { get; set; }
     }
 }

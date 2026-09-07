@@ -184,6 +184,148 @@ namespace ClinicApp.Services
             }
         }
 
+        // ── Medical Conditions (normalized) ────────────
+        public async Task<List<SupabaseMedicalCondition>> GetMedicalConditionsAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseMedicalCondition>().Get();
+                return result.Models ?? new List<SupabaseMedicalCondition>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetMedicalConditions: {ex.Message}");
+                return new List<SupabaseMedicalCondition>();
+            }
+        }
+
+        public async Task<List<SupabasePatientCondition>> GetPatientConditionsAsync(string patientId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabasePatientCondition>()
+                    .Where(pc => pc.PatientId == patientId)
+                    .Get();
+                return result.Models ?? new List<SupabasePatientCondition>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetPatientConditions: {ex.Message}");
+                return new List<SupabasePatientCondition>();
+            }
+        }
+
+        /// Replaces the patient's full condition set — remove then re-insert,
+        /// mirroring DatabaseService.SavePatientConditions' remove/re-add pattern.
+        public async Task SavePatientConditionsAsync(string patientId, List<long> conditionIds)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var existing = await GetPatientConditionsAsync(patientId);
+                foreach (var row in existing)
+                    await _client!.From<SupabasePatientCondition>().Delete(row);
+
+                foreach (var conditionId in conditionIds)
+                    await _client!.From<SupabasePatientCondition>().Insert(new SupabasePatientCondition
+                    {
+                        PatientId = patientId,
+                        ConditionId = conditionId
+                    });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] SavePatientConditions: {ex.Message}");
+            }
+        }
+
+        // ── Guardians (shared across siblings) ─────────
+        /// Looks for an existing guardian first by mobile (a decent natural
+        /// key for a person), falling back to an exact name match if no
+        /// mobile is on file. Returns null if nothing matches.
+        public async Task<SupabaseGuardian?> FindGuardianAsync(string? name, string? mobile)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                if (!string.IsNullOrWhiteSpace(mobile))
+                {
+                    var byMobile = await _client!
+                        .From<SupabaseGuardian>()
+                        .Where(g => g.Mobile == mobile)
+                        .Get();
+                    var match = byMobile.Models?.FirstOrDefault();
+                    if (match != null) return match;
+                }
+
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    var byName = await _client!
+                        .From<SupabaseGuardian>()
+                        .Where(g => g.Name == name)
+                        .Get();
+                    return byName.Models?.FirstOrDefault();
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] FindGuardian: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<SupabaseGuardian?> AddGuardianAsync(SupabaseGuardian g)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseGuardian>().Insert(g);
+                return result.Models?.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] AddGuardian: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateGuardianAsync(SupabaseGuardian g)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                await _client!.From<SupabaseGuardian>().Update(g);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateGuardian: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<SupabaseGuardian?> GetGuardianByIdAsync(long id)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseGuardian>().Where(g => g.Id == id).Get();
+                return result.Models?.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetGuardianById: {ex.Message}");
+                return null;
+            }
+        }
+
         // ── Bookings ──────────────────────────────────
         public async Task<List<SupabaseBooking>> GetPendingBookingsAsync()
         {

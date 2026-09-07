@@ -29,7 +29,7 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(AddPatientPage), typeof(AddPatientPage));
             Routing.RegisterRoute(nameof(PatientDetailsPage), typeof(PatientDetailsPage));
             Routing.RegisterRoute(nameof(DentalChartPage), typeof(DentalChartPage));
-            Routing.RegisterRoute(nameof(Views.PatientsRelated.TreatmentHistoryPage), typeof(Views.PatientsRelated.TreatmentHistoryPage));
+            Routing.RegisterRoute(nameof(TreatmentHistoryPage), typeof(TreatmentHistoryPage));
             Routing.RegisterRoute(nameof(CephalometricPage), typeof(CephalometricPage));
             Routing.RegisterRoute(nameof(VisitDetailsPage), typeof(VisitDetailsPage));
 
