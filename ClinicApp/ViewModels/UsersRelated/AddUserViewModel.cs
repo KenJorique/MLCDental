@@ -5,6 +5,7 @@ using ClinicApp.Views.Shared;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Text.RegularExpressions;
 
 namespace ClinicApp.ViewModels.UsersRelated;
 
@@ -64,6 +65,7 @@ public partial class AddUserViewModel : ObservableObject
     [ObservableProperty] string? fullName;
     [ObservableProperty] string? username;
     [ObservableProperty] string? password;
+    [ObservableProperty] string? confirmPassword;
     [ObservableProperty] string? role;
     [ObservableProperty] string? contactNo;
     [ObservableProperty] string? email;
@@ -73,6 +75,23 @@ public partial class AddUserViewModel : ObservableObject
 
     // Controls whether the Active/Inactive switch is shown (only on edit)
     [ObservableProperty] bool isEditMode = false;
+
+    // True while SaveUser is running — disables the buttons and shows a spinner.
+    [ObservableProperty] bool isSaving;
+
+    // Toggles the Password field's masked/plaintext state.
+    [ObservableProperty] bool isPasswordVisible;
+
+    // Toggles the Confirm Password field's masked/plaintext state.
+    [ObservableProperty] bool isConfirmPasswordVisible;
+
+    // Flips the Password field between hidden and visible.
+    [RelayCommand]
+    void TogglePasswordVisibility() => IsPasswordVisible = !IsPasswordVisible;
+
+    // Flips the Confirm Password field between hidden and visible.
+    [RelayCommand]
+    void ToggleConfirmPasswordVisibility() => IsConfirmPasswordVisible = !IsConfirmPasswordVisible;
 
     // Switches the page into edit mode and loads the user once UserId arrives.
     partial void OnUserIdChanged(int value)
@@ -103,58 +122,116 @@ public partial class AddUserViewModel : ObservableObject
         }
     }
 
-    // Validates, saves the user locally and to Supabase, then goes back.
+    // Checks every field and returns a list of problems found (empty = form is clean).
+    private List<string> ValidateForm()
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(FullName))
+            errors.Add("Full name is required.");
+
+        if (string.IsNullOrWhiteSpace(Role))
+            errors.Add("Please select a role.");
+
+        if (UserId == 0 && string.IsNullOrWhiteSpace(Password))
+        {
+            errors.Add("A password is required for a new account.");
+        }
+        else if (!string.IsNullOrEmpty(Password))
+        {
+            if (Password.Length < 6)
+                errors.Add("Password must be at least 6 characters.");
+            if (Password != ConfirmPassword)
+                errors.Add("Passwords do not match.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(ContactNo) && !Regex.IsMatch(ContactNo, @"^09\d{9}$"))
+            errors.Add("Contact number must be 11 digits starting with 09.");
+
+        if (!string.IsNullOrWhiteSpace(Email) && !Regex.IsMatch(Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            errors.Add("Enter a valid email address.");
+
+        return errors;
+    }
+
+    // Validates, confirms, then saves the user locally and to Supabase.
     [RelayCommand]
     async Task SaveUser()
     {
-        // Basic validation
-        if (string.IsNullOrWhiteSpace(FullName) || string.IsNullOrWhiteSpace(Role))
+        if (IsSaving) return; // guards against double-tap firing this twice
+
+        var errors = ValidateForm();
+        if (errors.Count > 0)
         {
-            await ShowNoticeAsync("Validation", "Full name and role are required.");
+            var bulletList = string.Join("\n", errors.Select(e => $"• {e}"));
+            await ShowNoticeAsync("Missing or Invalid Information", bulletList);
             return;
         }
 
-        // A brand-new account must be given a password here (edit mode can
-        // leave it blank to keep the current one — see AddUser/UpdateUser).
-        if (UserId == 0 && string.IsNullOrWhiteSpace(Password))
+        bool confirmed = await ShowConfirmAsync(
+            UserId == 0 ? "Add Staff" : "Save Changes",
+            UserId == 0
+                ? $"Add {FullName} as a new staff member?"
+                : $"Save these changes to {FullName}'s account?",
+            "Yes, save");
+        if (!confirmed) return;
+
+        IsSaving = true;
+        try
         {
-            await ShowNoticeAsync("Validation", "A password is required for a new account.");
-            return;
+            var user = new User
+            {
+                UserID = UserId,
+                FullName = FullName,
+                Username = Username,
+                Password = Password,
+                Role = Role,
+                ContactNo = ContactNo,
+                Email = Email,
+                // New users default to Active; edit mode uses the switch value
+                IsActive = UserId > 0 ? IsActive : true
+            };
+
+            var isNewUser = UserId == 0;
+
+            if (UserId > 0)
+                await _db.UpdateUser(user); // hashes Password if provided, preserves everything else
+            else
+                await _db.AddUser(user);    // sets user.UserID + user.PasswordHash on the object
+
+            await SyncUserToSupabaseAsync(user);
+
+            if (isNewUser)
+                await _supabaseData.LogActivityAsync("NewUser", $"New staff account {user.FullName} added");
+            else if (_wasActiveBeforeEdit && !IsActive)
+                await _supabaseData.LogActivityAsync("UserDeactivated", $"{user.FullName}'s account was deactivated");
+
+            await Shell.Current.GoToAsync("..");
         }
-
-        var user = new User
+        catch (Exception ex)
         {
-            UserID = UserId,
-            FullName = FullName,
-            Username = Username,
-            Password = Password,
-            Role = Role,
-            ContactNo = ContactNo,
-            Email = Email,
-            // New users default to Active; edit mode uses the switch value
-            IsActive = UserId > 0 ? IsActive : true
-        };
+            // Previously uncaught — a failure here used to fail silently and look like a frozen button.
+            System.Diagnostics.Debug.WriteLine($"[SaveUser] {ex.Message}");
+            await ShowErrorAsync($"Couldn't save this staff member: {ex.Message}");
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
 
-        var isNewUser = UserId == 0;
-
-        if (UserId > 0)
-            await _db.UpdateUser(user); // hashes Password if provided, preserves everything else
-        else
-            await _db.AddUser(user);    // sets user.UserID + user.PasswordHash on the object
-
-        await SyncUserToSupabaseAsync(user);
-
-        if (isNewUser)
-            await _supabaseData.LogActivityAsync("NewUser", $"New staff account {user.FullName} added");
-        else if (_wasActiveBeforeEdit && !IsActive)
-            await _supabaseData.LogActivityAsync("UserDeactivated", $"{user.FullName}'s account was deactivated");
+    // Confirms, then discards and goes back — called by the page's back-button override too.
+    [RelayCommand]
+    async Task Cancel()
+    {
+        bool confirmed = await ShowConfirmAsync(
+            "Discard Changes",
+            "Are you sure you want to discard this and go back?",
+            "Yes, discard");
+        if (!confirmed) return;
 
         await Shell.Current.GoToAsync("..");
     }
-
-    // Discards and goes back — called by the page's back-button override too.
-    [RelayCommand]
-    async Task Cancel() => await Shell.Current.GoToAsync("..");
 
     // Mirrors the saved user to Supabase so the account works from other devices too.
     private async Task SyncUserToSupabaseAsync(User user)

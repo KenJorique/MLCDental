@@ -1,6 +1,8 @@
 ﻿using ClinicApp.Models.PatientModels;
 using ClinicApp.Services;
 using ClinicApp.Views.PatientsRelated;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -29,17 +31,20 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] bool isPersonalTabActive = true;
     [ObservableProperty] bool isMedicalTabActive = false;
 
-    // Switches to the Personal tab, discarding unsaved Medical edits if any.
+    // Switches to the Personal tab, confirming discard of unsaved Medical edits if any.
     [RelayCommand]
     async Task SelectPersonalTab()
     {
         if (IsMedicalEditMode)
         {
-            bool discard = await Shell.Current.DisplayAlert(
-                "Discard changes?",
+            var popup = new ConfirmationPopup(
+                "Discard Changes?",
                 "You have unsaved changes in Medical Record. Switching tabs will discard them.",
-                "Discard", "Keep editing");
-            if (!discard) return;
+                confirmText: "Discard",
+                confirmColor: Colors.Crimson);
+
+            var result = await Shell.Current.ShowPopupAsync(popup);
+            if (result is not bool discard || !discard) return;
 
             IsMedicalEditMode = false;
             if (PatientId > 0)
@@ -54,17 +59,20 @@ public partial class PatientDetailsViewModel : ObservableObject
         IsPersonalEditMode = false;
     }
 
-    // Switches to the Medical tab, discarding unsaved Personal Info edits if any.
+    // Switches to the Medical tab, confirming discard of unsaved Personal Info edits if any.
     [RelayCommand]
     async Task SelectMedicalTab()
     {
         if (IsPersonalEditMode)
         {
-            bool discard = await Shell.Current.DisplayAlert(
-                "Discard changes?",
+            var popup = new ConfirmationPopup(
+                "Discard Changes?",
                 "You have unsaved changes in Personal Info. Switching tabs will discard them.",
-                "Discard", "Keep editing");
-            if (!discard) return;
+                confirmText: "Discard",
+                confirmColor: Colors.Crimson);
+
+            var result = await Shell.Current.ShowPopupAsync(popup);
+            if (result is not bool discard || !discard) return;
 
             IsPersonalEditMode = false;
             if (PatientId > 0)
@@ -111,6 +119,7 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] string dateOfBirthDisplay = string.Empty;
     [ObservableProperty] int age;
 
+    // Recomputes age and the display string whenever the birthdate changes.
     partial void OnDateOfBirthDateChanged(DateTime value)
     {
         var today = DateTime.Today;
@@ -150,10 +159,10 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] bool usesTobacco;
     [ObservableProperty] bool takingMedications;
 
-    // Computed — drives IsVisible of Pregnant field
+    // Computed — drives IsVisible of Pregnant field.
     public bool IsFemale => Gender?.Equals("Female", StringComparison.OrdinalIgnoreCase) ?? false;
 
-    // Notify IsFemale when Gender changes
+    // Notifies IsFemale when Gender changes.
     partial void OnGenderChanged(string value) => OnPropertyChanged(nameof(IsFemale));
 
     // ── Allergies ─────────────────────────────────────────────
@@ -169,11 +178,12 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] string conditionsText = "None reported";
     [ObservableProperty] string otherCondition = string.Empty;
 
-    // Shows "Other" in view mode only when it has content
+    // Shows "Other" in view mode only when it has content.
     public bool HasOtherCondition => !string.IsNullOrWhiteSpace(OtherCondition);
     partial void OnOtherConditionChanged(string value) =>
         OnPropertyChanged(nameof(HasOtherCondition));
 
+    // Loads the patient's full record once PatientId is set via navigation.
     partial void OnPatientIdChanged(int value)
     {
         if (value > 0)
@@ -322,11 +332,19 @@ public partial class PatientDetailsViewModel : ObservableObject
             });
     }
 
-    // Saves the Personal Info tab and logs the update.
-    // Saves Personal Info locally and to Supabase, and logs the update.
+    // Confirms with the popup, then saves Personal Info locally and to Supabase, and logs the update.
     [RelayCommand]
     async Task SavePersonalRecord()
     {
+        var popup = new ConfirmationPopup(
+            "Save Changes?",
+            "Save changes to this patient's personal info?",
+            confirmText: "Save",
+            confirmColor: Colors.Green);
+
+        var confirmResult = await Shell.Current.ShowPopupAsync(popup);
+        if (confirmResult is not bool confirmed || !confirmed) return;
+
         IsSavingPersonal = true;
         try
         {
@@ -406,10 +424,19 @@ public partial class PatientDetailsViewModel : ObservableObject
         finally { IsSavingPersonal = false; }
     }
 
-    // Saves the Medical tab (history, allergies, conditions) locally and to Supabase.
+    // Confirms with the popup, then saves the Medical tab (history, allergies, conditions) locally and to Supabase.
     [RelayCommand]
     async Task UpdateMedicalRecord()
     {
+        var popup = new ConfirmationPopup(
+            "Save Changes?",
+            "Save changes to this patient's medical record?",
+            confirmText: "Save",
+            confirmColor: Colors.Green);
+
+        var confirmResult = await Shell.Current.ShowPopupAsync(popup);
+        if (confirmResult is not bool confirmed || !confirmed) return;
+
         IsSavingMedical = true;
         try
         {

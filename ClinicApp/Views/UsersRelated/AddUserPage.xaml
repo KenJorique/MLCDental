@@ -1,93 +1,209 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:ClinicApp.Converters"
              x:Class="ClinicApp.Views.UsersRelated.AddUserPage"
              Title="{Binding PageTitle}"
+		     Shell.BackgroundColor="{StaticResource Primary}"
+             Shell.TitleColor="White"
+             Shell.ForegroundColor="White"
+             BackgroundColor="{StaticResource PageBg}"
              Shell.TabBarIsVisible="False">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="12">
+	<Grid RowDefinitions="*">
 
-            <Label Text="Full Name" FontAttributes="Bold"/>
-            <Entry Text="{Binding FullName}" Placeholder="Enter full name"/>
+		<ScrollView Grid.Row="0">
+			<VerticalStackLayout Padding="20,8,20,32" Spacing="0">
 
-            <Label Text="Username" FontAttributes="Bold"/>
-            <Entry Text="{Binding Username}" Placeholder="Enter username"/>
+				<Label Text="Staff Information" Style="{StaticResource FormSectionHeader}" Margin="0,0,0,6"/>
 
-            <Label Text="Password" FontAttributes="Bold"/>
-            <Entry Text="{Binding Password}" Placeholder="Enter password" IsPassword="True"/>
-            <Label Text="Leave blank when editing to keep the current password."
-                   FontSize="11" TextColor="Gray"
-                   IsVisible="{Binding IsEditMode}"/>
+				<!-- Full name -->
+				<Label Text="Full Name" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding FullName}" Placeholder="Enter full name" Style="{StaticResource FormEntry}"/>
+				</Border>
 
-            <Label Text="Contact No." FontAttributes="Bold"/>
-            <Entry Text="{Binding ContactNo}"
-                   Placeholder="09xxxxxxxxx"
-                   Keyboard="Telephone"
-                   MaxLength="11"/>
+				<!-- Username -->
+				<Label Text="Username" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding Username}" Placeholder="Enter username" Style="{StaticResource FormEntry}"/>
+				</Border>
 
-            <Label Text="Email Address" FontAttributes="Bold"/>
-            <Entry Text="{Binding Email}"
-                   Placeholder="email@example.com"
-                   Keyboard="Email"/>
+				<!-- Password -->
+				<Label Text="Password" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Grid ColumnDefinitions="*,Auto">
+						<Entry Grid.Column="0"
+                               Text="{Binding Password}"
+                               Placeholder="Enter password"
+                               IsPassword="{Binding IsPasswordVisible, Converter={StaticResource InvertedBoolConverter}}"
+                               Style="{StaticResource FormEntry}"/>
 
-            <Label Text="Role" FontAttributes="Bold"/>
-            <Picker SelectedItem="{Binding Role}" Title="Select Role">
-                <Picker.ItemsSource>
-                    <x:Array Type="{x:Type x:String}">
-                        <x:String>Dentist</x:String>
-                        <x:String>Secretary</x:String>
-                        <x:String>Assistant</x:String>
-                        <x:String>Admin</x:String>
-                    </x:Array>
-                </Picker.ItemsSource>
-            </Picker>
+						<!-- Eye icon: closed (tap to reveal) -->
+						<Label Grid.Column="1"
+                               Text="&#xe8f4;"
+                               FontFamily="MaterialSymbolsRounded"
+                               FontSize="20"
+                               TextColor="{StaticResource TextMuted}"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding IsPasswordVisible, Converter={StaticResource InvertedBoolConverter}}">
+							<Label.GestureRecognizers>
+								<TapGestureRecognizer Command="{Binding TogglePasswordVisibilityCommand}"/>
+							</Label.GestureRecognizers>
+						</Label>
 
-            <!-- Status switch: only visible when editing an existing user -->
-            <VerticalStackLayout IsVisible="{Binding IsEditMode}"
-                                 Spacing="8"
-                                 Margin="0,10,0,0">
+						<!-- Eye icon: open (tap to hide) -->
+						<Label Grid.Column="1"
+                               Text="&#xe8f5;"
+                               FontFamily="MaterialSymbolsRounded"
+                               FontSize="20"
+                               TextColor="{StaticResource TextMuted}"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding IsPasswordVisible}">
+							<Label.GestureRecognizers>
+								<TapGestureRecognizer Command="{Binding TogglePasswordVisibilityCommand}"/>
+							</Label.GestureRecognizers>
+						</Label>
+					</Grid>
+				</Border>
+				<Label Text="Leave blank to keep the current password."
+                       Style="{StaticResource FormHintLabel}"
+                       IsVisible="{Binding IsEditMode}"/>
 
-                <Label Text="Status" FontAttributes="Bold"/>
+				<!-- Confirm Password -->
+				<Label Text="Confirm Password" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Grid ColumnDefinitions="*,Auto">
+						<Entry Grid.Column="0"
+                               Text="{Binding ConfirmPassword}"
+                               Placeholder="Re-enter password"
+                               IsPassword="{Binding IsConfirmPasswordVisible, Converter={StaticResource InvertedBoolConverter}}"
+                               Style="{StaticResource FormEntry}"/>
 
-                <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+						<!-- Eye icon: closed (tap to reveal) -->
+						<Label Grid.Column="1"
+                               Text="&#xe8f4;"
+                               FontFamily="MaterialSymbolsRounded"
+                               FontSize="20"
+                               TextColor="{StaticResource TextMuted}"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding IsConfirmPasswordVisible, Converter={StaticResource InvertedBoolConverter}}">
+							<Label.GestureRecognizers>
+								<TapGestureRecognizer Command="{Binding ToggleConfirmPasswordVisibilityCommand}"/>
+							</Label.GestureRecognizers>
+						</Label>
 
-                    <!-- Colored dot reflects current switch state -->
-                    <Ellipse WidthRequest="12"
-                             HeightRequest="12"
-                             VerticalOptions="Center">
-                        <Ellipse.Fill>
-                            <Binding Path="IsActive">
-                                <Binding.Converter>
-                                    <local:BoolToStatusColorConverter xmlns:local="clr-namespace:ClinicApp.Converters"/>
-                                </Binding.Converter>
-                            </Binding>
-                        </Ellipse.Fill>
-                    </Ellipse>
+						<!-- Eye icon: open (tap to hide) -->
+						<Label Grid.Column="1"
+                               Text="&#xe8f5;"
+                               FontFamily="MaterialSymbolsRounded"
+                               FontSize="20"
+                               TextColor="{StaticResource TextMuted}"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding IsConfirmPasswordVisible}">
+							<Label.GestureRecognizers>
+								<TapGestureRecognizer Command="{Binding ToggleConfirmPasswordVisibilityCommand}"/>
+							</Label.GestureRecognizers>
+						</Label>
+					</Grid>
+				</Border>
 
-                    <Label VerticalOptions="Center" FontSize="15">
-                        <Label.Text>
-                            <Binding Path="IsActive">
-                                <Binding.Converter>
-                                    <local:BoolToStatusTextConverter xmlns:local="clr-namespace:ClinicApp.Converters"/>
-                                </Binding.Converter>
-                            </Binding>
-                        </Label.Text>
-                    </Label>
+				<!-- Contact number -->
+				<Label Text="Contact No." Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding ContactNo}"
+                           Placeholder="09xxxxxxxxx"
+                           Keyboard="Telephone"
+                           MaxLength="11"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
 
-                    <!-- Toggle switch -->
-                    <Switch IsToggled="{Binding IsActive}" VerticalOptions="Center"/>
+				<!-- Email -->
+				<Label Text="Email Address" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Entry Text="{Binding Email}"
+                           Placeholder="email@example.com"
+                           Keyboard="Email"
+                           Style="{StaticResource FormEntry}"/>
+				</Border>
 
-                </HorizontalStackLayout>
+				<!-- Role -->
+				<Label Text="Role" Style="{StaticResource FormFieldLabel}"/>
+				<Border Style="{StaticResource FormInputBox}">
+					<Picker SelectedItem="{Binding Role}" Title="Select role" TitleColor="{StaticResource TextMuted}">
+						<Picker.ItemsSource>
+							<x:Array Type="{x:Type x:String}">
+								<x:String>Dentist</x:String>
+								<x:String>Secretary</x:String>
+								<x:String>Assistant</x:String>
+								<x:String>Admin</x:String>
+							</x:Array>
+						</Picker.ItemsSource>
+					</Picker>
+				</Border>
 
-            </VerticalStackLayout>
+				<!-- Status switch: only visible when editing an existing user -->
+				<VerticalStackLayout IsVisible="{Binding IsEditMode}" Spacing="8" Margin="0,20,0,0">
 
-            <!-- Save button -->
-            <Button Text="Save"
-                    Command="{Binding SaveUserCommand}"
-                    Margin="0,20,0,0"
-                    BackgroundColor="MediumPurple"/>
+					<Label Text="Status" Style="{StaticResource FormFieldLabel}" Margin="0,0,0,0"/>
 
-        </VerticalStackLayout>
-    </ScrollView>
+					<HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+
+						<!-- Colored dot reflects current switch state -->
+						<Ellipse WidthRequest="12" HeightRequest="12" VerticalOptions="Center">
+							<Ellipse.Fill>
+								<Binding Path="IsActive">
+									<Binding.Converter>
+										<local:BoolToStatusColorConverter/>
+									</Binding.Converter>
+								</Binding>
+							</Ellipse.Fill>
+						</Ellipse>
+
+						<Label VerticalOptions="Center" FontSize="15">
+							<Label.Text>
+								<Binding Path="IsActive">
+									<Binding.Converter>
+										<local:BoolToStatusTextConverter/>
+									</Binding.Converter>
+								</Binding>
+							</Label.Text>
+						</Label>
+
+						<!-- Toggle switch -->
+						<Switch IsToggled="{Binding IsActive}" VerticalOptions="Center"/>
+
+					</HorizontalStackLayout>
+
+				</VerticalStackLayout>
+
+				<!-- Save / Cancel -->
+				<Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,28,0,0">
+					<Button Grid.Column="0"
+                            Text="Cancel"
+                            Command="{Binding CancelCommand}"
+                            Style="{StaticResource SecondaryActionButtonStyle}"
+                            IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}"/>
+
+					<Button Grid.Column="1"
+                            Text="Save"
+                            Command="{Binding SaveUserCommand}"
+                            Style="{StaticResource PrimaryActionButtonStyle}"
+                            IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}"/>
+				</Grid>
+
+			</VerticalStackLayout>
+		</ScrollView>
+
+		<!-- Saving overlay -->
+		<Grid Grid.Row="0"
+              IsVisible="{Binding IsSaving}"
+              BackgroundColor="#40000000">
+			<VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="8">
+				<ActivityIndicator IsRunning="{Binding IsSaving}" Color="{StaticResource White}" HeightRequest="36" WidthRequest="36"/>
+				<Label Text="Saving..." TextColor="{StaticResource White}" FontAttributes="Bold"/>
+			</VerticalStackLayout>
+		</Grid>
+
+	</Grid>
 </ContentPage>
