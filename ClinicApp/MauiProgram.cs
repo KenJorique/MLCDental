@@ -102,7 +102,8 @@ namespace ClinicApp
 
             builder.Services.AddTransient<RescheduleViewModel>(sp =>
                             new RescheduleViewModel(
-                                sp.GetRequiredService<SupabaseDataService>()
+                                sp.GetRequiredService<SupabaseDataService>(),
+                                sp.GetRequiredService<DatabaseService>()
                             ));
             builder.Services.AddTransient<ReschedulePage>();
             builder.Services.AddTransient<InProcedurePage>(sp =>
@@ -121,6 +122,16 @@ namespace ClinicApp
         sp.GetRequiredService<SupabaseDataService>()
     ));
             builder.Services.AddTransient<WalkInBookingPage>();
+
+
+            builder.Services.AddTransient<PendingFollowUpsViewModel>(sp =>
+    new PendingFollowUpsViewModel(
+        sp.GetRequiredService<SupabaseDataService>(),
+         sp.GetRequiredService<DatabaseService>()));
+            builder.Services.AddTransient<PendingFollowUpsPage>(sp =>
+    new PendingFollowUpsPage(
+        sp.GetRequiredService<PendingFollowUpsViewModel>(),
+        sp.GetRequiredService<SupabaseRealtimeService>()));
 
             // ── Patients ──────────────────────────────────────────
             builder.Services.AddSingleton<PatientListViewModel>(sp =>
@@ -150,8 +161,6 @@ namespace ClinicApp
                 sp.GetRequiredService<SupabaseRealtimeService>()));
             builder.Services.AddTransient<CephalometricPage>();
             builder.Services.AddTransient<CephalometricViewModel>();
-            builder.Services.AddTransient<VisitDetailsViewModel>();
-            builder.Services.AddTransient<VisitDetailsPage>();
 
             // ── Services ──────────────────────────────────────────
             builder.Services.AddSingleton<ServiceViewModel>();
@@ -160,7 +169,11 @@ namespace ClinicApp
             builder.Services.AddTransient<AddServiceViewModel>();
 
             // ── Users ─────────────────────────────────────────────
-            builder.Services.AddSingleton<UserViewModel>();
+            builder.Services.AddSingleton<UserViewModel>(sp =>
+             new UserViewModel(
+                 sp.GetRequiredService<DatabaseService>(),
+                 sp.GetRequiredService<SupabaseDataService>(),
+                 sp.GetRequiredService<SupabaseRealtimeService>()));
             builder.Services.AddTransient<UserListPage>();
             builder.Services.AddTransient<AddUserPage>();
             builder.Services.AddTransient<AddUserViewModel>();
@@ -190,8 +203,6 @@ namespace ClinicApp
                     sp.GetRequiredService<SupabaseDataService>()));
             builder.Services.AddTransient<ReceiptPage>();
 
-            builder.Services.AddTransient<ServiceSummaryViewModel>();
-            builder.Services.AddTransient<ServiceSummaryPage>();
             builder.Services.AddTransient<BillSummaryPage>();
             builder.Services.AddTransient<BillSummaryViewModel>();
             builder.Services.AddTransient<PaymentViewModel>();

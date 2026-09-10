@@ -3,6 +3,8 @@ using ClinicApp.Models.TransactionModels;
 using ClinicApp.Helpers;
 using ClinicApp.Services;
 using ClinicApp.Views.TransactionRelated;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -12,12 +14,14 @@ public partial class PaymentViewModel : ObservableObject
 {
     private readonly SupabaseDataService _supabase;
     private readonly BillingService _billing;
+    private readonly DatabaseService _db;
 
-    // Injects the shared data service and billing service.
-    public PaymentViewModel(SupabaseDataService supabase, BillingService billing)
+    // Injects the shared data service, billing service, and local database service.
+    public PaymentViewModel(SupabaseDataService supabase, BillingService billing, DatabaseService db)
     {
         _supabase = supabase;
         _billing = billing;
+        _db = db;
     }
 
     [ObservableProperty]
@@ -64,6 +68,7 @@ public partial class PaymentViewModel : ObservableObject
 
     public string InstallmentDisplay => Draft?.InstallmentSummary ?? string.Empty;
 
+    // Only relevant while any service is on an installment plan.
     public string DueDateDisplay =>
         IsInstallment
             ? DateTime.Now.AddMonths(1).ToString("MMM dd, yyyy")
@@ -131,33 +136,43 @@ public partial class PaymentViewModel : ObservableObject
 
         if (PaymentAmount <= 0)
         {
-            await Shell.Current.DisplayAlert(
+            await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
                 "Enter an Amount",
                 "Enter how much the patient is paying.",
-                "OK");
+                "OK", showCancelButton: false));
             return;
         }
 
         if (IsBelowMinimum)
         {
-            await Shell.Current.DisplayAlert(
+            await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
                 "Payment Too Low",
                 $"Minimum payment today is {MinimumDueTodayDisplay}.",
-                "OK");
+                "OK", showCancelButton: false));
             return;
         }
 
         if (IsAmountTooLarge)
         {
-            bool proceed = await Shell.Current.DisplayAlert(
+            var popup = new ConfirmationPopup(
                 "Check Amount",
                 $"You entered {PaymentAmountDisplay}, but the total balance " +
                 $"is only {BalanceDisplay}. Continue anyway?",
-                "Yes, Continue", "Cancel");
+                "Yes, Continue", Color.FromArgb("#2E7D32"));
+            var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
+            bool proceed = result is bool b && b;
 
             if (!proceed)
                 return;
         }
+
+        var confirmPopup = new ConfirmationPopup(
+            "Confirm Payment",
+            $"Record a payment of {PaymentAmountDisplay} for {PatientName}?",
+            "Confirm", Color.FromArgb("#2E7D32"));
+        var confirmResult = await Shell.Current.CurrentPage.ShowPopupAsync(confirmPopup);
+        if (confirmResult is not bool confirmed || !confirmed)
+            return;
 
         IsBusy = true;
         HasError = false;
@@ -195,10 +210,10 @@ public partial class PaymentViewModel : ObservableObject
 
                 if (lowStockItems.Count > 0)
                 {
-                    await Shell.Current.DisplayAlert(
+                    await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
                         "Low Stock Warning",
                         $"These items are now low/out of stock: {string.Join(", ", lowStockItems.Distinct())}",
-                        "OK");
+                        "OK", showCancelButton: false));
                 }
             }
 
@@ -221,6 +236,9 @@ public partial class PaymentViewModel : ObservableObject
 
             BillDraftStore.Current = null;
 
+            // Only now, with payment confirmed, do the follow-ups the dentist reviewed in Bill Summary actually get written.
+            await PersistPendingFollowUpsAsync(draft);
+
             await Shell.Current.GoToAsync(
                 $"../{nameof(ReceiptPage)}" +
                 $"?billId={billId}" +
@@ -240,6 +258,40 @@ public partial class PaymentViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    // Writes each follow-up session the dentist reviewed in Bill Summary, and books the chosen slot if one was picked.
+    private async Task PersistPendingFollowUpsAsync(BillDraft draft)
+    {
+        try
+        {
+            foreach (var pending in draft.PendingFollowUps)
+            {
+                var savedRow = await _supabase.PersistSessionAsync(pending.Row);
+                if (savedRow == null)
+                    continue;
+
+                if (pending.SelectedSlotLocal.HasValue && pending.SelectedSlotUtc.HasValue)
+                {
+                    var scheduled = await _supabase.CreateFollowUpAppointmentAsync(
+                        _db, savedRow, draft.Phone, string.Empty,
+                        pending.SelectedSlotLocal.Value, pending.SelectedSlotUtc.Value);
+
+                    if (!scheduled)
+                    {
+                        await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
+                            "Follow-Up Scheduling",
+                            $"The chosen follow-up slot for {savedRow.ServiceName} is no longer available. It's been marked as awaiting schedule instead.",
+                            "OK", showCancelButton: false));
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Payment already succeeded — a follow-up hiccup shouldn't block the receipt.
+            System.Diagnostics.Debug.WriteLine($"[Payment] PersistPendingFollowUps: {ex.Message}");
         }
     }
 }

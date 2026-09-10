@@ -1,4 +1,6 @@
 using ClinicApp.ViewModels.TransactionVM;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 
 namespace ClinicApp.Views.TransactionRelated;
 
@@ -12,13 +14,7 @@ public partial class BillSummaryPage : ContentPage
         _vm = vm;
         BindingContext = vm;
 
-        // The Picker isn't data-bound to a selected value (only
-        // SelectedIndexChanged is wired up), so disabling it via
-        // CanApplyDiscount doesn't reset what it's showing. Without this,
-        // a discount picked before an installment item was added/toggled
-        // would stay visually selected (just grayed out), and would
-        // silently re-apply if that installment item is later removed —
-        // this keeps the visible selection in sync with reality.
+        // Resets the Picker to "None" if a discount becomes disallowed, keeping its visible selection in sync.
         _vm.PropertyChanged += (s, e) =>
         {
             if (e.PropertyName == nameof(BillSummaryViewModel.CanApplyDiscount)
@@ -30,17 +26,21 @@ public partial class BillSummaryPage : ContentPage
         };
     }
 
+    // Reloads the draft each time the page appears.
     protected override void OnAppearing()
     {
         base.OnAppearing();
         _vm.LoadDraft();
     }
 
-    // Guards the actual discount choice. The Picker stays a normal,
-    // always-enabled dropdown (an overlay/disabled-look approach here
-    // looked bad) — so this handler itself is what blocks an invalid pick:
-    // if the bill doesn't currently allow a discount, revert the selection
-    // back to "None" and explain why, instead of letting it stick.
+    // Closes the follow-up sheet if it's still open when leaving this page.
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _ = _vm.CloseFollowUpSheetAsync();
+    }
+
+    // Reverts an invalid discount pick back to "None" and explains why, since the Picker itself stays always-enabled.
     async void DiscountChanged(object sender, EventArgs e)
     {
         var picker = (Picker)sender;
@@ -54,15 +54,13 @@ public partial class BillSummaryPage : ContentPage
 
             if (wasRealChange)
             {
-                // Setting this re-enters DiscountChanged once more, but by
-                // then SelectedIndex is already 0, so it just falls through
-                // without re-triggering the alert.
+                // Re-enters DiscountChanged once, harmlessly, since SelectedIndex is already 0 by then.
                 picker.SelectedIndex = 0;
 
-                await Shell.Current.DisplayAlert(
+                await this.ShowPopupAsync(new ConfirmationPopup(
                     "Discount Unavailable",
                     "All services are installment-eligible.",
-                    "OK");
+                    "OK", showCancelButton: false));
             }
 
             return;

@@ -261,6 +261,9 @@ namespace ClinicApp.ViewModels
         }
 
         // ── Load time slots ───────────────────────────────────
+
+        static readonly TimeZoneInfo ManilaTz =
+TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
         public async Task LoadSlotsAsync(DateTime date)
         {
 
@@ -303,10 +306,12 @@ namespace ClinicApp.ViewModels
                     foreach (var h in hours)
                     {
                         var slotTime = new DateTime(date.Year, date.Month, date.Day, h, 0, 0);
-                        var slotUtc = slotTime.ToUniversalTime();
+                        var slotUtc = TimeZoneInfo.ConvertTimeToUtc(slotTime, ManilaTz);
+                        var isTaken = booked.Any(b => b == slotUtc);
 
-                        var isTaken = booked.Any(b =>
-                            b == slotUtc);
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[WalkInSlot] hour={h} | slotUtc={slotUtc:o} | isTaken={isTaken}");
+                        
 
                         TimeSlots.Add(new TimeSlotItem
                         {
@@ -388,12 +393,12 @@ namespace ClinicApp.ViewModels
             try
             {
                 var localTime = _selectedSlot.SlotDateTime;
-                var utcTime = localTime.ToUniversalTime();
+               var slotUtc = TimeZoneInfo.ConvertTimeToUtc(localTime, ManilaTz);
 
                 // =====================================================
                 // CHECK SLOT FIRST
                 // =====================================================
-                var available = await _supabase.IsSlotAvailableAsync(utcTime);
+                var available = await _supabase.IsSlotAvailableAsync(slotUtc);
 
                 if (!available)
                 {
@@ -492,7 +497,7 @@ namespace ClinicApp.ViewModels
                     Phone = Phone,
                     Email = Email,
                     Notes = Notes,
-                    AppointmentDateTime = utcTime,
+                    AppointmentDateTime = slotUtc,
                     Status = "approved"
                 };
 

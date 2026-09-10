@@ -22,6 +22,11 @@ public partial class AddServiceViewModel : ObservableObject
     [ObservableProperty] decimal servicePrice;
     [ObservableProperty] string? serviceDescription;
 
+    // ── Multi-session configuration ──
+    [ObservableProperty] bool requiresMultipleSessions;
+    [ObservableProperty] int totalSessions = 2;
+    [ObservableProperty] int followupIntervalDays = 14;
+
     // Tracks whether the user has made any unsaved edits, so Cancel / the
     // back arrow know whether a "discard changes?" prompt is actually needed.
     bool _isLoading;
@@ -34,12 +39,26 @@ public partial class AddServiceViewModel : ObservableObject
     // Flags the form as dirty when the description field changes.
     partial void OnServiceDescriptionChanged(string? value) => MarkDirty();
 
+    // Flags the form as dirty when multi-session is toggled, and refreshes ShowSessionFields.
+    partial void OnRequiresMultipleSessionsChanged(bool value)
+    {
+        MarkDirty();
+        OnPropertyChanged(nameof(ShowSessionFields));
+    }
+    // Flags the form as dirty when the total-sessions count changes.
+    partial void OnTotalSessionsChanged(int value) => MarkDirty();
+    // Flags the form as dirty when the follow-up interval changes.
+    partial void OnFollowupIntervalDaysChanged(int value) => MarkDirty();
+
     // Marks the form dirty, unless we're still loading initial data.
     void MarkDirty()
     {
         if (!_isLoading)
             _isDirty = true;
     }
+
+    // Controls visibility of the session-count/interval fields in the UI.
+    public bool ShowSessionFields => RequiresMultipleSessions;
 
     // Automatically called when ServiceId is set via navigation query param
     partial void OnServiceIdChanged(string? value)
@@ -64,6 +83,10 @@ public partial class AddServiceViewModel : ObservableObject
                 ServiceName = service.Name;
                 ServicePrice = service.BasePrice;
                 ServiceDescription = service.Description;
+                RequiresMultipleSessions = service.RequiresMultipleSessions;
+                TotalSessions = service.DefaultTotalSessions ?? 2;
+                FollowupIntervalDays = service.FollowupIntervalDays ?? 14;
+                OnPropertyChanged(nameof(ShowSessionFields));
                 _isLoading = false;
                 _isDirty = false; // freshly loaded data isn't a user edit
             });
@@ -84,6 +107,12 @@ public partial class AddServiceViewModel : ObservableObject
             await Shell.Current.DisplayAlert("Validation", "Please enter a valid price.", "OK");
             return;
         }
+        // Session count only matters for services that actually require multiple sessions.
+        if (RequiresMultipleSessions && TotalSessions < 2)
+        {
+            await Shell.Current.DisplayAlert("Validation", "Multi-session services need at least 2 sessions.", "OK");
+            return;
+        }
 
         // Confirm before committing — 
         var confirmPopup = new ConfirmationPopup(
@@ -97,6 +126,18 @@ public partial class AddServiceViewModel : ObservableObject
         var confirmResult = await Shell.Current.ShowPopupAsync(confirmPopup);
         if (confirmResult is not bool confirmed || !confirmed) return;
 
+        // Recurring/open-ended services (e.g. Braces Adjustment) can leave TotalSessions
+        // blank-equivalent by using a very high number staff won't hit — simplest is to let
+        // DefaultTotalSessions be null when RequiresMultipleSessions is on but the treatment
+        // has no fixed session count. Here we treat "1" typed by staff as "not fixed" → null.
+        int? resolvedTotalSessions = RequiresMultipleSessions
+            ? (TotalSessions > 1 ? TotalSessions : null)
+            : null;
+
+        int? resolvedInterval = RequiresMultipleSessions && FollowupIntervalDays > 0
+            ? FollowupIntervalDays
+            : null;
+
         if (!string.IsNullOrWhiteSpace(ServiceId))
         {
             var list = await _supabase.GetServicesAsync();
@@ -108,6 +149,10 @@ public partial class AddServiceViewModel : ObservableObject
                 service.Name = ServiceName;
                 service.BasePrice = ServicePrice;
                 service.Description = ServiceDescription;
+                service.RequiresMultipleSessions = RequiresMultipleSessions;
+                service.DefaultTotalSessions = resolvedTotalSessions;
+                service.FollowupIntervalDays = resolvedInterval;
+
                 var success = await _supabase.UpdateServiceAsync(service);
                 if (!success)
                 {
@@ -128,6 +173,9 @@ public partial class AddServiceViewModel : ObservableObject
                 BasePrice = ServicePrice,
                 Description = ServiceDescription,
                 IsActive = true,
+                RequiresMultipleSessions = RequiresMultipleSessions,
+                DefaultTotalSessions = resolvedTotalSessions,
+                FollowupIntervalDays = resolvedInterval,
                 CreatedAt = DateTime.UtcNow
             });
 
@@ -162,7 +210,7 @@ public partial class AddServiceViewModel : ObservableObject
             "Discard Changes?",
             "Are you sure you want to discard the changes you made?",
             confirmText: "Discard",
-            confirmColor: Color.FromArgb("#DC143C")); 
+            confirmColor: Color.FromArgb("#DC143C"));
 
             var result = await Shell.Current.ShowPopupAsync(popup);
             if (result is not bool discard || !discard)

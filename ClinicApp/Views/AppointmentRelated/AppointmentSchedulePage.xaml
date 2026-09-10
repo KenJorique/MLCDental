@@ -20,7 +20,7 @@
                    VerticalOptions="Center"
                    Margin="16,0,0,0"/>
 
-			<!-- Notification bell with badge -->
+			<!-- Notification bell with badge — replaces the old pending-bookings banner -->
 			<Grid Grid.Column="1"
                   WidthRequest="44" HeightRequest="44"
                   VerticalOptions="Center"
@@ -97,25 +97,26 @@
 
 		</Grid>
 
-		<!-- ══ ROW 1: BANNERS (pending review + active queue) ══ -->
+		<!-- ══ ROW 1: BANNERS (active queue + follow-ups needed) ══
+             Pending-bookings banner removed — the title-bar bell covers that now. -->
 		<VerticalStackLayout Grid.Row="1" Spacing="1">
 
 			<!-- Active queue banner: in-procedure + billing -->
 			<Border BackgroundColor="#2563EB"
-            IsVisible="{Binding HasInProcedureQueue}"
-            Padding="12,8">
+                    IsVisible="{Binding HasInProcedureQueue}"
+                    Padding="12,8">
 				<Border.GestureRecognizers>
 					<TapGestureRecognizer Command="{Binding GoToInProcedureCommand}"/>
 				</Border.GestureRecognizers>
 				<Grid ColumnDefinitions="Auto,*,Auto">
 					<Label Grid.Column="0"
-                   FontFamily="MaterialSymbolsRounded"
-                   Text="&#xe425;"
-                   FontSize="16" TextColor="White"
-                   VerticalOptions="Center" Margin="0,0,6,0"/>
+                           FontFamily="MaterialSymbolsRounded"
+                           Text="&#xe425;"
+                           FontSize="16" TextColor="White"
+                           VerticalOptions="Center" Margin="0,0,6,0"/>
 					<Label Grid.Column="1"
-                   TextColor="White" FontSize="13"
-                   VerticalOptions="Center">
+                           TextColor="White" FontSize="13"
+                           VerticalOptions="Center">
 						<Label.FormattedText>
 							<FormattedString>
 								<Span Text="{Binding InProcedureQueueCount}" TextColor="White" FontAttributes="Bold"/>
@@ -125,13 +126,49 @@
 					</Label>
 					<HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
 						<Label Text="View"
-                       TextColor="White"
-                       FontSize="13" FontAttributes="Bold"
-                       VerticalOptions="Center"/>
+                               TextColor="White"
+                               FontSize="13" FontAttributes="Bold"
+                               VerticalOptions="Center"/>
 						<Label FontFamily="MaterialSymbolsRoundedFilled"
-                       Text="&#xe941;"
-                       FontSize="16" TextColor="White"
-                       VerticalOptions="Center"/>
+                               Text="&#xe941;"
+                               FontSize="16" TextColor="White"
+                               VerticalOptions="Center"/>
+					</HorizontalStackLayout>
+				</Grid>
+			</Border>
+
+			<!-- Follow-ups needed banner -->
+			<Border BackgroundColor="{StaticResource Gold}"
+                    IsVisible="{Binding HasFollowUpsNeeded}"
+                    Padding="12,8">
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Command="{Binding GoToFollowUpsCommand}"/>
+				</Border.GestureRecognizers>
+				<Grid ColumnDefinitions="Auto,*,Auto">
+					<Label Grid.Column="0"
+                           FontFamily="MaterialSymbolsRoundedFilled"
+                           Text="&#xe5d5;"
+                           FontSize="16" TextColor="White"
+                           VerticalOptions="Center" Margin="0,0,6,0"/>
+					<Label Grid.Column="1"
+                           TextColor="White" FontSize="13"
+                           VerticalOptions="Center">
+						<Label.FormattedText>
+							<FormattedString>
+								<Span Text="{Binding FollowUpsNeededCount}" TextColor="White" FontAttributes="Bold"/>
+								<Span Text=" follow-up(s) need scheduling" TextColor="White" FontAttributes="Bold"/>
+							</FormattedString>
+						</Label.FormattedText>
+					</Label>
+					<HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
+						<Label Text="Schedule"
+                               TextColor="White"
+                               FontSize="13" FontAttributes="Bold"
+                               VerticalOptions="Center"/>
+						<Label FontFamily="MaterialSymbolsRoundedFilled"
+                               Text="&#xe941;"
+                               FontSize="16" TextColor="White"
+                               VerticalOptions="Center"/>
 					</HorizontalStackLayout>
 				</Grid>
 			</Border>
@@ -202,7 +239,7 @@
 						<CollectionView ItemsSource="{Binding GroupedWeekAppointments}">
 							<CollectionView.ItemTemplate>
 								<DataTemplate x:DataType="vm:AppointmentDateGroup">
-									<VerticalStackLayout Spacing="0" Margin="0,5,0,0">
+									<VerticalStackLayout Spacing="0" Margin="0,20,0,0">
 
 										<!-- Date section header, e.g. "Monday, July 20" or "Today, July 21" -->
 										<Label Text="{Binding Header}" FontSize="13" FontAttributes="Bold"
@@ -240,10 +277,22 @@
                                                                               Path=BindingContext.SelectWeekAppointmentCommand}"
                                                                     CommandParameter="{Binding .}"/>
 															</Frame.GestureRecognizers>
-															<Label Text="{Binding PatientName}"
-															   FontSize="15" FontAttributes="Bold"
-															   TextColor="{StaticResource Gray800}" Padding="5, 0"
-															   VerticalOptions="Center"/>
+															<!-- Status badge removed per team decision; follow-up badge kept -->
+															<VerticalStackLayout Spacing="4">
+																<Label Text="{Binding PatientName}"
+                                                                       FontSize="15" FontAttributes="Bold"
+                                                                       TextColor="{StaticResource Gray800}"
+                                                                       VerticalOptions="Center"/>
+																<HorizontalStackLayout Spacing="4"
+                                                                       IsVisible="{Binding IsFollowUp}">
+																	<Label FontFamily="MaterialSymbolsRoundedFilled"
+                                                                           Text="&#xe5d5;" FontSize="12"
+                                                                           TextColor="{StaticResource Gold}"/>
+																	<Label Text="{Binding SessionBadge}"
+                                                                           FontSize="11" FontAttributes="Bold"
+                                                                           TextColor="{StaticResource Gold}"/>
+																</HorizontalStackLayout>
+															</VerticalStackLayout>
 														</Frame>
 													</Grid>
 												</DataTemplate>
@@ -285,11 +334,11 @@
 				</GraphicsView.GestureRecognizers>
 			</GraphicsView>
 
-			<!-- FAB — Book Appointment (green, same style as Patient page) -->
+			<!-- FAB — Book Appointment -->
 			<Button Text="+ Book Appointment"
                     Command="{Binding GoToWalkInCommand}"
-					Style="{StaticResource FabStyle}"
-					VerticalOptions="End"
+                    Style="{StaticResource FabStyle}"
+                    VerticalOptions="End"
                     HorizontalOptions="End"
                     Margin="0,0,16,24"
                     ZIndex="5"

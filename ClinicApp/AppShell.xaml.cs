@@ -29,9 +29,8 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(AddPatientPage), typeof(AddPatientPage));
             Routing.RegisterRoute(nameof(PatientDetailsPage), typeof(PatientDetailsPage));
             Routing.RegisterRoute(nameof(DentalChartPage), typeof(DentalChartPage));
-            Routing.RegisterRoute(nameof(Views.PatientsRelated.TreatmentHistoryPage), typeof(Views.PatientsRelated.TreatmentHistoryPage));
+            Routing.RegisterRoute(nameof(TreatmentHistoryPage), typeof(TreatmentHistoryPage));
             Routing.RegisterRoute(nameof(CephalometricPage), typeof(CephalometricPage));
-            Routing.RegisterRoute(nameof(VisitDetailsPage), typeof(VisitDetailsPage));
 
             //Services
             Routing.RegisterRoute(nameof(ServiceListPage), typeof(ServiceListPage));
@@ -60,6 +59,7 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(ReschedulePage), typeof(ReschedulePage));
             Routing.RegisterRoute(nameof(WalkInBookingPage), typeof(WalkInBookingPage));
             Routing.RegisterRoute(nameof(InProcedurePage), typeof(InProcedurePage));
+            Routing.RegisterRoute(nameof(PendingFollowUpsPage), typeof(PendingFollowUpsPage));
 
             //Google Sign In
             Routing.RegisterRoute(nameof(GoogleSignInPage), typeof(GoogleSignInPage));
@@ -72,7 +72,6 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(TransactionPage), typeof(TransactionPage));
             Routing.RegisterRoute(nameof(CreateBillPage), typeof(CreateBillPage));
             Routing.RegisterRoute(nameof(ReceiptPage), typeof(ReceiptPage));
-            Routing.RegisterRoute(nameof(ServiceSummaryPage), typeof(ServiceSummaryPage));
             Routing.RegisterRoute(nameof(BillSummaryPage), typeof(BillSummaryPage));
             Routing.RegisterRoute(nameof(PaymentPage), typeof(PaymentPage));
             Routing.RegisterRoute(nameof(AdditionalPaymentPage), typeof(AdditionalPaymentPage));

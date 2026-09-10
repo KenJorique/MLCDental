@@ -336,56 +336,56 @@ public class SessionService
 /// "SupabaseId" column added to the User table (see Init() note below)
 /// and the SupabaseId property already on Models/User.cs.
 /// </summary>
-public partial class DatabaseService
-{
-    // Add this one line inside Init(), next to the other
-    // "ALTER TABLE User ADD COLUMN ..." lines:
-    //
-    //   try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN SupabaseId TEXT DEFAULT ''"); }
-    //   catch { /* already exists */ }
+//public partial class DatabaseService
+//{
+//    // Add this one line inside Init(), next to the other
+//    // "ALTER TABLE User ADD COLUMN ..." lines:
+//    //
+//    //   try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN SupabaseId TEXT DEFAULT ''"); }
+//    //   catch { /* already exists */ }
 
-    public async Task<User?> GetUserBySupabaseId(string supabaseId)
-    {
-        await Init();
-        return await _database!.Table<User>()
-            .Where(u => u.SupabaseId == supabaseId)
-            .FirstOrDefaultAsync();
-    }
+//    public async Task<User?> GetUserBySupabaseId(string supabaseId)
+//    {
+//        await Init();
+//        return await _database!.Table<User>()
+//            .Where(u => u.SupabaseId == supabaseId)
+//            .FirstOrDefaultAsync();
+//    }
 
-    // Matches by Username, since — unlike patients — it's guaranteed
-    // unique and stable, rather than a fuzzy name+phone heuristic.
-    public async Task BackfillUserSupabaseIds(List<SupabaseUser> supabaseUsers)
-    {
-        await Init();
-        foreach (var su in supabaseUsers)
-        {
-            if (string.IsNullOrEmpty(su.Id) || string.IsNullOrEmpty(su.Username)) continue;
+//    // Matches by Username, since — unlike patients — it's guaranteed
+//    // unique and stable, rather than a fuzzy name+phone heuristic.
+//    public async Task BackfillUserSupabaseIds(List<SupabaseUser> supabaseUsers)
+//    {
+//        await Init();
+//        foreach (var su in supabaseUsers)
+//        {
+//            if (string.IsNullOrEmpty(su.Id) || string.IsNullOrEmpty(su.Username)) continue;
 
-            var local = await _database!.Table<User>()
-                .Where(u => u.Username == su.Username && u.SupabaseId == "")
-                .FirstOrDefaultAsync();
+//            var local = await _database!.Table<User>()
+//                .Where(u => u.Username == su.Username && u.SupabaseId == "")
+//                .FirstOrDefaultAsync();
 
-            if (local != null)
-            {
-                local.SupabaseId = su.Id;
-                await _database!.UpdateAsync(local);
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Backfill] Linked UserID={local.UserID} → SupabaseId={su.Id}");
-            }
-        }
-    }
+//            if (local != null)
+//            {
+//                local.SupabaseId = su.Id;
+//                await _database!.UpdateAsync(local);
+//                System.Diagnostics.Debug.WriteLine(
+//                    $"[Backfill] Linked UserID={local.UserID} → SupabaseId={su.Id}");
+//            }
+//        }
+//    }
 
-    // Called right after a successful SupabaseDataService.AddUserAsync so
-    // the local row remembers the remote row's id for future updates/deletes.
-    public async Task SetUserSupabaseId(int userId, string supabaseId)
-    {
-        await Init();
-        var user = await _database!.Table<User>().Where(u => u.UserID == userId).FirstOrDefaultAsync();
-        if (user is null) return;
-        user.SupabaseId = supabaseId;
-        await _database!.UpdateAsync(user);
-    }
-}
+//    // Called right after a successful SupabaseDataService.AddUserAsync so
+//    // the local row remembers the remote row's id for future updates/deletes.
+//    public async Task SetUserSupabaseId(int userId, string supabaseId)
+//    {
+//        await Init();
+//        var user = await _database!.Table<User>().Where(u => u.UserID == userId).FirstOrDefaultAsync();
+//        if (user is null) return;
+//        user.SupabaseId = supabaseId;
+//        await _database!.UpdateAsync(user);
+//    }
+//}
 
 
 /// <summary>

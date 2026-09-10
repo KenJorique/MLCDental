@@ -1,7 +1,6 @@
 ﻿using ClinicApp.Helpers;
 using ClinicApp.Models.TreatmentModels;
 using ClinicApp.Services;
-using ClinicApp.Views.PatientsRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -24,6 +23,7 @@ public partial class TreatmentHistoryViewModel : ObservableObject
     [ObservableProperty]
     private string patientName = string.Empty;
 
+    // First letter of first + last name, or just the first letter if there's only one word.
     public string PatientInitials
     {
         get
@@ -81,18 +81,21 @@ public partial class TreatmentHistoryViewModel : ObservableObject
 
     private readonly SupabaseRealtimeService _realtime;
 
+    // Injects the local database and realtime service, and subscribes to remote changes.
     public TreatmentHistoryViewModel(DatabaseService db, SupabaseRealtimeService realtime)
     {
         _db = db;
         _realtime = realtime;
         _realtime.OnTreatmentHistoryChanged += HandleTreatmentHistoryChanged;
     }
+    // Reloads history whenever the realtime service reports a remote change.
     private void HandleTreatmentHistoryChanged()
     {
         if (PatientId > 0)
             _ = LoadHistoryAsync();
     }
 
+    // Unsubscribes from realtime updates when leaving the page.
     public void Cleanup()
     {
         _realtime.OnTreatmentHistoryChanged -= HandleTreatmentHistoryChanged;
@@ -103,6 +106,7 @@ public partial class TreatmentHistoryViewModel : ObservableObject
     // PROPERTY CHANGED
     // =========================================================
 
+    // Loads this patient's history once PatientId is set via navigation.
     partial void OnPatientIdChanged(int value)
     {
         if (value > 0)
@@ -111,6 +115,7 @@ public partial class TreatmentHistoryViewModel : ObservableObject
         }
     }
 
+    // Refreshes the avatar initials when the patient name changes.
     partial void OnPatientNameChanged(string value)
     {
         OnPropertyChanged(nameof(PatientInitials));
@@ -121,6 +126,7 @@ public partial class TreatmentHistoryViewModel : ObservableObject
     // LOAD HISTORY
     // =========================================================
 
+    // Loads this patient's treatment history and rebuilds both the flat list and the per-visit groups.
     [RelayCommand]
     public async Task LoadHistoryAsync()
     {
@@ -219,16 +225,16 @@ public partial class TreatmentHistoryViewModel : ObservableObject
                 // STATE
                 // =============================================
 
-                var count = History.Count;
+                var count = VisitGroups.Count;
 
                 IsHistoryEmpty = count == 0;
                 HasHistory = count > 0;
 
                 HistoryCountText = count switch
                 {
-                    0 => "0 records",
-                    1 => "1 record",
-                    _ => $"{count} records"
+                    0 => "0 visits",
+                    1 => "1 visit",
+                    _ => $"{count} visits"
                 };
             });
         }
@@ -244,37 +250,12 @@ public partial class TreatmentHistoryViewModel : ObservableObject
 
                 IsHistoryEmpty = true;
                 HasHistory = false;
-                HistoryCountText = "0 records";
+                HistoryCountText = "0 visits";
             });
         }
         finally
         {
             IsBusy = false;
-        }
-    }
-
-
-    // =========================================================
-    // OPEN VISIT
-    // =========================================================
-
-    [RelayCommand]
-    private async Task OpenVisit(TreatmentVisitGroup? visit)
-    {
-        if (visit == null)
-            return;
-
-        try
-        {
-            VisitHistoryStore.Current = visit;
-
-            await Shell.Current.GoToAsync(
-                nameof(VisitDetailsPage));
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"[TreatmentHistory] OpenVisit error: {ex}");
         }
     }
 }

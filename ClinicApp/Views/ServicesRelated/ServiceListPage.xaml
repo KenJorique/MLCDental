@@ -103,20 +103,28 @@
                                     CommandParameter="{Binding .}"/>
 							</Border.GestureRecognizers>
 
-							<Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-								<Label Grid.Column="0"
+							<Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+								<Label Grid.Row="0" Grid.Column="0"
                                        Text="{Binding ServiceName}"
                                        FontSize="15"
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource TextPrimary}"
                                        LineBreakMode="TailTruncation"
                                        VerticalOptions="Center"/>
-								<Label Grid.Column="1"
+								<Label Grid.Row="0" Grid.Column="1"
                                        Text="{Binding PriceDisplay}"
                                        FontSize="15"
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource PrimaryGreen}"
                                        VerticalOptions="Center"/>
+
+								<!-- Multi-session indicator, shown only when the service spans multiple sessions -->
+								<HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
+                                       Spacing="4"
+                                       IsVisible="{Binding RequiresMultipleSessions}">
+									<Label Text="&#x21bb;" FontSize="12" TextColor="#D97706" FontAttributes="Bold"/>
+									<Label Text="{Binding SessionSummary}" FontSize="12" TextColor="#D97706"/>
+								</HorizontalStackLayout>
 							</Grid>
 						</Border>
 					</DataTemplate>

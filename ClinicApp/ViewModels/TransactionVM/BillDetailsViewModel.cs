@@ -14,6 +14,7 @@ public partial class BillDetailsViewModel : ObservableObject
 {
     private readonly SupabaseDataService _supabase;
 
+    // Injects the shared data service.
     public BillDetailsViewModel(
         SupabaseDataService supabase)
     {
@@ -48,15 +49,7 @@ public partial class BillDetailsViewModel : ObservableObject
     public ObservableCollection<SupabasePayment> Payments { get; }
         = new();
 
-    // NOTE: BillId is set by Shell's QueryProperty before OnAppearing()
-    // runs, and BillDetailsPage.OnAppearing() already calls LoadAsync()
-    // explicitly. Also triggering LoadAsync() here on every BillId change
-    // meant two concurrent loads raced: both cleared Items/Payments, both
-    // awaited their own fetch, then both appended -- producing duplicate
-    // rows whenever the second load's Clear() ran after the first load's
-    // Add() had already started. Removed so there's a single, predictable
-    // trigger (OnAppearing) per page visit.
-
+    // Loads the bill, its items, and its payments. Called once from OnAppearing — not from a BillId watcher, to avoid a duplicate-load race.
     public async Task LoadAsync()
     {
         IsBusy = true;
@@ -99,14 +92,14 @@ public partial class BillDetailsViewModel : ObservableObject
         }
     }
 
+    // Opens Additional Payment for this existing bill.
     [RelayCommand]
     private async Task AddPayment()
     {
         if (Bill == null || Bill.Balance <= 0)
             return;
 
-        // Same reasoning as TransactionViewModel.PayNow — existing bill,
-        // so it goes to AdditionalPaymentPage, not the new-bill PaymentPage.
+        // Existing bill, so this goes to AdditionalPaymentPage, not the new-bill PaymentPage.
         await Shell.Current.GoToAsync(
             $"{nameof(AdditionalPaymentPage)}" +
             $"?billId={Bill.Id}" +
@@ -114,6 +107,7 @@ public partial class BillDetailsViewModel : ObservableObject
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
+    // Opens the receipt for this bill.
     [RelayCommand]
     private async Task ViewReceipt()
     {
@@ -127,6 +121,7 @@ public partial class BillDetailsViewModel : ObservableObject
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
+    // Expands/collapses the tapped bill item.
     [RelayCommand]
     private void ToggleItem(SupabaseBillItem item)
     {

@@ -3,6 +3,8 @@ using ClinicApp.Services;
 using ClinicApp.Behaviors;
 using ClinicApp.Views;
 using ClinicApp.Views.TransactionRelated;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -299,10 +301,12 @@ namespace ClinicApp.ViewModels.TransactionVM
                 var names = string.Join(", ",
                     missingTeeth.Select(s => s.ServiceName));
 
-                bool proceed = await Shell.Current.DisplayAlert(
+                var popup = new ConfirmationPopup(
                     "Missing Tooth Numbers",
                     $"No teeth entered for:\n{names}\n\nProceed without tooth numbers?",
-                    "Proceed", "Cancel");
+                    "Proceed", Color.FromArgb("#2E7D32"));
+                var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
+                bool proceed = result is bool b && b;
 
                 if (!proceed)
                     return;
@@ -322,10 +326,12 @@ namespace ClinicApp.ViewModels.TransactionVM
                 var names = string.Join(", ",
                     invalidTeeth.Select(s => s.ServiceName));
 
-                bool proceed = await Shell.Current.DisplayAlert(
+                var popup = new ConfirmationPopup(
                     "Check Tooth Numbers",
                     $"Tooth numbers look incomplete or invalid for:\n{names}\n\nProceed anyway?",
-                    "Proceed", "Cancel");
+                    "Proceed", Color.FromArgb("#2E7D32"));
+                var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
+                bool proceed = result is bool b && b;
 
                 if (!proceed)
                     return;
@@ -337,7 +343,26 @@ namespace ClinicApp.ViewModels.TransactionVM
             try
             {
                 Draft.PatientId = PatientId;
-                Draft.PatientId = PatientId;
+
+                // Backfill a blank PatientId here, once, so both follow-up sequence creation
+                // (BillSummaryViewModel.Proceed) and billing get a real ID instead of failing
+                // downstream on an empty-string UUID.
+                if (string.IsNullOrWhiteSpace(Draft.PatientId))
+                {
+                    var resolved = !string.IsNullOrWhiteSpace(Phone)
+                        ? await _supabase.GetPatientByPhoneAsync(Phone)
+                        : null;
+                    resolved ??= !string.IsNullOrWhiteSpace(PatientName)
+                        ? await _supabase.GetPatientByNameAsync(PatientName)
+                        : null;
+
+                    if (resolved != null)
+                        Draft.PatientId = resolved.Id;
+                    else
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[CreateBill] WARNING: could not resolve a patient ID for '{PatientName}' — bill/follow-up will be unlinked.");
+                }
+
                 Draft.Phone = Phone;
                 Draft.PatientName = PatientName;
                 Draft.IsInstallment = IsInstallment;
@@ -356,7 +381,7 @@ namespace ClinicApp.ViewModels.TransactionVM
 
                 BillDraftStore.Current = Draft;
 
-                await Shell.Current.GoToAsync(nameof(ServiceSummaryPage));
+                await Shell.Current.GoToAsync(nameof(BillSummaryPage));
             }
             catch (Exception ex)
             {

@@ -10,6 +10,7 @@ public class BillingService
     private readonly SupabaseDataService _supabase;
     private readonly DatabaseService _database;
 
+    // Injects the shared data service and local database.
     public BillingService(
         SupabaseDataService supabase,
         DatabaseService database)
@@ -18,6 +19,7 @@ public class BillingService
         _database = database;
     }
 
+    // Creates the bill, links it to a patient (Supabase ID, then phone, then name), and writes each service's bill item plus its treatment/tooth record.
     public async Task<BillingResult> CreateBillAsync(
      BillDraft draft,
      string? appointmentEntryId,
@@ -30,13 +32,24 @@ public class BillingService
             var patientId = draft.PatientId;
 
             // Walk-in fallback
-            if (string.IsNullOrWhiteSpace(patientId))
+            if (string.IsNullOrWhiteSpace(patientId) && !string.IsNullOrWhiteSpace(draft.Phone))
             {
                 var patient = await _supabase.GetPatientByPhoneAsync(draft.Phone);
 
                 if (patient != null)
                     patientId = patient.Id;
             }
+
+            // Name fallback — same as GetLocalPatientIdAsync below uses for treatment records,
+            // so a bill can't end up orphaned from the patient while the treatment record links fine.
+            if (string.IsNullOrWhiteSpace(patientId) && !string.IsNullOrWhiteSpace(draft.PatientName))
+            {
+                var patient = await _supabase.GetPatientByNameAsync(draft.PatientName);
+
+                if (patient != null)
+                    patientId = patient.Id;
+            }
+
             if (string.IsNullOrWhiteSpace(patientId))
             {
                 System.Diagnostics.Debug.WriteLine(
@@ -88,40 +101,19 @@ public class BillingService
     draft.PatientId,
     draft.PatientName);
 
-            // BUGFIX: this used to delete the appointment_entries row (and its
-            // linked booking) right here — the moment the bill was CREATED,
-            // i.e. as soon as staff tapped "Proceed to Payment" on Bill
-            // Summary. That meant a patient vanished from "In Procedure" even
-            // if the payment flow was abandoned/backed-out-of before ever
-            // reaching Receipt. ReceiptViewModel.Done() already performs this
-            // exact same cleanup at the point the flow is genuinely
-            // finished — that's the only place it should happen.
-
+            // Cleanup (deleting the source appointment_entries/booking row) happens in
+            // ReceiptViewModel.Done() instead of here, so an abandoned payment flow
+            // doesn't remove the patient from "In Procedure" before payment is confirmed.
             result.Bill = saved;
 
-            // Discount base: ANY installment-ELIGIBLE item is excluded from
-            // the discount, whether or not the patient actually turned the
-            // plan toggle on for it (matches BillSummaryViewModel.CalculateTotals,
-            // which uses the same IsInstallmentEligible-only rule). Computed
-            // once here, outside the loop, and used below to give each
-            // non-eligible item its proportional share of draft.DiscountAmount.
-            //
-            // NOTE: using draft.DiscountAmount (not draft.DiscountPercent) so
-            // this works for BOTH discount types Bill Summary supports —
-            // percent-based (senior/PWD) AND the flat "special discount"
-            // peso amount, which has no percent at all (DiscountPercent is 0
-            // in that case). Previously this only ever multiplied by
-            // DiscountPercent, so a flat special discount never made it into
-            // any item's Balance.
+            // Installment-eligible items are excluded from the discount entirely (matches BillSummaryViewModel.CalculateTotals); the rest share draft.DiscountAmount proportionally by subtotal.
             var discountEligibleSubtotal = draft.Services
                 .Where(s => !s.IsInstallmentEligible)
                 .Sum(s => s.Subtotal);
 
             foreach (var item in draft.Services)
             {
-                // This item's proportional share of the total discount.
-                // Installment-eligible items get none (see above); among the
-                // rest, each item's share is proportional to its own subtotal.
+                // This item's proportional share of the discount — none if installment-eligible.
                 var itemDiscountShare =
                     (!item.IsInstallmentEligible && discountEligibleSubtotal > 0)
                         ? Math.Round(
@@ -152,27 +144,13 @@ public class BillingService
                         item.ShowTeethInput &&
                         item.ParsedTeethNumbers.Count > 0,
 
-                    // Per-item installment plan — 50% down today, remainder
-                    // split over the chosen number of months. Only meaningful
-                    // when the service is both eligible AND the staff turned
-                    // the toggle on for this specific item.
+                    // Per-item installment: 50% down today, remainder over the chosen months — only when eligible AND selected.
                     IsInstallment = item.IsInstallmentEligible && item.IsInstallmentSelected,
                     InstallmentMonths = item.IsInstallmentSelected ? item.SelectedInstallmentMonths : 0,
                     DownpaymentAmount = item.DownpaymentAmount,
                     MonthlyPayment = item.MonthlyPaymentAmount,
-                    // Balance starts at the FULL subtotal, not just the
-                    // remaining-after-downpayment — the downpayment itself
-                    // still needs to be recorded as a payment against this
-                    // item (see the payment-allocation note for your teammate).
-                    //
-                    // Eligibility (not selection) decides discount exemption:
-                    // an eligible item is excluded from the discount and due
-                    // in full — same whether it's on a plan or not. Only
-                    // truly non-eligible items get their proportional share
-                    // of draft.DiscountAmount subtracted off. Without this,
-                    // the sum of per-item balances wouldn't match the bill's
-                    // actual (discounted) TotalAmount whenever a discount
-                    // applies.
+                    // Starts at the full subtotal (the downpayment is recorded as a payment against it, not subtracted here).
+                    // Eligible items are always due in full and excluded from the discount, regardless of plan selection.
                     Balance = item.IsInstallmentEligible
                         ? item.Subtotal
                         : Math.Round(item.Subtotal - itemDiscountShare, 2)
@@ -215,6 +193,7 @@ public class BillingService
 
 
 
+    // Logs a general (non-tooth-specific) service as a treatment history entry.
     private async Task LogGeneralServiceAsync(
     int patientId,
     string serviceName)
@@ -234,6 +213,7 @@ public class BillingService
 
         await _database.AddTreatmentHistory(history);
     }
+    // Updates each tooth's chart record and logs a treatment history entry per tooth.
     private async Task ApplyToothConditionsAsync(
      int patientId,
      string serviceName,
@@ -243,9 +223,7 @@ public class BillingService
         {
             var condition = ToothAwareServices.GetCondition(serviceName);
 
-            // Look up the hex color for this condition, same palette
-            // used by DentalChartViewModel, so history entries match
-            // the chart's color-coding.
+            // Same palette as DentalChartViewModel, so history entries match the chart's color-coding.
             var hex = ClinicApp.ViewModels.DentalChart.DentalChartViewModel
                 .ConditionColors.TryGetValue(condition, out var c) ? c : "#FFFFFF";
 
@@ -263,8 +241,7 @@ public class BillingService
                 };
                 await _database.SaveToothRecord(record);
 
-                // Add ONE treatment history entry PER tooth, with ToothNumber
-                // and Color set correctly (previously defaulted to 0 / white).
+                // One treatment history entry per tooth, with the correct ToothNumber and Color.
                 var history = new TreatmentHistory
                 {
                     PatientId = patientId,
@@ -292,6 +269,7 @@ public class BillingService
         }
     }
 
+    // Resolves the local SQLite patient ID by Supabase ID, then by name.
     private async Task<int> GetLocalPatientIdAsync(
     string patientSupabaseId,
     string patientName)

@@ -36,7 +36,7 @@
 				<Button Grid.Column="0" x:Name="CancelButton" Text="Cancel" Clicked="OnCancelClicked"
                         BackgroundColor="{StaticResource Gray100}" TextColor="Black"/>
 				<Button Grid.Column="1" x:Name="ConfirmButton" Text="Delete" Clicked="OnConfirmClicked"
-                        BackgroundColor="Crimson" TextColor="White"/>
+                        BackgroundColor="#2E7D32" TextColor="White"/>
 			</Grid>
 
 		</VerticalStackLayout>

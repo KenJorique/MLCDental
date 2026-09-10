@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<the49:BottomSheet
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:the49="https://schemas.the49.com/dotnet/2023/maui"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels"
+    x:Class="ClinicApp.Views.AppointmentRelated.FollowUpRequiredSheet"
+    HasHandle="False"
+    Shell.TabBarIsVisible="False"
+    HasBackdrop="True"
+    CornerRadius="20"
+    IsCancelable="False"
+    BackgroundColor="White">
+
+	<the49:BottomSheet.Detents>
+		<the49:ContentDetent />
+	</the49:BottomSheet.Detents>
+
+	<VerticalStackLayout Spacing="0" Padding="0,12,0,20">
+
+		<BoxView WidthRequest="40" HeightRequest="4" CornerRadius="2"
+                 BackgroundColor="#CCCCCC"
+                 HorizontalOptions="Center" Margin="0,0,0,16"/>
+
+		<Grid Padding="20,0" ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+			<Label Grid.Column="0" FontFamily="MaterialSymbolsRoundedFilled" Text="&#xe5d5;"
+                   FontSize="22" TextColor="{StaticResource Gold}" VerticalOptions="Center" Margin="0,0,8,0"/>
+			<Label Grid.Column="1" Text="Follow-up Required"
+                   FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray800}"
+                   VerticalOptions="Center"/>
+		</Grid>
+
+		<Label Padding="20,0" Margin="0,0,0,16"
+               Text="Pick a date and time for the next session before continuing."
+               FontSize="13" TextColor="{StaticResource Gray400}"/>
+
+		<CollectionView ItemsSource="{Binding PendingFollowUps}" Margin="20,0">
+			<CollectionView.ItemTemplate>
+				<DataTemplate x:DataType="vm:FollowUpDisplayItem">
+					<Border BackgroundColor="{StaticResource PageBg}" StrokeThickness="1"
+                            Stroke="{StaticResource Gray200}" Padding="14,12" Margin="0,0,0,10">
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="12"/>
+						</Border.StrokeShape>
+
+						<VerticalStackLayout Spacing="8">
+							<Label Text="{Binding ServiceName}" FontSize="15" FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray800}"/>
+							<Label Text="{Binding SessionDisplay}" FontSize="12"
+                                   TextColor="{StaticResource Gray400}"/>
+							<Label FontSize="12" TextColor="{StaticResource Gray700}">
+								<Label.FormattedText>
+									<FormattedString>
+										<Span Text="Recommended: " />
+										<Span Text="{Binding RecommendedDateDisplay}" FontAttributes="Bold"/>
+									</FormattedString>
+								</Label.FormattedText>
+							</Label>
+
+							<DatePicker Date="{Binding SelectedDate}"
+                                        MinimumDate="{Binding MinDate}"
+                                        MaximumDate="{Binding MaxDate}"
+                                        FontSize="13" Margin="0,4,0,0"/>
+
+							<ActivityIndicator IsRunning="{Binding IsLoadingSlots}"
+                                               IsVisible="{Binding IsLoadingSlots}"/>
+
+							<Label Text="No slots available for this day." FontSize="12"
+                                   TextColor="{StaticResource Gray400}"
+                                   IsVisible="{Binding HasNoSlots}"/>
+
+							<!-- 3-column grid, evenly sized regardless of label length, and properly reactive to TimeSlots being rebuilt on date change -->
+							<CollectionView x:Name="SlotHost" ItemsSource="{Binding TimeSlots}" Margin="0,4,0,0">
+								<CollectionView.ItemsLayout>
+									<GridItemsLayout Orientation="Vertical" Span="3" HorizontalItemSpacing="8" VerticalItemSpacing="8"/>
+								</CollectionView.ItemsLayout>
+								<CollectionView.ItemTemplate>
+									<DataTemplate x:DataType="vm:TimeSlotItem">
+										<Border StrokeShape="RoundRectangle 8" Stroke="{Binding BorderColor}"
+                                                BackgroundColor="{Binding BackgroundColor}" Padding="0">
+											<Border.GestureRecognizers>
+												<TapGestureRecognizer
+                                                    Command="{Binding Source={x:Reference SlotHost}, Path=BindingContext.SelectSlotCommand}"
+                                                    CommandParameter="{Binding .}"/>
+											</Border.GestureRecognizers>
+											<Label Text="{Binding Display}" FontSize="13" FontAttributes="Bold"
+                                                   TextColor="{Binding TextColor}" Padding="8,10" HorizontalTextAlignment="Center"/>
+										</Border>
+									</DataTemplate>
+								</CollectionView.ItemTemplate>
+							</CollectionView>
+
+							<Label Text="{Binding SelectedSummary}" FontSize="12" TextColor="{StaticResource Primary}"
+                                   FontAttributes="Bold" IsVisible="{Binding HasSelection}"/>
+
+							<Button Text="Create Follow-up Appointment"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="White" CornerRadius="10"
+                                    FontSize="13" HeightRequest="40" Margin="0,2,0,0"
+                                    IsEnabled="{Binding HasSelection}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type the49:BottomSheet}},
+                                              Path=BindingContext.CreateFollowUpNowCommand}"
+                                    CommandParameter="{Binding .}"/>
+						</VerticalStackLayout>
+					</Border>
+				</DataTemplate>
+			</CollectionView.ItemTemplate>
+		</CollectionView>
+
+		<Button Text="Skip All — Continue to Payment"
+                BackgroundColor="Transparent"
+                TextColor="{StaticResource Gray400}"
+                FontSize="13" Margin="20,10,20,0"
+                Command="{Binding ContinueToPaymentCommand}"/>
+
+	</VerticalStackLayout>
+
+</the49:BottomSheet>

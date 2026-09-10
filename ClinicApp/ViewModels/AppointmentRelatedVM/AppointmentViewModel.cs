@@ -16,6 +16,9 @@ namespace ClinicApp.ViewModels
         readonly DatabaseService _db;
         readonly SupabaseDataService _supabaseData;
 
+        static readonly TimeZoneInfo ManilaTz =
+            TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
+
         public ObservableCollection<BookingCardViewModel> PendingBookings { get; set; } = new();
 
         // Separate busy flags — IsRefreshing for pull-to-refresh, IsLoading for internal ops
@@ -171,7 +174,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
-        // Approves a pending booking: resolves/creates the patient record (Supabase + local, phone kept in sync), creates the appointment entry, and syncs to Google Tasks.
+        // Approves a pending booking: resolves/creates the patient record (Supabase + local, phone kept in sync), guards against a double-booked slot, creates the appointment entry, and syncs to Google Tasks.
         [RelayCommand]
         async Task Approve(BookingCardViewModel card)
         {
@@ -230,7 +233,6 @@ namespace ClinicApp.ViewModels
                         LastName = localPatient.LastName,
                         Phone = localPatient.MobileNo,
                         Email = localPatient.Email,
-                        ReasonForConsultation = localPatient.ReasonForConsultation,
                         ReferredBy = "Online Booking",
                         DateRegistered = DateTime.UtcNow
                     };
@@ -269,7 +271,6 @@ namespace ClinicApp.ViewModels
                         LastName = localOnlyMatch.LastName,
                         Phone = localOnlyMatch.MobileNo,
                         Email = localOnlyMatch.Email,
-                        ReasonForConsultation = localOnlyMatch.ReasonForConsultation,
                         ReferredBy = localOnlyMatch.ReferredBy,
                         DateRegistered = DateTime.UtcNow
                     };
@@ -292,8 +293,20 @@ namespace ClinicApp.ViewModels
                     ? booking.AppointmentDate.ToLocalTime()
                     : DateTime.SpecifyKind(booking.AppointmentDate, DateTimeKind.Local);
 
-                // UTC equivalent, for Supabase storage.
-                var utcDate = localDate.ToUniversalTime();
+                // UTC equivalent, explicitly against Asia/Manila (not the device's own timezone) — matches how every other slot check in the app resolves PH time.
+                var utcDate = TimeZoneInfo.ConvertTimeToUtc(localDate, ManilaTz);
+
+                // Guard against double-booking: another booking for this exact slot may have already been approved while this one sat pending.
+                var slotStillFree = await _supabaseData.IsSlotAvailableAsync(utcDate);
+                if (!slotStillFree)
+                {
+                    await ShowNoticeAsync(
+                        "Slot Already Taken",
+                        $"{booking.FullName}'s requested time ({localDate:MMM dd, yyyy h:mm tt}) " +
+                        "has already been booked by another approved appointment. " +
+                        "Please reschedule this booking to a different time before approving.");
+                    return;
+                }
 
                 var localEntry = new AppointmentEntry
                 {

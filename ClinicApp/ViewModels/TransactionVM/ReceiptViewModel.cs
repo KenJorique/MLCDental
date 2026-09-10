@@ -3,6 +3,8 @@ using ClinicApp.Services;
 using ClinicApp.ViewModels.PatientsRelatedVM;
 using ClinicApp.Views;
 using ClinicApp.Views.PatientsRelated;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -29,8 +31,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] string patientName = string.Empty;
         [ObservableProperty] string patientId = string.Empty;
 
-        // Passed from Payment page via navigation params — transient,
-        // specific to this one payment, so no DB column needed for it.
+        // Passed from Payment page via navigation params — transient, no DB column needed.
         [ObservableProperty] string amountReceivedRaw = string.Empty;
         [ObservableProperty] string changeRaw = string.Empty;
 
@@ -44,20 +45,14 @@ namespace ClinicApp.ViewModels.TransactionVM
         public string ChangeDisplay => $"₱{Change:N2}";
         public bool HasChange => Change > 0;
 
-        // FIX (bug #3): AmountReceivedRaw/ChangeRaw are set by Shell AFTER
-        // the page/BindingContext is already up, via the QueryProperty
-        // attributes above. AmountReceivedDisplay/Change/ChangeDisplay/
-        // HasChange are computed (get-only) properties, so nothing told the
-        // UI they'd changed when the raw query values arrived — the labels
-        // rendered once with the default "" ("₱0.00") and never updated,
-        // even though the underlying raw values were set correctly. These
-        // two partial methods raise the missing notifications.
+        // Raises change notifications for the computed properties, since QueryProperty alone doesn't.
         partial void OnAmountReceivedRawChanged(string value)
         {
             OnPropertyChanged(nameof(AmountReceived));
             OnPropertyChanged(nameof(AmountReceivedDisplay));
         }
 
+        // Same reasoning as above, for the Change value.
         partial void OnChangeRawChanged(string value)
         {
             OnPropertyChanged(nameof(Change));
@@ -71,9 +66,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         public ObservableCollection<SupabaseBillItem> Items { get; } = new();
         public ObservableCollection<SupabasePayment> Payments { get; } = new();
 
-        // The "hero" figure on the receipt — what was actually paid THIS
-        // visit, not the bill's cumulative total. Falls back to the bill's
-        // total paid if there's somehow no payment record yet.
+        // What was actually paid THIS visit, not the bill's cumulative total.
         public string LatestPaymentAmountDisplay =>
             Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault()?.AmountDisplay
                 ?? Bill?.PaidDisplay
@@ -85,11 +78,13 @@ namespace ClinicApp.ViewModels.TransactionVM
         public IEnumerable<SupabaseBillItem> InstallmentItems =>
             Items.Where(i => i.IsInstallment);
 
+        // Injects the shared data service.
         public ReceiptViewModel(SupabaseDataService supabase)
         {
             _supabase = supabase;
         }
 
+        // Loads the receipt once BillId is set via navigation.
         partial void OnBillIdChanged(string value)
         {
             if (!string.IsNullOrEmpty(value))
@@ -102,6 +97,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] string debugInfo = string.Empty;
 
 
+        // Loads the bill, its line items, and its payment history.
         public async Task LoadReceiptAsync()
         {
             IsBusy = true;
@@ -155,11 +151,13 @@ namespace ClinicApp.ViewModels.TransactionVM
             {
                 NotFound = true;
                 DebugInfo = $"Exception: {ex.Message}";
-                await Shell.Current.DisplayAlert("Error loading receipt", ex.Message, "OK");
+                await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
+                    "Error loading receipt", ex.Message, "OK", showCancelButton: false));
             }
             finally { IsBusy = false; }
         }
 
+        // Cleans up the source booking/entry, then returns to the patient's transaction page.
         [RelayCommand]
         async Task Done()
         {
@@ -171,15 +169,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 if (!string.IsNullOrWhiteSpace(SupabaseBookingId))
                     await _supabase.DeleteBookingAsync(SupabaseBookingId);
 
-                // This whole billing flow (CreateBill -> ServiceSummary ->
-                // BillSummary -> Payment -> Receipt) was pushed onto the
-                // Appointment tab's own navigation stack, since that's
-                // where "In Procedure -> Complete" kicked it off. Switching
-                // tabs below does NOT clear that stack -- Shell keeps a
-                // separate back stack per tab -- so without this, the
-                // Appointment tab would still have this ReceiptPage on
-                // top the next time it's tapped. Pop it back to its root
-                // first so the tab is clean before we leave it.
+                // Pops this flow's pages off the Appointment tab's stack before switching tabs, so it isn't still on top next visit.
                 await Shell.Current.Navigation.PopToRootAsync(false);
 
                 await Shell.Current.GoToAsync(
@@ -189,7 +179,8 @@ namespace ClinicApp.ViewModels.TransactionVM
             }
             catch (Exception ex)
             {
-                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+                await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
+                    "Error", ex.Message, "OK", showCancelButton: false));
             }
         }
     }

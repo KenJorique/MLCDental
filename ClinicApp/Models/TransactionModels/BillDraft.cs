@@ -1,7 +1,16 @@
-﻿using ClinicApp.ViewModels.TransactionVM;
+﻿using ClinicApp.Models.SupabaseModels;
+using ClinicApp.ViewModels.TransactionVM;
 using System.Collections.ObjectModel;
 
 namespace ClinicApp.Models.TransactionModels;
+
+// A follow-up session the dentist reviewed on the Bill Summary sheet — not written to Supabase until payment succeeds.
+public class PendingFollowUpChoice
+{
+    public SupabaseTreatmentSequence Row { get; set; } = null!;
+    public DateTime? SelectedSlotLocal { get; set; }
+    public DateTime? SelectedSlotUtc { get; set; }
+}
 
 public class BillDraft
 {
@@ -31,6 +40,9 @@ public class BillDraft
     public decimal MonthlyPayment { get; set; }
 
     public decimal AmountDueToday { get; set; }
+
+    // Follow-up sessions chosen (scheduled or deferred) during Bill Summary, persisted only after payment succeeds.
+    public List<PendingFollowUpChoice> PendingFollowUps { get; set; } = new();
 
     public string InstallmentSummary =>
         IsInstallment && InstallmentMonths > 0

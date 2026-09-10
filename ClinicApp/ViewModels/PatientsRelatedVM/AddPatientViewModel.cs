@@ -396,6 +396,9 @@ public partial class AddPatientViewModel : ObservableObject
     }
 
     // Saves locally then pushes the full record to Supabase, insert or update as appropriate.
+    // Guardian and Conditions are both normalized tables in Supabase (SupabasePatient only holds
+    // a GuardianId foreign key and has no Conditions column at all), so both are resolved/synced
+    // through their own dedicated methods rather than written as flat fields on the patient row.
     private async Task SyncToSupabaseAsync(int localPid)
     {
         // Read fresh from SQLite — never use ViewModel fields directly
@@ -419,9 +422,41 @@ public partial class AddPatientViewModel : ObservableObject
         var a = await _db.GetAllergy(localPid);
         var conds = await _db.GetPatientConditions(localPid);
         var allConds = await _db.GetAllConditions();
-        var condNames = string.Join(",", conds
+        var selectedConditionNames = conds
             .Select(pc => allConds.FirstOrDefault(c => c.ConditionID == pc.ConditionID)?.ConditionName)
-            .Where(n => n != null));
+            .Where(n => n != null)
+            .Select(n => n!)
+            .ToList();
+
+        // Guardian is a shared entity in Supabase (siblings can point at the
+        // same row), so resolve-or-create it before building the patient —
+        // match by mobile first, then by exact name, and keep the shared
+        // record's occupation/mobile current if this save has newer info.
+        long? guardianId = null;
+        if (!string.IsNullOrWhiteSpace(g?.GuardianName))
+        {
+            var existingGuardian = await _supabase.FindGuardianAsync(g.GuardianName, g.MobileNo);
+            if (existingGuardian != null)
+            {
+                guardianId = existingGuardian.Id;
+                if (existingGuardian.Occupation != g.Occupation || existingGuardian.Mobile != g.MobileNo)
+                {
+                    existingGuardian.Occupation = g.Occupation;
+                    existingGuardian.Mobile = g.MobileNo;
+                    await _supabase.UpdateGuardianAsync(existingGuardian);
+                }
+            }
+            else
+            {
+                var created = await _supabase.AddGuardianAsync(new SupabaseGuardian
+                {
+                    Name = g.GuardianName,
+                    Occupation = g.Occupation,
+                    Mobile = g.MobileNo
+                });
+                guardianId = created?.Id;
+            }
+        }
 
         if (!string.IsNullOrEmpty(_supabaseId))
         {
@@ -447,11 +482,17 @@ public partial class AddPatientViewModel : ObservableObject
             sp.OfficeNo = saved.OfficeNo;
             sp.FaxNo = saved.FaxNo;
             sp.Email = saved.Email;
-            sp.DateRegistered = DateTime.TryParse(saved.DateRegistered, out var regU) ? regU.ToUniversalTime() : sp.DateRegistered;
-            sp.GuardianName = g?.GuardianName;
+            sp.DateRegistered = DateTime.TryParse(saved.DateRegistered, out var regU)
+                ? regU.ToUniversalTime()
+                : sp.DateRegistered;
+            sp.ReferredBy = saved.ReferredBy;
+            sp.GoodHealth = m?.IsGoodHealth ?? true;
+            sp.UnderTreatment = m?.UnderMedicalTreatment ?? false;
+            sp.Hospitalized = m?.HasBeenHospitalized ?? false;
+            sp.UsesTobacco = m?.UsesTobacco ?? false;
+            sp.OnMedications = m?.TakingMedications ?? false;
+            sp.GuardianId = guardianId;
             sp.GuardianRelationship = g?.RelationshipToPatient;
-            sp.GuardianOccupation = g?.Occupation;
-            sp.GuardianMobile = g?.MobileNo;
             sp.BloodType = m?.BloodType;
             sp.LatexAllergy = a?.HasLatexAllergy ?? false;
             sp.AspirinAllergy = a?.HasAspirinAllergy ?? false;
@@ -459,7 +500,6 @@ public partial class AddPatientViewModel : ObservableObject
             sp.SulfaAllergy = a?.HasSulfaAllergy ?? false;
             sp.LocalAnestheticAllergy = a?.HasLocalAnestheticAllergy ?? false;
             sp.OtherAllergy = a?.OtherAllergy;
-            sp.Conditions = condNames;
 
             System.Diagnostics.Debug.WriteLine($"[Sync] Updating {_supabaseId}");
             var ok = await _supabase.UpdatePatientAsync(sp);
@@ -492,18 +532,21 @@ public partial class AddPatientViewModel : ObservableObject
                 DateRegistered = DateTime.TryParse(saved.DateRegistered, out var reg)
                          ? reg.ToUniversalTime()  // ← Supabase needs UTC
                          : DateTime.UtcNow,
-                GuardianName = g?.GuardianName,
+                ReferredBy = saved.ReferredBy,
+                GoodHealth = m?.IsGoodHealth ?? true,
+                UnderTreatment = m?.UnderMedicalTreatment ?? false,
+                Hospitalized = m?.HasBeenHospitalized ?? false,
+                UsesTobacco = m?.UsesTobacco ?? false,
+                OnMedications = m?.TakingMedications ?? false,
+                GuardianId = guardianId,
                 GuardianRelationship = g?.RelationshipToPatient,
-                GuardianOccupation = g?.Occupation,
-                GuardianMobile = g?.MobileNo,
                 BloodType = m?.BloodType,
                 LatexAllergy = a?.HasLatexAllergy ?? false,
                 AspirinAllergy = a?.HasAspirinAllergy ?? false,
                 PenicillinAllergy = a?.HasPenicillinAllergy ?? false,
                 SulfaAllergy = a?.HasSulfaAllergy ?? false,
                 LocalAnestheticAllergy = a?.HasLocalAnestheticAllergy ?? false,
-                OtherAllergy = a?.OtherAllergy,
-                Conditions = condNames
+                OtherAllergy = a?.OtherAllergy
             };
 
             // INSERT — throws on failure so user sees the error
@@ -526,6 +569,21 @@ public partial class AddPatientViewModel : ObservableObject
                     "Check internet connection and Supabase RLS policies.",
                     "OK");
             }
+        }
+
+        // Conditions live in the normalized patient_conditions join table —
+        // resolve local condition names to their Supabase medical_conditions ids
+        // and replace the patient's full set. Needs _supabaseId, so this only
+        // runs once the patient row itself exists in Supabase (update, or a
+        // successful insert above).
+        if (!string.IsNullOrEmpty(_supabaseId))
+        {
+            var remoteDefs = await _supabase.GetMedicalConditionsAsync();
+            var remoteIds = remoteDefs
+                .Where(c => selectedConditionNames.Contains(c.Name))
+                .Select(c => c.Id)
+                .ToList();
+            await _supabase.SavePatientConditionsAsync(_supabaseId, remoteIds);
         }
     }
 }

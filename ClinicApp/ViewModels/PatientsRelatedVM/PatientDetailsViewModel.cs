@@ -400,10 +400,34 @@ public partial class PatientDetailsViewModel : ObservableObject
                 remote.OfficeNo = p.OfficeNo;
                 remote.FaxNo = p.FaxNo;
                 remote.Email = p.Email;
-                remote.GuardianName = GuardianName.Trim();
+                // Guardian is a shared entity — resolve or create it, matching the pattern
+                // used when a patient is first added, instead of writing name/occupation/
+                // mobile straight onto the patient row.
+                if (!string.IsNullOrWhiteSpace(GuardianName))
+                {
+                    var existingGuardian = await _supabase.FindGuardianAsync(GuardianName.Trim(), GuardianMobile.Trim());
+                    if (existingGuardian != null)
+                    {
+                        remote.GuardianId = existingGuardian.Id;
+                        if (existingGuardian.Occupation != GuardianOccupation.Trim() || existingGuardian.Mobile != GuardianMobile.Trim())
+                        {
+                            existingGuardian.Occupation = GuardianOccupation.Trim();
+                            existingGuardian.Mobile = GuardianMobile.Trim();
+                            await _supabase.UpdateGuardianAsync(existingGuardian);
+                        }
+                    }
+                    else
+                    {
+                        var created = await _supabase.AddGuardianAsync(new Models.SupabaseModels.SupabaseGuardian
+                        {
+                            Name = GuardianName.Trim(),
+                            Occupation = GuardianOccupation.Trim(),
+                            Mobile = GuardianMobile.Trim()
+                        });
+                        remote.GuardianId = created?.Id;
+                    }
+                }
                 remote.GuardianRelationship = GuardianRelationship;
-                remote.GuardianOccupation = GuardianOccupation.Trim();
-                remote.GuardianMobile = GuardianMobile.Trim();
 
                 var ok = await _supabase.UpdatePatientAsync(remote);
                 if (!ok)
@@ -487,7 +511,7 @@ public partial class PatientDetailsViewModel : ObservableObject
                 remote.Hospitalized = HasBeenHospitalized;
                 remote.HospitalizationDetails = HospitalizationDetails;
                 remote.UsesTobacco = UsesTobacco;
-                remote.TakingMedications = TakingMedications;
+                remote.OnMedications = TakingMedications; // reuses the existing on_medications column
                 remote.LatexAllergy = HasLatexAllergy;
                 remote.AspirinAllergy = HasAspirinAllergy;
                 remote.PenicillinAllergy = HasPenicillinAllergy;

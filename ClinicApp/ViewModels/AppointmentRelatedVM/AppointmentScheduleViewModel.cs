@@ -7,6 +7,7 @@ using ClinicApp.Views.AppointmentRelated;
 using ClinicApp.Views;
 using ClinicApp.Views.Shared;
 using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.SupabaseModels;
 using CommunityToolkit.Maui.Views;
 
 namespace ClinicApp.ViewModels
@@ -17,6 +18,12 @@ namespace ClinicApp.ViewModels
         readonly SupabaseDataService _supabaseData;
 
         private string _selectedSupabaseEntryId = string.Empty;
+
+        // Clinic operates on Philippine time regardless of device locale/timezone,
+        // so appointment times are always converted explicitly rather than relying
+        // on the device's local timezone setting.
+        static readonly TimeZoneInfo ManilaTz =
+            TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
 
         public CalendarDrawable CalendarDrawable { get; } = new();
         public event Action? CalendarNeedsRedraw;
@@ -50,21 +57,27 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private int pendingBookingsCount;
         [ObservableProperty] private bool hasPendingBookings;
 
-        // From File 2 — in-procedure queue badge
+        // In-procedure queue badge
         [ObservableProperty] private int inProcedureQueueCount;
         [ObservableProperty] private bool hasInProcedureQueue;
 
         [ObservableProperty] private string todayLabel = "Today";
         [ObservableProperty] private string weekLabel = "This week";
 
+        // Follow-ups needed banner
+        public ObservableCollection<SupabaseTreatmentSequence> PendingFollowUps { get; } = new();
+        [ObservableProperty] private int followUpsNeededCount;
+        [ObservableProperty] private bool hasFollowUpsNeeded;
+        bool _isLoadingFollowUps;
+        bool _followUpsReloadRequested;
+
         AppointmentDetailSheet? _detailSheet;
 
-        // File 1: Complete/Mark button only shows for today's approved appointments
+        // Complete/Mark button only shows for today's approved appointments
         public bool IsSelectedApproved =>
             SelectedAppointment?.Status == "approved" &&
             SelectedAppointment?.AppointmentDateTimeParsed.Date == DateTime.Today;
 
-        // File 2: In-procedure/billing status check
         public bool IsSelectedInTransit =>
             SelectedAppointment?.Status == "in-procedure" ||
             SelectedAppointment?.Status == "billing";
@@ -138,7 +151,7 @@ namespace ClinicApp.ViewModels
             await Shell.Current.GoToAsync(nameof(AppointmentPage));
         }
 
-        // From File 2 — navigate to in-procedure queue page
+        // Navigate to in-procedure queue page
         [RelayCommand]
         async Task GoToInProcedure()
         {
@@ -316,7 +329,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
-        // From File 2 — shared helper for updating appointment stage
+        // Shared helper for updating appointment stage
         private async Task UpdateAppointmentStageAsync(string status)
         {
             if (SelectedAppointment == null) return;
@@ -365,7 +378,7 @@ namespace ClinicApp.ViewModels
             await UpdateAppointmentStageAsync("in-procedure");
         }
 
-        // From File 2 — called from InProcedurePage to go to billing
+        // Called from InProcedurePage to go to billing
         [RelayCommand]
         async Task ProceedToBilling()
         {
@@ -496,28 +509,30 @@ namespace ClinicApp.ViewModels
             {
                 var entries = await _supabaseData.GetAppointmentEntriesAsync();
 
-                // From File 2 — track in-procedure/billing queue count for banner
+                // Track in-procedure/billing queue count for banner
                 InProcedureQueueCount = entries.Count(e =>
                     string.Equals(e.Status, "in-procedure", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(e.Status, "billing", StringComparison.OrdinalIgnoreCase));
                 HasInProcedureQueue = InProcedureQueueCount > 0;
 
-                // Schedule shows APPROVED only
+                // Schedule shows APPROVED only. Times are always converted through
+                // Asia/Manila explicitly — the clinic runs on PH time regardless
+                // of what timezone the device itself is set to.
                 var approvedEntries = entries
                     .Where(e => string.Equals(e.Status, "approved", StringComparison.OrdinalIgnoreCase))
                     .Where(e =>
                     {
-                        var dt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
-                            ? e.AppointmentDateTime.ToLocalTime()
-                            : e.AppointmentDateTime;
+                        var dt = TimeZoneInfo.ConvertTimeFromUtc(
+                            SupabaseDataService.NormalizeSupabaseUtc(e.AppointmentDateTime), ManilaTz);
+
                         return dt.Date >= WeekStart.Date &&
                                dt.Date < WeekStart.AddDays(7).Date;
                     })
                     .Select(e =>
                     {
-                        var localDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
-                            ? e.AppointmentDateTime.ToLocalTime()
-                            : e.AppointmentDateTime;
+                        var localDt = TimeZoneInfo.ConvertTimeFromUtc(
+                            SupabaseDataService.NormalizeSupabaseUtc(e.AppointmentDateTime), ManilaTz);
+
                         return new AppointmentEntry
                         {
                             SupabaseBookingId = e.SupabaseBookingId,
@@ -618,6 +633,7 @@ namespace ClinicApp.ViewModels
 
         private void BuildCalendarColumns(List<AppointmentEntry> entries)
         {
+            // Clinic opens at 10am, last patient accepted at 4pm.
             var hours = new[] { 10, 11, 12, 13, 14, 15, 16 };
             var newColumns = new List<CalendarDayColumn>();
 
@@ -728,6 +744,53 @@ namespace ClinicApp.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[EmailPatient] Error: {ex.Message}");
                 await ShowErrorAsync("Unable to open email app.");
             }
+        }
+
+        // ── Follow-ups needed banner ─────────────────────────────────
+        // Loads treatment sequences awaiting a follow-up booking. Guards against
+        // overlapping calls: if a load is already in flight when this is called
+        // again, it just flags a re-run instead of firing a second concurrent
+        // request, then re-runs once the in-flight call finishes.
+        public async Task LoadPendingFollowUpsAsync()
+        {
+            if (_isLoadingFollowUps)
+            {
+                _followUpsReloadRequested = true;
+                return;
+            }
+
+            _isLoadingFollowUps = true;
+            try
+            {
+                do
+                {
+                    _followUpsReloadRequested = false;
+                    var pending = await _supabaseData.GetPendingFollowUpsAsync();
+
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        PendingFollowUps.Clear();
+                        foreach (var p in pending) PendingFollowUps.Add(p);
+                        FollowUpsNeededCount = PendingFollowUps.Count;
+                        HasFollowUpsNeeded = FollowUpsNeededCount > 0;
+                    });
+                }
+                while (_followUpsReloadRequested);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AppointmentScheduleVM] LoadPendingFollowUps: {ex.Message}");
+            }
+            finally
+            {
+                _isLoadingFollowUps = false;
+            }
+        }
+
+        [RelayCommand]
+        async Task GoToFollowUps()
+        {
+            await Shell.Current.GoToAsync(nameof(PendingFollowUpsPage));
         }
     }
 

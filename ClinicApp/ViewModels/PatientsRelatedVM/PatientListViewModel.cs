@@ -100,11 +100,12 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 var key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4YWNkcWtrb2NiamFpcXN6cHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NTExNTUsImV4cCI6MjA5NjAyNzE1NX0.Jt-Dsn6j3m9uL_R0A1Y0AVlUKBA_hmNI-NfHDBQYLUA";
 
                 await _realtime.InitializeAsync(url, key);
-                // Sync any patients/bookings missed while offline.
+                // Sync any patients/bookings/users missed while offline.
                 await _realtime.SyncMissedPatientsAsync();
                 await _realtime.SyncMissedBookingsAsync();
                 await _realtime.SyncMissedTreatmentHistoryAsync();
                 await _realtime.SyncMissedToothRecordsAsync();
+                await _realtime.SyncMissedUsersAsync();
 
                 // Backfill SupabaseId for patients that don't have it yet.
                 var allSupabase = await _supabaseData.GetPatientsAsync();
@@ -115,6 +116,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 await _realtime.SubscribeToPatientsAsync();
                 await _realtime.SubscribeToTreatmentHistoryAsync();
                 await _realtime.SubscribeToToothRecordsAsync();
+                await _realtime.SubscribeToUsersAsync();
 
                 // Temporary debug — check what's actually in Supabase bookings.
                 var allBookings = await _supabaseData.GetAllBookingsDebugAsync();
@@ -195,11 +197,6 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 FaxNo = sp.FaxNo ?? string.Empty,
                 Email = sp.Email ?? string.Empty,
                 ReferredBy = sp.ReferredBy ?? string.Empty,
-                ReasonForConsultation = sp.ReasonForConsultation ?? string.Empty,
-                DentalInsurance = sp.DentalInsurance ?? string.Empty,
-                InsuranceEffectiveDate = sp.InsuranceEffectiveDate.HasValue
-                                             ? sp.InsuranceEffectiveDate.Value.ToString("yyyy-MM-dd")
-                                             : string.Empty,
                 DateRegistered = sp.DateRegistered.ToString("yyyy-MM-dd"),
                 SupabaseId = sp.Id
             };
@@ -450,7 +447,6 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}" +
                 $"&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
         }
-
 
         // Opens the tapped patient's billing/transaction page.
         [RelayCommand]

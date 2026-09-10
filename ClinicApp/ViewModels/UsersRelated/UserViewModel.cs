@@ -14,23 +14,22 @@ public partial class UserViewModel : ObservableObject
 {
     private readonly DatabaseService _db;
     private readonly SupabaseDataService _supabaseData;
+    private readonly SupabaseRealtimeService _realtime;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isRefreshing;
 
     public ObservableCollection<UserCardViewModel> Users { get; set; } = new();
 
-    // Injects the local and Supabase data services.
-    public UserViewModel(DatabaseService db, SupabaseDataService supabaseData)
+    // Injects the local, Supabase, and realtime services.
+    public UserViewModel(DatabaseService db, SupabaseDataService supabaseData, SupabaseRealtimeService realtime)
     {
         _db = db;
         _supabaseData = supabaseData;
-    }
+        _realtime = realtime;
 
-    // ---------------------------------------------------------------
-    // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
-    // everywhere in this ViewModel with the app's dimmed-backdrop
-    // rounded-card popup.
-    // ---------------------------------------------------------------
+        // Another device adding/editing/removing a staff account shows up here live, same as patients elsewhere.
+        _realtime.OnUserChanged += async () => await LoadUsers();
+    }
 
     // Resolves the page currently on screen, to host the popup.
     static Page CurrentPage =>

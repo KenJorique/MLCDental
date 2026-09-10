@@ -20,6 +20,19 @@ namespace ClinicApp.Models.AppointmentModels
 
         public string PatientSupabaseId { get; set; } = string.Empty;
 
+        public string? TreatmentSequenceId { get; set; }
+        public int? SessionNumber { get; set; }
+        public int? TotalSessions { get; set; }
+
+        [Ignore]
+        public bool IsFollowUp => TotalSessions.HasValue && TotalSessions > 1;
+
+        [Ignore]
+        public string SessionBadge =>
+            (SessionNumber.HasValue && TotalSessions.HasValue)
+                ? $"Session {SessionNumber} of {TotalSessions}"
+                : string.Empty;
+
         [Ignore]
         public DateTime AppointmentDateTimeParsed
         {

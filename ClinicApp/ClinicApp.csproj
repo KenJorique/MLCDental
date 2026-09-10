@@ -129,7 +129,13 @@
 	  <MauiXaml Update="Views\AppointmentRelated\AppointmentPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>  
+	  <MauiXaml Update="Views\AppointmentRelated\FollowUpRequiredSheet.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>  
 	  <MauiXaml Update="Views\AppointmentRelated\InProcedurePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>  
+	  <MauiXaml Update="Views\AppointmentRelated\PendingFollowUpsPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentRelated\PendingDetailSheet.xaml">
@@ -177,9 +183,6 @@
    	  <MauiXaml Update="Views\PatientsRelated\TreatmentHistoryPage.xaml">
 		<Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-   	  <MauiXaml Update="Views\PatientsRelated\VisitDetailsPage.xaml">
-   	    <Generator>MSBuild:Compile</Generator>
-   	  </MauiXaml>
    	  <MauiXaml Update="Views\ReportRelated\CustomDateRangeSheet.xaml">
    	    <Generator>MSBuild:Compile</Generator>
    	  </MauiXaml>
@@ -241,9 +244,6 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\TransactionRelated\ReceiptPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
-	  <MauiXaml Update="Views\TransactionRelated\ServiceSummaryPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\TransactionRelated\TransactionPage.xaml">
