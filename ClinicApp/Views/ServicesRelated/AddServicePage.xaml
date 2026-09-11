@@ -68,48 +68,145 @@
                             Style="{StaticResource FormEditor}"/>
 				</Border>
 
-                <!-- ══ Multi-session configuration ══ -->
-                <BoxView HeightRequest="1" BackgroundColor="LightGray" Margin="0,10,0,4"/>
+				<!-- ══ Multi-session configuration ══ -->
+				<BoxView HeightRequest="1" BackgroundColor="{StaticResource Gray200}" Margin="0,10,0,4"/>
 
-                <Grid ColumnDefinitions="*,Auto">
-                    <Label Grid.Column="0" Text="Requires Multiple Sessions"
-                           FontAttributes="Bold" VerticalOptions="Center"/>
-                    <Switch Grid.Column="1" IsToggled="{Binding RequiresMultipleSessions}"/>
-                </Grid>
-                <Label Text="Turn this on for treatments like Dental Crown, Root Canal, or Braces Adjustment that need a follow-up visit."
-                       FontSize="12" TextColor="Gray"/>
+				<Label Text="Multi-Session Treatment" Style="{StaticResource FormSectionHeader}"/>
 
-                <VerticalStackLayout Spacing="12" IsVisible="{Binding ShowSessionFields}">
+				<Grid ColumnDefinitions="Auto,Auto,*,Auto">
+					<Label Grid.Column="0" Text="Requires Multiple Sessions"
+                           Style="{StaticResource FormFieldLabel}"
+                           Margin="0"
+                           VerticalOptions="Center"/>
+					<Label Grid.Column="1"
+                           FontFamily="MaterialSymbolsRounded"
+                           Text="&#xe88e;"
+                           FontSize="19"
+                           TextColor="{StaticResource Primary}"
+                           VerticalOptions="Center"
+                           Margin="6,0,0,0">
+						<Label.GestureRecognizers>
+							<TapGestureRecognizer Command="{Binding ShowHelpCommand}"
+                                CommandParameter="Turn this on for treatments like Dental Crown, Root Canal, or Braces Adjustment that need a follow-up visit."/>
+						</Label.GestureRecognizers>
+					</Label>
+					<Switch Grid.Column="3" IsToggled="{Binding RequiresMultipleSessions}"/>
+				</Grid>
 
-                    <Label Text="Total Sessions" FontAttributes="Bold"/>
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Entry Grid.Column="0"
-                               Text="{Binding TotalSessions}"
-                               Keyboard="Numeric"
-                               Placeholder="e.g. 2"/>
-                        <Stepper Grid.Column="1" Minimum="2" Maximum="12"
-                                 Value="{Binding TotalSessions}"/>
-                    </Grid>
-                    <Label Text="Leave as-is for a fixed count (e.g. 2 for Crown). For open-ended/recurring treatments like Braces Adjustment, staff will just keep scheduling follow-ups — set this to 1 session if there's no fixed total."
-                           FontSize="12" TextColor="Gray"/>
+				<VerticalStackLayout Spacing="12" IsVisible="{Binding ShowSessionFields}">
 
-                    <Label Text="Recommended Follow-up Interval (days)" FontAttributes="Bold"/>
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Entry Grid.Column="0"
-                               Text="{Binding FollowupIntervalDays}"
-                               Keyboard="Numeric"
-                               Placeholder="e.g. 14"/>
-                        <Stepper Grid.Column="1" Minimum="1" Maximum="180"
-                                 Value="{Binding FollowupIntervalDays}"/>
-                    </Grid>
-                    <Label Text="Used to suggest the next appointment date — staff can still pick a different date manually."
-                           FontSize="12" TextColor="Gray"/>
+					<Grid ColumnDefinitions="Auto,Auto,*">
+						<Label Grid.Column="0" Text="Total Sessions" Style="{StaticResource FormFieldLabel}"/>
+						<Label Grid.Column="1"
+                               FontFamily="MaterialSymbolsRounded"
+                               Text="&#xe88e;"
+                               FontSize="19"
+                               TextColor="{StaticResource Primary}"
+                               VerticalOptions="Center"
+                               Margin="6,10,0,0">
+							<Label.GestureRecognizers>
+								<TapGestureRecognizer Command="{Binding ShowHelpCommand}"
+                                    CommandParameter="Leave as-is for a fixed count (e.g. 2 for Crown). For open-ended/recurring treatments like Braces Adjustment, staff will just keep scheduling follow-ups — set this to 1 session if there's no fixed total."/>
+							</Label.GestureRecognizers>
+						</Label>
+					</Grid>
+					<Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="12" HorizontalOptions="Center">
+						<Button Grid.Column="0" Text="−"
+                                Command="{Binding DecrementTotalSessionsCommand}"
+                                FontSize="24" FontAttributes="Bold"
+                                WidthRequest="50" HeightRequest="50" Padding="0"
+                                CornerRadius="12"
+                                BackgroundColor="{StaticResource Secondary}"
+                                TextColor="{StaticResource Primary}">
+							<Button.Triggers>
+								<DataTrigger TargetType="Button" Binding="{Binding CanDecrementTotalSessions}" Value="False">
+									<Setter Property="BackgroundColor" Value="{StaticResource Gray200}"/>
+									<Setter Property="TextColor" Value="{StaticResource Gray400}"/>
+								</DataTrigger>
+							</Button.Triggers>
+						</Button>
+						<Border Grid.Column="1" Style="{StaticResource FormInputBox}" WidthRequest="60">
+							<Entry Text="{Binding TotalSessions}"
+                                   Keyboard="Numeric"
+                                   Placeholder="2"
+                                   HorizontalTextAlignment="Center"
+                                   Style="{StaticResource FormEntry}"/>
+						</Border>
+						<Button Grid.Column="2" Text="+"
+                                Command="{Binding IncrementTotalSessionsCommand}"
+                                FontSize="24" FontAttributes="Bold"
+                                WidthRequest="50" HeightRequest="50" Padding="0"
+                                CornerRadius="12"
+                                BackgroundColor="{StaticResource Primary}"
+                                TextColor="{StaticResource White}">
+							<Button.Triggers>
+								<DataTrigger TargetType="Button" Binding="{Binding CanIncrementTotalSessions}" Value="False">
+									<Setter Property="BackgroundColor" Value="{StaticResource Gray200}"/>
+									<Setter Property="TextColor" Value="{StaticResource Gray400}"/>
+								</DataTrigger>
+							</Button.Triggers>
+						</Button>
+					</Grid>
 
-                </VerticalStackLayout>
+					<Grid ColumnDefinitions="Auto,Auto,*">
+						<Label Grid.Column="0" Text="Recommended Follow-up Interval (days)" Style="{StaticResource FormFieldLabel}"/>
+						<Label Grid.Column="1"
+                               FontFamily="MaterialSymbolsRounded"
+                               Text="&#xe88e;"
+                               FontSize="19"
+                               TextColor="{StaticResource Primary}"
+                               VerticalOptions="Center"
+                               Margin="6,10,0,0">
+							<Label.GestureRecognizers>
+								<TapGestureRecognizer Command="{Binding ShowHelpCommand}"
+                                    CommandParameter="Used to suggest the next appointment date — staff can still pick a different date manually."/>
+							</Label.GestureRecognizers>
+						</Label>
+					</Grid>
+					<Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="12" HorizontalOptions="Center">
+						<Button Grid.Column="0" Text="−"
+                                Command="{Binding DecrementFollowupIntervalCommand}"
+                                FontSize="24" FontAttributes="Bold"
+                                WidthRequest="50" HeightRequest="50" Padding="0"
+                                CornerRadius="12"
+                                BackgroundColor="{StaticResource Secondary}"
+                                TextColor="{StaticResource Primary}">
+							<Button.Triggers>
+								<DataTrigger TargetType="Button" Binding="{Binding CanDecrementFollowupInterval}" Value="False">
+									<Setter Property="BackgroundColor" Value="{StaticResource Gray200}"/>
+									<Setter Property="TextColor" Value="{StaticResource Gray400}"/>
+								</DataTrigger>
+							</Button.Triggers>
+						</Button>
+						<Border Grid.Column="1" Style="{StaticResource FormInputBox}" WidthRequest="60">
+							<Entry Text="{Binding FollowupIntervalDays}"
+                                   Keyboard="Numeric"
+                                   Placeholder="14"
+                                   HorizontalTextAlignment="Center"
+                                   Style="{StaticResource FormEntry}"/>
+						</Border>
+						<Button Grid.Column="2" Text="+"
+                                Command="{Binding IncrementFollowupIntervalCommand}"
+                                FontSize="24" FontAttributes="Bold"
+                                WidthRequest="50" HeightRequest="50" Padding="0"
+                                CornerRadius="12"
+                                BackgroundColor="{StaticResource Primary}"
+                                TextColor="{StaticResource White}">
+							<Button.Triggers>
+								<DataTrigger TargetType="Button" Binding="{Binding CanIncrementFollowupInterval}" Value="False">
+									<Setter Property="BackgroundColor" Value="{StaticResource Gray200}"/>
+									<Setter Property="TextColor" Value="{StaticResource Gray400}"/>
+								</DataTrigger>
+							</Button.Triggers>
+						</Button>
+					</Grid>
 
-            </VerticalStackLayout>
-        </ScrollView>
+				</VerticalStackLayout>
 
+			</VerticalStackLayout>
+		</ScrollView>
+
+		<!-- Cancel = Secondary (pale green) style; Save = Primary green — matches the green/red action rule (red is reserved for discard/remove, handled inside CancelCommand's confirmation popup, not this button itself). -->
 		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,12" ColumnSpacing="12"
               BackgroundColor="{StaticResource White}">
 			<Button Grid.Column="0" Text="Cancel"
@@ -120,5 +217,5 @@
                     Style="{StaticResource PrimaryActionButtonStyle}"/>
 		</Grid>
 
-    </Grid>
+	</Grid>
 </ContentPage>

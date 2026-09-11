@@ -31,6 +31,7 @@ namespace ClinicApp
         private const string SupabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4YWNkcWtrb2NiamFpcXN6cHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NTExNTUsImV4cCI6MjA5NjAyNzE1NX0.Jt-Dsn6j3m9uL_R0A1Y0AVlUKBA_hmNI-NfHDBQYLUA";
         private const string SyncfusionLicenseKey = "Ngo9BigBOggjHTQxAR8/V1NNaF5cXmBCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdlWXdcdXRURWlYVERwW0BWYUA=";
 
+        // Builds and configures the MAUI app: DI registrations, fonts, and platform handlers.
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
@@ -40,7 +41,7 @@ namespace ClinicApp
             // ── Google refresh token ──────────────────────────────
             Preferences.Set("google_refresh_token",
      "1//04lNOw9Ik3RmfCgYIARAAGAQSNwF-L9IrWCDoRUW-BrnhpvGtUQvPJykV5kJQT-epjT75UhGphOTNb1Xr7wVCRE3XuNKKE8vY458");
-            // Clear cached token so fresh one is fetched
+            // Clears the cached access token so a fresh one is fetched on next use.
             Preferences.Remove("google_access_token");
 
 
@@ -54,16 +55,17 @@ namespace ClinicApp
             builder.Services.AddSingleton<BillingService>();
             builder.Services.AddSingleton<SessionService>();          // one session for the app's lifetime
             builder.Services.AddSingleton<AuthenticationService>();    // stateless-ish, but fine as singleton
-                                                                       // DatabaseService is presumably already registered as a Singleton — leave as is.
-                                                                       // ── App ───────────────────────────────────────────────
-                                                                       // ── App ───────────────────────────────────────────────
+            // DatabaseService is presumably already registered as a Singleton — leave as is.
+            // ── App ───────────────────────────────────────────────
+            // App now takes IServiceProvider instead of a resolved LoginPage, so LoginPage.xaml only
+            // parses after App.xaml.cs's InitializeComponent() has populated Application.Resources.
             builder.Services.AddSingleton<App>(sp => new App(
                 sp.GetRequiredService<SupabaseDataService>(),
                 sp.GetRequiredService<DatabaseService>(),
                 sp.GetRequiredService<SupabaseRealtimeService>(),
                 sp.GetRequiredService<PatientListViewModel>(),
                 sp.GetRequiredService<SessionService>(),
-                sp.GetRequiredService<LoginPage>(),
+                sp,
                 sp.GetRequiredService<RememberMeService>()
             ));
             builder.Services.AddSingleton<RememberMeService>();
@@ -262,9 +264,7 @@ namespace ClinicApp
 
 #endif
 
-            // Removes the native Android underline, but ONLY from the one Picker marked
-            // StyleId="NoUnderlinePicker" (the Supply Stock Status dropdown on Reports) —
-            // every other Picker in the app keeps its normal underline.
+            // Removes the native Android underline only from Pickers marked StyleId="NoUnderlinePicker".
 #if ANDROID
             PickerHandler.Mapper.AppendToMapping("RemovePickerUnderline", (handler, view) =>
             {

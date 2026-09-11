@@ -33,7 +33,7 @@ public partial class SupplyListViewModel : ObservableObject
     public ObservableCollection<SupplyCardViewModel> AllCards { get; } = new();
     public ObservableCollection<SupplyCardViewModel> FilteredCards { get; } = new();
 
-    // Empty-state title, varies by filter/search.
+    // Empty-state title, computed from the active filter and search text.
     public string EmptyStateTitle
     {
         get
@@ -48,7 +48,7 @@ public partial class SupplyListViewModel : ObservableObject
         }
     }
 
-    // Empty-state subtitle, varies by filter/search.
+    // Empty-state subtitle, computed from the active filter and search text.
     public string EmptyStateMessage
     {
         get
@@ -301,7 +301,8 @@ public partial class SupplyListViewModel : ObservableObject
         var popup = new ConfirmationPopup(
             "Remove Supply?",
             $"Remove \"{card.Supply.Name}\" from the supply list?",
-            confirmText: "Remove");
+            confirmText: "Remove",
+            confirmColor: Colors.Crimson);
 
         var result = await Shell.Current.ShowPopupAsync(popup);
         if (result is not bool confirmed || !confirmed) return;

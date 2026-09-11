@@ -6,8 +6,11 @@
     x:Class="ClinicApp.Views.SupplyRelated.ReduceStockPage"
     x:DataType="vm:ReduceStockViewModel"
     Title="Reduce Stock"
-    BackgroundColor="{StaticResource PageBg}"
-    Shell.TabBarIsVisible="False">
+    Shell.BackgroundColor="{StaticResource Primary}"
+    Shell.TitleColor="White"
+    Shell.ForegroundColor="White"
+    Shell.TabBarIsVisible="False"
+    BackgroundColor="{StaticResource PageBg}">
 
 	<Grid RowDefinitions="*,Auto">
 		<ScrollView Grid.Row="0">

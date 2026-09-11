@@ -15,8 +15,6 @@
 		<ScrollView Grid.Row="0">
 			<VerticalStackLayout Padding="20,8,20,32" Spacing="0">
 
-				<Label Text="Staff Information" Style="{StaticResource FormSectionHeader}" Margin="0,0,0,6"/>
-
 				<!-- Full name -->
 				<Label Text="Full Name" Style="{StaticResource FormFieldLabel}"/>
 				<Border Style="{StaticResource FormInputBox}">
@@ -32,20 +30,22 @@
 				<!-- Password -->
 				<Label Text="Password" Style="{StaticResource FormFieldLabel}"/>
 				<Border Style="{StaticResource FormInputBox}">
-					<Grid ColumnDefinitions="*,Auto">
-						<Entry Grid.Column="0"
-                               Text="{Binding Password}"
+					<Grid>
+						<!-- Entry fills the full width so its underline matches every other field; the eye icon sits on top of it, not beside it. -->
+						<Entry Text="{Binding Password}"
                                Placeholder="Enter password"
                                IsPassword="{Binding IsPasswordVisible, Converter={StaticResource InvertedBoolConverter}}"
                                Style="{StaticResource FormEntry}"/>
 
 						<!-- Eye icon: closed (tap to reveal) -->
-						<Label Grid.Column="1"
-                               Text="&#xe8f4;"
+						<Label Text="&#xe8f4;"
                                FontFamily="MaterialSymbolsRounded"
                                FontSize="20"
-                               TextColor="{StaticResource TextMuted}"
+                               TextColor="{StaticResource Gray300}"
+                               HorizontalOptions="End"
                                VerticalOptions="Center"
+                               Margin="0,0,4,0"
+                               InputTransparent="False"
                                IsVisible="{Binding IsPasswordVisible, Converter={StaticResource InvertedBoolConverter}}">
 							<Label.GestureRecognizers>
 								<TapGestureRecognizer Command="{Binding TogglePasswordVisibilityCommand}"/>
@@ -53,12 +53,14 @@
 						</Label>
 
 						<!-- Eye icon: open (tap to hide) -->
-						<Label Grid.Column="1"
-                               Text="&#xe8f5;"
+						<Label Text="&#xe8f5;"
                                FontFamily="MaterialSymbolsRounded"
                                FontSize="20"
-                               TextColor="{StaticResource TextMuted}"
+                               TextColor="{StaticResource Gray300}"
+                               HorizontalOptions="End"
                                VerticalOptions="Center"
+                               Margin="0,0,4,0"
+                               InputTransparent="False"
                                IsVisible="{Binding IsPasswordVisible}">
 							<Label.GestureRecognizers>
 								<TapGestureRecognizer Command="{Binding TogglePasswordVisibilityCommand}"/>
@@ -73,20 +75,22 @@
 				<!-- Confirm Password -->
 				<Label Text="Confirm Password" Style="{StaticResource FormFieldLabel}"/>
 				<Border Style="{StaticResource FormInputBox}">
-					<Grid ColumnDefinitions="*,Auto">
-						<Entry Grid.Column="0"
-                               Text="{Binding ConfirmPassword}"
+					<Grid>
+						<!-- Entry fills the full width so its underline matches every other field; the eye icon sits on top of it, not beside it. -->
+						<Entry Text="{Binding ConfirmPassword}"
                                Placeholder="Re-enter password"
                                IsPassword="{Binding IsConfirmPasswordVisible, Converter={StaticResource InvertedBoolConverter}}"
                                Style="{StaticResource FormEntry}"/>
 
 						<!-- Eye icon: closed (tap to reveal) -->
-						<Label Grid.Column="1"
-                               Text="&#xe8f4;"
+						<Label Text="&#xe8f4;"
                                FontFamily="MaterialSymbolsRounded"
                                FontSize="20"
-                               TextColor="{StaticResource TextMuted}"
+                               TextColor="{StaticResource Gray300}"
+                               HorizontalOptions="End"
                                VerticalOptions="Center"
+                               Margin="0,0,4,0"
+                               InputTransparent="False"
                                IsVisible="{Binding IsConfirmPasswordVisible, Converter={StaticResource InvertedBoolConverter}}">
 							<Label.GestureRecognizers>
 								<TapGestureRecognizer Command="{Binding ToggleConfirmPasswordVisibilityCommand}"/>
@@ -94,12 +98,14 @@
 						</Label>
 
 						<!-- Eye icon: open (tap to hide) -->
-						<Label Grid.Column="1"
-                               Text="&#xe8f5;"
+						<Label Text="&#xe8f5;"
                                FontFamily="MaterialSymbolsRounded"
                                FontSize="20"
-                               TextColor="{StaticResource TextMuted}"
+                               TextColor="{StaticResource Gray300}"
+                               HorizontalOptions="End"
                                VerticalOptions="Center"
+                               Margin="0,0,4,0"
+                               InputTransparent="False"
                                IsVisible="{Binding IsConfirmPasswordVisible}">
 							<Label.GestureRecognizers>
 								<TapGestureRecognizer Command="{Binding ToggleConfirmPasswordVisibilityCommand}"/>

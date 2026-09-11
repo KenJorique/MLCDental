@@ -143,16 +143,31 @@ public partial class UserViewModel : ObservableObject
         bool confirm = await ShowConfirmAsync(
             "Remove Staff",
             $"Remove \"{card.User.FullName}\" from the staff list?",
-            "Remove");
+            "Remove", Colors.Crimson);
 
         if (!confirm) return;
 
         await _db.DeleteUser(card.User); // now soft deletes locally
 
-        // Mirror the soft delete to Supabase if this user was ever synced.
-        if (!string.IsNullOrEmpty(card.User.SupabaseId))
+        // Mirror the delete to Supabase, matching by SupabaseId or username, so it doesn't resurrect on next sync.
+        var supabaseId = card.User.SupabaseId;
+        if (string.IsNullOrEmpty(supabaseId) && !string.IsNullOrEmpty(card.User.Username))
         {
-            await _supabaseData.SoftDeleteUserAsync(new SupabaseUser { Id = card.User.SupabaseId });
+            var remoteUsers = await _supabaseData.GetUsersAsync();
+            var match = remoteUsers.FirstOrDefault(u =>
+                string.Equals(u.Username, card.User.Username, StringComparison.OrdinalIgnoreCase));
+            supabaseId = match?.Id;
+        }
+
+        bool remoteOk = true;
+        if (!string.IsNullOrEmpty(supabaseId))
+        {
+            remoteOk = await _supabaseData.SoftDeleteUserAsync(supabaseId);
+        }
+
+        if (!remoteOk)
+        {
+            await ShowErrorAsync($"\"{card.User.FullName}\" was removed locally, but the cloud update failed — it may reappear after the next sync. Check your connection and try again.");
         }
 
         await _supabaseData.LogActivityAsync("UserDeleted", $"{card.User.FullName} was removed from staff");

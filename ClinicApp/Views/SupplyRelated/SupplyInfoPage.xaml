@@ -5,29 +5,36 @@
     xmlns:vm="clr-namespace:ClinicApp.ViewModels.SupplyVM"
     x:Class="ClinicApp.Views.SupplyRelated.SupplyInfoPage"
     x:DataType="vm:SupplyInfoViewModel"
-    Title=" "
-    Shell.TabBarIsVisible="False">
+    Title="Supply Details"
+    Shell.BackgroundColor="{StaticResource Primary}"
+    Shell.TitleColor="White"
+    Shell.ForegroundColor="White"
+    Shell.TabBarIsVisible="False"
+    BackgroundColor="{StaticResource PageBg}">
 
-	<Grid RowDefinitions="*,Auto" BackgroundColor="{StaticResource White}">
+	<Grid RowDefinitions="*,Auto">
 
 		<ScrollView Grid.Row="0">
 			<VerticalStackLayout Padding="16" Spacing="12">
 
-				<!-- Supply Header: Name | Status badge | Qty -->
+				<!-- Supply Header: Name | Status badge | Qty — one line; name shrinks to fit via NameFontSize -->
 				<Border Style="{StaticResource ElevatedCardStyle}">
-					<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+					<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
 						<Label Grid.Column="0"
                                Text="{Binding Supply.Name}"
-                               FontSize="18" FontAttributes="Bold"
+                               FontSize="{Binding NameFontSize}"
+                               FontAttributes="Bold"
                                TextColor="{StaticResource Gray900}"
                                LineBreakMode="TailTruncation"
+                               MaxLines="1"
                                VerticalOptions="Center"/>
 						<Border Grid.Column="1"
                                 Style="{StaticResource StatusBadgeStyle}"
                                 BackgroundColor="{Binding StockStatusColor}"
                                 VerticalOptions="Center">
 							<Label Text="{Binding StockStatus}"
-                                   Style="{StaticResource StatusBadgeLabelStyle}"/>
+                                   Style="{StaticResource StatusBadgeLabelStyle}"
+                                   TextColor="{Binding StockStatusTextColor}"/>
 						</Border>
 						<Label Grid.Column="2"
                                Text="{Binding StockDisplay}"
@@ -139,7 +146,7 @@
 		</ScrollView>
 
 		<!-- Bottom bar -->
-		<Grid Grid.Row="1" Padding="16,12" BackgroundColor="{StaticResource White}">
+		<Grid Grid.Row="1" Padding="16,12" BackgroundColor="{StaticResource PageBg}">
 			<Button Text="Adjust Stock"
                     Clicked="OnAdjustStockClicked"
                     Style="{StaticResource PrimaryActionButtonStyle}"/>

@@ -15,14 +15,19 @@ public partial class ServiceViewModel : ObservableObject
 {
     readonly SupabaseDataService _supabase;
 
+    // True while services are loading from Supabase.
     [ObservableProperty] private bool isBusy;
+    // True only during a pull-to-refresh, so RefreshView can reset its spinner.
     [ObservableProperty] private bool isRefreshing;
+    // Bound to the search box; re-filters the list on every keystroke.
     [ObservableProperty] private string searchText = string.Empty;
 
     // "Name" | "PriceLowHigh" | "PriceHighLow"
     [ObservableProperty] private string currentSort = "Name";
 
+    // Empty-state heading shown when there are no services or no matches.
     [ObservableProperty] private string emptyStateTitle = "No services yet";
+    // Empty-state subtext shown alongside EmptyStateTitle.
     [ObservableProperty] private string emptyStateMessage = "Tap \"+ Add Service\" to create your first one.";
 
     // Full unfiltered set, populated from Supabase
@@ -39,6 +44,13 @@ public partial class ServiceViewModel : ObservableObject
 
     // Re-filters/sorts the list whenever the sort option changes.
     partial void OnCurrentSortChanged(string value) => ApplyFilterAndSort();
+
+    // Shows a plain OK-only popup for errors — green "OK" style since it's not a destructive action.
+    private static async Task ShowAlertAsync(string title, string message)
+    {
+        var popup = new ConfirmationPopup(title, message, confirmText: "OK", showCancelButton: false);
+        await Shell.Current.ShowPopupAsync(popup);
+    }
 
     // Loads (or reloads) the service list from Supabase.
     [RelayCommand]
@@ -165,10 +177,12 @@ public partial class ServiceViewModel : ObservableObject
     // Confirms with the user, then deletes the service and removes it from both lists.
     private async Task DeleteServiceAsync(ServiceCardViewModel card)
     {
+        // Red Confirm button — this is a destructive/remove action.
         var popup = new ConfirmationPopup(
         "Delete Service?",
         $"Are you sure you want to delete \"{card.Service.Name}\"?",
-        confirmText: "Delete");
+        confirmText: "Delete",
+        confirmColor: Color.FromArgb("#DC143C"));
 
         var result = await Shell.Current.ShowPopupAsync(popup);
         if (result is not bool confirmed || !confirmed) return;
@@ -190,7 +204,7 @@ public partial class ServiceViewModel : ObservableObject
             }
             else
             {
-                await Shell.Current.DisplayAlert("Error", "Could not delete the service. Try again.", "OK");
+                await ShowAlertAsync("Error", "Could not delete the service. Try again.");
             }
         }
         catch (Exception ex)

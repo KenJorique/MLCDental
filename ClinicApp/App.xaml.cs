@@ -2,6 +2,7 @@
 using ClinicApp.Views.UsersRelated;
 using ClinicApp.Services;
 using ClinicApp.ViewModels.PatientsRelatedVM;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ClinicApp
 {
@@ -12,19 +13,17 @@ namespace ClinicApp
         readonly SupabaseRealtimeService _realtime;
         readonly PatientListViewModel _patientListVm;
         readonly SessionService _session;
-        readonly RememberMeService _rememberMe; // ── NEW ──
+        readonly RememberMeService _rememberMe;
 
 #if DEBUG
-        // Dev-only convenience — see previous notes. Leave OFF (false) now
-        // that "Remember me" gives you a real way to skip re-login during
-        // normal use; only flip this on if you specifically need to
-        // bypass even that.
+        // Dev-only auto-login bypass; keep false unless testing without login.
         const bool DevSkipLogin = true;
 #endif
 
+        // Builds the app, wires global crash handlers, then boots straight into LoginPage.
         public App(SupabaseDataService supabaseData, DatabaseService db,
                    SupabaseRealtimeService realtime, PatientListViewModel patientListVm,
-                   SessionService session, LoginPage loginPage, RememberMeService rememberMe)
+                   SessionService session, IServiceProvider serviceProvider, RememberMeService rememberMe)
         {
             MauiExceptions.Initialize();
             AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
@@ -42,6 +41,8 @@ namespace ClinicApp
             {
                 System.Diagnostics.Debug.WriteLine($"[FATAL] MauiException: {args.ExceptionObject}");
             };
+
+            // Must run first so Application.Resources (Colors/Styles/etc.) exist before any page XAML parses.
             InitializeComponent();
             UserAppTheme = AppTheme.Light;
 
@@ -50,14 +51,12 @@ namespace ClinicApp
             _realtime = realtime;
             _patientListVm = patientListVm;
             _session = session;
-            _rememberMe = rememberMe; // ── NEW ──
+            _rememberMe = rememberMe;
 
-            // Always start on the plain LoginPage — if a valid "remember
-            // this device" token exists, TryAutoSignInAsync() below swaps
-            // to AppShell moments later. Brief flash of the login screen
-            // on a remembered device is an acceptable trade-off for
-            // keeping cold start fast and not blocking the UI on a DB
-            // query before anything renders.
+            // Resolved here (not as a constructor parameter) so LoginPage.xaml parses only after InitializeComponent() above has populated Application.Resources.
+            var loginPage = serviceProvider.GetRequiredService<LoginPage>();
+
+            // Always boots to LoginPage; TryRememberedSignInAsync swaps to AppShell moments later if a remembered device token is valid.
             MainPage = loginPage;
 
             _ = RunStartupCleanupAsync();
@@ -77,10 +76,7 @@ namespace ClinicApp
 #endif
         }
 
-        // ── NEW: cold-start-only check for a valid "remember this
-        // device" token. Intentionally never called from anywhere except
-        // here — see RememberMeService.cs for why it must not also run
-        // whenever AppShell redirects back to the login page mid-session. ──
+        // Cold-start-only: signs in automatically if a valid "remember this device" token exists.
         private async Task TryRememberedSignInAsync()
         {
             try
@@ -100,6 +96,7 @@ namespace ClinicApp
         }
 
 #if DEBUG
+        // Dev-only: auto-signs in as the first active Dentist account found, skipping the login screen.
         private async Task DevAutoLoginAsync()
         {
             try
@@ -123,6 +120,7 @@ namespace ClinicApp
         }
 #endif
 
+        // Runs a delayed background cleanup of past local and Supabase appointments.
         private async Task RunStartupCleanupAsync()
         {
             try

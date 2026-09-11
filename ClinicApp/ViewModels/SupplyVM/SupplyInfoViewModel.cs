@@ -22,8 +22,24 @@ public partial class SupplyInfoViewModel : ObservableObject
     public bool IsLowStock => Supply?.IsLowStock ?? false;
     public bool IsOutOfStock => Supply?.IsOutOfStock ?? false;
     public string StockStatus => IsOutOfStock ? "Out of Stock" : IsLowStock ? "Low Stock" : "In Stock";
-    public string StockStatusColor => IsOutOfStock ? "#D32F2F" : IsLowStock ? "#F57C00" : "#388E3C";
+
+    // Pale badge background, matching SupplyCardViewModel/BillCardItem's status-pill convention.
+    public string StockStatusColor => IsOutOfStock ? "#FCEAEA" : IsLowStock ? "#FFF3E0" : "#E8F5E9";
+
+    // Saturated badge text color, paired with StockStatusColor above.
+    public string StockStatusTextColor => IsOutOfStock ? "#C62828" : IsLowStock ? "#E65100" : "#2E7D32";
+
     public string UnitDisplay => Supply?.Unit?.Replace("Per ", string.Empty) ?? "—";
+
+    // Shrinks the header name's font as it gets longer, so it stays on one line next to the badge and qty.
+    public double NameFontSize => (Supply?.Name?.Length ?? 0) switch
+    {
+        <= 14 => 18,
+        <= 20 => 16,
+        <= 26 => 14,
+        <= 32 => 12,
+        _ => 11
+    };
 
     public string ExpirationDisplay => Supply is null ? "—"
         : Supply.HasExpiration && !string.IsNullOrWhiteSpace(Supply.ExpirationDateDisplay)
@@ -31,14 +47,17 @@ public partial class SupplyInfoViewModel : ObservableObject
 
     public IEnumerable<StockLogRowViewModel> RecentLogs => Logs.Take(4);
 
+    // Injects the shared data service.
     public SupplyInfoViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
+    // Loads the supply's details once SupplyId is set via navigation.
     partial void OnSupplyIdChanged(string value)
     {
         if (!string.IsNullOrWhiteSpace(value))
             MainThread.BeginInvokeOnMainThread(async () => await LoadAsync());
     }
 
+    // Loads the supply item and its recent stock logs.
     [RelayCommand]
     public async Task LoadAsync()
     {
@@ -64,6 +83,7 @@ public partial class SupplyInfoViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    // Raises change notifications for all computed display properties after a reload.
     private void NotifyDisplayChanged()
     {
         OnPropertyChanged(nameof(StockDisplay));
@@ -71,10 +91,13 @@ public partial class SupplyInfoViewModel : ObservableObject
         OnPropertyChanged(nameof(IsOutOfStock));
         OnPropertyChanged(nameof(StockStatus));
         OnPropertyChanged(nameof(StockStatusColor));
+        OnPropertyChanged(nameof(StockStatusTextColor));
         OnPropertyChanged(nameof(UnitDisplay));
+        OnPropertyChanged(nameof(NameFontSize));
         OnPropertyChanged(nameof(ExpirationDisplay));
     }
 
+    // Opens Add Stock for this item.
     [RelayCommand]
     public async Task GoToAddStock()
     {
@@ -83,6 +106,7 @@ public partial class SupplyInfoViewModel : ObservableObject
             $"{nameof(AddStockPage)}?supplyId={Supply.Id}&hasExpiration={Supply.HasExpiration}");
     }
 
+    // Opens Reduce Stock for this item.
     [RelayCommand]
     public async Task GoToReduceStock()
     {
@@ -91,6 +115,7 @@ public partial class SupplyInfoViewModel : ObservableObject
             $"{nameof(ReduceStockPage)}?supplyId={Supply.Id}&currentStock={Supply.QuantityInPieces}");
     }
 
+    // Opens the full stock history for this item.
     [RelayCommand]
     async Task ViewAllLogs()
     {
@@ -100,6 +125,7 @@ public partial class SupplyInfoViewModel : ObservableObject
     }
 }
 
+// Wraps a single stock log entry for display.
 public class StockLogRowViewModel
 {
     public SupabaseStockLog Log { get; }

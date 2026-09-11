@@ -16,10 +16,13 @@
 	<Grid RowDefinitions="Auto,*">
 
 		<!-- ── PATIENT SUMMARY ── -->
-		<Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="16,14" BackgroundColor="{StaticResource White}">
-			<Label Grid.Column="0" Text="{Binding PatientName}" Style="{StaticResource CardSectionTitleStyle}"
-                   VerticalOptions="Center" LineBreakMode="TailTruncation"/>
-			<Label Grid.Column="1" Text="{Binding HistoryCountText}" Style="{StaticResource MutedCaptionStyle}" VerticalOptions="Center"/>
+		<Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="20,16,20,0" BackgroundColor="{StaticResource White}">
+			<Label Grid.Column="0" Text="{Binding PatientName}" FontSize="20" FontAttributes="Bold"
+                   TextColor="{StaticResource Gray900}" VerticalOptions="Center" LineBreakMode="TailTruncation"/>
+			<Border Grid.Column="1" BackgroundColor="{StaticResource Secondary}" StrokeThickness="0"
+                    StrokeShape="RoundRectangle 999" Padding="10,4" VerticalOptions="Center">
+				<Label Text="{Binding HistoryCountText}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
+			</Border>
 		</Grid>
 
 		<Grid Grid.Row="1">
@@ -40,55 +43,54 @@
 			<!-- ── VISIT CARDS — newest first, one card per visit date, each listing every treatment/service done that day ── -->
 			<CollectionView ItemsSource="{Binding VisitGroups}" SelectionMode="None"
                             IsVisible="{Binding IsHistoryEmpty, Converter={StaticResource InvertedBoolConverter}}"
-                            Margin="16,14,16,0">
+                            Margin="20,14,20,0">
 				<CollectionView.ItemsLayout>
 					<LinearItemsLayout Orientation="Vertical" ItemSpacing="12"/>
 				</CollectionView.ItemsLayout>
 				<CollectionView.ItemTemplate>
 					<DataTemplate x:DataType="models:TreatmentVisitGroup">
 						<Border Style="{StaticResource ElevatedCardStyle}" Padding="0">
-							<VerticalStackLayout Spacing="0">
+							<Grid ColumnDefinitions="4,*">
 
-								<!-- Date + Time — separate labels, each with its own caption -->
-								<VerticalStackLayout Padding="16,14,16,10" Spacing="8">
-									<Grid ColumnDefinitions="*,*">
-										<VerticalStackLayout Grid.Column="0" Spacing="1">
-											<Label Text="Date" Style="{StaticResource MutedCaptionStyle}"/>
-											<Label Text="{Binding DateDisplay}" Style="{StaticResource CardRowLabelStyle}" TextColor="{StaticResource Gray900}"/>
-										</VerticalStackLayout>
-										<VerticalStackLayout Grid.Column="1" Spacing="1">
-											<Label Text="Time" Style="{StaticResource MutedCaptionStyle}"/>
-											<Label Text="{Binding TimeDisplay}" Style="{StaticResource CardRowLabelStyle}" TextColor="{StaticResource Gray900}"/>
-										</VerticalStackLayout>
-									</Grid>
+								<!-- Left accent bar — the one deliberate brand-color touch on the card -->
+								<BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
+
+								<VerticalStackLayout Grid.Column="1" Padding="16,14,16,14" Spacing="0">
+
+									<!-- Date + time, once per visit, single line -->
+									<Label Text="{Binding DateTimeDisplay}" FontSize="12" FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}" Margin="0,0,0,8"/>
 
 									<!-- One block per treatment/service performed at this visit -->
-									<VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}" Spacing="8" Margin="0,4,0,0">
+									<VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}" Spacing="0">
 										<BindableLayout.ItemTemplate>
 											<DataTemplate x:DataType="models:TreatmentRowItem">
-												<VerticalStackLayout Spacing="1">
+												<VerticalStackLayout>
+
+													<!-- Divider between rows — hidden above the first row in the card -->
+													<BoxView HeightRequest="1" BackgroundColor="{StaticResource Gray100}"
+                                                             Margin="0,10,0,10"
+                                                             IsVisible="{Binding IsFirst, Converter={StaticResource InvertedBoolConverter}}"/>
+
 													<Label Text="{Binding Description}" Style="{StaticResource CardSectionTitleStyle}"/>
-													<Label Text="{Binding ToothDisplay, StringFormat='Teeth: {0}'}"
-                                                           Style="{StaticResource MutedCaptionStyle}" IsVisible="{Binding HasTooth}"/>
+
+													<!-- Tooth color dot + tooth label, hidden for general services -->
+													<HorizontalStackLayout Spacing="6" Margin="0,3,0,0" IsVisible="{Binding HasTooth}">
+														<BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4" Color="{Binding ToothColor}"/>
+														<Label Text="{Binding ToothDisplay}" FontSize="12" TextColor="{StaticResource Gray400}"/>
+													</HorizontalStackLayout>
+
 												</VerticalStackLayout>
 											</DataTemplate>
 										</BindableLayout.ItemTemplate>
 									</VerticalStackLayout>
-								</VerticalStackLayout>
 
-								<!-- Notes -->
-								<VerticalStackLayout Padding="16,10" BackgroundColor="{StaticResource Gray100}" IsVisible="{Binding HasNotes}">
-									<Label Style="{StaticResource CardRowLabelStyle}" TextColor="{StaticResource Gray900}">
-										<Label.FormattedText>
-											<FormattedString>
-												<Span Text="Notes: " FontAttributes="Bold"/>
-												<Span Text="{Binding SharedNotes}"/>
-											</FormattedString>
-										</Label.FormattedText>
-									</Label>
-								</VerticalStackLayout>
+									<!-- One genuine (non-auto-generated) note per visit, shown once for the whole card -->
+									<Label Text="{Binding SharedNotes}" FontSize="12" TextColor="{StaticResource Gray500}"
+                                           FontAttributes="Italic" Margin="0,10,0,0" IsVisible="{Binding HasNotes}"/>
 
-							</VerticalStackLayout>
+								</VerticalStackLayout>
+							</Grid>
 						</Border>
 					</DataTemplate>
 				</CollectionView.ItemTemplate>

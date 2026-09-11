@@ -28,11 +28,7 @@ public partial class AddUserViewModel : ObservableObject
         _supabaseData = supabaseData;
     }
 
-    // ---------------------------------------------------------------
-    // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
-    // everywhere in this ViewModel with the app's dimmed-backdrop
-    // rounded-card popup.
-    // ---------------------------------------------------------------
+    // ConfirmationPopup helpers, replacing Shell.Current.DisplayAlert everywhere in this ViewModel.
 
     // Resolves the page currently on screen, to host the popup.
     static Page CurrentPage =>
@@ -173,7 +169,7 @@ public partial class AddUserViewModel : ObservableObject
             UserId == 0
                 ? $"Add {FullName} as a new staff member?"
                 : $"Save these changes to {FullName}'s account?",
-            "Yes, save");
+            "Yes, save", Colors.Green);
         if (!confirmed) return;
 
         IsSaving = true;
@@ -227,7 +223,7 @@ public partial class AddUserViewModel : ObservableObject
         bool confirmed = await ShowConfirmAsync(
             "Discard Changes",
             "Are you sure you want to discard this and go back?",
-            "Yes, discard");
+            "Yes, discard", Colors.Crimson);
         if (!confirmed) return;
 
         await Shell.Current.GoToAsync("..");
@@ -255,7 +251,7 @@ public partial class AddUserViewModel : ObservableObject
             {
                 var saved = await _supabaseData.AddUserAsync(remote);
 
-                // ── TEMP DIAGNOSTIC — remove once this is confirmed working ──
+                // TEMP DIAGNOSTIC — remove once this is confirmed working.
                 if (saved is null || string.IsNullOrEmpty(saved.Id))
                 {
                     await ShowNoticeAsync(
@@ -263,7 +259,6 @@ public partial class AddUserViewModel : ObservableObject
                         "Insert returned no row — check that users_table.sql (and its RLS policy) has been run.");
                     return;
                 }
-                // ── end temp diagnostic ──
 
                 await _db.SetUserSupabaseId(user.UserID, saved.Id);
             }
@@ -271,21 +266,19 @@ public partial class AddUserViewModel : ObservableObject
             {
                 var updated = await _supabaseData.UpdateUserAsync(remote);
 
-                // ── TEMP DIAGNOSTIC — remove once this is confirmed working ──
+                // TEMP DIAGNOSTIC — remove once this is confirmed working.
                 if (!updated)
                 {
                     await ShowNoticeAsync(
                         "Supabase sync",
                         "Update failed — check the Debug Output window for the [Supabase] UpdateUser FAILED line.");
                 }
-                // ── end temp diagnostic ──
             }
         }
         catch (Exception ex)
         {
-            // ── TEMP DIAGNOSTIC — remove once this is confirmed working ──
+            // TEMP DIAGNOSTIC — remove once this is confirmed working.
             await ShowErrorAsync(ex.Message);
-            // ── end temp diagnostic ──
 
             System.Diagnostics.Debug.WriteLine($"[SyncUserToSupabase] {ex.Message}");
         }

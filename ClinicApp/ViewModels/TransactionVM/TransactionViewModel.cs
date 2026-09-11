@@ -17,7 +17,7 @@ public partial class TransactionViewModel : ObservableObject
     readonly DatabaseService _database;
 
     // Remembers the last sort choice so Refresh doesn't reset it.
-    string _currentSortMode = "Newest First";
+    string _currentSortMode = "Newest";
 
     public ObservableCollection<LedgerItem> PendingPayments { get; }
     = new();
@@ -301,10 +301,8 @@ public partial class TransactionViewModel : ObservableObject
             "Sort By",
             "Cancel",
             null,
-            "Unpaid First",
-            "Partially Paid First",
-            "Paid First",
-            "Newest First");
+            "Unpaid",
+            "Newest");
 
         if (string.IsNullOrEmpty(choice) || choice == "Cancel")
             return;
@@ -321,16 +319,10 @@ public partial class TransactionViewModel : ObservableObject
 
         IEnumerable<BillCardItem> sorted = _currentSortMode switch
         {
-            "Unpaid First" => BillCards
-                .OrderBy(b => StatusRank(b.Bill.Status, 0))
-                .ThenByDescending(SortDate),
-
-            "Partially Paid First" => BillCards
-                .OrderBy(b => StatusRank(b.Bill.Status, 1))
-                .ThenByDescending(SortDate),
-
-            "Paid First" => BillCards
-                .OrderBy(b => StatusRank(b.Bill.Status, 2))
+            // Unpaid and Partially Paid both surface first — either way, money is still owed on the bill.
+            // Paid bills sink to the bottom. Ties within each bucket break by newest visit date.
+            "Unpaid" => BillCards
+                .OrderBy(b => HasBalanceDue(b.Bill.Status) ? 0 : 1)
                 .ThenByDescending(SortDate),
 
             // Default order: newest bill on top, oldest at the bottom.
@@ -343,22 +335,13 @@ public partial class TransactionViewModel : ObservableObject
             BillCards.Add(item);
     }
 
+    // True for "unpaid" and "partial" — anything still owing money on the bill.
+    static bool HasBalanceDue(string? status) =>
+        status?.ToLowerInvariant() is "unpaid" or "partial";
+
     // Date used for sorting — falls back to CreatedAt if VisitDate is unset.
     static DateTime SortDate(BillCardItem item) =>
         item.Bill.VisitDate != default ? item.Bill.VisitDate : item.Bill.CreatedAt;
-
-    // Lower number = higher priority. mode picks which status goes first.
-    static int StatusRank(string? status, int mode)
-    {
-        var s = status?.ToLowerInvariant() ?? "unpaid";
-        return mode switch
-        {
-            0 => s switch { "unpaid" => 0, "partial" => 1, "paid" => 2, _ => 3 },
-            1 => s switch { "partial" => 0, "unpaid" => 1, "paid" => 2, _ => 3 },
-            2 => s switch { "paid" => 0, "partial" => 1, "unpaid" => 2, _ => 3 },
-            _ => 0
-        };
-    }
 
     public string NextDueDisplay
     {

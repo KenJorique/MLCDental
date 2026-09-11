@@ -8,6 +8,7 @@ public partial class SupplyCardViewModel : ObservableObject
     [ObservableProperty] private SupabaseSupplyItem _supply;
     [ObservableProperty] private bool _isExpanded;
 
+    // Wraps a supply item for display in the list.
     public SupplyCardViewModel(SupabaseSupplyItem supply) => _supply = supply;
 
     public string StockDisplay => Supply.QuantityDisplay;
@@ -37,6 +38,7 @@ public partial class SupplyCardViewModel : ObservableObject
 
     public string ExpiredWarningText => $"Expired {Supply.ExpirationDateDisplay}";
 
+    // Re-raises change notifications for all computed properties after the underlying supply updates.
     public void Refresh()
     {
         OnPropertyChanged(nameof(StockDisplay));

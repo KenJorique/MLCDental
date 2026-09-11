@@ -16,15 +16,23 @@ public partial class AddServiceViewModel : ObservableObject
     // Injects the Supabase data service used for reading/writing services.
     public AddServiceViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
+    // "Add Service" or "Edit Service", set once ServiceId resolves.
     [ObservableProperty] string pageTitle = "Add Service";
+    // Non-null only when editing an existing service.
     [ObservableProperty] string? serviceId;
+    // Bound to the Service Name input.
     [ObservableProperty] string? serviceName;
+    // Bound to the Price input.
     [ObservableProperty] decimal servicePrice;
+    // Bound to the optional Description input.
     [ObservableProperty] string? serviceDescription;
 
     // ── Multi-session configuration ──
+    // Toggles visibility of the session-count/interval fields.
     [ObservableProperty] bool requiresMultipleSessions;
+    // How many sessions this service normally takes.
     [ObservableProperty] int totalSessions = 2;
+    // Suggested gap in days between sessions.
     [ObservableProperty] int followupIntervalDays = 14;
 
     // Tracks whether the user has made any unsaved edits, so Cancel / the
@@ -45,10 +53,24 @@ public partial class AddServiceViewModel : ObservableObject
         MarkDirty();
         OnPropertyChanged(nameof(ShowSessionFields));
     }
-    // Flags the form as dirty when the total-sessions count changes.
-    partial void OnTotalSessionsChanged(int value) => MarkDirty();
-    // Flags the form as dirty when the follow-up interval changes.
-    partial void OnFollowupIntervalDaysChanged(int value) => MarkDirty();
+    // Flags the form as dirty when the total-sessions count changes; also refreshes the -/+ button enabled states.
+    partial void OnTotalSessionsChanged(int value)
+    {
+        MarkDirty();
+        OnPropertyChanged(nameof(CanDecrementTotalSessions));
+        OnPropertyChanged(nameof(CanIncrementTotalSessions));
+        DecrementTotalSessionsCommand.NotifyCanExecuteChanged();
+        IncrementTotalSessionsCommand.NotifyCanExecuteChanged();
+    }
+    // Flags the form as dirty when the follow-up interval changes; also refreshes the -/+ button enabled states.
+    partial void OnFollowupIntervalDaysChanged(int value)
+    {
+        MarkDirty();
+        OnPropertyChanged(nameof(CanDecrementFollowupInterval));
+        OnPropertyChanged(nameof(CanIncrementFollowupInterval));
+        DecrementFollowupIntervalCommand.NotifyCanExecuteChanged();
+        IncrementFollowupIntervalCommand.NotifyCanExecuteChanged();
+    }
 
     // Marks the form dirty, unless we're still loading initial data.
     void MarkDirty()
@@ -93,35 +115,74 @@ public partial class AddServiceViewModel : ObservableObject
         }
     }
 
+    // Shows a plain OK-only popup (validation errors, save errors, success messages) — always the green "OK" style since it's not a destructive action.
+    private static async Task ShowAlertAsync(string title, string message)
+    {
+        var popup = new ConfirmationPopup(title, message, confirmText: "OK", showCancelButton: false);
+        await Shell.Current.ShowPopupAsync(popup);
+    }
+
+    // Tapped from the small info icons next to a field label — shows the full explanation in a popup instead of a permanent gray caption.
+    [RelayCommand]
+    async Task ShowHelp(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return;
+        await ShowAlertAsync("Info", message);
+    }
+
+    // Whether Total Sessions is above its floor of 2 — drives both the − button's enabled state and its command.
+    public bool CanDecrementTotalSessions => TotalSessions > 2;
+    // Whether Total Sessions is below its ceiling of 12 — drives both the + button's enabled state and its command.
+    public bool CanIncrementTotalSessions => TotalSessions < 12;
+    // Whether the follow-up interval is above its floor of 1 day — drives both the − button's enabled state and its command.
+    public bool CanDecrementFollowupInterval => FollowupIntervalDays > 1;
+    // Whether the follow-up interval is below its ceiling of 180 days — drives both the + button's enabled state and its command.
+    public bool CanIncrementFollowupInterval => FollowupIntervalDays < 180;
+
+    // − button for Total Sessions, clamped to the same Minimum the old Stepper used.
+    [RelayCommand(CanExecute = nameof(CanDecrementTotalSessions))]
+    void DecrementTotalSessions() => TotalSessions = Math.Max(TotalSessions - 1, 2);
+
+    // + button for Total Sessions, clamped to the same Maximum the old Stepper used.
+    [RelayCommand(CanExecute = nameof(CanIncrementTotalSessions))]
+    void IncrementTotalSessions() => TotalSessions = Math.Min(TotalSessions + 1, 12);
+
+    // − button for the follow-up interval, clamped to the same Minimum the old Stepper used.
+    [RelayCommand(CanExecute = nameof(CanDecrementFollowupInterval))]
+    void DecrementFollowupInterval() => FollowupIntervalDays = Math.Max(FollowupIntervalDays - 1, 1);
+
+    // + button for the follow-up interval, clamped to the same Maximum the old Stepper used.
+    [RelayCommand(CanExecute = nameof(CanIncrementFollowupInterval))]
+    void IncrementFollowupInterval() => FollowupIntervalDays = Math.Min(FollowupIntervalDays + 1, 180);
+
     // Validates, saves (or updates) the service, and logs the activity.
     [RelayCommand]
     async Task Save()
     {
         if (string.IsNullOrWhiteSpace(ServiceName))
         {
-            await Shell.Current.DisplayAlert("Validation", "Service name is required.", "OK");
+            await ShowAlertAsync("Validation", "Service name is required.");
             return;
         }
         if (ServicePrice <= 0)
         {
-            await Shell.Current.DisplayAlert("Validation", "Please enter a valid price.", "OK");
+            await ShowAlertAsync("Validation", "Please enter a valid price.");
             return;
         }
         // Session count only matters for services that actually require multiple sessions.
         if (RequiresMultipleSessions && TotalSessions < 2)
         {
-            await Shell.Current.DisplayAlert("Validation", "Multi-session services need at least 2 sessions.", "OK");
+            await ShowAlertAsync("Validation", "Multi-session services need at least 2 sessions.");
             return;
         }
 
-        // Confirm before committing — 
+        // Confirm before committing — green Confirm button is the popup's default, matching "green for save".
         var confirmPopup = new ConfirmationPopup(
             "Save Service?",
             PageTitle == "Edit Service"
                 ? $"Save changes to \"{ServiceName}\"?"
                 : $"Add \"{ServiceName}\" as a new service?",
-            confirmText: "Save",
-            confirmColor: Color.FromArgb("#2E7D32")); // primary green — non-destructive action
+            confirmText: "Save");
 
         var confirmResult = await Shell.Current.ShowPopupAsync(confirmPopup);
         if (confirmResult is not bool confirmed || !confirmed) return;
@@ -156,7 +217,7 @@ public partial class AddServiceViewModel : ObservableObject
                 var success = await _supabase.UpdateServiceAsync(service);
                 if (!success)
                 {
-                    await Shell.Current.DisplayAlert("Error", "Could not update the service.", "OK");
+                    await ShowAlertAsync("Error", "Could not update the service.");
                     return;
                 }
 
@@ -181,7 +242,7 @@ public partial class AddServiceViewModel : ObservableObject
 
             if (newService == null)
             {
-                await Shell.Current.DisplayAlert("Error", "Could not save the service.", "OK");
+                await ShowAlertAsync("Error", "Could not save the service.");
                 return;
             }
 
@@ -190,12 +251,11 @@ public partial class AddServiceViewModel : ObservableObject
 
         _isDirty = false;
 
-        await Shell.Current.DisplayAlert(
+        await ShowAlertAsync(
             "Saved",
             PageTitle == "Edit Service"
                 ? "The service has been updated successfully."
-                : "The service has been saved successfully.",
-            "OK");
+                : "The service has been saved successfully.");
 
         await Shell.Current.GoToAsync("..");
     }
@@ -206,6 +266,7 @@ public partial class AddServiceViewModel : ObservableObject
     {
         if (_isDirty)
         {
+            // Red Confirm button — this is a destructive/discard action.
             var popup = new ConfirmationPopup(
             "Discard Changes?",
             "Are you sure you want to discard the changes you made?",

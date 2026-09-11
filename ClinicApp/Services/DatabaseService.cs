@@ -773,8 +773,10 @@ public partial class DatabaseService
         local.SupabaseId = su.Id;
         local.FullName = su.FullName;
         local.Username = su.Username;
-        local.PasswordHash = su.PasswordHash;
-        local.Role = su.Role;
+        if (!string.IsNullOrWhiteSpace(su.PasswordHash))
+            local.PasswordHash = su.PasswordHash; // never let a blank/missing remote hash wipe out a working local one
+        if (!string.IsNullOrWhiteSpace(su.Role))
+            local.Role = su.Role; // same reasoning — a blank remote role must never override a working local one
         local.ContactNo = su.ContactNo;
         local.Email = su.Email;
         local.IsActive = su.IsActive;

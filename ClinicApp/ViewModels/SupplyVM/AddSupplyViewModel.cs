@@ -13,6 +13,7 @@ public partial class AddSupplyViewModel : ObservableObject
     private readonly SupabaseDataService _supabase;
     private SupabaseSupplyItem? _editing;
 
+    // Options shown in the unit picker.
     public List<string> UnitOptions { get; } = new()
     {
         "Per Piece", "Per Pack", "Per Box", "Per Kit"

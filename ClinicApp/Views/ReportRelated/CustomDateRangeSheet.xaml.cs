@@ -36,6 +36,12 @@ public partial class CustomDateRangeSheet : BottomSheet
         // Nav bar ("August 2026" + arrows) — gray
         CustomCalendar.HeaderView.Background = GetResourceColor("Gray100");
 
+        // Month/Year/Decade picker grids (shown when tapping the header) — same gray theme as the day grid.
+        // This is a separate style object from MonthView, so it needs its own setup, or it falls back to Syncfusion's default purple.
+        CustomCalendar.YearView.Background = GetResourceColor("Gray100");
+        CustomCalendar.YearView.TodayBackground = GetResourceColor("Gray100"); // highlights the currently-browsed month/year (e.g. "Sep" while viewing 2026)
+        CustomCalendar.YearView.DisabledDatesBackground = GetResourceColor("Gray100"); // months/years past MaximumDate
+
         // Weekday row (Su Mo Tu...) — gray background, 3-letter day names
         CustomCalendar.MonthView.HeaderView = new CalendarMonthHeaderView
         {
