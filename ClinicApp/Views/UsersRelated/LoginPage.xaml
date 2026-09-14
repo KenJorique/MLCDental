@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:conv="clr-namespace:ClinicApp.Converters"
+             x:Class="ClinicApp.Views.UsersRelated.LoginPage"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False">
+
+	<ContentPage.Resources>
+		<ResourceDictionary>
+			<conv:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
+			<conv:PasswordToggleIconConverter x:Key="PasswordToggleIconConverter"/>
+			<conv:StringNotEmptyConverter x:Key="StringNotEmptyConverter"/>
+		</ResourceDictionary>
+	</ContentPage.Resources>
+
+	<!-- Page background: soft white-to-green wash instead of a flat fill -->
+	<ContentPage.Background>
+		<LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+			<GradientStop Color="{StaticResource White}" Offset="0.0"/>
+			<GradientStop Color="{StaticResource Secondary}" Offset="1.0"/>
+		</LinearGradientBrush>
+	</ContentPage.Background>
+
+	<!-- NOTE: back-button/hardware-back handling for this page is done in
+         LoginPage.xaml.cs (OnBackButtonPressed) so a logged-out user can
+         never navigate "back" into the app. -->
+
+	<ScrollView>
+		<Grid Padding="24,20" RowSpacing="0" VerticalOptions="Center">
+			<VerticalStackLayout Spacing="6" MaximumWidthRequest="420" HorizontalOptions="Center">
+
+				<!-- MLC brand logo (replaces the old text wordmark) -->
+				<Image Source="logo.png"
+                       HeightRequest="140"
+                       Aspect="AspectFit"
+                       HorizontalOptions="Center"
+                       Margin="0,-20,0,10"/>
+
+				<Frame Padding="28" Margin="0,20,0,0"
+                       CornerRadius="22"
+                       BackgroundColor="{StaticResource White}"
+                       BorderColor="{StaticResource Secondary}"
+                       HasShadow="True">
+					<Frame.Shadow>
+						<Shadow Brush="{StaticResource PrimaryDark}"
+                                Opacity="0.12"
+                                Radius="20"
+                                Offset="0,8"/>
+					</Frame.Shadow>
+
+					<VerticalStackLayout Spacing="16">
+
+						<Label Text="Email or Username" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource Primary}"/>
+						<Entry TextColor="{StaticResource Gray500}"
+                               PlaceholderColor="{StaticResource Gray300}"
+                               FontSize="15"
+                               Text="{Binding Identifier}"
+                               Placeholder="you@mlcdental.com"
+                               Keyboard="Email"
+                               IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                               ReturnType="Next"/>
+
+						<Label Text="Password" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource Primary}"/>
+						<Grid>
+							<!-- Entry fills the full width so its underline matches the email field's length; the eye icon sits on top of it, not beside it. -->
+							<Entry TextColor="{StaticResource Gray500}"
+                                   PlaceholderColor="{StaticResource Gray300}"
+                                   FontSize="15"
+                                   Text="{Binding Password}"
+                                   Placeholder="Enter password"
+                                   IsPassword="{Binding IsPasswordHidden}"
+                                   IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                                   ReturnType="Done"/>
+							<Label Text="{Binding IsPasswordHidden, Converter={StaticResource PasswordToggleIconConverter}}"
+                                   FontFamily="MaterialSymbolsRounded"
+                                   FontSize="24"
+                                   TextColor="{StaticResource Gray500}"
+                                   HorizontalOptions="End"
+                                   VerticalOptions="Center"
+                                   Margin="0,0,4,0"
+                                   InputTransparent="False">
+								<Label.GestureRecognizers>
+									<TapGestureRecognizer Command="{Binding TogglePasswordVisibilityCommand}"/>
+								</Label.GestureRecognizers>
+							</Label>
+						</Grid>
+
+						<Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" Margin="0,4,0,0">
+							<CheckBox Grid.Column="0"
+                                      WidthRequest="22"
+                                      HeightRequest="22"
+                                      IsChecked="{Binding RememberMe}"
+                                      Color="{StaticResource Primary}"
+                                      IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
+							<Label Grid.Column="1"
+                                   Text="Remember me on this device for 30 days"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}"
+                                   LineBreakMode="NoWrap"
+                                   VerticalOptions="Center">
+								<Label.GestureRecognizers>
+									<!-- Tapping the label toggles it too, not just the tiny checkbox hit-target -->
+									<TapGestureRecognizer Tapped="OnRememberMeLabelTapped"/>
+								</Label.GestureRecognizers>
+							</Label>
+						</Grid>
+
+						<!-- Generic error — deliberately never says "no such account" vs "wrong password" -->
+						<Label Text="{Binding ErrorMessage}"
+                               TextColor="Crimson"
+                               FontSize="13"
+                               IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+						<Grid Margin="0,10,0,0">
+							<Button Text="Log In"
+                                    Command="{Binding LoginCommand}"
+                                    IsEnabled="{Binding CanLogin}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="{StaticResource White}"
+                                    FontAttributes="Bold"
+                                    HeightRequest="54"
+                                    CornerRadius="14"
+                                    IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
+
+							<ActivityIndicator IsRunning="{Binding IsBusy}"
+                                                IsVisible="{Binding IsBusy}"
+                                                Color="{StaticResource Primary}"
+                                                HeightRequest="54"/>
+						</Grid>
+
+					</VerticalStackLayout>
+				</Frame>
+
+				<Label Text="Dentist and Secretary accounts are created by clinic administration."
+                       FontSize="11"
+                       TextColor="{StaticResource Gray500}"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,16,0,0"/>
+				<!-- Deliberately no "Register" link/button here — see spec: no self-service dentist signup. -->
+
+			</VerticalStackLayout>
+		</Grid>
+	</ScrollView>
+</ContentPage>

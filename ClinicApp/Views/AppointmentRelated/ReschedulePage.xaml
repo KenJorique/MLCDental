@@ -31,7 +31,7 @@
 
 			<!-- ── Patient Info card ── -->
 			<Border BackgroundColor="White"
-                    Stroke="{StaticResource BorderColor}"
+                    Stroke="{StaticResource Gray200}"
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 12"
                     Padding="16"
@@ -58,7 +58,7 @@
 
 			<!-- ── Appointment Details card ── -->
 			<Border BackgroundColor="White"
-                    Stroke="{StaticResource BorderColor}"
+                    Stroke="{StaticResource Gray200}"
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 12"
                     Padding="16"

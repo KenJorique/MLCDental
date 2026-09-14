@@ -11,7 +11,7 @@
     Shell.BackgroundColor="{StaticResource Primary}"
     Shell.ForegroundColor="{StaticResource White}"
     Shell.TitleColor="{StaticResource White}"
-    BackgroundColor="#F5F5F5">
+    BackgroundColor="{StaticResource PageBg}">
 
 	<Grid RowDefinitions="*,Auto">
 
@@ -23,7 +23,7 @@
 					<Grid ColumnDefinitions="*,Auto">
 						<Label Grid.Column="0"
                                Text="{Binding PatientName}"
-                               FontSize="15"
+                               FontSize="16"
                                FontAttributes="Bold"
                                TextColor="{StaticResource Black}"
                                VerticalOptions="Center"/>
@@ -37,7 +37,7 @@
                                VerticalOptions="Center"
                                IsVisible="{Binding HasServices}">
 							<Label Text="{Binding TotalItems, StringFormat='{0} service(s)'}"
-                                   FontSize="11"
+                                   FontSize="12"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Primary}"/>
 						</Frame>
@@ -45,7 +45,7 @@
 				</Frame>
 
 				<!-- Services list (read-only here — removal happens back on Service Summary) -->
-				<Label Text="Added Services" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Black}"
+				<Label Text="Added Services" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}"
                        IsVisible="{Binding HasServices}"/>
 
 				<CollectionView ItemsSource="{Binding Services}" SelectionMode="None"
@@ -70,14 +70,14 @@
 
 									<!-- Row 1: service name only -->
 									<Label Text="{Binding ServiceName}"
-                                           FontSize="14"
+                                           FontSize="16"
                                            FontAttributes="Bold"
                                            TextColor="{StaticResource Black}"/>
 
 									<!-- Row 2: Qty: # x unit price .......... bold total -->
 									<Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
 										<Label Grid.Column="0"
-                                               FontSize="12"
+                                               FontSize="13"
                                                TextColor="{StaticResource Gray500}"
                                                VerticalOptions="Center">
 											<Label.Text>
@@ -89,25 +89,24 @@
 										</Label>
 										<Label Grid.Column="1"
                                                Text="{Binding SubtotalDisplay}"
-                                               FontSize="14"
+                                               FontSize="16"
                                                FontAttributes="Bold"
                                                TextColor="{StaticResource Primary}"
                                                VerticalOptions="Center"/>
 									</Grid>
 
 									<!-- Optional teeth info, only when applicable -->
-									<Label Text="{Binding TeethDisplay}" FontSize="11" TextColor="{StaticResource Primary}"
+									<Label Text="{Binding TeethDisplay}" FontSize="12" TextColor="{StaticResource Primary}"
                                            IsVisible="{Binding TeethDisplay, Converter={StaticResource StringNotEmptyConverter}}"/>
 
-									<!-- Compact toggle row — only shown for eligible services.
-                                         Card stays gray/collapsed until turned on. -->
+									<!-- Toggle row: only shown for eligible services. -->
 									<BoxView HeightRequest="0.5" Color="{StaticResource Gray100}" Margin="0,8,0,0"
                                              IsVisible="{Binding IsInstallmentEligible}"/>
 									<Grid ColumnDefinitions="*,Auto"
-                                          Margin="0,4,0,0"
+                                          Margin="0,0,0,0"
                                           IsVisible="{Binding IsInstallmentEligible}">
 										<Label Text="Pay in installments"
-                                               FontSize="13"
+                                               FontSize="14"
                                                TextColor="{StaticResource Gray700}"
                                                VerticalOptions="Center"/>
 										<Switch Grid.Column="1"
@@ -125,7 +124,7 @@
 									</Grid>
 
 									<!-- Expanded plan details — only when the toggle is on -->
-									<VerticalStackLayout Spacing="10" Margin="0,6,0,0"
+									<VerticalStackLayout Spacing="10" Margin="0,0,0,0"
                                                           IsVisible="{Binding IsInstallmentSelected}">
 
 										<Frame BackgroundColor="{StaticResource Secondary}"
@@ -135,19 +134,19 @@
                                                HasShadow="False">
 											<Grid ColumnDefinitions="*,Auto">
 												<Label Text="Down payment today (50%)"
-                                                       FontSize="12"
+                                                       FontSize="13"
                                                        TextColor="{StaticResource Primary}"
                                                        VerticalOptions="Center"/>
 												<Label Grid.Column="1"
                                                        Text="{Binding DownpaymentDisplay}"
-                                                       FontSize="15"
+                                                       FontSize="17"
                                                        FontAttributes="Bold"
                                                        TextColor="{StaticResource Primary}"
                                                        VerticalOptions="Center"/>
 											</Grid>
 										</Frame>
 
-										<Label FontSize="11" TextColor="{StaticResource Gray500}">
+										<Label FontSize="12" TextColor="{StaticResource Gray500}">
 											<Label.Text>
 												<MultiBinding StringFormat="Then pay the remaining {0} over">
 													<Binding Path="RemainingAfterDownpaymentDisplay"/>
@@ -173,8 +172,8 @@
 													</DataTrigger>
 												</Frame.Triggers>
 												<VerticalStackLayout Spacing="1" HorizontalOptions="Center">
-													<Label Text="1 month" FontSize="11" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
-													<Label Text="{Binding MonthlyFor1Display}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
+													<Label Text="1 month" FontSize="12" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
+													<Label Text="{Binding MonthlyFor1Display}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
 												</VerticalStackLayout>
 											</Frame>
 
@@ -194,8 +193,8 @@
 													</DataTrigger>
 												</Frame.Triggers>
 												<VerticalStackLayout Spacing="1" HorizontalOptions="Center">
-													<Label Text="2 months" FontSize="11" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
-													<Label Text="{Binding MonthlyFor2Display}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
+													<Label Text="2 months" FontSize="12" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
+													<Label Text="{Binding MonthlyFor2Display}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
 												</VerticalStackLayout>
 											</Frame>
 
@@ -215,8 +214,8 @@
 													</DataTrigger>
 												</Frame.Triggers>
 												<VerticalStackLayout Spacing="1" HorizontalOptions="Center">
-													<Label Text="3 months" FontSize="11" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
-													<Label Text="{Binding MonthlyFor3Display}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
+													<Label Text="3 months" FontSize="12" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
+													<Label Text="{Binding MonthlyFor3Display}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
 												</VerticalStackLayout>
 											</Frame>
 
@@ -236,8 +235,8 @@
 													</DataTrigger>
 												</Frame.Triggers>
 												<VerticalStackLayout Spacing="1" HorizontalOptions="Center">
-													<Label Text="4 months" FontSize="11" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
-													<Label Text="{Binding MonthlyFor4Display}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
+													<Label Text="4 months" FontSize="12" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
+													<Label Text="{Binding MonthlyFor4Display}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" HorizontalOptions="Center"/>
 												</VerticalStackLayout>
 											</Frame>
 
@@ -250,35 +249,28 @@
 					</CollectionView.ItemTemplate>
 				</CollectionView>
 
-				<!-- Totals card: full bill breakdown -->
-				<!-- (Subtotal -> Discount -> Total -> Due Today, in that order,
-                     so Due Today is always the final, most prominent figure
-                     right before Proceed to Payment.) -->
+				<!-- Totals card: Subtotal -> Discount -> Total -> Due Today, so Due Today lands right before Proceed to Payment. -->
 				<Frame BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray100}" CornerRadius="12" Padding="14" HasShadow="False">
-					<VerticalStackLayout Spacing="10">
+					<VerticalStackLayout Spacing="8">
 
 						<Grid ColumnDefinitions="*,Auto">
-							<Label Text="Subtotal" FontSize="13" TextColor="{StaticResource Gray500}"/>
-							<Label Grid.Column="1" Text="{Binding SubtotalDisplay}" FontSize="13" TextColor="{StaticResource Gray500}"/>
+							<Label Text="Subtotal" FontSize="14" TextColor="{StaticResource Gray500}"/>
+							<Label Grid.Column="1" Text="{Binding SubtotalDisplay}" FontSize="14" TextColor="{StaticResource Gray500}"/>
 						</Grid>
 
 						<VerticalStackLayout Spacing="2">
 							<Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
 								<Label Text="Discount"
-                                       FontSize="13"
+                                       FontSize="14"
                                        TextColor="{StaticResource Gray500}"
                                        VerticalOptions="Center"/>
 
-								<!-- Stays a normal, always-enabled dropdown —
-                                     no overlay. DiscountChanged (code-behind)
-                                     is what blocks an invalid pick: it
-                                     reverts back to "None" and shows an alert
-                                     when the bill doesn't allow a discount. -->
+								<!-- DiscountChanged (code-behind) reverts to "None" and alerts if the pick isn't allowed. -->
 								<Picker Grid.Column="1"
                                         x:Name="DiscountPicker"
                                         SelectedIndexChanged="DiscountChanged"
                                         WidthRequest="160"
-                                        FontSize="13"
+                                        FontSize="14"
                                         TextColor="{StaticResource Primary}">
 									<Picker.Items>
 										<x:String>None</x:String>
@@ -289,53 +281,50 @@
 								</Picker>
 							</Grid>
 							<Label Text="Excludes installment items"
-                                   FontSize="10"
+                                   FontSize="11"
                                    TextColor="{StaticResource Gray400}"
                                    IsVisible="{Binding HasMixedInstallmentAndRegular}"/>
 
-							<!-- Special: a flat peso amount off, not a percentage.
-                                 e.g. ₱150 off, rather than 20% off. -->
+							<!-- Special: a flat peso amount off (e.g. ₱150), not a percentage. -->
 							<Grid ColumnDefinitions="Auto,*"
                                   Margin="0,6,0,0"
                                   IsVisible="{Binding IsSpecialDiscount}">
 								<Label Text="₱"
-                                       FontSize="14"
+                                       FontSize="15"
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource Primary}"
                                        VerticalOptions="Center"/>
 								<Entry Grid.Column="1"
                                        Placeholder="Amount off"
                                        Keyboard="Numeric"
-                                       FontSize="14"
+                                       FontSize="15"
                                        TextColor="{StaticResource Primary}"
                                        Text="{Binding SpecialDiscountAmount}"/>
 							</Grid>
 						</VerticalStackLayout>
 
 						<Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasDiscount}">
-							<Label Text="Discount Amount" TextColor="{StaticResource Primary}" FontSize="12"/>
-							<Label Grid.Column="1" Text="{Binding DiscountDisplay}" TextColor="{StaticResource Primary}" FontSize="12"/>
+							<Label Text="Discount Amount" TextColor="{StaticResource Primary}" FontSize="13"/>
+							<Label Grid.Column="1" Text="{Binding DiscountDisplay}" TextColor="{StaticResource Primary}" FontSize="13"/>
 						</Grid>
 
 						<Grid ColumnDefinitions="*,Auto"
                               Margin="0,2,0,0"
                               Padding="0,10,0,0">
 							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
-							<Label Text="Total" FontSize="13" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
-							<Label Grid.Column="1" Text="{Binding TotalDisplay}" FontSize="13" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
+							<Label Text="Total" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center" Margin="0,4,0,0"/>
+							<Label Grid.Column="1" Text="{Binding TotalDisplay}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center" Margin="0,4,0,0"/>
 						</Grid>
 
-						<!-- Due Today: last line in the card, biggest and most
-                             prominent — the actionable figure right before
-                             Proceed to Payment. -->
+						<!-- Due Today: biggest, most prominent line, right before Proceed to Payment. -->
 						<Grid ColumnDefinitions="*,Auto"
                               Margin="0,2,0,0"
                               Padding="0,10,0,0">
 							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
-							<Label Text="Due Today" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center" Margin="0,4,0,0"/>
+							<Label Text="Due Today" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center" Margin="0,4,0,0"/>
 							<Label Grid.Column="1"
                                    Text="{Binding AmountDueTodayDisplay}"
-                                   FontSize="26"
+                                   FontSize="22"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Primary}"
                                    VerticalOptions="Center"
@@ -348,8 +337,7 @@
 			</VerticalStackLayout>
 		</ScrollView>
 
-		<!-- Sticky bottom bar: just Proceed — Due Today already ends the
-             breakdown card above, right before this button. -->
+		<!-- Sticky bottom bar: just Proceed, since Due Today already ends the breakdown card above. -->
 		<Frame Grid.Row="1"
                BackgroundColor="{StaticResource White}"
                BorderColor="{StaticResource Gray100}"
@@ -362,6 +350,8 @@
 						TextColor="{StaticResource White}"
 						CornerRadius="12"
 						HeightRequest="48"
+						FontSize="16"
+						FontAttributes="Bold"
 						IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
 						Command="{Binding ProceedCommand}"/>
 
@@ -370,7 +360,7 @@
 										VerticalOptions="Center"
 										IsVisible="{Binding IsBusy}">
 					<ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource Primary}"/>
-					<Label Text="Processing..." TextColor="{StaticResource Primary}" VerticalOptions="Center"/>
+					<Label Text="Processing..." FontSize="14" TextColor="{StaticResource Primary}" VerticalOptions="Center"/>
 				</HorizontalStackLayout>
 			</Grid>
 		</Frame>

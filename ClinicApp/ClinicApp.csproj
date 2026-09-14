@@ -76,6 +76,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="BCrypt.Net-Next" Version="3.5.0" />
 		<PackageReference Include="CommunityToolkit.Maui" Version="8.0.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
 		<PackageReference Include="Google.Apis.Auth" Version="1.75.0" />
@@ -85,11 +86,14 @@
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.100" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
 		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.28.0" />
-		<PackageReference Include="SkiaSharp" Version="4.151.0" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+		<PackageReference Include="SkiaSharp" Version="2.88.9" />
 		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="2.88.9" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 		<PackageReference Include="Supabase" Version="1.1.0" />
 		<PackageReference Include="Supabase.Postgrest" Version="4.0.3" />
+		<PackageReference Include="Syncfusion.Maui.Calendar" Version="29.2.10" />
+		<PackageReference Include="Syncfusion.Maui.Charts" Version="29.2.10" />
 		<PackageReference Include="System.Drawing.Common" Version="10.0.10" />
 		<PackageReference Include="The49.Maui.BottomSheet" Version="8.0.3" />
 	</ItemGroup>
@@ -100,9 +104,6 @@
 	  </Compile>
 	  <Compile Update="Views\GoogleSignInPage.xaml.cs">
 	    <DependentUpon>GoogleSignInPage.xaml</DependentUpon>
-	  </Compile>
-	  <Compile Update="Resources\Styles\SupplyStyles.xaml.cs">
-	    <DependentUpon>SupplyStyles.xaml</DependentUpon>
 	  </Compile>
 	  <Compile Update="Views\UsersRelated\AddUserPage.xaml.cs">
 	    <DependentUpon>AddUserPage.xaml</DependentUpon>
@@ -116,7 +117,7 @@
 	  <MauiXaml Update="Resources\Styles\PatientStyles.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Resources\Styles\SupplyStyles.xaml">
+	  <MauiXaml Update="Views\ActivityLogPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentPage.xaml">
@@ -128,7 +129,13 @@
 	  <MauiXaml Update="Views\AppointmentRelated\AppointmentPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>  
+	  <MauiXaml Update="Views\AppointmentRelated\FollowUpRequiredSheet.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>  
 	  <MauiXaml Update="Views\AppointmentRelated\InProcedurePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>  
+	  <MauiXaml Update="Views\AppointmentRelated\PendingFollowUpsPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\AppointmentRelated\PendingDetailSheet.xaml">
@@ -176,7 +183,10 @@
    	  <MauiXaml Update="Views\PatientsRelated\TreatmentHistoryPage.xaml">
 		<Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-   	  <MauiXaml Update="Views\PatientsRelated\VisitDetailsPage.xaml">
+   	  <MauiXaml Update="Views\ReportRelated\CustomDateRangeSheet.xaml">
+   	    <Generator>MSBuild:Compile</Generator>
+   	  </MauiXaml>
+   	  <MauiXaml Update="Views\ReportRelated\ReportsPage.xaml">
    	    <Generator>MSBuild:Compile</Generator>
    	  </MauiXaml>
 	  <MauiXaml Update="Views\ServicesRelated\ServicePage.xaml">
@@ -186,6 +196,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\ServicesRelated\ServiceListPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\Shared\ConfirmationPopup.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\Shared\ItemActionSheet.xaml">
@@ -233,13 +246,13 @@
 	  <MauiXaml Update="Views\TransactionRelated\ReceiptPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\TransactionRelated\ServiceSummaryPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
 	  <MauiXaml Update="Views\TransactionRelated\TransactionPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\UsersRelated\AddUserPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\UsersRelated\LoginPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\UsersRelated\UserListPage.xaml">

@@ -7,8 +7,11 @@
     x:Class="ClinicApp.Views.SupplyRelated.AddSupplyPage"
     x:DataType="vm:AddSupplyViewModel"
     Title="{Binding PageTitle}"
-    BackgroundColor="{StaticResource PageBg}"
-    Shell.TabBarIsVisible="False">
+	Shell.BackgroundColor="{StaticResource Primary}"
+    Shell.TitleColor="White"
+    Shell.ForegroundColor="White"
+    Shell.TabBarIsVisible="False"
+    BackgroundColor="{StaticResource PageBg}">
 
 	<Grid RowDefinitions="*,Auto">
 
@@ -103,11 +106,11 @@
               ColumnSpacing="12" BackgroundColor="{StaticResource PageBg}">
 			<Button Grid.Column="0" Text="Cancel"
                     Command="{Binding CancelCommand}"
-                    Style="{StaticResource SupplySecondaryButtonStyle}"/>
+                    Style="{StaticResource SecondaryActionButtonStyle}"/>
 			<Button Grid.Column="1" Text="Save"
                     Command="{Binding SaveCommand}"
                     IsEnabled="{Binding CanSave}"
-                    Style="{StaticResource SupplyPrimaryButtonStyle}"/>
+                    Style="{StaticResource PrimaryActionButtonStyle}"/>
 		</Grid>
 
 	</Grid>

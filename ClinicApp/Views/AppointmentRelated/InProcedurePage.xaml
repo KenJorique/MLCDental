@@ -2,50 +2,32 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ClinicApp.ViewModels"
-             xmlns:models="clr-namespace:ClinicApp.Models"
+             xmlns:models="clr-namespace:ClinicApp.Models.AppointmentModels"
              x:Class="ClinicApp.Views.AppointmentRelated.InProcedurePage"
              x:DataType="vm:InProcedureViewModel"
-             Title="Procedure Queue"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F5F5F5">
-
-	<!-- Count badge lives in the nav bar itself, beside the title,
-         instead of a separate "In Procedure" label in the body. -->
-	<Shell.TitleView>
-		<Grid ColumnDefinitions="*,Auto" HorizontalOptions="Fill" Padding="0,0,16,0">
-			<Label Grid.Column="0"
-                   Text="Procedure Queue"
-                   FontSize="18" FontAttributes="Bold"
-                   TextColor="Black"
-                   VerticalOptions="Center"/>
-			<Border Grid.Column="1"
-                    BackgroundColor="#F57C00"
-                    StrokeShape="RoundRectangle 12"
-                    Padding="8,2"
-                    VerticalOptions="Center">
-				<Label Text="{Binding InProcedureCount}"
-                       TextColor="White" FontSize="12"
-                       FontAttributes="Bold"/>
-			</Border>
-		</Grid>
-	</Shell.TitleView>
+             Shell.BackgroundColor="{StaticResource Primary}"
+             Shell.TitleColor="White"
+             Shell.ForegroundColor="White"
+             BackgroundColor="{StaticResource PageBg}"
+             Title="Procedure Queue">
 
 	<Grid RowDefinitions="*" Padding="16">
 
 		<!-- Initial load skeleton -->
 		<ActivityIndicator IsRunning="{Binding IsInitialLoading}"
-                            IsVisible="{Binding IsInitialLoading}"
-                            Color="{StaticResource Primary}"
-                            VerticalOptions="Center" />
+                           IsVisible="{Binding IsInitialLoading}"
+                           Color="{StaticResource Primary}"
+                           VerticalOptions="Center" />
 
 		<!-- Global empty state -->
-		<StackLayout IsVisible="{Binding HasNone}"
-                     VerticalOptions="Center"
-                     HorizontalOptions="Center"
-                     Spacing="8">
-			<Label Text="🪑" FontSize="48" HorizontalOptions="Center" />
-			<Label Text="No active patients right now" FontSize="15" TextColor="#6B7280" HorizontalOptions="Center" />
-		</StackLayout>
+		<VerticalStackLayout IsVisible="{Binding HasNone}"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="4">
+			<Label Text="🪑" FontSize="48" HorizontalOptions="Center" Margin="0,0,0,8"/>
+			<Label Text="No active patients right now" Style="{StaticResource EmptyStateTitleStyle}"/>
+		</VerticalStackLayout>
 
 		<!-- In Procedure list -->
 		<RefreshView IsRefreshing="{Binding IsRefreshing}"
@@ -58,20 +40,20 @@
 				</CollectionView.ItemsLayout>
 				<CollectionView.ItemTemplate>
 					<DataTemplate x:DataType="models:AppointmentEntry">
-						<Frame Margin="0,4" Padding="14" CornerRadius="12"
-                               BorderColor="#FFE0B2" BackgroundColor="White"
-                               HasShadow="True">
-							<Frame.GestureRecognizers>
-								<TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:InProcedureViewModel}}, Path=SelectEntryCommand}"
-                                                       CommandParameter="{Binding .}" />
-							</Frame.GestureRecognizers>
-							<VerticalStackLayout Spacing="4">
+						<Border Margin="0,4" Style="{StaticResource ElevatedCardStyle}">
+							<Border.GestureRecognizers>
+								<TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:InProcedureViewModel}}, Path=SelectEntryCommand}"
+                                    CommandParameter="{Binding .}" />
+							</Border.GestureRecognizers>
+							<VerticalStackLayout Spacing="6">
 								<Label Text="{Binding PatientName}"
-                                       FontSize="18" FontAttributes="Bold"/>
+                                       FontSize="18" FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}"/>
 								<Label Text="{Binding AppointmentDateTimeParsed, StringFormat='{0:MMM dd, yyyy  h:mm tt}'}"
-                                       FontSize="14" TextColor="Gray"/>
+                                       FontSize="14" TextColor="{StaticResource TextPrimary}"/>
 							</VerticalStackLayout>
-						</Frame>
+						</Border>
 					</DataTemplate>
 				</CollectionView.ItemTemplate>
 			</CollectionView>

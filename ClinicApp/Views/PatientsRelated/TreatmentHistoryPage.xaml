@@ -1,152 +1,101 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:vm="clr-namespace:ClinicApp.ViewModels.PatientsRelatedVM"
-             xmlns:models="clr-namespace:ClinicApp.Models"
-             x:Class="ClinicApp.Views.PatientsRelated.TreatmentHistoryPage"
-             x:DataType="vm:TreatmentHistoryViewModel"
-             Title="Treatment Record"
-             Shell.NavBarIsVisible="True"
-             Shell.BackgroundColor="{StaticResource PrimaryGreen}"
-             Shell.TitleColor="White"
-             Shell.ForegroundColor="White"
-             Shell.TabBarIsVisible="False"
-             BackgroundColor="White">
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:ClinicApp.ViewModels.PatientsRelatedVM"
+    xmlns:models="clr-namespace:ClinicApp.Models.TreatmentModels"
+    x:Class="ClinicApp.Views.PatientsRelated.TreatmentHistoryPage"
+    x:DataType="vm:TreatmentHistoryViewModel"
+    Title="Treatment Record"
+    Shell.TabBarIsVisible="False"
+    Shell.BackgroundColor="{StaticResource Primary}"
+    Shell.TitleColor="White"
+    Shell.ForegroundColor="White"
+    BackgroundColor="{StaticResource PageBg}">
 
 	<Grid RowDefinitions="Auto,*">
 
-		<!-- ── Patient header ── -->
-		<Grid Grid.Row="0"
-              ColumnDefinitions="*,Auto"
-              Padding="16,12"
-              BackgroundColor="{StaticResource PrimaryGreen}">
-			<Label Grid.Column="0"
-                   Text="{Binding PatientName}"
-                   FontSize="17" FontAttributes="Bold"
-                   TextColor="White"
-                   VerticalOptions="Center"/>
-			<Border Grid.Column="1"
-                    BackgroundColor="{StaticResource Gold}"
-                    StrokeThickness="0"
-                    StrokeShape="RoundRectangle 12"
-                    Padding="10,4"
-                    VerticalOptions="Center">
-				<Label FontSize="13" FontAttributes="Bold" TextColor="White">
-					<Label.FormattedText>
-						<FormattedString>
-							<Span Text="{Binding TreatmentCount}"/>
-							<Span Text=" services"/>
-						</FormattedString>
-					</Label.FormattedText>
-				</Label>
+		<!-- ── PATIENT SUMMARY ── -->
+		<Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="20,16,20,0" BackgroundColor="{StaticResource White}">
+			<Label Grid.Column="0" Text="{Binding PatientName}" FontSize="20" FontAttributes="Bold"
+                   TextColor="{StaticResource Gray900}" VerticalOptions="Center" LineBreakMode="TailTruncation"/>
+			<Border Grid.Column="1" BackgroundColor="{StaticResource Secondary}" StrokeThickness="0"
+                    StrokeShape="RoundRectangle 999" Padding="10,4" VerticalOptions="Center">
+				<Label Text="{Binding HistoryCountText}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
 			</Border>
 		</Grid>
 
-		<!-- ── Treatment cards list ── -->
-		<CollectionView Grid.Row="1"
-                        ItemsSource="{Binding VisitGroups}"
-                        SelectionMode="None"
-                        Margin="14,12,14,12">
+		<Grid Grid.Row="1">
 
-			<CollectionView.EmptyView>
-				<VerticalStackLayout VerticalOptions="Center"
-                                     HorizontalOptions="Center"
-                                     Spacing="8"
-                                     Margin="0,60,0,0">
-					<Label Text="No treatment records yet."
-                           FontSize="15" TextColor="{StaticResource Gray400}"
-                           HorizontalTextAlignment="Center"/>
-				</VerticalStackLayout>
-			</CollectionView.EmptyView>
+			<!-- Loading -->
+			<VerticalStackLayout IsVisible="{Binding IsBusy}" VerticalOptions="Center" HorizontalOptions="Center" Spacing="12">
+				<ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource Primary}" WidthRequest="36" HeightRequest="36"/>
+				<Label Text="Loading treatment history..." Style="{StaticResource MutedCaptionStyle}"/>
+			</VerticalStackLayout>
 
-			<CollectionView.ItemTemplate>
-				<DataTemplate x:DataType="models:TreatmentVisitGroup">
+			<!-- Empty state -->
+			<VerticalStackLayout IsVisible="{Binding IsHistoryEmpty}" VerticalOptions="Center" HorizontalOptions="Center" Spacing="8" Padding="30">
+				<Label Text="No treatment history" Style="{StaticResource EmptyStateTitleStyle}" HorizontalTextAlignment="Center"/>
+				<Label Text="Treatment records and services rendered will appear here after a visit."
+                       Style="{StaticResource EmptyStateSubtitleStyle}" HorizontalTextAlignment="Center"/>
+			</VerticalStackLayout>
 
-					<!-- One card per visit date -->
-					<Border BackgroundColor="#F5F0D0"
-                            Stroke="{StaticResource Gold}"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 12"
-                            Padding="14,12"
-                            Margin="0,0,0,12">
+			<!-- ── VISIT CARDS — newest first, one card per visit date, each listing every treatment/service done that day ── -->
+			<CollectionView ItemsSource="{Binding VisitGroups}" SelectionMode="None"
+                            IsVisible="{Binding IsHistoryEmpty, Converter={StaticResource InvertedBoolConverter}}"
+                            Margin="20,14,20,0">
+				<CollectionView.ItemsLayout>
+					<LinearItemsLayout Orientation="Vertical" ItemSpacing="12"/>
+				</CollectionView.ItemsLayout>
+				<CollectionView.ItemTemplate>
+					<DataTemplate x:DataType="models:TreatmentVisitGroup">
+						<Border Style="{StaticResource ElevatedCardStyle}" Padding="0">
+							<Grid ColumnDefinitions="4,*">
 
-						<VerticalStackLayout Spacing="0">
+								<!-- Left accent bar — the one deliberate brand-color touch on the card -->
+								<BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
 
-							<!-- Date | Time row -->
-							<HorizontalStackLayout Spacing="8" Margin="0,0,0,8">
-								<Label Text="{Binding DateDisplay}"
-                                       FontSize="12"
-                                       TextColor="{StaticResource Gray500}"/>
-								<Label Text="|"
-                                       FontSize="12"
-                                       TextColor="{StaticResource Gray400}"/>
-								<Label Text="{Binding TimeDisplay}"
-                                       FontSize="12"
-                                       TextColor="{StaticResource Gray500}"/>
-							</HorizontalStackLayout>
+								<VerticalStackLayout Grid.Column="1" Padding="16,14,16,14" Spacing="0">
 
-							<!-- Services list -->
-							<CollectionView ItemsSource="{Binding Items}"
-                                            SelectionMode="None">
-								<CollectionView.ItemTemplate>
-									<DataTemplate x:DataType="models:TreatmentRowItem">
-										<VerticalStackLayout Spacing="2"
-                                                             Margin="0,0,0,10">
-											<!-- Service name -->
-											<Label Text="{Binding Description}"
-                                                   FontSize="16"
-                                                   FontAttributes="Bold"
-                                                   TextColor="Black"/>
-											<!-- Teeth -->
-											<HorizontalStackLayout Spacing="6"
-                                                IsVisible="{Binding HasTooth}">
-												<Label Text="Teeth"
-                                                       FontSize="12"
-                                                       TextColor="{StaticResource Gray500}"/>
-												<Border BackgroundColor="{StaticResource Gray200}"
-                                                        StrokeThickness="0"
-                                                        StrokeShape="RoundRectangle 6"
-                                                        Padding="8,2">
-													<Label Text="{Binding ToothDisplay}"
-                                                           FontSize="12"
-                                                           TextColor="{StaticResource Gray700}"/>
-												</Border>
-											</HorizontalStackLayout>
-										</VerticalStackLayout>
-									</DataTemplate>
-								</CollectionView.ItemTemplate>
-							</CollectionView>
+									<!-- Date + time, once per visit, single line -->
+									<Label Text="{Binding DateTimeDisplay}" FontSize="12" FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}" Margin="0,0,0,8"/>
 
-							<!-- Divider before notes -->
-							<BoxView HeightRequest="1"
-                                     Color="{StaticResource Gold}"
-                                     Opacity="0.4"
-                                     Margin="0,0,0,8"/>
+									<!-- One block per treatment/service performed at this visit -->
+									<VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}" Spacing="0">
+										<BindableLayout.ItemTemplate>
+											<DataTemplate x:DataType="models:TreatmentRowItem">
+												<VerticalStackLayout>
 
-							<!-- Shared Notes -->
-							<HorizontalStackLayout Spacing="8"
-                                IsVisible="{Binding HasNotes}">
-								<Border BackgroundColor="{StaticResource Gray300}"
-                                        StrokeThickness="0"
-                                        StrokeShape="RoundRectangle 4"
-                                        WidthRequest="18" HeightRequest="18"/>
-								<VerticalStackLayout Spacing="2" HorizontalOptions="Fill">
-									<Label Text="Notes:"
-                                           FontSize="12" FontAttributes="Bold"
-                                           TextColor="Black"/>
-									<Label Text="{Binding SharedNotes}"
-                                           FontSize="12"
-                                           TextColor="{StaticResource Gray600}"
-                                           LineBreakMode="WordWrap"/>
+													<!-- Divider between rows — hidden above the first row in the card -->
+													<BoxView HeightRequest="1" BackgroundColor="{StaticResource Gray100}"
+                                                             Margin="0,10,0,10"
+                                                             IsVisible="{Binding IsFirst, Converter={StaticResource InvertedBoolConverter}}"/>
+
+													<Label Text="{Binding Description}" Style="{StaticResource CardSectionTitleStyle}"/>
+
+													<!-- Tooth label, hidden for general services -->
+													<Label Text="{Binding ToothDisplay}" FontSize="12" TextColor="{StaticResource Gray400}"
+                                                           Margin="0,3,0,0" IsVisible="{Binding HasTooth}"/>
+
+													<!-- This row's own note — blank/hidden unless it's a genuine staff-typed note -->
+													<Label Text="{Binding Notes}" FontSize="12" TextColor="{StaticResource Gray500}"
+                                                           FontAttributes="Italic" Margin="0,6,0,0" IsVisible="{Binding HasNotes}"/>
+
+												</VerticalStackLayout>
+											</DataTemplate>
+										</BindableLayout.ItemTemplate>
+									</VerticalStackLayout>
+
 								</VerticalStackLayout>
-							</HorizontalStackLayout>
+							</Grid>
+						</Border>
+					</DataTemplate>
+				</CollectionView.ItemTemplate>
+			</CollectionView>
 
-						</VerticalStackLayout>
-					</Border>
-
-				</DataTemplate>
-			</CollectionView.ItemTemplate>
-		</CollectionView>
+		</Grid>
 
 	</Grid>
+
 </ContentPage>

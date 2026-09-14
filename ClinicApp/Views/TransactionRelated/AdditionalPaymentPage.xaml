@@ -4,15 +4,18 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     BackgroundColor="#F5F5F5"
     Title="Add Payment"
-    Shell.TabBarIsVisible="False">
+    Shell.TabBarIsVisible="False"
+    Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+    Shell.ForegroundColor="{StaticResource White}"
+    Shell.TitleColor="{StaticResource White}">
 
 	<Grid>
 		<ScrollView>
 			<VerticalStackLayout Padding="16" Spacing="14">
 
-				<!-- Header: same brand-green treatment as PaymentPage -->
-				<Frame BackgroundColor="{StaticResource PrimaryDark}"
-                       BorderColor="{StaticResource PrimaryDark}"
+				<!-- Header: white card, matching BillDetailsPage's patient card -->
+				<Frame BackgroundColor="{StaticResource White}"
+                       BorderColor="{StaticResource Gray100}"
                        CornerRadius="12"
                        Padding="16"
                        HasShadow="False">
@@ -20,11 +23,10 @@
 						<Label Text="{Binding PatientName}"
                                FontSize="18"
                                FontAttributes="Bold"
-                               TextColor="{StaticResource White}"/>
+                               TextColor="{StaticResource TextPrimary}"/>
 						<Label Text="{Binding BillNumber, StringFormat='Bill {0}'}"
                                FontSize="12"
-                               TextColor="{StaticResource White}"
-                               Opacity="0.85"/>
+                               TextColor="{StaticResource TextSecondary}"/>
 					</VerticalStackLayout>
 				</Frame>
 

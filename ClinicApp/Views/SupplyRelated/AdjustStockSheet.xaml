@@ -9,13 +9,10 @@
     CornerRadius="20"
     IsCancelable="True"
     BackgroundColor="White">
-
 	<the49:BottomSheet.Detents>
 		<the49:ContentDetent />
 	</the49:BottomSheet.Detents>
-
 	<VerticalStackLayout Spacing="0" Padding="0,12,0,0">
-
 		<!-- Manual drag handle line -->
 		<BoxView WidthRequest="40"
                  HeightRequest="4"
@@ -23,18 +20,15 @@
                  BackgroundColor="#CCCCCC"
                  HorizontalOptions="Center"
                  Margin="0,0,0,16"/>
-
 		<Label Text="Adjust Stock"
                FontSize="18" FontAttributes="Bold"
                TextColor="Black"
                HorizontalTextAlignment="Center"
                Margin="0,0,0,4"/>
-
 		<Label Text="Choose an action to adjust the stock."
                FontSize="13" TextColor="Gray"
                HorizontalTextAlignment="Center"
                Margin="0,0,0,20"/>
-
 		<!-- Add Stock row -->
 		<Frame Margin="16,0,16,10" Padding="16,14"
                BackgroundColor="White" BorderColor="#E0E0E0"
@@ -44,12 +38,14 @@
 			</Frame.GestureRecognizers>
 			<Grid ColumnDefinitions="Auto,*,Auto">
 				<Frame Grid.Column="0"
-                       BackgroundColor="#F0F0F0" BorderColor="Transparent"
+                       BackgroundColor="#E8F5E9" BorderColor="Transparent"
                        CornerRadius="22" Padding="0"
                        WidthRequest="44" HeightRequest="44"
                        HasShadow="False">
-					<Label Text="+" FontSize="24" FontAttributes="Bold"
-                           TextColor="Black"
+					<Label Text="&#xe145;"
+                           FontFamily="MaterialSymbolsRounded"
+                           FontSize="22"
+                           TextColor="#2E7D32"
                            HorizontalOptions="Center" VerticalOptions="Center"/>
 				</Frame>
 				<VerticalStackLayout Grid.Column="1" Margin="12,0,0,0"
@@ -61,7 +57,6 @@
                        TextColor="Gray" VerticalOptions="Center"/>
 			</Grid>
 		</Frame>
-
 		<!-- Reduce Stock row -->
 		<Frame Margin="16,0,16,10" Padding="16,14"
                BackgroundColor="White" BorderColor="#E0E0E0"
@@ -71,12 +66,14 @@
 			</Frame.GestureRecognizers>
 			<Grid ColumnDefinitions="Auto,*,Auto">
 				<Frame Grid.Column="0"
-                       BackgroundColor="#F0F0F0" BorderColor="Transparent"
+                       BackgroundColor="#FFEBEE" BorderColor="Transparent"
                        CornerRadius="22" Padding="0"
                        WidthRequest="44" HeightRequest="44"
                        HasShadow="False">
-					<Label Text="−" FontSize="24" FontAttributes="Bold"
-                           TextColor="Black"
+					<Label Text="&#xe15b;"
+                           FontFamily="MaterialSymbolsRounded"
+                           FontSize="22"
+                           TextColor="#E65100"
                            HorizontalOptions="Center" VerticalOptions="Center"/>
 				</Frame>
 				<VerticalStackLayout Grid.Column="1" Margin="12,0,0,0"
@@ -88,9 +85,6 @@
                        TextColor="Gray" VerticalOptions="Center"/>
 			</Grid>
 		</Frame>
-
 		<BoxView HeightRequest="16" BackgroundColor="Transparent"/>
-
 	</VerticalStackLayout>
-
 </the49:BottomSheet>

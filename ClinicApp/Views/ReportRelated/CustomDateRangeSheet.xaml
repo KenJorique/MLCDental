@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<the49:BottomSheet xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                    xmlns:the49="https://schemas.the49.com/dotnet/2023/maui"
+                    xmlns:calendar="clr-namespace:Syncfusion.Maui.Calendar;assembly=Syncfusion.Maui.Calendar"
+                    x:Class="ClinicApp.Views.ReportRelated.CustomDateRangeSheet"
+                    HasHandle="False"
+                    HasBackdrop="True"
+                    CornerRadius="20"
+                    IsCancelable="True"
+                    BackgroundColor="White">
+
+	<!-- Sized to content, since the calendar's height already fits one screen -->
+	<the49:BottomSheet.Detents>
+		<the49:ContentDetent/>
+	</the49:BottomSheet.Detents>
+
+	<VerticalStackLayout Spacing="0" Padding="0,12,0,16">
+
+		<!-- Manual drag handle line -->
+		<BoxView WidthRequest="40"
+                 HeightRequest="4"
+                 CornerRadius="2"
+                 BackgroundColor="#CCCCCC"
+                 HorizontalOptions="Center"
+                 Margin="0,0,0,16"/>
+
+		<VerticalStackLayout Padding="16,0" Spacing="14">
+
+			<!-- Header -->
+			<Label Text="Select Date Range" FontSize="16" FontAttributes="Bold" TextColor="Black" HorizontalTextAlignment="Center"/>
+
+			<!-- Live preview, updated in code-behind as the user taps dates -->
+			<Label x:Name="RangeSummaryLabel" Text="Tap a start date, then an end date" FontSize="13" TextColor="Gray" HorizontalTextAlignment="Center"/>
+
+			<!-- Range-mode calendar; colors/theme are set in code-behind, not here (Syncfusion XAML bug) -->
+			<calendar:SfCalendar x:Name="CustomCalendar"
+                                  View="Month"
+                                  SelectionMode="Range"
+                                  RangeSelectionDirection="Both"
+                                  SelectionChanged="OnCalendarSelectionChanged"
+                                  HeightRequest="360"/>
+
+			<!-- Actions -->
+			<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+				<Button Grid.Column="0" Text="Cancel" Clicked="OnCancelClicked"
+                    BackgroundColor="{StaticResource Gray100}" TextColor="Black"/>
+				<Button Grid.Column="1" Text="Apply" Clicked="OnApplyClicked"
+                    BackgroundColor="{StaticResource Primary}" TextColor="White"/>
+			</Grid>
+
+		</VerticalStackLayout>
+
+	</VerticalStackLayout>
+
+</the49:BottomSheet>

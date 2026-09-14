@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Models.TransactionModels;
 using ClinicApp.Services;
 using ClinicApp.Views;
 using ClinicApp.Views.TransactionRelated;
@@ -14,6 +15,9 @@ public partial class TransactionViewModel : ObservableObject
 {
     readonly SupabaseDataService _supabase;
     readonly DatabaseService _database;
+
+    // Remembers the last sort choice so Refresh doesn't reset it.
+    string _currentSortMode = "Newest";
 
     public ObservableCollection<LedgerItem> PendingPayments { get; }
     = new();
@@ -56,9 +60,7 @@ public partial class TransactionViewModel : ObservableObject
     [ObservableProperty]
     string paymentStatus = string.Empty;
 
-    // Pill colors for the patient-summary status badge — back to the
-    // rounded-badge design for this card specifically. The left-accent-
-    // strip treatment stays only on the individual bill cards below.
+    // Pill colors for the patient-summary status badge
     public Color PaymentStatusColor => PaymentStatus switch
     {
         "Paid" => Color.FromArgb("#2E7D32"),
@@ -177,6 +179,9 @@ public partial class TransactionViewModel : ObservableObject
                 BillCards.Add(new BillCardItem(bill, rows));
             }
 
+            // Re-apply the user's last sort pick so refresh keeps it.
+            ApplySortInternal();
+
             TotalBilled = Bills.Sum(x => x.TotalAmount);
             TotalPaid = Bills.Sum(x => x.AmountPaid);
             TotalBalance = Bills.Sum(x => x.Balance);
@@ -260,9 +265,7 @@ public partial class TransactionViewModel : ObservableObject
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
-    // Add Payment button inside an individual bill card — scoped to
-    // that specific bill so it's unambiguous which bill the payment
-    // applies to when a patient has several (spec section 4).
+    // Add Payment button inside an individual bill card 
     [RelayCommand]
     private async Task AddPaymentForBill(SupabaseBill bill)
     {
@@ -276,8 +279,7 @@ public partial class TransactionViewModel : ObservableObject
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
-    // Tapping a payment row opens Bill Details (not a standalone
-    // receipt) — see the note at the top of this response for why.
+    // Tapping a payment row opens Bill Details
     [RelayCommand]
     private async Task OpenPayment(PaymentRowItem item)
     {
@@ -290,6 +292,56 @@ public partial class TransactionViewModel : ObservableObject
             $"&patientId={Uri.EscapeDataString(PatientId)}" +
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
+
+    // Opens the sort picker and applies the chosen order.
+    [RelayCommand]
+    async Task SortOptions()
+    {
+        var choice = await Shell.Current.DisplayActionSheet(
+            "Sort By",
+            "Cancel",
+            null,
+            "Unpaid",
+            "Newest");
+
+        if (string.IsNullOrEmpty(choice) || choice == "Cancel")
+            return;
+
+        _currentSortMode = choice;
+        ApplySortInternal();
+    }
+
+    // Reorders BillCards in place.
+    void ApplySortInternal()
+    {
+        if (BillCards.Count == 0)
+            return;
+
+        IEnumerable<BillCardItem> sorted = _currentSortMode switch
+        {
+            // Unpaid and Partially Paid both surface first — either way, money is still owed on the bill.
+            // Paid bills sink to the bottom. Ties within each bucket break by newest visit date.
+            "Unpaid" => BillCards
+                .OrderBy(b => HasBalanceDue(b.Bill.Status) ? 0 : 1)
+                .ThenByDescending(SortDate),
+
+            // Default order: newest bill on top, oldest at the bottom.
+            _ => BillCards.OrderByDescending(SortDate)
+        };
+
+        var ordered = sorted.ToList();
+        BillCards.Clear();
+        foreach (var item in ordered)
+            BillCards.Add(item);
+    }
+
+    // True for "unpaid" and "partial" — anything still owing money on the bill.
+    static bool HasBalanceDue(string? status) =>
+        status?.ToLowerInvariant() is "unpaid" or "partial";
+
+    // Date used for sorting — falls back to CreatedAt if VisitDate is unset.
+    static DateTime SortDate(BillCardItem item) =>
+        item.Bill.VisitDate != default ? item.Bill.VisitDate : item.Bill.CreatedAt;
 
     public string NextDueDisplay
     {

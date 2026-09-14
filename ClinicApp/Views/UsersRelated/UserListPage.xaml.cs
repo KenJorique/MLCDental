@@ -20,6 +20,7 @@ public partial class UserListPage : ContentPage
 
         if (BindingContext is UserViewModel vm)
         {
+            await vm.StartSupabaseSyncAsync();
             _ = Task.Run(async () => await vm.LoadUsers());
         }
     }

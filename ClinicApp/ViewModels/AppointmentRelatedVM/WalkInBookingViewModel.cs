@@ -1,5 +1,9 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.PatientModels;
+using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -27,6 +31,36 @@ namespace ClinicApp.ViewModels
             _supabase = supabase;
             InitializeEmptySlots();
         }
+
+        // ---------------------------------------------------------------
+        // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
+        // everywhere in this ViewModel with the app's dimmed-backdrop
+        // rounded-card popup.
+        // ---------------------------------------------------------------
+
+        static Page CurrentPage =>
+            Shell.Current?.CurrentPage
+            ?? Application.Current?.Windows.FirstOrDefault()?.Page
+            ?? throw new InvalidOperationException("No current page available to host the popup.");
+
+        // Yes/No confirmation. Returns true only if the confirm button was tapped.
+        static async Task<bool> ShowConfirmAsync(
+            string title, string message, string confirmText = "Yes", Color? confirmColor = null)
+        {
+            var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+            var result = await CurrentPage.ShowPopupAsync(popup);
+            return result is true;
+        }
+
+        // Plain OK-only notice (used in place of single-button DisplayAlert calls).
+        static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+        {
+            var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+            await CurrentPage.ShowPopupAsync(popup);
+        }
+
+        // Convenience wrapper for error alerts so call sites read the same as before.
+        static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
 
         // Pre-populate 6 empty slots so TimeSlots[0-5] bindings never crash
         void InitializeEmptySlots()
@@ -227,6 +261,9 @@ namespace ClinicApp.ViewModels
         }
 
         // ── Load time slots ───────────────────────────────────
+
+        static readonly TimeZoneInfo ManilaTz =
+TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
         public async Task LoadSlotsAsync(DateTime date)
         {
 
@@ -269,10 +306,12 @@ namespace ClinicApp.ViewModels
                     foreach (var h in hours)
                     {
                         var slotTime = new DateTime(date.Year, date.Month, date.Day, h, 0, 0);
-                        var slotUtc = slotTime.ToUniversalTime();
+                        var slotUtc = TimeZoneInfo.ConvertTimeToUtc(slotTime, ManilaTz);
+                        var isTaken = booked.Any(b => b == slotUtc);
 
-                        var isTaken = booked.Any(b =>
-                            b == slotUtc);
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[WalkInSlot] hour={h} | slotUtc={slotUtc:o} | isTaken={isTaken}");
+                        
 
                         TimeSlots.Add(new TimeSlotItem
                         {
@@ -295,6 +334,7 @@ namespace ClinicApp.ViewModels
             finally { IsLoadingSlots = false; }
         }
 
+        // Selects a time slot and refreshes the summary.
         [RelayCommand]
         void SelectSlot(TimeSlotItem slot)
         {
@@ -315,6 +355,7 @@ namespace ClinicApp.ViewModels
             UpdateSummary();
         }
 
+        // Rebuilds the confirmation summary text.
         void UpdateSummary()
         {
             if (string.IsNullOrWhiteSpace(FullName) || _selectedSlot == null)
@@ -326,9 +367,9 @@ namespace ClinicApp.ViewModels
             HasSummary = true;
             SummaryText =
                 $"Patient:   {FullName}\n" +
-                $"Date:        {_selectedSlot.SlotDateTime:MMM dd, yyyy}\n" +
-                $"Time:        {_selectedSlot.Display}\n" +
-                $"Status:     Auto-approved ✓";
+                $"Date:      {_selectedSlot.SlotDateTime:MMM dd, yyyy}\n" +
+                $"Time:      {_selectedSlot.Display}\n" +
+                $"Status:     Auto-approved";
         }
 
         // ── Confirm booking ───────────────────────────────────
@@ -338,25 +379,32 @@ namespace ClinicApp.ViewModels
             if (!CanConfirm || _selectedSlot == null)
                 return;
 
+            bool confirmed = await ShowConfirmAsync(
+                "Confirm Booking",
+                $"Book this walk-in appointment for {FullName} on " +
+                $"{_selectedSlot.SlotDateTime:MMM dd, yyyy} at {_selectedSlot.Display}?",
+                "Yes, book");
+
+            if (!confirmed) return;
+
             HasError = false;
             IsBusy = true;
 
             try
             {
                 var localTime = _selectedSlot.SlotDateTime;
-                var utcTime = localTime.ToUniversalTime();
+               var slotUtc = TimeZoneInfo.ConvertTimeToUtc(localTime, ManilaTz);
 
                 // =====================================================
                 // CHECK SLOT FIRST
                 // =====================================================
-                var available = await _supabase.IsSlotAvailableAsync(utcTime);
+                var available = await _supabase.IsSlotAvailableAsync(slotUtc);
 
                 if (!available)
                 {
-                    await Shell.Current.DisplayAlert(
+                    await ShowNoticeAsync(
                         "Slot Taken",
-                        "This time slot has already been booked. Please choose another time.",
-                        "OK");
+                        "This time slot has already been booked. Please choose another time.");
 
                     await LoadSlotsAsync(AppointmentDate);
 
@@ -403,8 +451,8 @@ namespace ClinicApp.ViewModels
                         _existingPatient = await _supabase.AddPatientAsync(supabasePatient);
                         if (_existingPatient != null)
                         {
-                            patient.SupabaseId = _existingPatient.Id;   
-                            await _db.UpdatePatient(patient);           
+                            patient.SupabaseId = _existingPatient.Id;
+                            await _db.UpdatePatient(patient);
                         }
                     }
                 }
@@ -449,7 +497,7 @@ namespace ClinicApp.ViewModels
                     Phone = Phone,
                     Email = Email,
                     Notes = Notes,
-                    AppointmentDateTime = utcTime,
+                    AppointmentDateTime = slotUtc,
                     Status = "approved"
                 };
 
@@ -457,12 +505,12 @@ namespace ClinicApp.ViewModels
 
                 if (created == null)
                 {
-                    await Shell.Current.DisplayAlert(
-                        "Error",
-                        "Unable to save appointment.",
-                        "OK");
+                    await ShowErrorAsync("Unable to save appointment.");
                     return;
                 }
+
+                await _supabase.LogActivityAsync("NewBooking",
+                    $"New appointment booked for {FullName} on {localTime:MMM d, h:mm tt}");
 
                 _selectedSlot.IsTaken = true;
                 _selectedSlot.IsSelected = false;
@@ -485,8 +533,8 @@ namespace ClinicApp.ViewModels
                     System.Diagnostics.Debug.WriteLine(ex.Message);
                 }
 
-                await Shell.Current.DisplayAlert(
-                    "✓ Booking Confirmed",
+                await ShowNoticeAsync(
+                    "Booking Confirmed",
                     $"Walk-in appointment booked!\n\n" +
                     $"Patient: {FullName}\n" +
                     $"Date: {localTime:MMM dd, yyyy}\n" +
@@ -506,6 +554,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Discards the form and goes back.
         [RelayCommand]
         async Task Cancel() => await Shell.Current.GoToAsync("..");
     }

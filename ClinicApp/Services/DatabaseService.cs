@@ -1,15 +1,30 @@
 ﻿using ClinicApp.Models;
+using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.PatientModels;
+using ClinicApp.Models.ServicesModels;
+using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Models.SupplyModels;
+using ClinicApp.Models.TreatmentModels;
 using SQLite;
+using System.Linq;
 
 namespace ClinicApp.Services;
 
-public class DatabaseService
+public partial class DatabaseService
 {
     // SQLite async connection, initialized once via Init()
     SQLiteAsyncConnection? _database;
+    private readonly SupabaseDataService _supabase;
 
+    public DatabaseService(SupabaseDataService supabase)
+    {
+        _supabase = supabase;
+    }
     public async Task Init()
     {
+
+
+
         // Already fully initialised — skip
         if (_database != null) return;
 
@@ -34,6 +49,10 @@ public class DatabaseService
             try { await _database.CreateTableAsync<Patient>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] Patient: {ex.Message}"); }
 
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN RememberTokenHash TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN RememberTokenExpiresAt TEXT"); }
+            catch { /* already exists */ }
 
             // Clear synced booking cache so missed bookings get re-synced
             try
@@ -42,7 +61,11 @@ public class DatabaseService
                 System.Diagnostics.Debug.WriteLine("[DB] Cleared SyncedBooking cache");
             }
             catch { }
+            try { await _database!.ExecuteAsync("ALTER TABLE ToothRecords ADD COLUMN SupabaseId TEXT DEFAULT ''"); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ToothRecords.SupabaseId column: {ex.Message}"); }
 
+            try { await _database.ExecuteAsync("ALTER TABLE TreatmentHistory ADD COLUMN SupabaseId TEXT DEFAULT ''"); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] TreatmentHistory.SupabaseId column: {ex.Message}"); }
             // Run each pragma and table creation individually with its own try/catch
             // so one failure can never skip the remaining tables
             try { await _database.ExecuteAsync("PRAGMA journal_mode=WAL;"); }
@@ -83,6 +106,69 @@ public class DatabaseService
             catch { /* already exists */ }
             try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsActive INTEGER DEFAULT 1"); }
             catch { /* already exists */ }
+
+            // ── Auth migration: hashed password + brute-force/session columns ──
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN PasswordHash TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN FailedLoginAttempts INTEGER DEFAULT 0"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN LockedUntil TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN LastLoginAt TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN CreatedAt TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN UpdatedAt TEXT"); }
+            catch { /* already exists */ }
+            try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN SupabaseId TEXT DEFAULT ''"); }
+            catch { /* already exists */ }
+            try
+            {
+                await _database!.ExecuteAsync(
+                    "ALTER TABLE AppointmentEntry ADD COLUMN TreatmentSequenceId TEXT");
+            }
+            catch { /* already exists */ }
+
+            try
+            {
+                await _database!.ExecuteAsync(
+                    "ALTER TABLE AppointmentEntry ADD COLUMN SessionNumber INTEGER");
+            }
+            catch { /* already exists */ }
+
+            try
+            {
+                await _database!.ExecuteAsync(
+                    "ALTER TABLE AppointmentEntry ADD COLUMN TotalSessions INTEGER");
+            }
+            catch { /* already exists */ }
+
+            // One-time migration: any row that still has a plaintext Password
+            // and no PasswordHash yet gets hashed in place, then the plaintext
+            // column is cleared. Safe to run every startup — it's a no-op
+            // once every row has been migrated.
+            try
+            {
+                var toMigrate = await _database!.Table<User>()
+                    .Where(u => u.PasswordHash == null || u.PasswordHash == "")
+                    .ToListAsync();
+
+                foreach (var u in toMigrate)
+                {
+                    if (!string.IsNullOrEmpty(u.Password))
+                    {
+                        u.PasswordHash = PasswordHasher.Hash(u.Password);
+                        u.Password = null; // never keep the plaintext around
+                        u.UpdatedAt = DateTime.UtcNow;
+                        await _database!.UpdateAsync(u);
+                        System.Diagnostics.Debug.WriteLine($"[DB] Migrated plaintext password for UserID={u.UserID}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DB] Password migration error: {ex.Message}");
+            }
 
             try { await _database.CreateTableAsync<ToothRecord>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] ToothRecord table: {ex.Message}"); }
@@ -149,11 +235,28 @@ public class DatabaseService
                 var userCount = await _database.Table<User>().CountAsync();
                 if (userCount == 0)
                 {
+                    // NOTE: these are placeholder dev-only accounts. Change or
+                    // delete them before this ever ships to a real device —
+                    // dentist accounts should be created through a controlled
+                    // admin process, not a public register screen (there isn't one).
+                    var now = DateTime.UtcNow;
                     await _database.InsertAllAsync(new List<User>
-                    {
-                        new User { FullName = "Dr. Full Name",  Username = "dentist1", Password = "123", Role = "Dentist",   IsActive = true },
-                        new User { FullName = "Assistant Name", Username = "staff1",   Password = "123", Role = "Assistant", IsActive = true }
-                    });
+            {
+                new User
+                {
+                    FullName = "Dr. Full Name", Username = "dentist1",
+                    PasswordHash = PasswordHasher.Hash("dentist1!"),
+                    Role = "Dentist", IsActive = true,
+                    CreatedAt = now, UpdatedAt = now
+                },
+                new User
+                {
+                    FullName = "Secretary Name", Username = "secretary2",
+                    PasswordHash = PasswordHasher.Hash("secretary02!"),
+                    Role = "Secretary", IsActive = true,
+                    CreatedAt = now, UpdatedAt = now
+                }
+            });
                     System.Diagnostics.Debug.WriteLine("[DB] Default users seeded.");
                 }
             }
@@ -508,9 +611,22 @@ public class DatabaseService
                                .ToListAsync();
     }
 
+    // Callers (e.g. AddUserViewModel) set the plaintext User.Password field
+    // from the form. This hashes it into PasswordHash and wipes the
+    // plaintext before anything ever reaches the database.
     public async Task AddUser(User user)
     {
         await Init();
+
+        if (string.IsNullOrWhiteSpace(user.Password))
+            throw new InvalidOperationException("A password is required to create a user.");
+
+        var now = DateTime.UtcNow;
+        user.PasswordHash = PasswordHasher.Hash(user.Password);
+        user.Password = null;
+        user.CreatedAt = now;
+        user.UpdatedAt = now;
+
         await _database!.InsertAsync(user);
     }
 
@@ -518,14 +634,159 @@ public class DatabaseService
     {
         await Init();
         user.IsDeleted = true;
+        user.UpdatedAt = DateTime.UtcNow;
         return await _database!.UpdateAsync(user);
     }
 
+    // If the caller populated the plaintext Password field (admin is
+    // resetting/changing this user's password), re-hash it. Otherwise the
+    // existing PasswordHash is left untouched. Also preserves every field
+    // the edit form doesn't expose (SupabaseId, lockout state, CreatedAt,
+    // LastLoginAt) — sqlite-net's UpdateAsync writes every mapped column,
+    // so building a fresh User() and updating it directly would silently
+    // wipe those back to their defaults.
     public async Task UpdateUser(User user)
     {
         await Init();
+
+        var existing = await _database!.Table<User>()
+            .Where(u => u.UserID == user.UserID)
+            .FirstOrDefaultAsync();
+
+        user.PasswordHash = !string.IsNullOrWhiteSpace(user.Password)
+            ? PasswordHasher.Hash(user.Password)
+            : existing?.PasswordHash;
+
+        user.SupabaseId = existing?.SupabaseId ?? "";
+        user.FailedLoginAttempts = existing?.FailedLoginAttempts ?? 0;
+        user.LockedUntil = existing?.LockedUntil;
+        user.LastLoginAt = existing?.LastLoginAt;
+        user.CreatedAt = existing?.CreatedAt ?? DateTime.UtcNow;
+
+        user.Password = null;
+        user.UpdatedAt = DateTime.UtcNow;
         await _database!.UpdateAsync(user);
     }
+
+    public async Task<User?> GetUserBySupabaseId(string supabaseId)
+    {
+        await Init();
+        return await _database!.Table<User>()
+            .Where(u => u.SupabaseId == supabaseId)
+            .FirstOrDefaultAsync();
+    }
+
+    // Matches by Username, since — unlike patients — it's guaranteed
+    // unique and stable, rather than a fuzzy name+phone heuristic.
+    public async Task BackfillUserSupabaseIds(List<SupabaseUser> supabaseUsers)
+    {
+        await Init();
+        foreach (var su in supabaseUsers)
+        {
+            if (string.IsNullOrEmpty(su.Id) || string.IsNullOrEmpty(su.Username)) continue;
+
+            var local = await _database!.Table<User>()
+                .Where(u => u.Username == su.Username && u.SupabaseId == "")
+                .FirstOrDefaultAsync();
+
+            if (local != null)
+            {
+                local.SupabaseId = su.Id;
+                await _database!.UpdateAsync(local);
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Backfill] Linked UserID={local.UserID} → SupabaseId={su.Id}");
+            }
+        }
+    }
+
+    // Called right after a successful SupabaseDataService.AddUserAsync so
+    // the local row remembers the remote row's id for future updates/deletes.
+    public async Task SetUserSupabaseId(int userId, string supabaseId)
+    {
+        await Init();
+        var user = await _database!.Table<User>().Where(u => u.UserID == userId).FirstOrDefaultAsync();
+        if (user is null) return;
+        user.SupabaseId = supabaseId;
+        await _database!.UpdateAsync(user);
+    }
+
+    // ── NEW: realtime insert/update handler — called from
+    // SupabaseRealtimeService.SubscribeToUsersAsync() and
+    // SyncMissedUsersAsync() whenever a staff account was added/edited on
+    // ANOTHER device. Mirrors SyncPatientFromSupabase/
+    // SyncTreatmentHistoryFromSupabase's shape: match by SupabaseId first
+    // (falling back to Username for a row that hasn't been backfilled
+    // yet), then insert-or-update locally.
+    //
+    // Deliberately only copies profile/account fields — NOT
+    // FailedLoginAttempts, LockedUntil, LastLoginAt, or the
+    // RememberMe token fields. Those are per-device security state; a
+    // profile edit made on another device should never reset this
+    // device's lockout counter or silently invalidate its remembered
+    // login. (Login attempts/lockouts and "remember me" are intentionally
+    // local-only and never pushed to Supabase in the first place — see
+    // AddUserViewModel.SyncUserToSupabaseAsync — so there's nothing
+    // meaningful to pull for those fields anyway.)
+    public async Task SyncUserFromSupabaseAsync(SupabaseUser su)
+    {
+        await Init();
+        if (string.IsNullOrEmpty(su.Id)) return;
+
+        var local = await _database!.Table<User>()
+            .Where(u => u.SupabaseId == su.Id)
+            .FirstOrDefaultAsync();
+
+        // Not linked by SupabaseId yet — try Username so we don't create
+        // a duplicate row for an account this device already knows about
+        // (e.g. it was seeded/created locally before ever syncing).
+        if (local is null && !string.IsNullOrEmpty(su.Username))
+        {
+            local = await _database!.Table<User>()
+                .Where(u => u.Username == su.Username)
+                .FirstOrDefaultAsync();
+        }
+
+        if (local is null)
+        {
+            // Brand new account this device has never seen — insert it.
+            var newUser = new User
+            {
+                SupabaseId = su.Id,
+                FullName = su.FullName,
+                Username = su.Username,
+                PasswordHash = su.PasswordHash, // already hashed remotely — copy as-is, never re-hash
+                Role = su.Role,
+                ContactNo = su.ContactNo,
+                Email = su.Email,
+                IsActive = su.IsActive,
+                IsDeleted = su.IsDeleted,
+                CreatedAt = su.CreatedAt,
+                UpdatedAt = su.UpdatedAt,
+            };
+            await _database!.InsertAsync(newUser);
+            System.Diagnostics.Debug.WriteLine($"[UserRealtime] Inserted new user '{su.Username}' from remote.");
+            return;
+        }
+
+        // Existing local row — update the synced fields only, leave this
+        // device's security/session state alone (see method comment above).
+        local.SupabaseId = su.Id;
+        local.FullName = su.FullName;
+        local.Username = su.Username;
+        if (!string.IsNullOrWhiteSpace(su.PasswordHash))
+            local.PasswordHash = su.PasswordHash; // never let a blank/missing remote hash wipe out a working local one
+        if (!string.IsNullOrWhiteSpace(su.Role))
+            local.Role = su.Role; // same reasoning — a blank remote role must never override a working local one
+        local.ContactNo = su.ContactNo;
+        local.Email = su.Email;
+        local.IsActive = su.IsActive;
+        local.IsDeleted = su.IsDeleted;
+        local.UpdatedAt = su.UpdatedAt;
+
+        await _database!.UpdateAsync(local);
+        System.Diagnostics.Debug.WriteLine($"[UserRealtime] Updated user '{su.Username}' from remote.");
+    }
+
 
     // =========================
     // TOOTH RECORD CRUD
@@ -538,7 +799,6 @@ public class DatabaseService
                                .Where(r => r.PatientId == patientId)
                                .ToListAsync();
     }
-
     public async Task SaveToothRecord(ToothRecord record)
     {
         await Init();
@@ -547,12 +807,98 @@ public class DatabaseService
             .FirstOrDefaultAsync();
 
         record.LastUpdated = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
         if (existing is null)
             await _database!.InsertAsync(record);
         else
         {
             record.Id = existing.Id;
+            record.SupabaseId = existing.SupabaseId;
             await _database!.UpdateAsync(record);
+        }
+
+        // Push to Supabase so other devices get it via realtime
+        try
+        {
+            var patient = await GetPatientById(record.PatientId);
+            if (patient != null && !string.IsNullOrWhiteSpace(patient.SupabaseId))
+            {
+                var remote = new SupabaseToothRecord
+                {
+                    Id = string.IsNullOrWhiteSpace(record.SupabaseId)
+              ? Guid.NewGuid().ToString()
+              : record.SupabaseId,
+                    PatientId = patient.SupabaseId,
+                    ToothNumber = record.ToothNumber,
+                    Condition = record.Condition,
+                    Color = record.Color,
+                    Notes = record.Notes,
+                    LastUpdated = record.LastUpdated
+                };
+
+                var upserted = await _supabase.UpsertToothRecordAsync(remote);
+                if (upserted != null && record.SupabaseId != upserted.Id)
+                {
+                    record.SupabaseId = upserted.Id;
+                    await _database!.UpdateAsync(record);
+                }
+
+                if (upserted != null && record.SupabaseId != upserted.Id)
+                {
+                    record.SupabaseId = upserted.Id;
+                    await _database!.UpdateAsync(record);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ToothRecord] Supabase push error: {ex.Message}");
+        }
+    }
+
+    public async Task SyncToothRecordFromSupabase(SupabaseToothRecord sr)
+    {
+        await Init();
+        try
+        {
+            var patient = await GetPatientBySupabaseId(sr.PatientId);
+            if (patient == null)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[SyncToothRecord] No local patient for SupabaseId={sr.PatientId}");
+                return;
+            }
+
+            var existing = await _database!.Table<ToothRecord>()
+                .Where(r => r.PatientId == patient.PatientID && r.ToothNumber == sr.ToothNumber)
+                .FirstOrDefaultAsync();
+
+            if (existing == null)
+            {
+                await _database!.InsertAsync(new ToothRecord
+                {
+                    PatientId = patient.PatientID,
+                    ToothNumber = sr.ToothNumber,
+                    Condition = sr.Condition,
+                    Color = sr.Color,
+                    Notes = sr.Notes,
+                    LastUpdated = sr.LastUpdated,
+                    SupabaseId = sr.Id
+                });
+            }
+            else
+            {
+                existing.Condition = sr.Condition;
+                existing.Color = sr.Color;
+                existing.Notes = sr.Notes;
+                existing.LastUpdated = sr.LastUpdated;
+                existing.SupabaseId = sr.Id;
+                await _database!.UpdateAsync(existing);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SyncToothRecord] error: {ex.Message}");
         }
     }
 
@@ -582,11 +928,46 @@ public class DatabaseService
     }
 
     /// <summary>Appends a new history entry (never updates, always inserts).</summary>
+    /// <summary>Appends a new history entry (never updates, always inserts).</summary>
     public async Task AddTreatmentHistory(TreatmentHistory entry)
     {
         await Init();
         entry.Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         await _database!.InsertAsync(entry);
+
+        // Push to Supabase so other devices get it via realtime
+        try
+        {
+            var patient = await GetPatientById(entry.PatientId);
+            if (patient != null && !string.IsNullOrWhiteSpace(patient.SupabaseId))
+            {
+                var remote = new SupabaseTreatmentHistory
+                {
+                    PatientId = patient.SupabaseId,
+                    ToothNumber = entry.ToothNumber,
+                    ToothName = entry.ToothName,
+                    Condition = entry.Condition,
+                    PreviousCondition = entry.PreviousCondition,
+                    Color = entry.Color,
+                    Notes = entry.Notes,
+                    ActionType = entry.ActionType,
+                    Description = entry.Description,
+                    Timestamp = entry.Timestamp
+                };
+
+                var inserted = await _supabase.AddTreatmentHistoryAsync(remote);
+                if (inserted != null)
+                {
+                    entry.SupabaseId = inserted.Id;
+                    await _database!.UpdateAsync(entry);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[TreatmentHistory] Supabase push error: {ex.Message}");
+        }
     }
 
     /// <summary>Deletes all history for a patient (e.g. when patient is deleted).</summary>
@@ -598,6 +979,53 @@ public class DatabaseService
                                       .ToListAsync();
         foreach (var e in entries)
             await _database!.DeleteAsync(e);
+    }
+
+    public async Task SyncTreatmentHistoryFromSupabase(SupabaseTreatmentHistory sh)
+    {
+        await Init();
+        try
+        {
+            // Already have this record locally? Skip.
+            var existing = await _database!.Table<TreatmentHistory>()
+                .Where(h => h.SupabaseId == sh.Id)
+                .FirstOrDefaultAsync();
+            if (existing != null) return;
+
+            var patient = await GetPatientBySupabaseId(sh.PatientId);
+            if (patient == null)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[SyncTreatmentHistory] No local patient for SupabaseId={sh.PatientId}");
+                return;
+            }
+
+            var entry = new TreatmentHistory
+            {
+                PatientId = patient.PatientID,
+                ToothNumber = sh.ToothNumber,
+                ToothName = sh.ToothName,
+                Condition = sh.Condition,
+                PreviousCondition = sh.PreviousCondition,
+                Color = sh.Color,
+                Notes = sh.Notes,
+                ActionType = sh.ActionType,
+                Description = sh.Description,
+                Timestamp = string.IsNullOrWhiteSpace(sh.Timestamp)
+                    ? DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    : sh.Timestamp,
+                SupabaseId = sh.Id
+            };
+
+            await _database!.InsertAsync(entry);
+            System.Diagnostics.Debug.WriteLine(
+                $"[SyncTreatmentHistory] Inserted for PatientID={patient.PatientID}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[SyncTreatmentHistory] Error: {ex.Message}");
+        }
     }
 
     // =========================
@@ -836,10 +1264,6 @@ public class DatabaseService
                 existing.FaxNo = sp.FaxNo ?? "";
                 existing.Email = sp.Email ?? "";
                 existing.ReferredBy = sp.ReferredBy ?? "";
-                existing.ReasonForConsultation = sp.ReasonForConsultation ?? "";
-                existing.DentalInsurance = sp.DentalInsurance ?? "";
-                existing.InsuranceEffectiveDate = sp.InsuranceEffectiveDate.HasValue
-                                                    ? sp.InsuranceEffectiveDate.Value.ToString("yyyy-MM-dd") : "";
                 existing.SupabaseId = sp.Id;
                 await _database!.UpdateAsync(existing);
 
@@ -869,10 +1293,6 @@ public class DatabaseService
                     FaxNo = sp.FaxNo ?? "",
                     Email = sp.Email ?? "",
                     ReferredBy = sp.ReferredBy ?? "",
-                    ReasonForConsultation = sp.ReasonForConsultation ?? "",
-                    DentalInsurance = sp.DentalInsurance ?? "",
-                    InsuranceEffectiveDate = sp.InsuranceEffectiveDate.HasValue
-                                                ? sp.InsuranceEffectiveDate.Value.ToString("yyyy-MM-dd") : "",
                     DateRegistered = sp.DateRegistered != default
                                                 ? sp.DateRegistered.ToString("yyyy-MM-dd")
                                                 : DateTime.Now.ToString("yyyy-MM-dd"),
@@ -895,44 +1315,71 @@ public class DatabaseService
     {
         try
         {
-            if (!string.IsNullOrEmpty(sp.GuardianName))
-                await SaveGuardian(new Guardian
-                {
-                    PatientID = patientId,
-                    GuardianName = sp.GuardianName,
-                    RelationshipToPatient = sp.GuardianRelationship ?? "",
-                    Occupation = sp.GuardianOccupation ?? "",
-                    MobileNo = sp.GuardianMobile ?? ""
-                });
-
-            await SaveMedicalHistory(new MedicalHistory
+            // Guardian is now a shared entity in Supabase — resolve the
+            // referenced row and copy its details into the local per-patient
+            // Guardian record (local SQLite stays denormalized as before;
+            // only the Supabase side needed deduplicating).
+            if (sp.GuardianId.HasValue)
             {
-                PatientID = patientId,
-                BloodType = sp.BloodType ?? "",
-                BloodPressure = sp.BloodPressure ?? "",
-                BleedingTime = sp.BleedingTime ?? "",
-                PhysicianName = sp.PhysicianName ?? "",
-                IsGoodHealth = sp.GoodHealth,
-                IsPregnant = sp.Pregnant,
-                UnderMedicalTreatment = sp.UnderTreatment,
-                MedicationDetails = sp.MedicationDetails ?? "",
-                HasBeenHospitalized = sp.Hospitalized,
-                HospitalizationDetails = sp.HospitalizationDetails ?? "",
-                UsesTobacco = sp.UsesTobacco,
-                UsesAlcohol = sp.UsesAlcohol,
-                TakingMedications = sp.TakingMedications,
-            });
+                var guardian = await _supabase.GetGuardianByIdAsync(sp.GuardianId.Value);
+                if (guardian != null)
+                    await SaveGuardian(new Guardian
+                    {
+                        PatientID = patientId,
+                        GuardianName = guardian.Name,
+                        RelationshipToPatient = sp.GuardianRelationship ?? "",
+                        Occupation = guardian.Occupation ?? "",
+                        MobileNo = guardian.Mobile ?? ""
+                    });
+            }
+
+            // Preserve local-only fields (BloodPressure, BleedingTime, PhysicianName, IsPregnant,
+            // MedicationDetails, HospitalizationDetails, UsesAlcohol, OtherCondition) — Supabase
+            // no longer carries these, so SaveMedicalHistory's full-row overwrite must start from
+            // whatever's already on file rather than blank defaults.
+            var existingHistory = await GetMedicalHistory(patientId) ?? new MedicalHistory { PatientID = patientId };
+            existingHistory.BloodType = sp.BloodType ?? "";
+            existingHistory.IsGoodHealth = sp.GoodHealth ?? false;
+            existingHistory.UnderMedicalTreatment = sp.UnderTreatment ?? false;
+            existingHistory.HasBeenHospitalized = sp.Hospitalized ?? false;
+            existingHistory.UsesTobacco = sp.UsesTobacco ?? false;
+            existingHistory.TakingMedications = sp.OnMedications ?? false;
+            await SaveMedicalHistory(existingHistory);
 
             await SaveAllergy(new Allergy
             {
                 PatientID = patientId,
-                HasLatexAllergy = sp.LatexAllergy,
-                HasAspirinAllergy = sp.AspirinAllergy,
-                HasPenicillinAllergy = sp.PenicillinAllergy,
-                HasSulfaAllergy = sp.SulfaAllergy,
-                HasLocalAnestheticAllergy = sp.LocalAnestheticAllergy,
+                HasLatexAllergy = sp.LatexAllergy ?? false,
+                HasAspirinAllergy = sp.AspirinAllergy ?? false,
+                HasPenicillinAllergy = sp.PenicillinAllergy ?? false,
+                HasSulfaAllergy = sp.SulfaAllergy ?? false,
+                HasLocalAnestheticAllergy = sp.LocalAnestheticAllergy ?? false,
                 OtherAllergy = sp.OtherAllergy ?? ""
             });
+
+            // Medical conditions now live in Supabase's normalized patient_conditions
+            // join table instead of a comma-separated string on the patient row, so
+            // pull the selected condition names and reconcile against the local
+            // MedicalCondition/PatientCondition tables by name.
+            if (!string.IsNullOrEmpty(sp.Id))
+            {
+                var remoteLinks = await _supabase.GetPatientConditionsAsync(sp.Id);
+                var remoteDefs = await _supabase.GetMedicalConditionsAsync();
+                var remoteIds = remoteLinks.Select(l => l.ConditionId).ToHashSet();
+                var selectedNames = remoteDefs
+                    .Where(c => remoteIds.Contains(c.Id))
+                    .Select(c => c.Name)
+                    .ToHashSet();
+
+                await EnsureDefaultConditions();
+                var localDefs = await GetAllConditions();
+                var localIds = localDefs
+                    .Where(c => selectedNames.Contains(c.ConditionName))
+                    .Select(c => c.ConditionID)
+                    .ToList();
+
+                await SavePatientConditions(patientId, localIds);
+            }
         }
         catch (Exception ex)
         {

@@ -7,29 +7,45 @@
 	<!-- Note: For Android please see also Platforms\Android\Resources\values\colors.xml -->
 
 	<!-- ═══════════════════════════════════════════════════════════
-         BRAND COLORS — MLC Clinic (Green + Gold)
-         Primary   = Forest green  #2E7D32
-         Secondary = Pale green tint  #EEF5EE  (replaces pink wash)
-         Tertiary  = Deep green  #1B5E20
-    ═══════════════════════════════════════════════════════════ -->
+	     BRAND COLORS — MLC Clinic (Green + Gold)
+	     Primary   = Forest green  #2E7D32
+	     Secondary = Pale green tint  #EEF5EE  (replaces pink wash)
+	     Tertiary  = Deep green  #1B5E20
+	═══════════════════════════════════════════════════════════ -->
 
 	<!-- Brand colors -->
 	<Color x:Key="Primary">#2E7D32</Color>
+	<Color x:Key="PrimaryGreen">#2E7D32</Color>
+
 	<Color x:Key="PrimaryDark">#1B5E20</Color>
 	<Color x:Key="PrimaryDarkText">#242424</Color>
 	<Color x:Key="Secondary">#EEF5EE</Color>
 	<Color x:Key="SecondaryDarkText">#2E7D32</Color>
 	<Color x:Key="Tertiary">#1B5E20</Color>
 
-	<!-- Alias used by FormStyles.xaml -->
-	<Color x:Key="PrimaryGreen">#2E7D32</Color>
-
-	<!-- Accent gold (from logo) — use sparingly for highlights -->
 	<Color x:Key="Gold">#C8A84B</Color>
 	<Color x:Key="GoldLight">#FBF4E0</Color>
 
-	<!-- Neutral card background for Appointment list cards (test — was per-status StatusBgColor) -->
 	<Color x:Key="AppointmentCardBg">#F5F0D0</Color>
+
+	<Color x:Key="TextPrimary">#1A1A2E</Color>
+	<Color x:Key="TextSecondary">#6B7280</Color>
+	<Color x:Key="TextMuted">#B0B7C3</Color>
+	<Color x:Key="TextOnPrimary">#FFFFFF</Color>
+
+	<Color x:Key="PageBg">#FFFFFF</Color>
+
+	<Color x:Key="StatusGood">#388E3C</Color>
+	<Color x:Key="StatusLow">#F57C00</Color>
+	<Color x:Key="StatusOut">#D32F2F</Color>
+
+	<!-- Bill payment-status colors — the single source of truth for Paid/Partial/Unpaid,
+	     shared by SupabaseBill, BillCardItem, and TransactionViewModel so they can't drift apart. -->
+	<Color x:Key="StatusPaidBg">#E8F5E9</Color>
+	<Color x:Key="StatusPartial">#E65100</Color>
+	<Color x:Key="StatusPartialBg">#FFF3E0</Color>
+	<Color x:Key="StatusUnpaid">#C62828</Color>
+	<Color x:Key="StatusUnpaidBg">#FCEAEA</Color>
 
 	<!-- Base -->
 	<Color x:Key="White">White</Color>

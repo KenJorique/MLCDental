@@ -7,20 +7,141 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
     <style>
+        /* Green clinic theme — reuses the exact palette from the mobile
+                   app's Colors.xaml (Primary/PrimaryDark/Secondary) rather than
+                   picking new shades, so the site and app match. */
         :root {
-            --clinic-blue: #1a6fc4;
-            --clinic-light: #e8f4fd;
+            --clinic-green: #2E7D32;
+            --clinic-green-dark: #1B5E20;
+            --clinic-light: #EEF5EE;
+            /* Bootstrap 5.3 exposes its theme colors as CSS variables that
+                       btn-primary / text-primary / border-primary / bg-primary /
+                       link colors etc. all read from directly — overriding these
+                       once here recolors every Bootstrap "primary" utility on
+                       every page, instead of hunting down each blue class use. */
+            --bs-primary: var(--clinic-green);
+            --bs-primary-rgb: 46, 125, 50;
+            --bs-primary-text-emphasis: var(--clinic-green-dark);
+            --bs-primary-bg-subtle: var(--clinic-light);
+            --bs-primary-border-subtle: var(--clinic-green);
+            --bs-link-color: var(--clinic-green);
+            --bs-link-color-rgb: 46, 125, 50;
+            --bs-link-hover-color: var(--clinic-green-dark);
+            --bs-link-hover-color-rgb: 27, 94, 32;
         }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; }
-        .navbar { background: var(--clinic-blue) !important; }
-        .navbar-brand, .nav-link { color: white !important; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .navbar {
+            background: var(--clinic-green) !important;
+        }
+
+        .navbar-brand, .nav-link {
+            color: white !important;
+        }
+
         .btn-clinic {
-            background: var(--clinic-blue);
+            background: var(--clinic-green);
             color: white;
             border: none;
         }
-        .btn-clinic:hover { background: #155a9e; color: white; }
-        footer { background: #2c2c2c; color: #aaa; }
+
+            .btn-clinic:hover {
+                background: var(--clinic-green-dark);
+                color: white;
+            }
+
+        footer {
+            background: #2c2c2c;
+            color: #aaa;
+        }
+
+        /* Bootstrap's own compiled CSS hardcodes blue for focus rings
+                   (form-control:focus / form-select:focus) rather than deriving
+                   it from --bs-primary, so that needs its own override to catch
+                   the date picker / name / phone / email / notes fields. */
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--clinic-green);
+            box-shadow: 0 0 0 .25rem rgba(46, 125, 50, .25);
+        }
+
+        /* Green replacement for Bootstrap's alert-info (default light
+                   blue) — Bootstrap's alert-* variants aren't tied to --bs-primary,
+                   so this needs its own class rather than a variable override. */
+        .alert-clinic-info {
+            background: var(--clinic-light);
+            border: 1px solid var(--clinic-green);
+            color: var(--clinic-green-dark);
+        }
+
+        /* ── The --bs-primary override above turned out NOT to be enough:
+                   Bootstrap's CDN build bakes #0d6efd directly into .btn-primary /
+                   .btn-outline-primary / .text-primary / .border-primary / .bg-primary
+                   at compile time rather than reading the CSS variable live, so
+                   those classes stayed blue. These explicit overrides fix that —
+                   they load after Bootstrap's stylesheet, so same-specificity
+                   rules here win in the cascade without needing !important. ── */
+        .btn-primary {
+            background-color: var(--clinic-green);
+            border-color: var(--clinic-green);
+        }
+
+            .btn-primary:hover,
+            .btn-primary:focus,
+            .btn-primary:active {
+                background-color: var(--clinic-green-dark) !important;
+                border-color: var(--clinic-green-dark) !important;
+            }
+
+        .btn-outline-primary {
+            color: var(--clinic-green);
+            border-color: var(--clinic-green);
+        }
+
+            .btn-outline-primary:hover,
+            .btn-outline-primary:focus,
+            .btn-outline-primary:active {
+                background-color: var(--clinic-green) !important;
+                border-color: var(--clinic-green) !important;
+                color: white !important;
+            }
+
+        .text-primary {
+            color: var(--clinic-green) !important;
+        }
+
+        .border-primary {
+            border-color: var(--clinic-green) !important;
+        }
+
+        .bg-primary {
+            background-color: var(--clinic-green) !important;
+        }
+
+        /* ── Gold accent — Colors.xaml's Gold (#C8A84B) / GoldLight
+                   (#FBF4E0), the app's secondary accent alongside green. Used
+                   sparingly, per Colors.xaml's own comment ("use sparingly for
+                   highlights"). ── */
+        :root {
+            --clinic-gold: #C8A84B;
+            --clinic-gold-light: #FBF4E0;
+        }
+
+        .text-gold {
+            color: var(--clinic-gold) !important;
+        }
+
+        .bg-gold-light {
+            background-color: var(--clinic-gold-light) !important;
+        }
+
+        .border-gold {
+            border-color: var(--clinic-gold) !important;
+        }
     </style>
 </head>
 <body>

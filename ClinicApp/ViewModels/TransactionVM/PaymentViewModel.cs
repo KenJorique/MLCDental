@@ -1,33 +1,27 @@
-﻿using ClinicApp.Helpers;
-using ClinicApp.Models;
+﻿using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Models.TransactionModels;
+using ClinicApp.Helpers;
 using ClinicApp.Services;
 using ClinicApp.Views.TransactionRelated;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace ClinicApp.ViewModels.TransactionVM;
 
-// First-payment flow ONLY — reached exclusively from
-// BillSummaryViewModel.Proceed(). Nothing about this bill exists in
-// Supabase yet when this page opens: no bills row, no bill_items, no
-// dental chart/tooth records, no treatment history, and no supply
-// deduction. All of that gets written in ONE place — RecordPayment below,
-// via BillingService.CreateBillAsync plus the supply-deduction loop right
-// after it — and only once the entered amount actually clears validation
-// and Record Payment is tapped. Simply opening this page and going back to
-// Bill Summary (or backing out of the app entirely) writes nothing at all;
-// there's no draft-vs-database reconciliation to worry about, because
-// there's nothing in the database to reconcile against until payment
-// genuinely happens.
 public partial class PaymentViewModel : ObservableObject
 {
     private readonly SupabaseDataService _supabase;
     private readonly BillingService _billing;
+    private readonly DatabaseService _db;
 
-    public PaymentViewModel(SupabaseDataService supabase, BillingService billing)
+    // Injects the shared data service, billing service, and local database service.
+    public PaymentViewModel(SupabaseDataService supabase, BillingService billing, DatabaseService db)
     {
         _supabase = supabase;
         _billing = billing;
+        _db = db;
     }
 
     [ObservableProperty]
@@ -45,15 +39,9 @@ public partial class PaymentViewModel : ObservableObject
     [ObservableProperty]
     private string errorMessage = string.Empty;
 
-    // Set the first time CreateBillAsync succeeds within this page's
-    // lifetime. Guards against a narrower version of the old duplicate-bill
-    // bug: if the bill gets created successfully but RecordPaymentAsync
-    // then fails (e.g. a network hiccup) and staff tap Record Payment
-    // again, this makes the retry reuse the bill that already exists
-    // instead of creating a second one (and skips deducting supplies a
-    // second time too — see below).
     private string? _pendingBillId;
 
+    // Resets the form and pulls the current bill draft's display values.
     public void LoadDraft()
     {
         var draft = BillDraftStore.Current;
@@ -80,11 +68,7 @@ public partial class PaymentViewModel : ObservableObject
 
     public string InstallmentDisplay => Draft?.InstallmentSummary ?? string.Empty;
 
-    // No real due date exists yet — nothing's been created. This is a
-    // preview only, using the same "+1 month from today" rule
-    // BillingService.CreateBillAsync itself uses when it sets the real
-    // DueDate at creation time, so what's shown here matches what the
-    // bill will actually get once Record Payment is tapped.
+    // Only relevant while any service is on an installment plan.
     public string DueDateDisplay =>
         IsInstallment
             ? DateTime.Now.AddMonths(1).ToString("MMM dd, yyyy")
@@ -94,25 +78,16 @@ public partial class PaymentViewModel : ObservableObject
     public string DiscountDisplay => $"₱{Draft?.DiscountAmount ?? 0:N2}";
     public string TotalDisplay => $"₱{Draft?.Total ?? 0:N2}";
 
-    // "Due Today" — draft.AmountDueToday is already the exact figure
-    // BillingService.CreateBillAsync will use as the new bill's
-    // MinimumDueToday, computed client-side in BillSummaryViewModel with
-    // no DB round-trip needed (unlike AdditionalPaymentViewModel's
-    // existing-bill case, where it has to be fetched live from bill_items
-    // that already exist in Supabase).
+    // Amount due today, computed client-side from the draft (no DB round-trip needed).
     public decimal MinimumDueToday => Draft?.AmountDueToday ?? 0;
 
     public string MinimumDueTodayDisplay => $"₱{MinimumDueToday:N2}";
 
-    // Shown only in the "amount too large" warning text — before creation,
-    // Balance and Total are the same thing (nothing's been paid yet).
+    // Before creation, Balance equals Total — nothing's been paid yet.
     public string BalanceDisplay => TotalDisplay;
 
     public string PaymentAmountDisplay => $"₱{PaymentAmount:N2}";
 
-    // No "nothing due yet" case here (unlike AdditionalPaymentViewModel) —
-    // this is always, by definition, the very first payment on a bill
-    // that doesn't exist yet, so the minimum is always genuinely required.
     public bool IsBelowMinimum =>
         MinimumDueToday > 0 && PaymentAmount < MinimumDueToday;
 
@@ -124,6 +99,9 @@ public partial class PaymentViewModel : ObservableObject
             ? MinimumDueToday
             : Math.Min(PaymentAmount, Draft?.Total ?? 0);
 
+    // What actually gets recorded as payment today (may be less than PaymentAmount if there's change).
+    public string RequiredAmountDisplay => $"₱{RequiredAmount:N2}";
+
     public decimal Change =>
         !IsAmountTooLarge && PaymentAmount > RequiredAmount
             ? PaymentAmount - RequiredAmount
@@ -133,6 +111,7 @@ public partial class PaymentViewModel : ObservableObject
 
     public bool HasChange => Change > 0;
 
+    // Clamps negative input and refreshes the computed display properties.
     partial void OnPaymentAmountChanged(decimal value)
     {
         if (value < 0)
@@ -150,6 +129,7 @@ public partial class PaymentViewModel : ObservableObject
         if (HasError) HasError = false;
     }
 
+    // Creates the bill (first attempt only) and records the payment, logging both.
     [RelayCommand]
     private async Task RecordPayment()
     {
@@ -159,33 +139,44 @@ public partial class PaymentViewModel : ObservableObject
 
         if (PaymentAmount <= 0)
         {
-            await Shell.Current.DisplayAlert(
+            await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
                 "Enter an Amount",
                 "Enter how much the patient is paying.",
-                "OK");
+                "OK", PopupAction.Positive, showCancelButton: false));
             return;
         }
 
         if (IsBelowMinimum)
         {
-            await Shell.Current.DisplayAlert(
+            await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
                 "Payment Too Low",
                 $"Minimum payment today is {MinimumDueTodayDisplay}.",
-                "OK");
+                "OK", PopupAction.Positive, showCancelButton: false));
             return;
         }
 
         if (IsAmountTooLarge)
         {
-            bool proceed = await Shell.Current.DisplayAlert(
+            var popup = new ConfirmationPopup(
                 "Check Amount",
                 $"You entered {PaymentAmountDisplay}, but the total balance " +
                 $"is only {BalanceDisplay}. Continue anyway?",
-                "Yes, Continue", "Cancel");
+                "Yes, Continue", PopupAction.Positive);
+            var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
+            bool proceed = result is bool b && b;
 
             if (!proceed)
                 return;
         }
+
+        // Worded with the amount that actually gets applied (capped, before change), matching AdditionalPaymentViewModel's wording.
+        var confirmPopup = new ConfirmationPopup(
+            "Confirm Payment",
+            $"Record a payment of {RequiredAmountDisplay} for {PatientName}?",
+            "Confirm", PopupAction.Positive);
+        var confirmResult = await Shell.Current.CurrentPage.ShowPopupAsync(confirmPopup);
+        if (confirmResult is not bool confirmed || !confirmed)
+            return;
 
         IsBusy = true;
         HasError = false;
@@ -194,13 +185,7 @@ public partial class PaymentViewModel : ObservableObject
         {
             var billId = _pendingBillId;
 
-            // Only actually create the bill (and everything that comes
-            // with it — bill_items, tooth/chart records, treatment
-            // history, and supply deduction) the first time through. If
-            // this is a retry after RecordPaymentAsync failed below on a
-            // previous attempt, _pendingBillId is already set and this
-            // whole step is skipped — the bill already exists (and
-            // supplies were already deducted) from that first attempt.
+            // Only creates the bill on the first attempt — a retry after a failed RecordPaymentAsync reuses _pendingBillId.
             if (billId == null)
             {
                 var billResult = await _billing.CreateBillAsync(
@@ -216,13 +201,9 @@ public partial class PaymentViewModel : ObservableObject
                 billId = billResult.Bill.Id;
                 _pendingBillId = billId;
 
-                // Auto-deduct linked supplies for every service on this
-                // bill — moved here from BillSummaryViewModel.Proceed()
-                // now that bill creation itself happens here instead of on
-                // Bill Summary. Runs only on this first successful
-                // creation (guarded by the same billId == null check
-                // above), so a retry after a later RecordPaymentAsync
-                // failure won't deduct stock a second time.
+                await _supabase.LogActivityAsync("AppointmentCompleted", $"{draft.PatientName}'s appointment was completed");
+
+                // Deducts linked supplies for every service on this bill (only runs on first creation).
                 var lowStockItems = new List<string>();
                 foreach (var service in draft.Services)
                 {
@@ -233,10 +214,10 @@ public partial class PaymentViewModel : ObservableObject
 
                 if (lowStockItems.Count > 0)
                 {
-                    await Shell.Current.DisplayAlert(
+                    await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
                         "Low Stock Warning",
                         $"These items are now low/out of stock: {string.Join(", ", lowStockItems.Distinct())}",
-                        "OK");
+                        "OK", PopupAction.Positive, showCancelButton: false));
                 }
             }
 
@@ -252,16 +233,15 @@ public partial class PaymentViewModel : ObservableObject
                 return;
             }
 
+            await _supabase.LogActivityAsync("Payment", $"{draft.PatientName} paid ₱{amountToRecord:N2}");
+
             var amountReceived = PaymentAmount;
             var change = Change;
 
-            // Done with this draft — clear it so nothing stale lingers if
-            // this ViewModel instance somehow gets revisited. Captured
-            // above BEFORE clearing: Change is a computed property that
-            // reads Draft (via RequiredAmount -> MinimumDueToday -> Draft),
-            // so evaluating it after this line would silently collapse to
-            // the wrong figure once Draft is gone.
             BillDraftStore.Current = null;
+
+            // Only now, with payment confirmed, do the follow-ups the dentist reviewed in Bill Summary actually get written.
+            await PersistPendingFollowUpsAsync(draft);
 
             await Shell.Current.GoToAsync(
                 $"../{nameof(ReceiptPage)}" +
@@ -282,6 +262,40 @@ public partial class PaymentViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    // Writes each follow-up session the dentist reviewed in Bill Summary, and books the chosen slot if one was picked.
+    private async Task PersistPendingFollowUpsAsync(BillDraft draft)
+    {
+        try
+        {
+            foreach (var pending in draft.PendingFollowUps)
+            {
+                var savedRow = await _supabase.PersistSessionAsync(pending.Row);
+                if (savedRow == null)
+                    continue;
+
+                if (pending.SelectedSlotLocal.HasValue && pending.SelectedSlotUtc.HasValue)
+                {
+                    var scheduled = await _supabase.CreateFollowUpAppointmentAsync(
+                        _db, savedRow, draft.Phone, string.Empty,
+                        pending.SelectedSlotLocal.Value, pending.SelectedSlotUtc.Value);
+
+                    if (!scheduled)
+                    {
+                        await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
+                            "Follow-Up Scheduling",
+                            $"The chosen follow-up slot for {savedRow.ServiceName} is no longer available. It's been marked as awaiting schedule instead.",
+                            "OK", PopupAction.Positive, showCancelButton: false));
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Payment already succeeded — a follow-up hiccup shouldn't block the receipt.
+            System.Diagnostics.Debug.WriteLine($"[Payment] PersistPendingFollowUps: {ex.Message}");
         }
     }
 }

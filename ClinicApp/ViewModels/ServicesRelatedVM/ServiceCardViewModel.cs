@@ -1,4 +1,4 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.SupabaseModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ClinicApp.ViewModels.ServicesRelatedVM;
@@ -18,8 +18,16 @@ public partial class ServiceCardViewModel : ObservableObject
     }
 
     // Flat passthroughs so XAML bindings stay simple
-    public string ServiceName => Service.Name; 
+    public string ServiceName => Service.Name;
     public string PriceDisplay => Service.PriceDisplay;
 
     public string? Description => Service.Description;
+
+    // ── Multi-session badge ──
+    public bool RequiresMultipleSessions => Service.RequiresMultipleSessions;
+
+    public string SessionSummary =>
+        Service.DefaultTotalSessions.HasValue
+            ? $"{Service.DefaultTotalSessions} sessions"
+            : "Recurring sessions";
 }

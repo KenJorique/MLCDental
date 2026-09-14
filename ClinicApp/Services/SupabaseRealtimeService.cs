@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models;
+﻿using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.SupabaseModels;
 using Supabase.Realtime;
 using Supabase.Realtime.PostgresChanges;
 using static Supabase.Realtime.PostgresChanges.PostgresChangesOptions;
@@ -12,7 +13,9 @@ namespace ClinicApp.Services
         private bool _initialized = false;
 
         public event Action? OnNewBookingReceived;
-        public event Action? OnPatientChanged;  // ← new event
+        public event Action? OnPatientChanged;
+        public event Action? OnUserChanged;
+        public event Action? OnTreatmentSequenceChanged;
 
         public SupabaseRealtimeService(DatabaseService db)
         {
@@ -269,6 +272,247 @@ namespace ClinicApp.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Realtime] SubscribeServices error: {ex.Message}");
+            }
+        }
+
+        public event Action? OnTreatmentHistoryChanged;
+
+        public async Task SubscribeToTreatmentHistoryAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-treatment-history");
+                channel.Register(new PostgresChangesOptions("public", "treatment_history"));
+
+                // Never updates locally, only ever inserts — mirror that here
+                channel.AddPostgresChangeHandler(ListenType.Inserts, async (sender, change) =>
+                {
+                    try
+                    {
+                        var sh = change.Model<SupabaseTreatmentHistory>();
+                        if (sh == null) return;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Realtime] New treatment history from another device: PatientId={sh.PatientId}");
+                        await _db.SyncTreatmentHistoryFromSupabase(sh);
+                        MainThread.BeginInvokeOnMainThread(() => OnTreatmentHistoryChanged?.Invoke());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Realtime] TreatmentHistory insert error: {ex.Message}");
+                    }
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine("[Realtime] Subscribed to treatment_history.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Realtime] SubscribeTreatmentHistory error: {ex.Message}");
+            }
+        }
+
+        public async Task SyncMissedTreatmentHistoryAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var result = await _client.From<SupabaseTreatmentHistory>().Get();
+                int count = 0;
+                foreach (var sh in result.Models)
+                {
+                    await _db.SyncTreatmentHistoryFromSupabase(sh);
+                    count++;
+                }
+                System.Diagnostics.Debug.WriteLine($"[Sync] Missed treatment history synced: {count}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sync] SyncMissedTreatmentHistory error: {ex.Message}");
+            }
+        }
+
+        public event Action? OnToothRecordChanged;
+
+        public async Task SubscribeToToothRecordsAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-tooth-records");
+                channel.Register(new PostgresChangesOptions("public", "tooth_records"));
+
+                channel.AddPostgresChangeHandler(ListenType.Inserts, async (sender, change) =>
+                {
+                    try
+                    {
+                        var sr = change.Model<SupabaseToothRecord>();
+                        if (sr == null) return;
+                        await _db.SyncToothRecordFromSupabase(sr);
+                        MainThread.BeginInvokeOnMainThread(() => OnToothRecordChanged?.Invoke());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Realtime] ToothRecord insert error: {ex.Message}");
+                    }
+                });
+
+                channel.AddPostgresChangeHandler(ListenType.Updates, async (sender, change) =>
+                {
+                    try
+                    {
+                        var sr = change.Model<SupabaseToothRecord>();
+                        if (sr == null) return;
+                        await _db.SyncToothRecordFromSupabase(sr);
+                        MainThread.BeginInvokeOnMainThread(() => OnToothRecordChanged?.Invoke());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Realtime] ToothRecord update error: {ex.Message}");
+                    }
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine("[Realtime] Subscribed to tooth_records.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Realtime] SubscribeToothRecords error: {ex.Message}");
+            }
+        }
+
+        public async Task SyncMissedToothRecordsAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var result = await _client.From<SupabaseToothRecord>().Get();
+                int count = 0;
+                foreach (var sr in result.Models)
+                {
+                    await _db.SyncToothRecordFromSupabase(sr);
+                    count++;
+                }
+                System.Diagnostics.Debug.WriteLine($"[Sync] Missed tooth records synced: {count}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sync] SyncMissedToothRecords error: {ex.Message}");
+            }
+        }
+
+        // Realtime insert/update handler for staff accounts. Mirrors
+        // SubscribeToPatientsAsync/SubscribeToToothRecordsAsync exactly —
+        // same channel-per-table pattern, same Insert+Update handling.
+        public async Task SubscribeToUsersAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-users");
+                channel.Register(new PostgresChangesOptions("public", "users"));
+
+                // New staff account added on another device → sync to local SQLite
+                channel.AddPostgresChangeHandler(ListenType.Inserts, async (sender, change) =>
+                {
+                    try
+                    {
+                        var su = change.Model<SupabaseUser>();
+                        if (su == null) return;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Realtime] New user from another device: {su.Username}");
+                        await _db.SyncUserFromSupabaseAsync(su);
+                        MainThread.BeginInvokeOnMainThread(() => OnUserChanged?.Invoke());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Realtime] User insert error: {ex.Message}");
+                    }
+                });
+
+                // Staff account edited (or soft-deleted) on another device → update local SQLite
+                channel.AddPostgresChangeHandler(ListenType.Updates, async (sender, change) =>
+                {
+                    try
+                    {
+                        var su = change.Model<SupabaseUser>();
+                        if (su == null) return;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Realtime] User updated from another device: {su.Username}");
+                        await _db.SyncUserFromSupabaseAsync(su);
+                        MainThread.BeginInvokeOnMainThread(() => OnUserChanged?.Invoke());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Realtime] User update error: {ex.Message}");
+                    }
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine("[Realtime] Subscribed to users.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Realtime] SubscribeUsers error: {ex.Message}");
+            }
+        }
+
+        // Catch-up pull for whatever happened while this device was
+        // offline/closed — same role as SyncMissedPatientsAsync /
+        // SyncMissedToothRecordsAsync. Call this once at startup, same
+        // place those are called from.
+        public async Task SyncMissedUsersAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var result = await _client.From<SupabaseUser>().Get();
+                int count = 0;
+                foreach (var su in result.Models)
+                {
+                    await _db.SyncUserFromSupabaseAsync(su);
+                    count++;
+                }
+                System.Diagnostics.Debug.WriteLine($"[Sync] Missed users synced: {count}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sync] SyncMissedUsers error: {ex.Message}");
+            }
+        }
+
+        public async Task SubscribeToTreatmentSequencesAsync()
+        {
+            if (_client == null) return;
+            try
+            {
+                var channel = _client.Realtime.Channel("realtime-treatment-sequences");
+                channel.Register(new PostgresChangesOptions("public", "treatment_sequences"));
+
+                channel.AddPostgresChangeHandler(ListenType.Inserts, (sender, change) =>
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[Realtime] New treatment sequence from another device");
+                    MainThread.BeginInvokeOnMainThread(() =>
+                        OnTreatmentSequenceChanged?.Invoke());
+                });
+
+                channel.AddPostgresChangeHandler(ListenType.Updates, (sender, change) =>
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[Realtime] Treatment sequence updated from another device");
+                    MainThread.BeginInvokeOnMainThread(() =>
+                        OnTreatmentSequenceChanged?.Invoke());
+                });
+
+                await channel.Subscribe();
+                System.Diagnostics.Debug.WriteLine(
+                    "[Realtime] Subscribed to treatment_sequences.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Realtime] SubscribeTreatmentSequences error: {ex.Message}");
             }
         }
     }
