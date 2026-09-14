@@ -45,10 +45,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] string createdBillNumber = string.Empty;
         [ObservableProperty] string phone = string.Empty;
 
-        // Separate from IsBusy on purpose: IsBusy drives the full-screen "Saving..."
-        // overlay during CreateBill(), while this drives only the small spinner in the
-        // Available Services list during LoadServicesAsync(). They used to share IsBusy,
-        // which meant clicking Proceed lit up both indicators at once.
+        // Separate from IsBusy: this drives only the small spinner in Available Services during LoadServicesAsync(), not the full-screen "Saving..." overlay.
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanCreateBill))]
         bool isLoadingServices;
@@ -60,9 +57,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] string serviceSearch = string.Empty;
         [ObservableProperty] int scrollTrigger;
 
-        // Bottom summary panel — plain page content (see CreateBillPage.xaml), not a
-        // separate modal. Drives the tap-to-expand services list; Total/Proceed render
-        // unconditionally regardless of this state.
+        // Bottom summary panel is plain page content (see CreateBillPage.xaml); this only drives the tap-to-expand services list.
         [ObservableProperty] bool isServicesExpanded;
 
         public bool HasSelectedServices => SelectedServices.Count > 0;
@@ -70,18 +65,22 @@ namespace ClinicApp.ViewModels.TransactionVM
         public string ToggleLabelText => IsServicesExpanded ? "Hide" : "Show";
         public string ToggleIconGlyph => IsServicesExpanded ? "\ue5ce" : "\ue5cf"; // expand_less / expand_more
 
+        // Refreshes the toggle label/icon whenever the expanded state flips.
         partial void OnIsServicesExpandedChanged(bool value)
         {
             OnPropertyChanged(nameof(ToggleLabelText));
             OnPropertyChanged(nameof(ToggleIconGlyph));
         }
 
+        // Flips the services list between expanded and collapsed.
         [RelayCommand]
         void ToggleServicesExpanded() => IsServicesExpanded = !IsServicesExpanded;
 
+        // Proceed is only enabled once at least one service is selected and no operation is in flight.
         public bool CanCreateBill =>
             SelectedServices.Count > 0 && !IsBusy && !IsLoadingServices;
 
+        // Injects the shared data service and draft service.
         public CreateBillViewModel(
        SupabaseDataService supabase,
        BillDraftService draft)
@@ -94,8 +93,7 @@ namespace ClinicApp.ViewModels.TransactionVM
 
         CancellationTokenSource? _searchDebounce;
 
-        // Debounced: filtering doesn't run until 200ms after the last keystroke, so fast
-        // typing doesn't trigger a rebuild on every single character.
+        // Debounced: filtering waits 200ms after the last keystroke, so fast typing doesn't rebuild on every character.
         partial void OnServiceSearchChanged(string value)
         {
             _searchDebounce?.Cancel();
@@ -114,10 +112,7 @@ namespace ClinicApp.ViewModels.TransactionVM
             });
         }
 
-        // Builds and swaps in a whole new collection rather than Clear()-ing and
-        // Add()-ing one item at a time. BindableLayout isn't virtualized, so each
-        // individual Add() previously forced its own full re-render — swapping the
-        // whole ItemsSource reference is a single update instead of many.
+        // Swaps in a whole new collection instead of Clear()/Add()-ing, since BindableLayout isn't virtualized and would re-render on every Add().
         private void FilterServices(string query)
         {
             var results = string.IsNullOrWhiteSpace(query)
@@ -128,7 +123,7 @@ namespace ClinicApp.ViewModels.TransactionVM
             FilteredServices = new ObservableCollection<AvailableServiceItem>(results);
         }
 
-        // Update LoadServicesAsync to also populate FilteredServices:
+        // Loads available services once, then reuses the cache; also (re)builds FilteredServices.
         public async Task LoadServicesAsync()
         {
             if (AvailableServices.Count > 0)
@@ -163,6 +158,7 @@ namespace ClinicApp.ViewModels.TransactionVM
             finally { IsLoadingServices = false; }
         }
 
+        // Loads services once the patient ID arrives via navigation.
         partial void OnPatientIdChanged(string value)
         {
             if (!string.IsNullOrEmpty(value))
@@ -171,6 +167,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         }
 
 
+        // Adds a service to the bill at quantity 1 (no-op if it's already on the bill).
         [RelayCommand]
         void AddService(AvailableServiceItem serviceItem)
         {
@@ -201,12 +198,12 @@ namespace ClinicApp.ViewModels.TransactionVM
             OnPropertyChanged(nameof(ServicesCountLabel));
             RefreshAddButtonStates();
 
-            // Auto-expand on the very first service, so it's immediately visible instead
-            // of requiring an extra tap right after adding something for the first time.
+            // Auto-expand on the first service, so it's immediately visible without an extra tap.
             if (SelectedServices.Count == 1)
                 IsServicesExpanded = true;
         }
 
+        // Removes a service from the bill outright (no confirmation — used by the list above CreateBillPage's Proceed button).
         [RelayCommand]
         void RemoveService(ServiceLineItem item)
         {
@@ -223,12 +220,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 IsServicesExpanded = false;
         }
 
-        // Single entry point for the +/- toggle button on CreateBillPage. Always takes the
-        // AvailableServiceItem (never a plain string), so the Button's Command/CommandParameter
-        // never need to switch types via DataTrigger — only Text/BackgroundColor do. Switching
-        // Command *type* via DataTrigger was the cause of the ArgumentException: MAUI doesn't
-        // apply Command and CommandParameter as one atomic unit, so there's a moment where the
-        // old parameter is checked against the new command's expected type.
+        // Single entry point for the +/- toggle button: always takes AvailableServiceItem so Command/CommandParameter never need to switch types via DataTrigger.
         [RelayCommand]
         void ToggleService(AvailableServiceItem serviceItem)
         {
@@ -240,9 +232,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 AddService(serviceItem);
         }
 
-        // Used by the +/- toggle button on the Available Services list (CreateBillPage) —
-        // that button only has the AvailableServiceItem (with its service Id), not the
-        // actual SelectedServices ServiceLineItem, so it removes by matching ServiceId.
+        // Used by the Available Services toggle button, which only has an AvailableServiceItem (service Id), so it removes by matching ServiceId.
         [RelayCommand]
         void RemoveServiceById(string serviceId)
         {
@@ -252,6 +242,7 @@ namespace ClinicApp.ViewModels.TransactionVM
             RemoveService(item);
         }
 
+        // Marks each available service's Add button disabled if it's already on the bill.
         private void RefreshAddButtonStates()
         {
             var addedIds = SelectedServices.Select(s => s.ServiceId).ToHashSet();
@@ -262,6 +253,7 @@ namespace ClinicApp.ViewModels.TransactionVM
 
 
 
+        // Increases a selected service's quantity by one and refreshes its subtotal.
         [RelayCommand]
         void IncreaseQty(ServiceLineItem item)
         {
@@ -271,6 +263,7 @@ namespace ClinicApp.ViewModels.TransactionVM
             RecalculateTotal();
         }
 
+        // Decreases a selected service's quantity by one, never below 1.
         [RelayCommand]
         void DecreaseQty(ServiceLineItem item)
         {
@@ -280,11 +273,13 @@ namespace ClinicApp.ViewModels.TransactionVM
             RecalculateTotal();
         }
 
+        // Recomputes the bill's total from all selected services' subtotals.
         void RecalculateTotal()
         {
             TotalAmount = SelectedServices.Sum(s => s.Subtotal);
         }
 
+        // Validates tooth numbers, then creates the bill and its draft-linked records.
         [RelayCommand]
         async Task CreateBill()
         {
@@ -304,7 +299,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 var popup = new ConfirmationPopup(
                     "Missing Tooth Numbers",
                     $"No teeth entered for:\n{names}\n\nProceed without tooth numbers?",
-                    "Proceed", Color.FromArgb("#2E7D32"));
+                    "Proceed", PopupAction.Positive);
                 var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
                 bool proceed = result is bool b && b;
 
@@ -312,9 +307,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                     return;
             }
 
-            // Separate from the missing-entirely check above: these have *something*
-            // typed, but it's either not a real tooth number (e.g. "100", "-1") or
-            // doesn't match how many were expected for the quantity selected.
+            // Separate from the missing-entirely check above: these have something typed, but it's invalid (e.g. "100", "-1") or doesn't match the quantity.
             var invalidTeeth = SelectedServices
                 .Where(s => s.ShowTeethInput &&
                             !string.IsNullOrWhiteSpace(s.ToothNumbers) &&
@@ -329,7 +322,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 var popup = new ConfirmationPopup(
                     "Check Tooth Numbers",
                     $"Tooth numbers look incomplete or invalid for:\n{names}\n\nProceed anyway?",
-                    "Proceed", Color.FromArgb("#2E7D32"));
+                    "Proceed", PopupAction.Positive);
                 var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
                 bool proceed = result is bool b && b;
 
@@ -344,9 +337,7 @@ namespace ClinicApp.ViewModels.TransactionVM
             {
                 Draft.PatientId = PatientId;
 
-                // Backfill a blank PatientId here, once, so both follow-up sequence creation
-                // (BillSummaryViewModel.Proceed) and billing get a real ID instead of failing
-                // downstream on an empty-string UUID.
+                // Backfill a blank PatientId here so both follow-up creation and billing get a real ID instead of failing on an empty-string UUID.
                 if (string.IsNullOrWhiteSpace(Draft.PatientId))
                 {
                     var resolved = !string.IsNullOrWhiteSpace(Phone)
@@ -395,6 +386,7 @@ namespace ClinicApp.ViewModels.TransactionVM
             }
         }
 
+        // Navigates back without saving anything.
         [RelayCommand]
         async Task Cancel()
         {
@@ -415,10 +407,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         [ObservableProperty] bool showTeethInput;
         [ObservableProperty] bool isInstallmentEligible;
 
-        // ── Per-service installment plan ──
-        // Each installment-eligible service carries its own plan now,
-        // instead of one plan for the whole bill. Rule: 50% down today,
-        // remaining 50% split evenly over 1–4 months.
+        // Each installment-eligible service carries its own plan: 50% down today, remaining 50% split evenly over 1-4 months.
         [ObservableProperty] bool isInstallmentSelected;
         [ObservableProperty] int selectedInstallmentMonths = 1;
 
@@ -435,8 +424,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 ? Math.Round(RemainingAfterDownpayment / SelectedInstallmentMonths, 2)
                 : 0m;
 
-        // What this service actually adds to "due today" — full price if
-        // not on a plan, just the 50% downpayment if it is.
+        // What this service adds to "due today": full price, or just the 50% downpayment if it's on a plan.
         public decimal AmountDueToday =>
             IsInstallmentEligible && IsInstallmentSelected
                 ? DownpaymentAmount
@@ -447,9 +435,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         public string AmountDueTodayDisplay => $"₱{AmountDueToday:N2}";
         public string RemainingAfterDownpaymentDisplay => $"₱{RemainingAfterDownpayment:N2}";
 
-        // Preview amounts for each of the 4 grid buttons — these show what
-        // the monthly payment WOULD be for that option, independent of
-        // which one is currently selected (so all 4 can be shown at once).
+        // Preview amounts for each of the 4 grid buttons: what the monthly payment would be for that option, independent of which is selected.
         public string MonthlyFor(int months) =>
             months > 0 ? $"₱{Math.Round(RemainingAfterDownpayment / months, 2):N2}" : "₱0.00";
 
@@ -458,6 +444,7 @@ namespace ClinicApp.ViewModels.TransactionVM
         public string MonthlyFor3Display => MonthlyFor(3);
         public string MonthlyFor4Display => MonthlyFor(4);
 
+        // Picks which installment-length button (1-4 months) is currently selected.
         [RelayCommand]
         void SelectMonths(int months) => SelectedInstallmentMonths = months;
 
@@ -466,12 +453,15 @@ namespace ClinicApp.ViewModels.TransactionVM
                 ? $"{DownpaymentDisplay} down, then {MonthlyPaymentDisplay} x {SelectedInstallmentMonths} mo."
                 : string.Empty;
 
+        // Refreshes installment displays when the plan is turned on/off.
         partial void OnIsInstallmentSelectedChanged(bool value) =>
             RaiseInstallmentDisplaysChanged();
 
+        // Refreshes installment displays when the chosen month count changes.
         partial void OnSelectedInstallmentMonthsChanged(int value) =>
             RaiseInstallmentDisplaysChanged();
 
+        // Notifies all computed installment properties/displays at once.
         void RaiseInstallmentDisplaysChanged()
         {
             OnPropertyChanged(nameof(DownpaymentAmount));
@@ -500,8 +490,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 .OrderBy(n => n)
                 .ToList();
 
-        // Raw tokens as typed, before the 1-32 filter above — used to detect entries
-        // like "100" or "-1" that ParsedTeethNumbers silently drops rather than flags.
+        // Raw tokens as typed, before the 1-32 filter above — catches entries like "100" or "-1" that ParsedTeethNumbers silently drops.
         List<string> RawToothTokens =>
             ToothNumbers
                 .Split(new[] { ',', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries)
@@ -513,14 +502,11 @@ namespace ClinicApp.ViewModels.TransactionVM
             ShowTeethInput &&
             RawToothTokens.Any(t => !int.TryParse(t, out var n) || n < 1 || n > 32);
 
-        // True once the count of valid, distinct tooth numbers matches Quantity — the
-        // expected case is one tooth number per unit (e.g. Quantity 2 needs 2 numbers).
+        // True once the count of valid, distinct tooth numbers matches Quantity (one tooth number expected per unit).
         public bool ToothCountMatchesQuantity =>
             !ShowTeethInput || ParsedTeethNumbers.Count == Quantity;
 
-        // Single message surfaced under the tooth-number field. Invalid-number check
-        // takes priority over the count check, since fixing invalid entries usually
-        // fixes the count too.
+        // Single message surfaced under the tooth-number field; invalid-number check takes priority since fixing it usually fixes the count too.
         public string ToothValidationMessage
         {
             get
@@ -550,24 +536,28 @@ namespace ClinicApp.ViewModels.TransactionVM
         public string UnitPriceDisplay => $"₱{UnitPrice:N2}";
         public string SubtotalDisplay => $"₱{Subtotal:N2}";
 
+        // Recomputes this line's subtotal from unit price x quantity, and refreshes installment displays.
         public void RefreshSubtotal()
         {
             Subtotal = UnitPrice * Quantity;
             RaiseInstallmentDisplaysChanged();
         }
 
+        // Refreshes subtotal and tooth validation whenever quantity changes.
         partial void OnQuantityChanged(int value)
         {
             RefreshSubtotal();
             RaiseToothValidationChanged();
         }
 
+        // Refreshes the teeth display and validation whenever the typed tooth numbers change.
         partial void OnToothNumbersChanged(string value)
         {
             OnPropertyChanged(nameof(TeethDisplay));
             RaiseToothValidationChanged();
         }
 
+        // Notifies all tooth-validation-related computed properties at once.
         void RaiseToothValidationChanged()
         {
             OnPropertyChanged(nameof(HasInvalidToothNumbers));
@@ -586,6 +576,7 @@ namespace ClinicApp.ViewModels.TransactionVM
 
         [ObservableProperty] bool isAddDisabled;
 
+        // Wraps a Supabase service row and flags whether it needs tooth-number input.
         public AvailableServiceItem(SupabaseService service)
         {
             Service = service;

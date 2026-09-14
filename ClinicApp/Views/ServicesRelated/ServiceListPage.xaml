@@ -122,8 +122,8 @@
 								<HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
                                        Spacing="4"
                                        IsVisible="{Binding RequiresMultipleSessions}">
-									<Label Text="&#x21bb;" FontSize="12" TextColor="#D97706" FontAttributes="Bold"/>
-									<Label Text="{Binding SessionSummary}" FontSize="12" TextColor="#D97706"/>
+									<Label FontFamily="MaterialSymbolsRounded" Text="&#xe040;" FontSize="13" TextColor="{StaticResource Gold}" FontAttributes="Bold"/>
+									<Label Text="{Binding SessionSummary}" FontSize="12" TextColor="{StaticResource Gold}" FontAttributes="Bold"/>
 								</HorizontalStackLayout>
 							</Grid>
 						</Border>

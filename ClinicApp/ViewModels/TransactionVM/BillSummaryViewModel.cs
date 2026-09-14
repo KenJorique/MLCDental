@@ -211,7 +211,7 @@ public partial class BillSummaryViewModel : ObservableObject
         var popup = new ConfirmationPopup(
             "Remove Service",
             $"Remove \"{item.ServiceName}\" from this bill?",
-            "Remove", Colors.Crimson);
+            "Remove", Color.FromArgb("#D32F2F"));
         var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
         bool confirm = result is bool b && b;
 

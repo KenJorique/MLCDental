@@ -99,6 +99,9 @@ public partial class PaymentViewModel : ObservableObject
             ? MinimumDueToday
             : Math.Min(PaymentAmount, Draft?.Total ?? 0);
 
+    // What actually gets recorded as payment today (may be less than PaymentAmount if there's change).
+    public string RequiredAmountDisplay => $"₱{RequiredAmount:N2}";
+
     public decimal Change =>
         !IsAmountTooLarge && PaymentAmount > RequiredAmount
             ? PaymentAmount - RequiredAmount
@@ -139,7 +142,7 @@ public partial class PaymentViewModel : ObservableObject
             await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
                 "Enter an Amount",
                 "Enter how much the patient is paying.",
-                "OK", showCancelButton: false));
+                "OK", PopupAction.Positive, showCancelButton: false));
             return;
         }
 
@@ -148,7 +151,7 @@ public partial class PaymentViewModel : ObservableObject
             await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
                 "Payment Too Low",
                 $"Minimum payment today is {MinimumDueTodayDisplay}.",
-                "OK", showCancelButton: false));
+                "OK", PopupAction.Positive, showCancelButton: false));
             return;
         }
 
@@ -158,7 +161,7 @@ public partial class PaymentViewModel : ObservableObject
                 "Check Amount",
                 $"You entered {PaymentAmountDisplay}, but the total balance " +
                 $"is only {BalanceDisplay}. Continue anyway?",
-                "Yes, Continue", Color.FromArgb("#2E7D32"));
+                "Yes, Continue", PopupAction.Positive);
             var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
             bool proceed = result is bool b && b;
 
@@ -166,10 +169,11 @@ public partial class PaymentViewModel : ObservableObject
                 return;
         }
 
+        // Worded with the amount that actually gets applied (capped, before change), matching AdditionalPaymentViewModel's wording.
         var confirmPopup = new ConfirmationPopup(
             "Confirm Payment",
-            $"Record a payment of {PaymentAmountDisplay} for {PatientName}?",
-            "Confirm", Color.FromArgb("#2E7D32"));
+            $"Record a payment of {RequiredAmountDisplay} for {PatientName}?",
+            "Confirm", PopupAction.Positive);
         var confirmResult = await Shell.Current.CurrentPage.ShowPopupAsync(confirmPopup);
         if (confirmResult is not bool confirmed || !confirmed)
             return;
@@ -213,7 +217,7 @@ public partial class PaymentViewModel : ObservableObject
                     await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
                         "Low Stock Warning",
                         $"These items are now low/out of stock: {string.Join(", ", lowStockItems.Distinct())}",
-                        "OK", showCancelButton: false));
+                        "OK", PopupAction.Positive, showCancelButton: false));
                 }
             }
 
@@ -283,7 +287,7 @@ public partial class PaymentViewModel : ObservableObject
                         await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
                             "Follow-Up Scheduling",
                             $"The chosen follow-up slot for {savedRow.ServiceName} is no longer available. It's been marked as awaiting schedule instead.",
-                            "OK", showCancelButton: false));
+                            "OK", PopupAction.Positive, showCancelButton: false));
                     }
                 }
             }

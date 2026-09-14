@@ -71,7 +71,8 @@
 		<!-- Action rows — icon + label + caption + chevron -->
 		<VerticalStackLayout Padding="20,0" Spacing="8">
 
-			<!-- Approve -->
+			<!-- Approve — greys out once the slot is past due, but stays tappable so the
+                 "can't approve a past slot" popup still fires; Reschedule is the way forward instead. -->
 			<Border BackgroundColor="White" StrokeThickness="1" Stroke="#E0E0E0"
                     Padding="14,12">
 				<Border.StrokeShape>
@@ -88,15 +89,38 @@
 						<Border.StrokeShape>
 							<RoundRectangle CornerRadius="22"/>
 						</Border.StrokeShape>
+						<Border.Triggers>
+							<DataTrigger TargetType="Border" Binding="{Binding SelectedCard.IsPastDue}" Value="True">
+								<Setter Property="BackgroundColor" Value="#EEEEEE"/>
+							</DataTrigger>
+						</Border.Triggers>
 						<Label FontFamily="MaterialSymbolsRounded" Text="&#xe5ca;"
                                FontSize="22" TextColor="#1A6B2F"
-                               HorizontalOptions="Center" VerticalOptions="Center"/>
+                               HorizontalOptions="Center" VerticalOptions="Center">
+							<Label.Triggers>
+								<DataTrigger TargetType="Label" Binding="{Binding SelectedCard.IsPastDue}" Value="True">
+									<Setter Property="TextColor" Value="#9E9E9E"/>
+								</DataTrigger>
+							</Label.Triggers>
+						</Label>
 					</Border>
 					<VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
 						<Label Text="Approve"
-                               FontSize="15" FontAttributes="Bold" TextColor="#1A1A2E"/>
+                               FontSize="15" FontAttributes="Bold" TextColor="#1A1A2E">
+							<Label.Triggers>
+								<DataTrigger TargetType="Label" Binding="{Binding SelectedCard.IsPastDue}" Value="True">
+									<Setter Property="TextColor" Value="#9E9E9E"/>
+								</DataTrigger>
+							</Label.Triggers>
+						</Label>
 						<Label Text="Approve this booking"
-                               FontSize="12" TextColor="Gray"/>
+                               FontSize="12" TextColor="Gray">
+							<Label.Triggers>
+								<DataTrigger TargetType="Label" Binding="{Binding SelectedCard.IsPastDue}" Value="True">
+									<Setter Property="Text" Value="This time has already passed"/>
+								</DataTrigger>
+							</Label.Triggers>
+						</Label>
 					</VerticalStackLayout>
 					<Label Grid.Column="2" FontFamily="MaterialSymbolsRounded" Text="&#xe5cc;"
                            FontSize="20" TextColor="#C8C8C8"

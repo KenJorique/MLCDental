@@ -326,8 +326,9 @@
 			<GraphicsView x:Name="CalendarGraphics"
                           IsVisible="{Binding IsCalendarView}"
                           Drawable="{Binding CalendarDrawable}"
-                          HeightRequest="420"
-                          VerticalOptions="Start"
+                          HorizontalOptions="Fill"
+                          VerticalOptions="Fill"
+                          Margin="0,0,0,90"
                           BackgroundColor="White">
 				<GraphicsView.GestureRecognizers>
 					<TapGestureRecognizer Tapped="OnCalendarTapped"/>

@@ -4,11 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-	<!-- ═══════════════════════════════════════════════════════════
-         APP IS FORCED TO LIGHT MODE (App.xaml.cs: UserAppTheme = Light)
-         All AppThemeBinding Light values are always active.
-         Dark values kept for completeness but won't be used.
-    ═══════════════════════════════════════════════════════════ -->
+	<!-- App is forced to light mode (App.xaml.cs: UserAppTheme = Light), so only AppThemeBinding Light values are ever active. -->
 
 
 	<Style TargetType="ActivityIndicator">
@@ -452,11 +448,7 @@
 
 	<Color x:Key="CardBorderColor">#C4DEC9</Color>
 
-	<!-- Generic white rounded card with a soft shadow (was SupplyCardStyle).
-	     Distinct from PatientStyles.xaml's CardStyle, which uses
-	     CardBorderColor for its stroke and has no shadow — that's a real
-	     visual difference (flat vs. elevated), not just a naming
-	     difference, so the two are kept separate rather than merged. -->
+	<!-- Generic white rounded card with a soft shadow; kept separate from PatientStyles.xaml's flat, shadowless CardStyle. -->
 	<Style x:Key="ElevatedCardStyle" TargetType="Border">
 		<Setter Property="BackgroundColor" Value="{StaticResource White}"/>
 		<Setter Property="Stroke" Value="{StaticResource Gray100}"/>
@@ -468,10 +460,7 @@
 		</Setter>
 	</Style>
 
-	<!-- Small colored status pill (was SupplyStatusBadgeStyle/
-	     SupplyStatusBadgeLabelStyle) — set BackgroundColor per-instance
-	     for whatever status color applies (StockStatusColor, a payment
-	     status color, etc.). -->
+	<!-- Small colored status pill; set BackgroundColor per-instance for whatever status color applies. -->
 	<Style x:Key="StatusBadgeStyle" TargetType="Border">
 		<Setter Property="StrokeShape" Value="RoundRectangle 8"/>
 		<Setter Property="StrokeThickness" Value="0"/>
@@ -484,12 +473,7 @@
 		<Setter Property="TextColor" Value="{StaticResource Gray900}"/>
 	</Style>
 
-	<!-- Big rounded call-to-action button (was SupplyPrimaryButtonStyle /
-	     PatientStyles.xaml's PrimaryButtonStyle — these were near-
-	     identical already and became fully equivalent once PrimaryGreen
-	     was consolidated to match Primary). PatientStyles.xaml's own
-	     PrimaryButtonStyle is left as-is for now; a future cleanup could
-	     repoint it here too. -->
+	<!-- Big rounded call-to-action button, shared across patient and supply flows. -->
 	<Style x:Key="PrimaryActionButtonStyle" TargetType="Button">
 		<Setter Property="BackgroundColor" Value="{StaticResource Primary}"/>
 		<Setter Property="TextColor" Value="{StaticResource White}"/>

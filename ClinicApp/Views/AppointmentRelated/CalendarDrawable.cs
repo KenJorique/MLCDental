@@ -8,13 +8,17 @@ namespace ClinicApp.Views.AppointmentRelated
     {
         public List<CalendarDayColumn> Columns { get; set; } = new();
 
-        private const float TimeColW = 50f;
-        private const float DayColW = 46f;
-        private const float RowH = 52f;   // 7 rows × 52 + 54 header = 418px
+        // Fixed sidebar/header widths — everything else scales to the actual canvas size.
+        private const float TimeColW = 40f;
         private const float HeaderH = 54f;
 
         // Clinic hours: 10 AM – 5 PM (17 = 5 PM slot start)
         private readonly int[] _hours = { 10, 11, 12, 13, 14, 15, 16 };
+
+        // Recomputed every Draw() call from the real canvas size, so rows/columns fill whatever space the GraphicsView actually has.
+        private float _dayColW;
+        private float _rowH;
+        private float _canvasWidth;
 
         // Gold/beige appointment block colors matching the list view cards
         private static readonly Color AppointmentFill = Color.FromArgb("#F5F0D0");
@@ -43,6 +47,12 @@ namespace ClinicApp.Views.AppointmentRelated
                 return;
             }
 
+            // Fills the whole GraphicsView: columns split the leftover width, rows split the leftover height.
+            int dayCount = Math.Min(Columns.Count, 7);
+            _canvasWidth = dirtyRect.Width;
+            _dayColW = dayCount > 0 ? (dirtyRect.Width - TimeColW) / dayCount : dirtyRect.Width - TimeColW;
+            _rowH = _hours.Length > 0 ? (dirtyRect.Height - HeaderH) / _hours.Length : dirtyRect.Height - HeaderH;
+
             DrawDayHeaders(canvas);
             DrawTimeGrid(canvas);
             DrawEvents(canvas);
@@ -53,13 +63,13 @@ namespace ClinicApp.Views.AppointmentRelated
             for (int d = 0; d < Columns.Count && d < 7; d++)
             {
                 var col = Columns[d];
-                float x = TimeColW + d * DayColW;
-                float cx = x + DayColW / 2f;
+                float x = TimeColW + d * _dayColW;
+                float cx = x + _dayColW / 2f;
 
                 // Day label (MON, TUE…)
-                canvas.FontSize = 9f;
+                canvas.FontSize = 10f;
                 canvas.FontColor = Colors.Gray;
-                canvas.DrawString(col.DayLabel, x, 6, DayColW, 18,
+                canvas.DrawString(col.DayLabel, x, 6, _dayColW, 18,
                     HorizontalAlignment.Center, VerticalAlignment.Center);
 
                 // Date number — green circle if today, plain otherwise
@@ -76,8 +86,9 @@ namespace ClinicApp.Views.AppointmentRelated
                 }
 
                 canvas.FontSize = 13f;
+                canvas.Font = Microsoft.Maui.Graphics.Font.Default;
                 // DrawString: x, y, width, height — centred within the column
-                canvas.DrawString(col.DayNum, x, 30f, DayColW, 20f,
+                canvas.DrawString(col.DayNum, x, 30f, _dayColW, 20f,
                     HorizontalAlignment.Center, VerticalAlignment.Center);
             }
         }
@@ -92,7 +103,7 @@ namespace ClinicApp.Views.AppointmentRelated
 
             for (int i = 0; i < _hours.Length; i++)
             {
-                float y = HeaderH + i * RowH;
+                float y = HeaderH + i * _rowH;
 
                 // 12 = noon label, otherwise AM/PM
                 string label;
@@ -100,10 +111,11 @@ namespace ClinicApp.Views.AppointmentRelated
                 else if (_hours[i] > 12) label = $"{_hours[i] - 12} PM";
                 else label = $"{_hours[i]} AM";
 
-                canvas.DrawString(label, 4, y + 6, TimeColW - 8, RowH,
+                canvas.DrawString(label, 4, y + 6, TimeColW - 8, _rowH,
                     HorizontalAlignment.Right, VerticalAlignment.Top);
-                canvas.DrawLine(TimeColW, y, 600, y);
+                canvas.DrawLine(TimeColW, y, _canvasWidth, y);
             }
+            canvas.Font = Microsoft.Maui.Graphics.Font.Default;
         }
 
         private void DrawEvents(ICanvas canvas)
@@ -115,16 +127,16 @@ namespace ClinicApp.Views.AppointmentRelated
                 var col = Columns[d];
                 if (col.Slots == null) continue;
 
-                float colX = TimeColW + d * DayColW;
+                float colX = TimeColW + d * _dayColW;
 
                 for (int i = 0; i < col.Slots.Count && i < _hours.Length; i++)
                 {
                     var slot = col.Slots[i];
-                    float y = HeaderH + i * RowH;
+                    float y = HeaderH + i * _rowH;
 
                     if (slot.Entry == null) continue;
 
-                    var rect = new RectF(colX + 2, y + 4, DayColW - 4, RowH - 8);
+                    var rect = new RectF(colX + 2, y + 4, _dayColW - 4, _rowH - 8);
 
                     // Gold/beige fill matching list view appointment cards
                     canvas.FillColor = AppointmentFill;
@@ -136,7 +148,7 @@ namespace ClinicApp.Views.AppointmentRelated
                     canvas.DrawRoundedRectangle(rect, 6);
 
                     // Patient name only — centered vertically in the block
-                    // Wrap at ~10 chars per line to fit the narrow column
+                    // Wrap at ~10 chars per line to fit the day column
                     var rawName = slot.Entry.PatientName ?? "";
                     var nameParts = rawName.Split(' ');
                     // Show first name on line 1, last name initial on line 2
@@ -144,26 +156,30 @@ namespace ClinicApp.Views.AppointmentRelated
                     string line2 = nameParts.Length > 1
                         ? string.Join(" ", nameParts.Skip(1)) : "";
 
-                    // Truncate if still too long for column
-                    if (line1.Length > 7) line1 = line1.Substring(0, 6) + ".";
-                    if (line2.Length > 7) line2 = line2.Substring(0, 6) + ".";
+                    // Truncate if still too long for the column — threshold scales with the now-dynamic column width.
+                    int maxChars = (int)(_dayColW / 7f);
+                    if (line1.Length > maxChars) line1 = line1.Substring(0, Math.Max(1, maxChars - 1)) + ".";
+                    if (line2.Length > maxChars) line2 = line2.Substring(0, Math.Max(1, maxChars - 1)) + ".";
 
-                    canvas.FontSize = 8f;
+                    // Font scales gently with the taller/wider blocks instead of staying fixed at 8pt.
+                    float nameFontSize = Math.Clamp(_rowH / 6.5f, 8f, 11f);
+                    canvas.FontSize = nameFontSize;
                     canvas.FontColor = AppointmentText;
 
+                    float lineH = nameFontSize + 4f;
                     float textY = string.IsNullOrEmpty(line2)
-                        ? rect.Y + (rect.Height / 2) - 6
-                        : rect.Y + (rect.Height / 2) - 12;
+                        ? rect.Y + (rect.Height / 2) - (lineH / 2)
+                        : rect.Y + (rect.Height / 2) - lineH;
 
                     canvas.DrawString(line1,
                         rect.X + 2, textY,
-                        rect.Width - 4, 14,
+                        rect.Width - 4, lineH,
                         HorizontalAlignment.Center, VerticalAlignment.Top);
 
                     if (!string.IsNullOrEmpty(line2))
                         canvas.DrawString(line2,
-                            rect.X + 2, textY + 14,
-                            rect.Width - 4, 14,
+                            rect.X + 2, textY + lineH,
+                            rect.Width - 4, lineH,
                             HorizontalAlignment.Center, VerticalAlignment.Top);
 
                     _tapRegions.Add((rect, slot.Entry));

@@ -5,195 +5,184 @@
              xmlns:models="clr-namespace:ClinicApp.Models.SupabaseModels"
              x:Class="ClinicApp.Views.TransactionRelated.ReceiptPage"
              Title="Receipt"
-             BackgroundColor="#F5F5F5"
+             BackgroundColor="{StaticResource PageBg}"
              Shell.TabBarIsVisible="False"
              Shell.NavBarIsVisible="False">
 
-    <!-- No way out except Done — this page represents a payment that's
-         already been recorded; back navigation (arrow, swipe, hardware
-         button) would let staff land back on Bill Summary and pay again. -->
-    <Shell.BackButtonBehavior>
-        <BackButtonBehavior IsVisible="False" IsEnabled="False"/>
-    </Shell.BackButtonBehavior>
+	<!-- No way back: this page represents a payment already recorded, so returning to Bill Summary and paying again isn't allowed. -->
+	<Shell.BackButtonBehavior>
+		<BackButtonBehavior IsVisible="False" IsEnabled="False"/>
+	</Shell.BackButtonBehavior>
 
-    <Grid>
-        <ScrollView>
-            <VerticalStackLayout Padding="16" Spacing="0">
+	<Grid>
+		<ScrollView>
+			<VerticalStackLayout Padding="16" Spacing="14">
 
-                <!-- Receipt card -->
-                <Frame BackgroundColor="{StaticResource White}"
+				<!-- Card 1: hero (what was paid, status, who/when) + itemized services -->
+				<Frame BackgroundColor="{StaticResource White}"
                        BorderColor="{StaticResource Gray100}"
-                       CornerRadius="14"
+                       CornerRadius="16"
                        Padding="20"
                        HasShadow="False">
-                    <VerticalStackLayout Spacing="0">
+					<VerticalStackLayout Spacing="0">
 
-                        <!-- Checkmark -->
-                        <Border BackgroundColor="{StaticResource Secondary}"
-                                StrokeShape="RoundRectangle 24"
+						<Border BackgroundColor="{StaticResource Secondary}"
+                                StrokeShape="RoundRectangle 26"
                                 Stroke="Transparent"
-                                WidthRequest="48" HeightRequest="48"
+                                WidthRequest="52" HeightRequest="52"
                                 HorizontalOptions="Center">
-                            <Label Text="&#xe5ca;"
+							<Label Text="&#xe5ca;"
                                    FontFamily="MaterialSymbolsRounded"
-                                   FontSize="24"
+                                   FontSize="26"
                                    TextColor="{StaticResource Primary}"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center"/>
-                        </Border>
+						</Border>
 
-                        <Label Text="Payment Recorded"
-                               FontSize="13"
+						<Label Text="Payment Recorded"
+                               FontSize="14"
                                TextColor="{StaticResource Gray500}"
                                HorizontalOptions="Center"
-                               Margin="0,10,0,0"/>
+                               Margin="0,12,0,2"/>
 
-                        <Label Text="{Binding LatestPaymentAmountDisplay}"
+						<Label Text="{Binding LatestPaymentAmountDisplay}"
                                FontSize="32"
                                FontAttributes="Bold"
                                TextColor="{StaticResource Black}"
                                HorizontalOptions="Center"
-                               Margin="0,2,0,10"/>
+                               Margin="0,0,0,12"/>
 
-                        <!-- Status: just the word, colored per Bill.StatusColor -->
-                        <Border BackgroundColor="{Binding Bill.StatusBgColor}"
-                                StrokeShape="RoundRectangle 10"
-                                Stroke="Transparent"
-                                Padding="10,4"
+						<!-- Status pill, colored per Bill.StatusColor -->
+						<Border Style="{StaticResource StatusBadgeStyle}"
+                                BackgroundColor="{Binding Bill.StatusBgColor}"
+                                Padding="12,5"
                                 HorizontalOptions="Center"
                                 Margin="0,0,0,18">
-                            <Label Text="{Binding Bill.StatusDisplay}"
-                                   FontSize="11"
-                                   FontAttributes="Bold"
+							<Label Style="{StaticResource StatusBadgeLabelStyle}"
+                                   Text="{Binding Bill.StatusDisplay}"
+                                   FontSize="13"
                                    TextColor="{Binding Bill.StatusColor}"/>
-                        </Border>
+						</Border>
 
-                        <BoxView HeightRequest="1" Color="{StaticResource Gray100}" Margin="0,0,0,14"/>
+						<BoxView HeightRequest="0.5" Color="{StaticResource Gray100}" Margin="0,0,0,14"/>
 
-                        <!-- Date / Patient -->
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,5">
-                            <Label Text="Date" FontSize="12" TextColor="{StaticResource Gray500}"/>
-                            <Label Grid.Column="1" Text="{Binding Bill.DateDisplay}" FontSize="12" TextColor="{StaticResource Gray700}"/>
-                        </Grid>
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
-                            <Label Text="Patient" FontSize="12" TextColor="{StaticResource Gray500}"/>
-                            <Label Grid.Column="1" Text="{Binding PatientName}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
-                        </Grid>
+						<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,18">
+							<Label Text="{Binding PatientName}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
+							<Label Grid.Column="1" Text="{Binding Bill.DateDisplay}" FontSize="14" TextColor="{StaticResource Gray500}"/>
+						</Grid>
 
-                        <Label Text="SERVICES" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Gray400}" Margin="0,0,0,8"/>
+						<!-- Services list — no header label; it directly follows patient/date, so context is already clear -->
+						<CollectionView ItemsSource="{Binding Items}" Margin="0,4,0,0">
+							<CollectionView.ItemTemplate>
+								<DataTemplate x:DataType="models:SupabaseBillItem">
+									<Grid ColumnDefinitions="*,Auto" Padding="0,6">
+										<Label Text="{Binding ServiceName}" FontSize="15" TextColor="{StaticResource Gray700}" VerticalOptions="Center"/>
+										<Label Grid.Column="1" Text="{Binding SubtotalDisplay}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center"/>
+									</Grid>
+								</DataTemplate>
+							</CollectionView.ItemTemplate>
+						</CollectionView>
 
-                        <CollectionView ItemsSource="{Binding Items}">
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate x:DataType="models:SupabaseBillItem">
-                                    <Grid ColumnDefinitions="*,Auto" Padding="0,3">
-                                        <Label Text="{Binding ServiceName}" FontSize="13" TextColor="{StaticResource Gray700}" VerticalOptions="Center"/>
-                                        <Label Grid.Column="1" Text="{Binding SubtotalDisplay}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}" VerticalOptions="Center"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
-
-                        <!-- Per-item installment details — labeled key-value
-                             pairs (Down Payment / Monthly / Next Due), the
-                             convention real installment agreements use,
-                             rather than a run-on sentence. Service name
-                             omitted since these sit directly under their
-                             service in the list above. -->
-                        <VerticalStackLayout IsVisible="{Binding HasInstallmentItems}" Margin="0,12,0,0" Spacing="8">
-                            <CollectionView ItemsSource="{Binding InstallmentItems}">
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:SupabaseBillItem">
-                                        <Frame BackgroundColor="#FFF8E1"
-                                               BorderColor="#FFE082"
+						<!-- Per-item installment breakdown: Down Payment / Monthly / Next Due, one card per installment item -->
+						<VerticalStackLayout IsVisible="{Binding HasInstallmentItems}" Margin="0,12,0,0" Spacing="8">
+							<CollectionView ItemsSource="{Binding InstallmentItems}">
+								<CollectionView.ItemTemplate>
+									<DataTemplate x:DataType="models:SupabaseBillItem">
+										<Frame BackgroundColor="{StaticResource Gray100}"
+                                               BorderColor="{StaticResource Gray200}"
                                                CornerRadius="10"
                                                Padding="12"
                                                HasShadow="False"
                                                Margin="0,0,0,8">
-                                            <VerticalStackLayout Spacing="5">
-                                                <Grid ColumnDefinitions="*,Auto">
-                                                    <Label Text="Down Payment" FontSize="12" TextColor="#8D6E00"/>
-                                                    <Label Grid.Column="1" Text="{Binding DownpaymentDisplay}" FontSize="12" FontAttributes="Bold" TextColor="#8D6E00"/>
-                                                </Grid>
-                                                <Grid ColumnDefinitions="*,Auto">
-                                                    <Label FontSize="12" TextColor="#8D6E00">
-                                                        <Label.Text>
-                                                            <MultiBinding StringFormat="Monthly ({0} mo)">
-                                                                <Binding Path="InstallmentMonths"/>
-                                                            </MultiBinding>
-                                                        </Label.Text>
-                                                    </Label>
-                                                    <Label Grid.Column="1" Text="{Binding MonthlyPaymentDisplay}" FontSize="12" FontAttributes="Bold" TextColor="#8D6E00"/>
-                                                </Grid>
-                                                <Grid ColumnDefinitions="*,Auto">
-                                                    <Label Text="Next Due" FontSize="12" TextColor="#8D6E00"/>
-                                                    <Label Grid.Column="1" Text="{Binding DueDateDisplay}" FontSize="12" FontAttributes="Bold" TextColor="#C62828"/>
-                                                </Grid>
-                                            </VerticalStackLayout>
-                                        </Frame>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
-                        </VerticalStackLayout>
+											<VerticalStackLayout Spacing="6">
+												<Grid ColumnDefinitions="*,Auto">
+													<Label Text="Down Payment" FontSize="13" TextColor="{StaticResource Gray700}"/>
+													<Label Grid.Column="1" Text="{Binding DownpaymentDisplay}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
+												</Grid>
+												<Grid ColumnDefinitions="*,Auto">
+													<Label FontSize="13" TextColor="{StaticResource Gray700}">
+														<Label.Text>
+															<MultiBinding StringFormat="Monthly ({0} mo)">
+																<Binding Path="InstallmentMonths"/>
+															</MultiBinding>
+														</Label.Text>
+													</Label>
+													<Label Grid.Column="1" Text="{Binding MonthlyPaymentDisplay}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
+												</Grid>
+												<Grid ColumnDefinitions="*,Auto">
+													<Label Text="Next Due" FontSize="13" TextColor="{StaticResource Gray700}"/>
+													<Label Grid.Column="1" Text="{Binding DueDateDisplay}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource StatusOut}"/>
+												</Grid>
+											</VerticalStackLayout>
+										</Frame>
+									</DataTemplate>
+								</CollectionView.ItemTemplate>
+							</CollectionView>
+						</VerticalStackLayout>
 
-                        <BoxView HeightRequest="1" Color="{StaticResource Gray100}" Margin="0,16"/>
+					</VerticalStackLayout>
+				</Frame>
 
-                        <!-- Totals -->
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,5">
-                            <Label Text="Subtotal" FontSize="12" TextColor="{StaticResource Gray500}"/>
-                            <Label Grid.Column="1" Text="{Binding Bill.SubtotalDisplay}" FontSize="12" TextColor="{StaticResource Gray500}"/>
-                        </Grid>
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,10">
-                            <Label Text="Discount" FontSize="12" TextColor="{StaticResource Gray500}"/>
-                            <Label Grid.Column="1" Text="{Binding Bill.DiscountAmountDisplay}" FontSize="12" TextColor="{StaticResource Gray500}"/>
-                        </Grid>
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-                            <Label Text="Total" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
-                            <Label Grid.Column="1" Text="{Binding Bill.TotalDisplay}" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
-                        </Grid>
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,10">
-                            <Label Text="Paid" FontSize="12" TextColor="{StaticResource Gray500}"/>
-                            <Label Grid.Column="1" Text="{Binding Bill.PaidDisplay}" FontSize="12" TextColor="{StaticResource Primary}"/>
-                        </Grid>
-                        <Grid ColumnDefinitions="*,Auto">
-                            <Label Text="Balance" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
-                            <Label Grid.Column="1" Text="{Binding Bill.BalanceDisplay}" FontSize="15" FontAttributes="Bold" TextColor="#C62828"/>
-                        </Grid>
+				<!-- Card 2: totals + this payment's cash handling -->
+				<Frame BackgroundColor="{StaticResource White}"
+                       BorderColor="{StaticResource Gray100}"
+                       CornerRadius="16"
+                       Padding="18"
+                       HasShadow="False">
+					<VerticalStackLayout Spacing="0">
 
-                        <BoxView HeightRequest="1" Color="{StaticResource Gray100}" Margin="0,16"/>
+						<!-- Subtotal/Discount regular, Total bold -->
+						<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,9">
+							<Label Text="Subtotal" FontSize="14" TextColor="{StaticResource Gray500}"/>
+							<Label Grid.Column="1" Text="{Binding Bill.SubtotalDisplay}" FontSize="14" TextColor="{StaticResource Gray500}"/>
+						</Grid>
+						<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,11">
+							<Label Text="Discount" FontSize="14" TextColor="{StaticResource Gray500}"/>
+							<Label Grid.Column="1" Text="{Binding Bill.DiscountAmountDisplay}" FontSize="14" TextColor="{StaticResource Gray500}"/>
+						</Grid>
+						<Grid ColumnDefinitions="*,Auto" Padding="0,10,0,0">
+							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
+							<Label Text="Total" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Black}" Margin="0,4,0,0"/>
+							<Label Grid.Column="1" Text="{Binding Bill.TotalDisplay}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Black}" Margin="0,4,0,0"/>
+						</Grid>
 
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,5">
-                            <Label Text="Amount Received" FontSize="12" TextColor="{StaticResource Gray500}"/>
-                            <Label Grid.Column="1" Text="{Binding AmountReceivedDisplay}" FontSize="12" TextColor="{StaticResource Gray700}"/>
-                        </Grid>
-                        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasChange}">
-                            <Label Text="Change" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
-                            <Label Grid.Column="1" Text="{Binding ChangeDisplay}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
-                        </Grid>
+						<!-- Balance: the one accent color on this page besides black/gray, so it stays unmistakable -->
+						<Grid ColumnDefinitions="*,Auto" Margin="0,13,0,0">
+							<Label Text="Balance" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource StatusOut}"/>
+							<Label Grid.Column="1" Text="{Binding Bill.BalanceDisplay}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource StatusOut}"/>
+						</Grid>
 
-                        <BoxView HeightRequest="1" Color="{StaticResource Gray100}" Margin="0,16"/>
+						<!-- This visit's cash handling: Amount received regular, Change bold since it's cash to hand back -->
+						<Grid ColumnDefinitions="*,Auto" Padding="0,13,0,0">
+							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
+							<Label Text="Amount Received" FontSize="14" TextColor="{StaticResource Gray500}" Margin="0,4,0,0"/>
+							<Label Grid.Column="1" Text="{Binding AmountReceivedDisplay}" FontSize="14" TextColor="{StaticResource Gray500}" Margin="0,4,0,0"/>
+						</Grid>
+						<Grid ColumnDefinitions="*,Auto" Margin="0,9,0,0" IsVisible="{Binding HasChange}">
+							<Label Text="Change" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
+							<Label Grid.Column="1" Text="{Binding ChangeDisplay}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
+						</Grid>
 
-                        <Grid ColumnDefinitions="*,Auto">
-                            <Label Text="Receipt no." FontSize="11" TextColor="{StaticResource Gray400}"/>
-                            <Label Grid.Column="1" Text="{Binding Bill.BillNumberDisplay}" FontSize="11" TextColor="{StaticResource Gray400}"/>
-                        </Grid>
+					</VerticalStackLayout>
+				</Frame>
 
-                    </VerticalStackLayout>
-                </Frame>
+				<!-- Footer: receipt number, small and muted -->
+				<Grid ColumnDefinitions="*,Auto" Padding="4,0">
+					<Label Text="Receipt no." FontSize="13" TextColor="{StaticResource Gray400}"/>
+					<Label Grid.Column="1" Text="{Binding Bill.BillNumberDisplay}" FontSize="13" TextColor="{StaticResource Gray400}"/>
+				</Grid>
 
-                <!-- Done -->
-                <Grid Margin="0,16,0,0">
-                    <Button Text="Done"
-                            BackgroundColor="{StaticResource Primary}"
-                            TextColor="{StaticResource White}"
-                            CornerRadius="12"
-                            HeightRequest="48"
-                            FontSize="14"
-                            FontAttributes="Bold"
-                            Command="{Binding DoneCommand}"/>
-                </Grid>
+				<!-- Done -->
+				<Button Text="Done"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="{StaticResource White}"
+                        CornerRadius="12"
+                        HeightRequest="48"
+                        FontSize="16"
+                        FontAttributes="Bold"
+                        Command="{Binding DoneCommand}"/>
 
-            </VerticalStackLayout>
-        </ScrollView>
-
-    </Grid>
+			</VerticalStackLayout>
+		</ScrollView>
+	</Grid>
 </ContentPage>

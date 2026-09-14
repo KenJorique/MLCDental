@@ -8,6 +8,7 @@
     Title="{Binding PageTitle}"
 	Shell.BackgroundColor="{StaticResource PrimaryGreen}"
     Shell.TitleColor="White"
+	Shell.ForegroundColor="White"
     BackgroundColor="{StaticResource PageBg}"
     Shell.TabBarIsVisible="False">
 

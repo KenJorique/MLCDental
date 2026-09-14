@@ -74,20 +74,18 @@
 
 													<Label Text="{Binding Description}" Style="{StaticResource CardSectionTitleStyle}"/>
 
-													<!-- Tooth color dot + tooth label, hidden for general services -->
-													<HorizontalStackLayout Spacing="6" Margin="0,3,0,0" IsVisible="{Binding HasTooth}">
-														<BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4" Color="{Binding ToothColor}"/>
-														<Label Text="{Binding ToothDisplay}" FontSize="12" TextColor="{StaticResource Gray400}"/>
-													</HorizontalStackLayout>
+													<!-- Tooth label, hidden for general services -->
+													<Label Text="{Binding ToothDisplay}" FontSize="12" TextColor="{StaticResource Gray400}"
+                                                           Margin="0,3,0,0" IsVisible="{Binding HasTooth}"/>
+
+													<!-- This row's own note — blank/hidden unless it's a genuine staff-typed note -->
+													<Label Text="{Binding Notes}" FontSize="12" TextColor="{StaticResource Gray500}"
+                                                           FontAttributes="Italic" Margin="0,6,0,0" IsVisible="{Binding HasNotes}"/>
 
 												</VerticalStackLayout>
 											</DataTemplate>
 										</BindableLayout.ItemTemplate>
 									</VerticalStackLayout>
-
-									<!-- One genuine (non-auto-generated) note per visit, shown once for the whole card -->
-									<Label Text="{Binding SharedNotes}" FontSize="12" TextColor="{StaticResource Gray500}"
-                                           FontAttributes="Italic" Margin="0,10,0,0" IsVisible="{Binding HasNotes}"/>
 
 								</VerticalStackLayout>
 							</Grid>

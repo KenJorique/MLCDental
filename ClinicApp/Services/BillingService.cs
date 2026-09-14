@@ -221,11 +221,16 @@ public class BillingService
     {
         try
         {
+            // condition keeps ToothAwareServices' descriptive wording (e.g. "Filled (Composite)")
+            // for display/DB purposes — chartCondition/hex below are resolved separately through
+            // the shared fuzzy matcher so the color always lands on a real ConditionColors bucket,
+            // even when "condition" itself doesn't match one of those keys verbatim.
             var condition = ToothAwareServices.GetCondition(serviceName);
 
-            // Same palette as DentalChartViewModel, so history entries match the chart's color-coding.
+            var chartCondition = ClinicApp.ViewModels.DentalChart.DentalChartViewModel
+                .GetChartCondition(condition, serviceName);
             var hex = ClinicApp.ViewModels.DentalChart.DentalChartViewModel
-                .ConditionColors.TryGetValue(condition, out var c) ? c : "#FFFFFF";
+                .GetConditionColor(chartCondition);
 
             foreach (var toothNum in teethNumbers)
             {

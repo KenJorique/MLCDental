@@ -96,11 +96,7 @@ namespace ClinicApp.Models.SupabaseModels
         [Column("last_payment_date")]
         public DateTime? LastPaymentDate { get; set; }
 
-        // Sum of what's collected THIS visit (full price for
-        // non-installment items + 50% down for installment items,
-        // minus discount) — computed once at bill creation on Bill
-        // Summary. Distinct from Balance, which is the FULL lifetime
-        // amount owed across the whole bill.
+        // What's collected this visit (full price for non-installment items + 50% down for installment items, minus discount); distinct from Balance, the full lifetime amount owed.
         [Column("minimum_due_today")]
         public decimal MinimumDueToday { get; set; }
 
@@ -150,25 +146,25 @@ namespace ClinicApp.Models.SupabaseModels
             _ => Status
         };
 
-        // Text color associated with the current Status.
+        // Text color associated with the current Status — pulled from Colors.xaml, the single shared source.
         [Ignore]
         [JsonIgnore]
         public Color StatusColor => Status switch
         {
-            "paid" => Color.FromArgb("#2E7D32"),
-            "partial" => Color.FromArgb("#E65100"),
-            "unpaid" => Color.FromArgb("#C62828"),
+            "paid" => (Color)Application.Current!.Resources["PrimaryGreen"],
+            "partial" => (Color)Application.Current!.Resources["StatusPartial"],
+            "unpaid" => (Color)Application.Current!.Resources["StatusUnpaid"],
             _ => Color.FromArgb("#888888")
         };
 
-        // Background color associated with the current Status.
+        // Background color associated with the current Status — pulled from Colors.xaml, the single shared source.
         [Ignore]
         [JsonIgnore]
         public Color StatusBgColor => Status switch
         {
-            "paid" => Color.FromArgb("#E8F5E9"),
-            "partial" => Color.FromArgb("#FFF3E0"),
-            "unpaid" => Color.FromArgb("#FCEAEA"),
+            "paid" => (Color)Application.Current!.Resources["StatusPaidBg"],
+            "partial" => (Color)Application.Current!.Resources["StatusPartialBg"],
+            "unpaid" => (Color)Application.Current!.Resources["StatusUnpaidBg"],
             _ => Color.FromArgb("#F5F5F5")
         };
 
@@ -216,8 +212,7 @@ namespace ClinicApp.Models.SupabaseModels
         ? CreatedAt.ToLocalSafe().ToString("MMM dd, yyyy")
         : VisitDate.ToLocalSafe().ToString("MMM dd, yyyy");
 
-        // True when there's still a balance owed and today is past the due date.
-        // (Not restricted to installment bills — a one-time bill can be overdue too.)
+        // True when there's still a balance owed and today is past the due date (applies to any bill, not just installments).
         [Ignore]
         [JsonIgnore]
         public bool IsOverdue =>
@@ -225,8 +220,7 @@ namespace ClinicApp.Models.SupabaseModels
     DueDate.HasValue &&
     DateTime.Now.Date > DueDate.Value.ToLocalSafe().Date;
 
-        // Installment-plan status text: blank for non-installment bills,
-        // otherwise "Paid" / "Overdue" / "On Schedule".
+        // Installment-plan status text: blank for non-installment bills, otherwise "Paid"/"Overdue"/"On Schedule".
         [Ignore]
         [JsonIgnore]
         public string DueStatusText =>
@@ -249,9 +243,5 @@ namespace ClinicApp.Models.SupabaseModels
                     : IsOverdue
                         ? Color.FromArgb("#DC2626")
                         : Color.FromArgb("#F59E0B");
-
-
-
-
     }
 }

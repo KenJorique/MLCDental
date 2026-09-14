@@ -251,42 +251,21 @@
                                        Text="{Binding OutstandingDisplay}"
                                        FontSize="30"
                                        FontAttributes="Bold"
-                                       TextColor="#1A6B2F"
+                                       TextColor="{StaticResource PrimaryGreen}"
                                        VerticalOptions="Center"/>
 
-								<!-- Status pill — Paid / Partially Paid / Unpaid,
-                                     sits right beside the balance figure.
-								<Frame Grid.Row="1"
-                                       Grid.Column="1"
-                                       BackgroundColor="{Binding PaymentStatusBgColor}"
-                                       BorderColor="Transparent"
-                                       CornerRadius="20"
-                                       Padding="10,4"
-                                       HasShadow="False"
-                                       VerticalOptions="Center"
-                                       HorizontalOptions="End">
+								<!-- Status pill — Paid / Partially Paid / Unpaid, sits right beside the balance figure. -->
+								<Border Grid.Row="1"
+                                        Grid.Column="1"
+                                        Style="{StaticResource StatusBadgeStyle}"
+                                        BackgroundColor="{Binding PaymentStatusBgColor}"
+                                        VerticalOptions="Center"
+                                        HorizontalOptions="End">
 									<Label Text="{Binding PaymentStatus}"
-                                           FontSize="11"
-                                           FontAttributes="Bold"
+                                           Style="{StaticResource StatusBadgeLabelStyle}"
                                            TextColor="{Binding PaymentStatusColor}"/>
-								</Frame>    -->
+								</Border>
 							</Grid>
-
-							<Frame BackgroundColor="#FFF1F2"
-                                   BorderColor="#FECACA"
-                                   CornerRadius="12"
-                                   Padding="12"
-                                   HasShadow="False"
-                                   IsVisible="{Binding OverdueBillsCount, Converter={StaticResource IntNotEqualZeroConverter}}">
-								<VerticalStackLayout Spacing="2">
-									<Label Text="Overdue Installments"
-                                           FontAttributes="Bold"
-                                           TextColor="#B91C1C"/>
-									<Label Text="{Binding OverdueSummary}"
-                                           FontSize="12"
-                                           TextColor="#B91C1C"/>
-								</VerticalStackLayout>
-							</Frame>
 
 							<Grid ColumnDefinitions="*,*">
 								<VerticalStackLayout Spacing="4">
@@ -329,7 +308,7 @@
 
 							<Label FontFamily="MaterialSymbolsRoundedFilled"
                                    Text="&#xe152;"
-                                   FontSize="20" 
+                                   FontSize="20"
                                    TextColor="{StaticResource Black}"
                                    VerticalOptions="Center"/>
 						</Border>

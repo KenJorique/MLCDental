@@ -7,6 +7,7 @@ public partial class AdditionalPaymentPage : ContentPage
     readonly AdditionalPaymentViewModel _vm;
     bool _formattingInProgress;
 
+    // Wires up the view model as the binding context.
     public AdditionalPaymentPage(AdditionalPaymentViewModel vm)
     {
         InitializeComponent();
@@ -15,22 +16,16 @@ public partial class AdditionalPaymentPage : ContentPage
         BindingContext = vm;
     }
 
+    // Clears the amount entry on each visit, since PaymentAmount doesn't parse back from the formatted text on its own.
     protected override void OnAppearing()
     {
         base.OnAppearing();
 
-        // Same reasoning as PaymentPage: PaymentAmount isn't bound
-        // directly to the Entry (comma-formatted text doesn't parse back
-        // into decimal on its own — see OnAmountTextChanged), so clear the
-        // Entry's own text on each visit to match a fresh PaymentAmount.
         AmountEntry.Text = string.Empty;
         _vm.PaymentAmount = 0;
     }
 
-    // Identical live thousands-separator formatting to PaymentPage's
-    // OnAmountTextChanged — duplicated rather than shared because the two
-    // pages' code-behind have no common base to hang a shared helper off
-    // without a bigger refactor, and this logic is small and stable.
+    // Live thousands-separator formatting for the amount entry, duplicated from PaymentPage since the two pages share no common base.
     void OnAmountTextChanged(object sender, TextChangedEventArgs e)
     {
         if (_formattingInProgress) return;

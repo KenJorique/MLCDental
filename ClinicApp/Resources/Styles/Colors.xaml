@@ -39,6 +39,14 @@
 	<Color x:Key="StatusLow">#F57C00</Color>
 	<Color x:Key="StatusOut">#D32F2F</Color>
 
+	<!-- Bill payment-status colors — the single source of truth for Paid/Partial/Unpaid,
+	     shared by SupabaseBill, BillCardItem, and TransactionViewModel so they can't drift apart. -->
+	<Color x:Key="StatusPaidBg">#E8F5E9</Color>
+	<Color x:Key="StatusPartial">#E65100</Color>
+	<Color x:Key="StatusPartialBg">#FFF3E0</Color>
+	<Color x:Key="StatusUnpaid">#C62828</Color>
+	<Color x:Key="StatusUnpaidBg">#FCEAEA</Color>
+
 	<!-- Base -->
 	<Color x:Key="White">White</Color>
 	<Color x:Key="Black">Black</Color>

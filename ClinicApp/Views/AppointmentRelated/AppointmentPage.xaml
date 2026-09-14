@@ -4,23 +4,10 @@
              xmlns:vm="clr-namespace:ClinicApp.ViewModels"
              Title="Pending"
              x:Class="ClinicApp.Views.AppointmentRelated.AppointmentPage"
-             BackgroundColor="#F5F5F5">
-
-	<Shell.TitleView>
-		<Grid ColumnDefinitions="*,Auto" Padding="0,0,20,0">
-			<Label Text="Pending" FontSize="20" FontAttributes="Bold"
-                   TextColor="Black" VerticalOptions="Center"/>
-			<Border Grid.Column="1"
-                    BackgroundColor="#E65100"
-                    StrokeShape="RoundRectangle 12"
-                    Padding="9,3"
-                    VerticalOptions="Center">
-				<Label Text="{Binding PendingCount}"
-                       TextColor="White" FontSize="13"
-                       FontAttributes="Bold"/>
-			</Border>
-		</Grid>
-	</Shell.TitleView>
+             Shell.BackgroundColor="{StaticResource Primary}"
+             Shell.TitleColor="White"
+             Shell.ForegroundColor="White"
+             BackgroundColor="{StaticResource PageBg}">
 
 	<RefreshView Command="{Binding RefreshCommand}"
              IsRefreshing="{Binding IsRefreshing}">
@@ -28,52 +15,42 @@
 			<VerticalStackLayout Padding="16" Spacing="16">
 
 				<!-- ── PENDING LIST ── -->
-				<VerticalStackLayout Spacing="8">
-					<Label Text="No pending bookings"
-                           TextColor="Gray" FontSize="13">
-						<Label.Triggers>
-							<DataTrigger TargetType="Label"
-                                         Binding="{Binding HasPending}"
-                                         Value="True">
-								<Setter Property="IsVisible" Value="False"/>
-							</DataTrigger>
-						</Label.Triggers>
-					</Label>
+				<CollectionView ItemsSource="{Binding PendingBookings}">
 
-					<CollectionView ItemsSource="{Binding PendingBookings}"
-                                    IsVisible="{Binding HasPending}">
-						<CollectionView.ItemTemplate>
-							<DataTemplate x:DataType="vm:BookingCardViewModel">
-								<Frame Margin="0,4" Padding="14" CornerRadius="12"
-                                       BorderColor="#FFE0B2" BackgroundColor="White"
-                                       HasShadow="True">
-									<Frame.GestureRecognizers>
-										<TapGestureRecognizer
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AppointmentViewModel}},
-                                                      Path=ShowBookingDetailCommand}"
-                                            CommandParameter="{Binding .}"/>
-									</Frame.GestureRecognizers>
-									<VerticalStackLayout Spacing="6">
+					<CollectionView.EmptyView>
+						<VerticalStackLayout Spacing="4" Margin="0,40">
+							<Label Text="No pending bookings" Style="{StaticResource EmptyStateTitleStyle}"/>
+						</VerticalStackLayout>
+					</CollectionView.EmptyView>
 
-										<!-- Always visible: name, date, time, contact -->
-										<Label Text="{Binding FullName}"
-                                               FontSize="18" FontAttributes="Bold"
-                                               TextColor="#1A1A2E"/>
+					<CollectionView.ItemTemplate>
+						<DataTemplate x:DataType="vm:BookingCardViewModel">
+							<Border Margin="0,4" Style="{StaticResource ElevatedCardStyle}">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AppointmentViewModel}},
+                                                  Path=ShowBookingDetailCommand}"
+                                        CommandParameter="{Binding .}"/>
+								</Border.GestureRecognizers>
+								<VerticalStackLayout Spacing="6">
 
-										<Label Text="{Binding AppointmentDate, StringFormat='{0:MMM dd, yyyy  h:mm tt}'}"
-                                               FontSize="14" TextColor="#1A1A2E"/>
-										<Label Text="{Binding Phone}"
-                                               FontSize="14" TextColor="#1A1A2E"/>
-										<Label Text="{Binding Notes}"
-                                               FontSize="12" TextColor="Gray"
-                                               IsVisible="{Binding Notes, Converter={StaticResource StringToBoolConverter}}"/>
+									<Label Text="{Binding FullName}"
+                                           FontSize="18" FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}"/>
 
-									</VerticalStackLayout>
-								</Frame>
-							</DataTemplate>
-						</CollectionView.ItemTemplate>
-					</CollectionView>
-				</VerticalStackLayout>
+									<Label Text="{Binding AppointmentDate, StringFormat='{0:MMM dd, yyyy  h:mm tt}'}"
+                                           FontSize="14" TextColor="{StaticResource TextPrimary}"/>
+									<Label Text="{Binding Phone}"
+                                           FontSize="14" TextColor="{StaticResource TextPrimary}"/>
+									<Label Text="{Binding Notes}"
+                                           Style="{StaticResource MutedCaptionStyle}"
+                                           IsVisible="{Binding Notes, Converter={StaticResource StringToBoolConverter}}"/>
+
+								</VerticalStackLayout>
+							</Border>
+						</DataTemplate>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
 
 			</VerticalStackLayout>
 		</ScrollView>

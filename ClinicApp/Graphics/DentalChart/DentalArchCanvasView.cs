@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows.Input;
 using ClinicApp.ViewModels.DentalChart;
+using Microsoft.Maui.Devices;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
@@ -120,6 +121,16 @@ public class DentalArchCanvasView : SKCanvasView
             StrokeWidth = 1.4f,
             IsAntialias = true
         };
+        // Normal/untreated teeth have a white fill, which the pale green outlineStroke above
+        // barely shows against a white card — use a darker, thicker outline just for those so
+        // an untreated tooth is still clearly visible, not just a near-invisible sliver.
+        using var normalOutlineStroke = new SKPaint
+        {
+            Style = SKPaintStyle.Stroke,
+            Color = new SKColor(0x9C, 0xA3, 0xAF),
+            StrokeWidth = 1.8f,
+            IsAntialias = true
+        };
         using var crackStroke = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
@@ -143,6 +154,14 @@ public class DentalArchCanvasView : SKCanvasView
         {
             Size = 10
         };
+
+        // Touch targets need to be a real minimum size (~44dp) regardless of screen density —
+        // the old fixed 22f was already in device pixels, which on any modern phone (2.5–3x
+        // density) works out to roughly an 8dp radius: far below any comfortable tap target,
+        // and the actual reason taps were landing as misses rather than lag.
+        float density = (float)DeviceDisplay.MainDisplayInfo.Density;
+        if (density <= 0) density = 1f;
+        float hitRadius = Math.Max(22f, 22f * density);
 
         for (int i = 0; i < count; i++)
         {
@@ -182,15 +201,27 @@ public class DentalArchCanvasView : SKCanvasView
                 IsAntialias = true,
                 Color = ToSkColor(tooth.ToothColor)
             };
+            bool isNormal = string.Equals(tooth.Condition, "Normal", StringComparison.OrdinalIgnoreCase);
             canvas.DrawPath(outline, fillPaint);
-            canvas.DrawPath(outline, outlineStroke);
+            canvas.DrawPath(outline, isNormal ? normalOutlineStroke : outlineStroke);
             if (!cracks.IsEmpty) canvas.DrawPath(cracks, crackStroke);
 
             canvas.Restore();
 
-            // Tooth number label placed just outside the shape, away from gum line
-            float lx = x;
-            float ly = Arch == ArchPosition.Upper ? y - 16f : y + 16f;
+            // Both the label and the hit-region center below need to follow the SAME rotation
+            // used to draw the shape (canvas.RotateDegrees(rotation) above) — a fixed vertical
+            // offset (the old approach) only works for teeth near the front of the arch. Once a
+            // tooth is rotated well away from 0°/180° (most molars toward the sides), "up" on
+            // screen no longer matches the tooth's own "up," which is exactly why numbers were
+            // landing inside rotated teeth instead of just past their tip.
+            float rotRad = (float)(rotation * Math.PI / 180.0);
+            float sinR = (float)Math.Sin(rotRad);
+            float cosR = (float)Math.Cos(rotRad);
+
+            // Tooth number, placed just past the crown tip along the tooth's own rotated axis.
+            const float labelOffsetLocal = 34f;
+            float lx = x + toothScale * labelOffsetLocal * sinR;
+            float ly = y - toothScale * labelOffsetLocal * cosR;
 
             string label = tooth.ToothLabel;
             int glyphCount = labelFont.CountGlyphs(label.AsSpan());
@@ -209,7 +240,14 @@ public class DentalArchCanvasView : SKCanvasView
                 canvas.DrawText(textBlob, lx - textWidth / 2f, ly, labelPaint);
             }
 
-            _hitRegions.Add((new SKPoint(x, y), 22f, tooth));
+            // Hit-region center nudged partway toward the crown (same rotated axis, smaller
+            // distance) so it centers on the visible tooth body instead of its gum-line pivot —
+            // tapping where the tooth actually LOOKS like it is now lines up with where the
+            // hit-test circle actually sits, instead of being centered on the tooth's base.
+            const float hitCenterOffsetLocal = 14f;
+            float hx = x + toothScale * hitCenterOffsetLocal * sinR;
+            float hy = y - toothScale * hitCenterOffsetLocal * cosR;
+            _hitRegions.Add((new SKPoint(hx, hy), hitRadius, tooth));
 
             outline.Dispose();
             cracks.Dispose();

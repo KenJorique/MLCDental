@@ -16,8 +16,15 @@ namespace ClinicApp.ViewModels
         readonly DatabaseService _db;
         readonly SupabaseDataService _supabaseData;
 
-        static readonly TimeZoneInfo ManilaTz =
+        // Internal (not private) so BookingCardViewModel below can share the same zone for IsPastDue.
+        internal static readonly TimeZoneInfo ManilaTz =
             TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
+
+        // Normalizes any DateTime to "wall-clock time in Manila", regardless of its incoming Kind.
+        internal static DateTime ToManilaLocal(DateTime dt) =>
+            dt.Kind == DateTimeKind.Utc
+                ? TimeZoneInfo.ConvertTimeFromUtc(dt, ManilaTz)
+                : DateTime.SpecifyKind(dt, DateTimeKind.Unspecified);
 
         public ObservableCollection<BookingCardViewModel> PendingBookings { get; set; } = new();
 
@@ -37,11 +44,7 @@ namespace ClinicApp.ViewModels
             _supabaseData = supabaseData;
         }
 
-        // ---------------------------------------------------------------
-        // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
-        // everywhere in this ViewModel with the app's dimmed-backdrop
-        // rounded-card popup.
-        // ---------------------------------------------------------------
+        // ConfirmationPopup helpers, replacing Shell.Current.DisplayAlert everywhere in this ViewModel.
 
         static Page CurrentPage =>
             Shell.Current?.CurrentPage
@@ -181,6 +184,15 @@ namespace ClinicApp.ViewModels
             if (card == null) return;
             var booking = card.Booking;
 
+            // Safety net until the sheet hides the button itself — approving a slot that's already passed makes no clinical sense.
+            if (card.IsPastDue)
+            {
+                await ShowNoticeAsync(
+                    "Can't Approve",
+                    $"{booking.FullName}'s requested time has already passed. Reschedule this booking to a new date instead.");
+                return;
+            }
+
             bool confirm = await ShowConfirmAsync(
                 "Approve Booking",
                 $"Approve booking for {booking.FullName}",
@@ -288,10 +300,9 @@ namespace ClinicApp.ViewModels
                         $"[Approve] Local-only patient synced to Supabase: {localOnlyMatch.PatientID}");
                 }
 
-                // Booking's appointment date treated as PH local time.
-                var localDate = booking.AppointmentDate.Kind == DateTimeKind.Utc
-                    ? booking.AppointmentDate.ToLocalTime()
-                    : DateTime.SpecifyKind(booking.AppointmentDate, DateTimeKind.Local);
+                // Booking's appointment date treated as PH local time — Unspecified (not Local), since ConvertTimeToUtc
+                // requires sourceTimeZone to be TimeZoneInfo.Local whenever Kind is Local, which ManilaTz isn't.
+                var localDate = ToManilaLocal(booking.AppointmentDate);
 
                 // UTC equivalent, explicitly against Asia/Manila (not the device's own timezone) — matches how every other slot check in the app resolves PH time.
                 var utcDate = TimeZoneInfo.ConvertTimeToUtc(localDate, ManilaTz);
@@ -358,7 +369,7 @@ namespace ClinicApp.ViewModels
                 await ShowNoticeAsync("Approved",
                     booking.IsExistingPatient
                         ? $"{booking.FullName}'s appointment approved. (Existing patient)"
-                        : $"{booking.FullName} added to patient list and approved.");
+                        : $"{booking.FullName}'s appointment approved.");
 
                 await CloseSheetAsync();
                 await FetchAndPopulate();
@@ -562,5 +573,10 @@ namespace ClinicApp.ViewModels
         public string Notes => Booking.Notes ?? "";
         public DateTime AppointmentDate => Booking.AppointmentDate;
         public bool IsExistingPatient => Booking.IsExistingPatient;
+
+        // True once this booking's requested slot is in the past (compared in Manila local time), so Approve should be blocked.
+        public bool IsPastDue =>
+            AppointmentViewModel.ToManilaLocal(Booking.AppointmentDate)
+                < AppointmentViewModel.ToManilaLocal(DateTime.UtcNow);
     }
 }

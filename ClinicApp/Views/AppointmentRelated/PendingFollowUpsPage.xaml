@@ -9,6 +9,7 @@
              Shell.TabBarIsVisible="False"
              Shell.BackgroundColor="{StaticResource PrimaryGreen}"
              Shell.TitleColor="White"
+			 Shell.ForegroundColor="{StaticResource White}"
              BackgroundColor="{StaticResource PageBg}">
 
     <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsBusy}">

@@ -59,7 +59,7 @@ public partial class BillSummaryPage : ContentPage
 
                 await this.ShowPopupAsync(new ConfirmationPopup(
                     "Discount Unavailable",
-                    "All services are installment-eligible.",
+                    "Discounts are not available for installment payments.",
                     "OK", showCancelButton: false));
             }
 

@@ -21,6 +21,7 @@ public partial class BillDetailsViewModel : ObservableObject
         _supabase = supabase;
     }
 
+    // Navigation parameters, set via [QueryProperty] above.
     [ObservableProperty]
     string billId = "";
 
@@ -32,20 +33,26 @@ public partial class BillDetailsViewModel : ObservableObject
 
     [ObservableProperty]
     bool isBusy;
+
+    // Formatted display of the bill's due date, or an em dash if none.
     public string DueDateDisplay =>
     Bill?.DueDateDisplay ?? "—";
 
+    // Formatted display of the bill's last payment date, or an em dash if none.
     public string LastPaymentDateDisplay =>
         Bill?.LastPaymentDateDisplay ?? "—";
 
+    // Whether the bill still has money owed on it.
     public bool HasBalance => Bill != null && Bill.Balance > 0;
 
     [ObservableProperty]
     SupabaseBill? bill;
 
+    // Line items belonging to this bill.
     public ObservableCollection<SupabaseBillItem> Items { get; }
         = new();
 
+    // Payments recorded against this bill.
     public ObservableCollection<SupabasePayment> Payments { get; }
         = new();
 
@@ -107,7 +114,7 @@ public partial class BillDetailsViewModel : ObservableObject
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
-    // Opens the receipt for this bill.
+    // Opens the receipt for this bill — kept even though the on-page button was removed, in case other flows still navigate here.
     [RelayCommand]
     private async Task ViewReceipt()
     {
@@ -121,17 +128,7 @@ public partial class BillDetailsViewModel : ObservableObject
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
-    // Expands/collapses the tapped bill item.
-    [RelayCommand]
-    private void ToggleItem(SupabaseBillItem item)
-    {
-        if (item == null)
-            return;
-
-        item.IsExpanded = !item.IsExpanded;
-    }
-
-
+    // Simple formatted passthroughs of the current Bill's fields, used directly by the XAML bindings.
     public string BillNumber =>
         Bill?.BillNumber ?? "";
 

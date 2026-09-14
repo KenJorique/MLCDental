@@ -367,9 +367,9 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
             HasSummary = true;
             SummaryText =
                 $"Patient:   {FullName}\n" +
-                $"Date:        {_selectedSlot.SlotDateTime:MMM dd, yyyy}\n" +
-                $"Time:        {_selectedSlot.Display}\n" +
-                $"Status:     Auto-approved ✓";
+                $"Date:      {_selectedSlot.SlotDateTime:MMM dd, yyyy}\n" +
+                $"Time:      {_selectedSlot.Display}\n" +
+                $"Status:     Auto-approved";
         }
 
         // ── Confirm booking ───────────────────────────────────

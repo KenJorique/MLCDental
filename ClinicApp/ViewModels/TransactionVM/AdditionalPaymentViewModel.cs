@@ -1,15 +1,16 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
 using ClinicApp.Views.TransactionRelated;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels.TransactionVM;
 
-// Pays down an EXISTING bill's balance (from the Ledger or Bill Details "Add Payment" button).
-// Kept separate from PaymentViewModel, which only handles the first payment on a brand-new bill.
+// Pays down an existing bill's balance; kept separate from PaymentViewModel, which only handles a brand-new bill's first payment.
 [QueryProperty(nameof(BillId), "billId")]
 [QueryProperty(nameof(PatientId), "patientId")]
 [QueryProperty(nameof(PatientName), "patientName")]
@@ -99,8 +100,7 @@ public partial class AdditionalPaymentViewModel : ObservableObject
     public string SubtotalDisplay => Bill == null ? "₱0.00" : $"₱{Bill.Subtotal:N2}";
     public string DiscountDisplay => Bill == null ? "₱0.00" : $"₱{Bill.DiscountAmount:N2}";
     public string TotalDisplay => Bill == null ? "₱0.00" : $"₱{Bill.TotalAmount:N2}";
-    // "Amount Paid" — matches the label already used for this same figure
-    // on BillDetailsPage, so the wording is consistent across the app.
+    // "Amount Paid" — matches the label wording used for this figure on BillDetailsPage.
     public string PaidDisplay => Bill == null ? "₱0.00" : $"₱{Bill.AmountPaid:N2}";
 
     // Remaining amount owed (Total − AmountPaid), the headline figure on this page.
@@ -153,41 +153,57 @@ public partial class AdditionalPaymentViewModel : ObservableObject
 
         if (IsAlreadyPaid)
         {
-            await Shell.Current.DisplayAlert(
+            // Plain notice, single green "OK" button.
+            var notice = new ConfirmationPopup(
                 "Already Paid",
                 "This bill is already fully paid.",
-                "OK");
+                "OK", PopupAction.Positive, showCancelButton: false);
+            await Shell.Current.ShowPopupAsync(notice);
             return;
         }
 
         if (PaymentAmount <= 0)
         {
-            await Shell.Current.DisplayAlert(
+            var notice = new ConfirmationPopup(
                 "Enter an Amount",
                 "Enter how much the patient is paying.",
-                "OK");
+                "OK", PopupAction.Positive, showCancelButton: false);
+            await Shell.Current.ShowPopupAsync(notice);
             return;
         }
 
         if (IsAmountTooLarge)
         {
-            bool proceed = await Shell.Current.DisplayAlert(
+            // Continuing is the positive path here, so it's green, not red.
+            var confirm = new ConfirmationPopup(
                 "Check Amount",
                 $"You entered {PaymentAmountDisplay}, but the total balance " +
                 $"is only {BalanceDisplay}. Continue anyway?",
-                "Yes, Continue", "Cancel");
+                "Yes, Continue", PopupAction.Positive);
+
+            var result = await Shell.Current.ShowPopupAsync(confirm);
+            bool proceed = result is bool b && b;
 
             if (!proceed)
                 return;
         }
+
+        // Final confirmation, worded with the amount that actually gets applied (capped at the balance), not whatever was typed.
+        var amountToRecord = Math.Min(RequiredAmount, Bill.Balance);
+        var confirmPayment = new ConfirmationPopup(
+            "Confirm Payment",
+            $"Record a payment of ₱{amountToRecord:N2} for {PatientName}?",
+            "Confirm", PopupAction.Positive);
+
+        var confirmResult = await Shell.Current.ShowPopupAsync(confirmPayment);
+        if (confirmResult is not bool confirmed || !confirmed)
+            return;
 
         IsBusy = true;
         HasError = false;
 
         try
         {
-            var amountToRecord = Math.Min(RequiredAmount, Bill.Balance);
-
             var (success, error) =
                 await _supabase.RecordPaymentAsync(Bill.Id, amountToRecord);
 

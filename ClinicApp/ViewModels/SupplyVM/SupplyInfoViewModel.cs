@@ -36,9 +36,7 @@ public partial class SupplyInfoViewModel : ObservableObject
     {
         <= 14 => 18,
         <= 20 => 16,
-        <= 26 => 14,
-        <= 32 => 12,
-        _ => 11
+        _ => 15
     };
 
     public string ExpirationDisplay => Supply is null ? "—"

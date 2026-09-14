@@ -152,7 +152,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 NotFound = true;
                 DebugInfo = $"Exception: {ex.Message}";
                 await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
-                    "Error loading receipt", ex.Message, "OK", showCancelButton: false));
+                    "Error loading receipt", ex.Message, "OK", PopupAction.Positive, showCancelButton: false));
             }
             finally { IsBusy = false; }
         }
@@ -180,7 +180,7 @@ namespace ClinicApp.ViewModels.TransactionVM
             catch (Exception ex)
             {
                 await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
-                    "Error", ex.Message, "OK", showCancelButton: false));
+                    "Error", ex.Message, "OK", PopupAction.Positive, showCancelButton: false));
             }
         }
     }
