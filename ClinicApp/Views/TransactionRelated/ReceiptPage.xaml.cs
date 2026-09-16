@@ -6,6 +6,7 @@ public partial class ReceiptPage : ContentPage
 {
     readonly ReceiptViewModel _vm;
 
+    // Wires up the view model as the binding context.
     public ReceiptPage(ReceiptViewModel vm)
     {
         InitializeComponent();
@@ -13,9 +14,7 @@ public partial class ReceiptPage : ContentPage
         BindingContext = vm;
     }
 
-    // Blocks Android's hardware/gesture back button. Hiding the visual
-    // back arrow (see Shell.BackButtonBehavior in the XAML) doesn't stop
-    // this on its own — Done is meant to be the only way off this page.
+    // Blocks the hardware/gesture back button — Done is meant to be the only way off this page.
     protected override bool OnBackButtonPressed()
     {
         return true;

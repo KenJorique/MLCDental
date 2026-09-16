@@ -106,7 +106,7 @@
                                Margin="6,10,0,0">
 							<Label.GestureRecognizers>
 								<TapGestureRecognizer Command="{Binding ShowHelpCommand}"
-                                    CommandParameter="Leave as-is for a fixed count (e.g. 2 for Crown). For open-ended/recurring treatments like Braces Adjustment, staff will just keep scheduling follow-ups — set this to 1 session if there's no fixed total."/>
+                                    CommandParameter="Enter how many sessions this treatment typically needs (minimum 2). For open-ended/recurring treatments like Braces Adjustment, staff will just keep scheduling follow-ups after each visit — this number is just the default shown when booking."/>
 							</Label.GestureRecognizers>
 						</Label>
 					</Grid>
@@ -116,6 +116,7 @@
                                    Keyboard="Numeric"
                                    Placeholder="2"
                                    HorizontalTextAlignment="Center"
+                                   Unfocused="OnTotalSessionsUnfocused"
                                    Style="{StaticResource FormEntry}"/>
 						</Border>
 						<Button Grid.Column="1" Text="−"
@@ -169,6 +170,7 @@
                                    Keyboard="Numeric"
                                    Placeholder="14"
                                    HorizontalTextAlignment="Center"
+                                   Unfocused="OnFollowupIntervalUnfocused"
                                    Style="{StaticResource FormEntry}"/>
 						</Border>
 						<Button Grid.Column="1" Text="−"

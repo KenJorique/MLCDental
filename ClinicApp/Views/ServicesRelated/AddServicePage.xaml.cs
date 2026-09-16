@@ -17,6 +17,12 @@ public partial class AddServicePage : ContentPage
     protected override bool OnBackButtonPressed()
     {
         _viewModel.CancelCommand.Execute(null);
-        return true; // tells the OS "I handled this — don't navigate back yet"
+        return true; // tells the OS "I handled this, don't navigate back yet"
     }
+
+    // Corrects a directly-typed Total Sessions value below the minimum of 2, once the user leaves the field.
+    private void OnTotalSessionsUnfocused(object? sender, FocusEventArgs e) => _viewModel.ClampTotalSessions();
+
+    // Corrects a directly-typed Follow-up Interval value below the minimum of 1, once the user leaves the field.
+    private void OnFollowupIntervalUnfocused(object? sender, FocusEventArgs e) => _viewModel.ClampFollowupInterval();
 }

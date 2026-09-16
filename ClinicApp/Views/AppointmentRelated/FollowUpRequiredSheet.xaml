@@ -9,7 +9,7 @@
     Shell.TabBarIsVisible="False"
     HasBackdrop="True"
     CornerRadius="20"
-    IsCancelable="False"
+    IsCancelable="True"
     BackgroundColor="White">
 
 	<the49:BottomSheet.Detents>

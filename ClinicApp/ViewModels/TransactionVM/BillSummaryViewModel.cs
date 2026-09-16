@@ -211,7 +211,7 @@ public partial class BillSummaryViewModel : ObservableObject
         var popup = new ConfirmationPopup(
             "Remove Service",
             $"Remove \"{item.ServiceName}\" from this bill?",
-            "Remove", Color.FromArgb("#D32F2F"));
+            "Remove", Colors.Crimson);
         var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
         bool confirm = result is bool b && b;
 
@@ -274,12 +274,28 @@ public partial class BillSummaryViewModel : ObservableObject
                     PendingFollowUps.Add(f);
 
                 _followUpSheet = new FollowUpRequiredSheet { BindingContext = this };
+
+                // If dragged closed, clear our reference so the next Proceed tap re-checks fresh data instead of assuming this sheet is still valid.
+                _followUpSheet.Dismissed += (s, origin) =>
+                {
+                    _followUpSheet = null;
+                    ShowFollowUpSheet = false;
+                };
+
                 ShowFollowUpSheet = true;
                 await _followUpSheet.ShowAsync();
                 return;
             }
 
             await Shell.Current.GoToAsync(nameof(PaymentPage));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[BillSummary] Proceed: {ex}");
+            await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
+                "Couldn't Proceed",
+                $"Something went wrong while checking follow-up sessions: {ex.Message}",
+                "OK", showCancelButton: false));
         }
         finally
         {

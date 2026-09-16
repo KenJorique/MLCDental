@@ -139,6 +139,20 @@ public partial class AddServiceViewModel : ObservableObject
     // Whether the follow-up interval is below its ceiling of 180 days — drives both the + button's enabled state and its command.
     public bool CanIncrementFollowupInterval => FollowupIntervalDays < 180;
 
+    // Called when the Total Sessions Entry loses focus — corrects a typed value below the minimum of 2.
+    public void ClampTotalSessions()
+    {
+        if (TotalSessions < 2)
+            TotalSessions = 2;
+    }
+
+    // Called when the Follow-up Interval Entry loses focus — corrects a typed value below the minimum of 1.
+    public void ClampFollowupInterval()
+    {
+        if (FollowupIntervalDays < 1)
+            FollowupIntervalDays = 1;
+    }
+
     // − button for Total Sessions, clamped to the same Minimum the old Stepper used.
     [RelayCommand(CanExecute = nameof(CanDecrementTotalSessions))]
     void DecrementTotalSessions() => TotalSessions = Math.Max(TotalSessions - 1, 2);
@@ -187,13 +201,8 @@ public partial class AddServiceViewModel : ObservableObject
         var confirmResult = await Shell.Current.ShowPopupAsync(confirmPopup);
         if (confirmResult is not bool confirmed || !confirmed) return;
 
-        // Recurring/open-ended services (e.g. Braces Adjustment) can leave TotalSessions
-        // blank-equivalent by using a very high number staff won't hit — simplest is to let
-        // DefaultTotalSessions be null when RequiresMultipleSessions is on but the treatment
-        // has no fixed session count. Here we treat "1" typed by staff as "not fixed" → null.
-        int? resolvedTotalSessions = RequiresMultipleSessions
-            ? (TotalSessions > 1 ? TotalSessions : null)
-            : null;
+        // TotalSessions is always a real, fixed number now (minimum enforced at 2) — no more "1 = open-ended" sentinel.
+        int? resolvedTotalSessions = RequiresMultipleSessions ? TotalSessions : null;
 
         int? resolvedInterval = RequiresMultipleSessions && FollowupIntervalDays > 0
             ? FollowupIntervalDays

@@ -28,8 +28,8 @@
                            VerticalOptions="Center"/>
 				</Frame>
 
-				<Frame BackgroundColor="{StaticResource InstallmentBg}"
-                       BorderColor="{StaticResource InstallmentBorder}"
+				<Frame BackgroundColor="#FFF8E1"
+                       BorderColor="#FFE082"
                        CornerRadius="12"
                        Padding="12"
                        HasShadow="False"
@@ -38,10 +38,10 @@
 					<VerticalStackLayout Spacing="4">
 						<Label Text="Installment Plan"
                                FontAttributes="Bold"
-                               TextColor="{StaticResource InstallmentText}"/>
+                               TextColor="#F57F17"/>
 						<Label Text="{Binding InstallmentDisplay}"
                                FontSize="13"
-                               TextColor="{StaticResource InstallmentText}"/>
+                               TextColor="#F57F17"/>
 
 						<Grid ColumnDefinitions="*,Auto">
 							<Label Text="Next Due (est.)"
@@ -131,15 +131,15 @@
 				</Frame>
 
 				<!-- Amount too large: shown instead of Change when the entered amount exceeds the whole balance -->
-				<Frame BackgroundColor="{StaticResource WarningBg}"
-                       BorderColor="{StaticResource WarningBorder}"
+				<Frame BackgroundColor="#FFF3E0"
+                       BorderColor="#FFCC80"
                        CornerRadius="12"
                        Padding="12"
                        HasShadow="False"
                        IsVisible="{Binding IsAmountTooLarge}">
 					<Label Text="{Binding BalanceDisplay, StringFormat='This is more than the total balance ({0}). Please double-check the amount.'}"
                            FontSize="13"
-                           TextColor="{StaticResource WarningText}"/>
+                           TextColor="#E65100"/>
 				</Frame>
 
 				<!-- Change: shown when the amount entered exceeds the minimum due but not the whole balance -->
