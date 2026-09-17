@@ -2,6 +2,7 @@
 using ClinicApp.Models;
 using ClinicApp.Models.PatientModels;
 using ClinicApp.Services;
+using ClinicApp.Services.CephaTrain;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Text.Json;
 
@@ -19,29 +20,21 @@ public partial class CephalometricMeasurementsViewModel : ObservableObject
     {
         _db = db;
 
-        System.Diagnostics.Debug.WriteLine("🔍 MeasurementsViewModel initialized");
-
-        // Load data from navigation
         if (NavigationData.PendingLandmarks != null && NavigationData.PendingLandmarks.Count > 0)
         {
-            System.Diagnostics.Debug.WriteLine($"✅ Found {NavigationData.PendingLandmarks.Count} landmarks in NavigationData");
-
             PatientName = NavigationData.PendingPatientName;
 
             _ = CalculateFromLandmarks(
                 NavigationData.PendingPatientId,
                 NavigationData.PendingPatientName ?? "",
-                NavigationData.PendingLandmarks);
+                NavigationData.PendingLandmarks,
+                NavigationData.PendingPixelsPerMm);
 
             NavigationData.PendingLandmarks = null;
         }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine("❌ No landmarks found in NavigationData!");
-        }
     }
 
-    public async Task CalculateFromLandmarks(int patientId, string patientName, List<Landmark> landmarks)
+    public async Task CalculateFromLandmarks(int patientId, string patientName, List<Landmark> landmarks, float pixelsPerMm)
     {
         try
         {
@@ -68,7 +61,9 @@ public partial class CephalometricMeasurementsViewModel : ObservableObject
 
             // Calculate all measurements
             System.Diagnostics.Debug.WriteLine("🧮 Calling CephalometricCalculations.CalculateMeasurements...");
-            var values = CephalometricCalculations.CalculateMeasurements(landmarks);
+            var values = CephalometricCalculations.CalculateMeasurements(landmarks, pixelsPerMm);
+
+
 
             System.Diagnostics.Debug.WriteLine($"📈 Calculations returned {values.Count} measurements");
 
@@ -113,7 +108,7 @@ public partial class CephalometricMeasurementsViewModel : ObservableObject
             Measurements = resultsList;
 
             // Save to database
-            await SaveMeasurements(patientId, values, landmarks);
+            await SaveMeasurements(patientId, values, landmarks, pixelsPerMm);
         }
         catch (Exception ex)
         {
@@ -123,37 +118,34 @@ public partial class CephalometricMeasurementsViewModel : ObservableObject
         }
     }
 
-    private async Task SaveMeasurements(int patientId, Dictionary<string, double> values, List<Landmark> landmarks)
+    private async Task SaveMeasurements(int patientId, Dictionary<string, double> values, List<Landmark> landmarks, float pixelsPerMm)
     {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"💾 Saving measurements for patient {patientId}...");
-            var manuallyPlacedNames = landmarks.Where(l => l.IsManuallyPlaced).Select(l => l.ClassName).ToList();
+        var manuallyPlacedNames = landmarks.Where(l => l.IsManuallyPlaced).Select(l => l.ClassName).ToList();
+        var notes = new List<string>();
 
-            var measurement = new CephalometricMeasurement
-            {
-                PatientId = patientId,
-                MeasurementDate = DateTime.Now,
-                SNA_Angle = values.ContainsKey("SNA") ? values["SNA"] : null,
-                SNB_Angle = values.ContainsKey("SNB") ? values["SNB"] : null,
-                ANB_Angle = values.ContainsKey("ANB") ? values["ANB"] : null,
-                FMA = values.ContainsKey("FMA") ? values["FMA"] : null,
-                SN_GoGn = values.ContainsKey("SN_GoGn") ? values["SN_GoGn"] : null,
-                U1_SN = values.ContainsKey("U1_SN") ? values["U1_SN"] : null,
-                L1_MP = values.ContainsKey("L1_MP") ? values["L1_MP"] : null,
-                LandmarkData = JsonSerializer.Serialize(values),
-                  Notes = manuallyPlacedNames.Count > 0
-        ? $"Includes manually placed landmarks: {string.Join(", ", manuallyPlacedNames)}"
-        : null
-            };
+        if (manuallyPlacedNames.Count > 0)
+            notes.Add($"Includes manually placed landmarks: {string.Join(", ", manuallyPlacedNames)}");
 
-            await _db.SaveCephalometricMeasurement(measurement);
-            System.Diagnostics.Debug.WriteLine("✅ Measurements saved to database");
-        }
-        catch (Exception ex)
+        notes.Add(pixelsPerMm > 0
+            ? $"Ruler calibration: {pixelsPerMm:F2} px/mm"
+            : "Not calibrated — linear measurements (AFH, PFH) unavailable");
+
+        var measurement = new CephalometricMeasurement
         {
-            System.Diagnostics.Debug.WriteLine($"❌ Save error: {ex.Message}");
-        }
+            PatientId = patientId,
+            MeasurementDate = DateTime.Now,
+            SNA_Angle = values.ContainsKey("SNA") ? values["SNA"] : null,
+            SNB_Angle = values.ContainsKey("SNB") ? values["SNB"] : null,
+            ANB_Angle = values.ContainsKey("ANB") ? values["ANB"] : null,
+            FMA = values.ContainsKey("FMA") ? values["FMA"] : null,
+            SN_GoGn = values.ContainsKey("SN_GoGn") ? values["SN_GoGn"] : null,
+            U1_SN = values.ContainsKey("U1_SN") ? values["U1_SN"] : null,
+            L1_MP = values.ContainsKey("L1_MP") ? values["L1_MP"] : null,
+            LandmarkData = JsonSerializer.Serialize(values),
+            Notes = string.Join(" | ", notes)
+        };
+
+        await _db.SaveCephalometricMeasurement(measurement);
     }
 }
 

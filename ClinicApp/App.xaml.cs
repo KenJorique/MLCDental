@@ -2,6 +2,8 @@
 using ClinicApp.Views.UsersRelated;
 using ClinicApp.Services;
 using ClinicApp.ViewModels.PatientsRelatedVM;
+using ClinicApp.Services.LoginService;
+using ClinicApp.Services.Database;
 
 namespace ClinicApp
 {
@@ -19,7 +21,7 @@ namespace ClinicApp
         // that "Remember me" gives you a real way to skip re-login during
         // normal use; only flip this on if you specifically need to
         // bypass even that.
-        const bool DevSkipLogin = false;
+        const bool DevSkipLogin = true;
 #endif
 
         public App(SupabaseDataService supabaseData, DatabaseService db,

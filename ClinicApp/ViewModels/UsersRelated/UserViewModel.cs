@@ -1,6 +1,7 @@
 ﻿using ClinicApp.Models;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Services.Database;
 using ClinicApp.Views.Shared;
 using ClinicApp.Views.UsersRelated;
 using CommunityToolkit.Mvvm.ComponentModel;

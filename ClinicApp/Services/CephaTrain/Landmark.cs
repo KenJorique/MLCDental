@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
-namespace ClinicApp.Services;
+namespace ClinicApp.Services.CephaTrain;
 
 public class Landmark : INotifyPropertyChanged
 {

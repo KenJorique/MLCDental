@@ -3,7 +3,7 @@ using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Models.TransactionModels;
 using ClinicApp.Models.TreatmentModels;
 
-namespace ClinicApp.Services;
+namespace ClinicApp.Services.BillingService;
 
 public class BillingService
 {
@@ -205,7 +205,7 @@ public class BillingService
             // Look up the hex color for this condition, same palette
             // used by DentalChartViewModel, so history entries match
             // the chart's color-coding.
-            var hex = ClinicApp.ViewModels.DentalChart.DentalChartViewModel
+            var hex = ViewModels.DentalChart.DentalChartViewModel
                 .ConditionColors.TryGetValue(condition, out var c) ? c : "#FFFFFF";
 
             foreach (var toothNum in teethNumbers)
@@ -228,7 +228,7 @@ public class BillingService
                 {
                     PatientId = patientId,
                     ToothNumber = toothNum,
-                    ToothName = new ClinicApp.ViewModels.DentalChart.ToothViewModel
+                    ToothName = new ViewModels.DentalChart.ToothViewModel
                     {
                         ToothNumber = toothNum
                     }.ToothName,

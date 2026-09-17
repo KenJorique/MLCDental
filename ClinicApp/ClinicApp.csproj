@@ -3,8 +3,6 @@
 	<PropertyGroup>
 		<TargetFrameworks>net8.0-android;net8.0-ios;net8.0-maccatalyst</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks>
-		<!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
-		<!-- <TargetFrameworks>$(TargetFrameworks);net8.0-tizen</TargetFrameworks> -->
 
 		<!-- Note for MacCatalyst:
 		The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
@@ -38,6 +36,12 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 		<Configurations>Debug;Release;Debugg;11</Configurations>
 		<Platforms>AnyCPU;ARM32</Platforms>
+		<OnnxRuntimeVersion>1.19.2</OnnxRuntimeVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<AndroidSupportedAbis>arm64-v8a;armeabi-v7a;x86_64</AndroidSupportedAbis>
+		<RuntimeIdentifiers>android-arm64;android-arm;android-x64</RuntimeIdentifiers>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -85,7 +89,7 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.100" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.100" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
-		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.28.0" />
+		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="$(OnnxRuntimeVersion)" />
 		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
 		<PackageReference Include="SkiaSharp" Version="2.88.9" />
 		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="2.88.9" />
@@ -257,5 +261,21 @@
 	    <Version>2.16.1</Version>
 	  </PackageReference>
 	</ItemGroup>
+	<Target Name="ExtractOnnxRuntimeNativeLibs"
+			BeforeTargets="_CollectAndroidNativeLibraries;ResolveAndroidNativeLibraries;CoreCompile"
+			Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<PropertyGroup>
+			<OnnxAarPath>$(NuGetPackageRoot)microsoft.ml.onnxruntime\$(OnnxRuntimeVersion)\runtimes\android\native\onnxruntime.aar</OnnxAarPath>
+			<OnnxAarExtractDir>$(IntermediateOutputPath)onnxruntime-aar\</OnnxAarExtractDir>
+		</PropertyGroup>
 
+		<Unzip
+			SourceFiles="$(OnnxAarPath)"
+			DestinationFolder="$(OnnxAarExtractDir)"
+			Condition="Exists('$(OnnxAarPath)') And !Exists('$(OnnxAarExtractDir)jni')" />
+
+		<ItemGroup>
+			<AndroidNativeLibrary Include="$(OnnxAarExtractDir)jni\**\*.so" />
+		</ItemGroup>
+	</Target>
 </Project>

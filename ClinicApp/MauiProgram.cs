@@ -20,6 +20,9 @@ using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using The49.Maui.BottomSheet;
 using SkiaSharp.Views.Maui.Controls.Hosting;
+using ClinicApp.Services.BillingService;
+using ClinicApp.Services.Database;
+using ClinicApp.Services.CephaTrain;
 
 namespace ClinicApp
 {
@@ -223,6 +226,7 @@ namespace ClinicApp
             // ── Cephalometric ─────────────────────────────
             builder.Services.AddTransient<Views.CephalometricRelated.CephalometricMeasurementsPage>();
             builder.Services.AddTransient<CephalometricMeasurementsViewModel>();
+            builder.Services.AddSingleton<OnDeviceCephalometricDetector>();
 
             // ── Reports ─────────────────────────────
             builder.Services.AddTransient<Views.ReportRelated.ReportsPage>();

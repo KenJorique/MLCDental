@@ -3,7 +3,7 @@ using Google.Apis.Services;
 using Google.Apis.Tasks.v1;
 using GoogleTask = Google.Apis.Tasks.v1.Data.Task; // ← alias fixes ambiguity
 
-namespace ClinicApp.Services
+namespace ClinicApp.Services.Database
 {
     public class GoogleTasksService
     {
@@ -14,7 +14,7 @@ namespace ClinicApp.Services
 
         public bool IsSignedIn => _isSignedIn;
 
-        public async System.Threading.Tasks.Task<bool> SignInAsync(string accessToken)
+        public async Task<bool> SignInAsync(string accessToken)
         {
             try
             {
@@ -40,7 +40,7 @@ namespace ClinicApp.Services
             }
         }
 
-        public async System.Threading.Tasks.Task<string?> CreateAppointmentTaskAsync(
+        public async Task<string?> CreateAppointmentTaskAsync(
             string patientName, string service,
             DateTime appointmentDateTime, string phone, string notes = "")
         {
@@ -74,7 +74,7 @@ namespace ClinicApp.Services
             }
         }
 
-        public async System.Threading.Tasks.Task CompleteTaskAsync(string taskId)
+        public async Task CompleteTaskAsync(string taskId)
         {
             if (!_isSignedIn || _service == null || string.IsNullOrEmpty(taskId)) return;
             try
@@ -90,7 +90,7 @@ namespace ClinicApp.Services
             }
         }
 
-        public async System.Threading.Tasks.Task DeleteTaskAsync(string taskId)
+        public async Task DeleteTaskAsync(string taskId)
         {
             if (!_isSignedIn || _service == null || string.IsNullOrEmpty(taskId)) return;
             try

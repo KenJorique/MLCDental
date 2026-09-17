@@ -3,6 +3,7 @@ using ClinicApp.Models;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Models.TransactionModels;
 using ClinicApp.Services;
+using ClinicApp.Services.BillingService;
 using ClinicApp.Views;
 using ClinicApp.Views.AppointmentRelated;
 using ClinicApp.Views.TransactionRelated;

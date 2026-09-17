@@ -13,6 +13,7 @@ using CommunityToolkit.Maui.Core.Platform;
 using Microsoft.Maui.Graphics;
 using Supabase.Gotrue;
 using ClinicApp.Services;
+using ClinicApp.Services.LoginService;
 
 namespace ClinicApp
 {

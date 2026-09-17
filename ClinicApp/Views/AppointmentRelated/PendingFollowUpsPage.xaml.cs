@@ -1,4 +1,4 @@
-using ClinicApp.Services;
+using ClinicApp.Services.Database;
 using ClinicApp.ViewModels;
 
 namespace ClinicApp.Views.AppointmentRelated

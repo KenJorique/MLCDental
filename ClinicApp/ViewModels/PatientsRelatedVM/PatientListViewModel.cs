@@ -1,6 +1,7 @@
 ﻿using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Services.Database;
 using ClinicApp.Views;
 using ClinicApp.Views.CephalometricRelated;
 using ClinicApp.Views.DentalChart;

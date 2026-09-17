@@ -1,7 +1,7 @@
 ﻿using ClinicApp.Views.UsersRelated;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ClinicApp.Services;
+namespace ClinicApp.Services.LoginService;
 
 /// <summary>
 /// Switches the app's root page between the (Shell-free) LoginPage and the

@@ -77,6 +77,27 @@
                             <Label Text="Mandibular plane" FontSize="10" TextColor="#666"/>
                         </StackLayout>
                     </FlexLayout>
+                    <!-- Calibration status + controls -->
+                    <StackLayout IsVisible="{Binding HasLandmarks}" Spacing="6" Margin="0,4,0,0">
+                        <Label Text="{Binding CalibrationStatusMessage}" 
+           FontSize="11" TextColor="#2563EB"
+           IsVisible="{Binding CalibrationStatusMessage, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding IsCalibrating, Converter={StaticResource InvertedBoolConverter}}">
+                            <Button Grid.Column="0" Text="Confirm Auto Scale" 
+                Command="{Binding ConfirmAutoDetectedScaleCommand}"
+                IsVisible="{Binding IsCalibrated, Converter={StaticResource InvertedBoolConverter}}"
+                BackgroundColor="#DBEAFE" TextColor="#1E40AF" CornerRadius="6" FontSize="12" Padding="8"/>
+                            <Button Grid.Column="1" Text="📏 Calibrate Manually" 
+                Command="{Binding StartManualCalibrationCommand}"
+                BackgroundColor="#F5F5F5" TextColor="#333" CornerRadius="6" FontSize="12" Padding="8"/>
+                        </Grid>
+
+                        <Button Text="Cancel Calibration" 
+            Command="{Binding CancelCalibrationCommand}"
+            IsVisible="{Binding IsCalibrating}"
+            BackgroundColor="#FEE2E2" TextColor="#991B1B" CornerRadius="6" FontSize="12" Padding="8"/>
+                    </StackLayout>
 
                     <!-- Missing-landmark warning: explains any gaps in the construction lines -->
                     <Label Text="{Binding IncompletePlanesMessage}" 

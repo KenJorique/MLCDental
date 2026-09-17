@@ -1,6 +1,7 @@
 ﻿using ClinicApp.Config;
 using ClinicApp.Models.PatientModels;
 using ClinicApp.Services;
+using ClinicApp.Services.CephaTrain;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -11,12 +12,14 @@ namespace ClinicApp.ViewModels.CephalometricVM;
 public partial class CephalometricViewModel : ObservableObject
 {
     readonly DatabaseService _db;
-    private CephalometricLandmarkDetector? _detector;
+    private OnDeviceCephalometricDetector? _detector;
 
-    public CephalometricViewModel(DatabaseService db)
+
+    public CephalometricViewModel(DatabaseService db, OnDeviceCephalometricDetector detector)
     {
         _db = db;
-        InitializeDetector();
+        _detector = detector;
+        _ = _detector.InitializeAsync();   // warm the model up while the user picks an image
     }
     public bool ShowMissingLandmarksUI => HasLandmarks && MissingLandmarkNames.Count > 0;
 
@@ -39,23 +42,122 @@ public partial class CephalometricViewModel : ObservableObject
 
     [ObservableProperty] string? landmarkBeingPlaced = null;  // null = not in placement mode
 
+    // In CephalometricViewModel.cs
+
+    [ObservableProperty] float pixelsPerMm = 0f;              // 0 = uncalibrated
+    [ObservableProperty] bool isCalibrated = false;
+    [ObservableProperty] string calibrationStatusMessage = "";
+    [ObservableProperty] bool isCalibrating = false;           // true while placing the two ruler taps
+    [ObservableProperty] float? calibrationPointAX = null;
+    [ObservableProperty] float? calibrationPointAY = null;
+
+    private double? _autoDetectedPixelsPerMm;
+    private double? _autoDetectedConfidence;
+
+    // Called from AnalyzeImage() after a successful detection
+    private void ApplyRulerDetection(double? pixelsPerMm, double? confidence)
+    {
+        _autoDetectedPixelsPerMm = pixelsPerMm;
+        _autoDetectedConfidence = confidence;
+
+        if (pixelsPerMm.HasValue && confidence >= 0.5)
+        {
+            // Pre-fill from auto-detection, but still requires explicit confirmation
+            PixelsPerMm = (float)pixelsPerMm.Value;
+            IsCalibrated = false;
+            CalibrationStatusMessage = $"📏 Ruler auto-detected (confidence {confidence:P0}) — tap Confirm Scale to verify, or recalibrate manually.";
+        }
+        else
+        {
+            PixelsPerMm = 0f;
+            IsCalibrated = false;
+            CalibrationStatusMessage = "📏 Ruler not confidently detected — tap two points a known distance apart on the ruler to calibrate manually.";
+        }
+    }
+
+    [RelayCommand]
+    void StartManualCalibration()
+    {
+        IsCalibrating = true;
+        CalibrationPointAX = null;
+        CalibrationPointAY = null;
+        CalibrationStatusMessage = "📏 Tap the FIRST ruler mark.";
+    }
+
+    [RelayCommand]
+    void CancelCalibration()
+    {
+        IsCalibrating = false;
+        CalibrationPointAX = null;
+        CalibrationPointAY = null;
+        CalibrationStatusMessage = IsCalibrated
+            ? $"📏 Calibrated: {PixelsPerMm:F2} px/mm"
+            : "📏 Not calibrated — linear measurements (AFH, PFH) unavailable.";
+    }
+
+    // Called from code-behind on each tap while IsCalibrating is true
+    public async void HandleCalibrationTap(float x, float y)
+    {
+        if (!IsCalibrating) return;
+
+        if (CalibrationPointAX == null)
+        {
+            // First tap — just record it, wait for the second
+            CalibrationPointAX = x;
+            CalibrationPointAY = y;
+            CalibrationStatusMessage = "📏 Tap the SECOND ruler mark (the known distance from the first).";
+            return;
+        }
+
+        // Second tap — ask for the real-world distance between the two taps
+        string? input = await Shell.Current.DisplayPromptAsync(
+            "Calibration Distance",
+            "Enter the real-world distance between the two points you tapped (in millimeters). Check the ruler markings on the X-ray.",
+            "OK", "Cancel",
+            placeholder: "e.g. 10",
+            keyboard: Keyboard.Numeric);
+
+        if (string.IsNullOrWhiteSpace(input) || !float.TryParse(input, out float knownMm) || knownMm <= 0)
+        {
+            CalibrationStatusMessage = "⚠ Calibration cancelled — invalid distance entered.";
+            IsCalibrating = false;
+            CalibrationPointAX = null;
+            CalibrationPointAY = null;
+            return;
+        }
+
+        float pixelDistance = MathF.Sqrt(MathF.Pow(x - CalibrationPointAX.Value, 2) + MathF.Pow(y - CalibrationPointAY.Value, 2));
+        if (pixelDistance <= 0)
+        {
+            CalibrationStatusMessage = "⚠ The two points were too close together — try again with points further apart.";
+            IsCalibrating = false;
+            CalibrationPointAX = null;
+            CalibrationPointAY = null;
+            return;
+        }
+
+        PixelsPerMm = pixelDistance / knownMm;
+        IsCalibrated = true;
+        IsCalibrating = false;
+        CalibrationPointAX = null;
+        CalibrationPointAY = null;
+        CalibrationStatusMessage = $"✅ Calibrated: {PixelsPerMm:F2} px/mm (from {knownMm}mm reference)";
+    }
+
+    [RelayCommand]
+    void ConfirmAutoDetectedScale()
+    {
+        if (PixelsPerMm <= 0) return;
+        IsCalibrated = true;
+        CalibrationStatusMessage = $"✅ Confirmed: {PixelsPerMm:F2} px/mm";
+    }
     partial void OnPatientIdChanged(int value)
     {
         if (value > 0)
             LoadImage(value);
     }
 
-    private void InitializeDetector()
-    {
-        try
-        {
-            _detector = new CephalometricLandmarkDetector(ApiConfig.CephalometricApiUrl);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Detector init error: {ex.Message}");
-        }
-    }
+
 
     private async void LoadImage(int patientId)
     {
@@ -99,34 +201,13 @@ public partial class CephalometricViewModel : ObservableObject
             return;
         }
 
-        if (_detector == null)
-        {
-            await Shell.Current.DisplayAlert("Error", "Detector not initialized.", "OK");
-            return;
-        }
-
         try
         {
             IsAnalyzing = true;
 
-            System.Diagnostics.Debug.WriteLine("🔍 Testing connection...");
-            bool isConnected = await _detector.TestConnectionAsync();
-            if (!isConnected)
-            {
-                await Shell.Current.DisplayAlert(
-                    "Server Not Reachable",
-                    "Could not connect to analysis server.",
-                    "OK");
-                return;
-            }
-
-            System.Diagnostics.Debug.WriteLine("📤 Running detection...");
+            System.Diagnostics.Debug.WriteLine("📤 Running on-device detection...");
             var result = await _detector.DetectLandmarksAsync(ImagePath);
             var landmarks = result.Landmarks;
-
-
-            for (int i = 0; i < landmarks.Count; i++)
-                landmarks[i].Index = i + 1;
 
             System.Diagnostics.Debug.WriteLine($"📊 Detected {landmarks.Count} landmarks, {result.SoftTissueOutline.Count} outline points");
 
@@ -139,6 +220,10 @@ public partial class CephalometricViewModel : ObservableObject
                 IncompletePlanes = new();
                 IncompletePlanesMessage = "";
                 LandmarkBeingPlaced = null;
+                PixelsPerMm = 0f;
+                IsCalibrated = false;
+                IsCalibrating = false;
+                CalibrationStatusMessage = "";
                 HasLandmarks = false;
                 return;
             }
@@ -146,10 +231,13 @@ public partial class CephalometricViewModel : ObservableObject
             DetectedLandmarks = landmarks;
             SoftTissueOutline = result.SoftTissueOutline;
             IncompletePlanes = result.IncompletePlanes;
-            MissingLandmarkNames = result.MissingLandmarks;   // full 19-class gap list from server
+            MissingLandmarkNames = result.MissingLandmarks;
             IncompletePlanesMessage = result.IncompletePlanes.Count > 0
                 ? $"⚠ {string.Join(", ", result.IncompletePlanes)} not shown — tap a missing landmark below to add it manually."
                 : "";
+
+            ApplyRulerDetection(result.PixelsPerMm, result.RulerConfidence);
+
             HasLandmarks = true;
 
             NavigationData.PendingLandmarks = landmarks;
@@ -178,7 +266,18 @@ public partial class CephalometricViewModel : ObservableObject
                 return;
             }
 
+            if (!IsCalibrated)
+            {
+                bool proceedAnyway = await Shell.Current.DisplayAlert(
+                    "Not Calibrated",
+                    "The ruler scale hasn't been confirmed. Linear measurements (AFH, PFH) will be skipped — only angle-based measurements (SNA, SNB, ANB, FMA, SN-GoGn) will be calculated. Continue?",
+                    "Continue", "Calibrate First");
+
+                if (!proceedAnyway) return;
+            }
+
             NavigationData.PendingLandmarks = DetectedLandmarks;
+            NavigationData.PendingPixelsPerMm = IsCalibrated ? PixelsPerMm : 0f;
             NavigationData.PendingPatientId = PatientId;
             NavigationData.PendingPatientName = PatientName;
 
@@ -229,6 +328,12 @@ public partial class CephalometricViewModel : ObservableObject
             IncompletePlanesMessage = "";
             LandmarkBeingPlaced = null;
             HasLandmarks = false;
+            PixelsPerMm = 0f;
+            IsCalibrated = false;
+            IsCalibrating = false;
+            CalibrationPointAX = null;
+            CalibrationPointAY = null;
+            CalibrationStatusMessage = "";
         }
         catch (Exception ex)
         {

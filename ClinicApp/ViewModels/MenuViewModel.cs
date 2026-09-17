@@ -1,4 +1,5 @@
 ﻿using ClinicApp.Services;
+using ClinicApp.Services.Database;
 using ClinicApp.Views;
 using ClinicApp.Views.ReportRelated;
 using ClinicApp.Views.ServicesRelated;
