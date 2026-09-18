@@ -401,13 +401,25 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 await _db.DeletePatient(card.Patient);
 
                 // Delete from Supabase if it has a cloud ID.
+                bool remoteOk = true;
                 if (!string.IsNullOrEmpty(card.Patient.SupabaseId))
                 {
                     var sp = new SupabasePatient { Id = card.Patient.SupabaseId };
-                    await _supabaseData.DeletePatientAsync(sp);
+                    remoteOk = await _supabaseData.DeletePatientAsync(sp);
                 }
 
                 await _supabaseData.LogActivityAsync("PatientDeleted", $"{card.Patient.FullName} was deleted");
+
+                if (!remoteOk)
+                {
+                    var warning = new ConfirmationPopup(
+                        "Cloud Delete Incomplete",
+                        $"\"{card.Patient.FullName}\" was removed locally, but some cloud records may remain. Check your connection and try again if needed.",
+                        confirmText: "OK",
+                        confirmColor: Colors.Green,
+                        showCancelButton: false);
+                    await Shell.Current.ShowPopupAsync(warning);
+                }
             }
             catch (Exception ex)
             {

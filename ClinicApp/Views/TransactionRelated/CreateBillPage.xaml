@@ -14,7 +14,7 @@
              BackgroundColor="{StaticResource PageBg}">
 
 	<ContentPage.Title>
-		<x:String>Create Bill</x:String>
+		<x:String>Select Services</x:String>
 	</ContentPage.Title>
 
 	<Grid>

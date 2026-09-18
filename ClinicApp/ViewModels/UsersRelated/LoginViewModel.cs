@@ -1,4 +1,6 @@
 ﻿using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -22,37 +24,54 @@ public partial class LoginViewModel : ObservableObject
     [ObservableProperty] string? password;
     [ObservableProperty] bool isPasswordHidden = true;
     [ObservableProperty] bool isBusy;
-    [ObservableProperty] string? errorMessage;
 
     // Bound to the "Remember me" checkbox on LoginPage.xaml.
     [ObservableProperty] bool rememberMe;
 
-    public bool CanLogin => !IsBusy && !string.IsNullOrWhiteSpace(Identifier) && !string.IsNullOrWhiteSpace(Password);
+    // Resolves the page currently on screen, to host the popup.
+    static Page CurrentPage =>
+        Shell.Current?.CurrentPage
+        ?? Application.Current?.Windows.FirstOrDefault()?.Page
+        ?? throw new InvalidOperationException("No current page available to host the popup.");
 
-    // Re-checks CanLogin whenever the identifier changes.
-    partial void OnIdentifierChanged(string? value) => LoginCommand.NotifyCanExecuteChanged();
-    // Re-checks CanLogin whenever the password changes.
-    partial void OnPasswordChanged(string? value) => LoginCommand.NotifyCanExecuteChanged();
-    // Re-checks CanLogin whenever the busy state changes.
-    partial void OnIsBusyChanged(bool value) => LoginCommand.NotifyCanExecuteChanged();
+    // Shows an OK-only notice popup — used for validation messages and login failures alike.
+    static async Task ShowNoticeAsync(string title, string message)
+    {
+        var popup = new ConfirmationPopup(title, message, "OK", PopupAction.Positive, showCancelButton: false);
+        await CurrentPage.ShowPopupAsync(popup);
+    }
 
     // Flips the password field between hidden and visible.
     [RelayCommand]
     void TogglePasswordVisibility() => IsPasswordHidden = !IsPasswordHidden;
 
-    // Authenticates the user, starts the session, and opens the app.
-    [RelayCommand(CanExecute = nameof(CanLogin))]
+    // Validates input, authenticates, starts the session, and opens the app — the button stays enabled
+    // and green regardless of field state; any problem is surfaced via the popup instead of disabling it.
+    [RelayCommand]
     async Task Login()
     {
-        ErrorMessage = null;
+        if (IsBusy) return;
+
+        if (string.IsNullOrWhiteSpace(Identifier) || string.IsNullOrWhiteSpace(Password))
+        {
+            await ShowNoticeAsync("Missing Information", "Please enter both your email/username and password.");
+            return;
+        }
+
+        if (Password.Length < 6)
+        {
+            await ShowNoticeAsync("Invalid Password", "Password must be at least 6 characters.");
+            return;
+        }
+
         IsBusy = true;
         try
         {
-            var result = await _auth.LoginAsync(Identifier ?? "", Password ?? "");
+            var result = await _auth.LoginAsync(Identifier, Password);
 
             if (!result.Success || result.User is null)
             {
-                ErrorMessage = result.ErrorMessage;
+                await ShowNoticeAsync("Login Failed", result.ErrorMessage ?? "Incorrect email/username or password.");
                 Password = null;
                 return;
             }
@@ -73,7 +92,7 @@ public partial class LoginViewModel : ObservableObject
         }
         catch (Exception)
         {
-            ErrorMessage = "Something went wrong. Please try again.";
+            await ShowNoticeAsync("Error", "Something went wrong. Please try again.");
         }
         finally
         {

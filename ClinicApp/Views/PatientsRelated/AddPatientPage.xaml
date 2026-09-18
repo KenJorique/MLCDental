@@ -120,7 +120,7 @@
 					<Label Text="*" Style="{StaticResource FormRequiredStar}"/>
 				</HorizontalStackLayout>
 				<Border Style="{StaticResource FormInputBox}">
-					<Entry Text="{Binding MobileNo}" Keyboard="Telephone"
+					<Entry Text="{Binding MobileNo}" Keyboard="Telephone" MaxLength="11"
                            Style="{StaticResource FormEntry}"/>
 				</Border>
 
@@ -184,7 +184,7 @@
                            IsVisible="{Binding IsMinor}"/>
 				</HorizontalStackLayout>
 				<Border Style="{StaticResource FormInputBox}">
-					<Entry Text="{Binding GuardianMobileNo}" Keyboard="Telephone"
+					<Entry Text="{Binding GuardianMobileNo}" Keyboard="Telephone" MaxLength="11"
                            Style="{StaticResource FormEntry}"/>
 				</Border>
 
@@ -222,6 +222,14 @@
                                IsVisible="{Binding IsFemale}"/>
 					</Grid>
 				</Grid>
+
+				<!-- Treatment details — shown when checked -->
+				<VerticalStackLayout IsVisible="{Binding UnderMedicalTreatment}" Spacing="0">
+					<Label Text="Condition being treated" Style="{StaticResource FormFieldLabel}"/>
+					<Border Style="{StaticResource FormInputBoxTall}">
+						<Editor Text="{Binding TreatmentDetails}" Style="{StaticResource FormEditor}"/>
+					</Border>
+				</VerticalStackLayout>
 
 				<!-- Medication details — shown when checked -->
 				<VerticalStackLayout IsVisible="{Binding TakingMedications}" Spacing="0">

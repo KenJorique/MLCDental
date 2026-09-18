@@ -126,6 +126,9 @@ public partial class AddUserViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(FullName))
             errors.Add("Full name is required.");
 
+        if (string.IsNullOrWhiteSpace(Username))
+            errors.Add("Username is required.");
+
         if (string.IsNullOrWhiteSpace(Role))
             errors.Add("Please select a role.");
 
@@ -141,7 +144,10 @@ public partial class AddUserViewModel : ObservableObject
                 errors.Add("Passwords do not match.");
         }
 
-        if (!string.IsNullOrWhiteSpace(ContactNo) && !Regex.IsMatch(ContactNo, @"^09\d{9}$"))
+        // Required — unlike Email below, which stays optional.
+        if (string.IsNullOrWhiteSpace(ContactNo))
+            errors.Add("Contact number is required.");
+        else if (!Regex.IsMatch(ContactNo, @"^09\d{9}$"))
             errors.Add("Contact number must be 11 digits starting with 09.");
 
         if (!string.IsNullOrWhiteSpace(Email) && !Regex.IsMatch(Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))

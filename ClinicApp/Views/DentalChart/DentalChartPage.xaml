@@ -97,7 +97,7 @@
 						<dc:DentalArchCanvasView Arch="Lower"
                                                   TeethSource="{Binding LowerTeeth}"
                                                   TappedCommand="{Binding ToothTappedCommand}"
-                                                  HeightRequest="200"
+                                                  HeightRequest="240"
                                                   HorizontalOptions="Fill"/>
 
 						<!-- LOWER arch label -->
@@ -326,18 +326,18 @@
 							<!-- Edit mode: Save + Cancel -->
 							<Button Grid.Column="0"
                                     IsVisible="{Binding IsEditMode}"
-                                    Text="Save"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    TextColor="{StaticResource TextOnPrimary}"
-                                    CornerRadius="8" FontSize="14"
-                                    Command="{Binding SaveEditCommand}"/>
-							<Button Grid.Column="1"
-                                    IsVisible="{Binding IsEditMode}"
                                     Text="Cancel"
                                     BackgroundColor="{StaticResource Secondary}"
                                     TextColor="{StaticResource Primary}"
                                     CornerRadius="8" FontSize="14"
                                     Command="{Binding CancelEditCommand}"/>
+							<Button Grid.Column="1"
+                                    IsVisible="{Binding IsEditMode}"
+                                    Text="Save"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="{StaticResource TextOnPrimary}"
+                                    CornerRadius="8" FontSize="14"
+                                    Command="{Binding SaveEditCommand}"/>
 						</Grid>
 
 					</VerticalStackLayout>

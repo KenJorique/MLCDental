@@ -33,7 +33,7 @@
 
 	<Style x:Key="FormHintLabel" TargetType="Label">
 		<Setter Property="FontSize" Value="12"/>
-		<Setter Property="TextColor" Value="{StaticResource TextMuted}"/>
+		<Setter Property="TextColor" Value="{StaticResource Gray400}"/>
 		<Setter Property="Margin" Value="2,2,0,0"/>
 	</Style>
 
@@ -64,7 +64,7 @@
 	<Style x:Key="FormEntry" TargetType="Entry">
 		<Setter Property="FontSize" Value="14"/>
 		<Setter Property="TextColor" Value="{StaticResource TextPrimary}"/>
-		<Setter Property="PlaceholderColor" Value="{StaticResource TextMuted}"/>
+		<Setter Property="PlaceholderColor" Value="{StaticResource Gray500}"/>
 		<Setter Property="BackgroundColor" Value="Transparent"/>
 		<Setter Property="VerticalOptions" Value="Center"/>
 		<Setter Property="Keyboard" Value="Text"/>

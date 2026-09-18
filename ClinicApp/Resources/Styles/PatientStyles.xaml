@@ -8,35 +8,23 @@
 	<Color x:Key="MediumGreen">#B8DEC0</Color>
 
 	<!-- Backgrounds -->
-	<!-- SurfaceBg used to be its own near-duplicate pale green (#F0F7F1),
-	     visually indistinguishable from Colors.xaml's Secondary
-	     (#EEF5EE). CHECKKKK -->
-	<Color x:Key="SurfaceBg">#EEF5EE</Color>
 	<Color x:Key="CardBg">#FFFFFF</Color>
 	<Color x:Key="Divider">#DCF0E2</Color>
 
 	<!-- ══════════════════════════════════════════
 	     TYPOGRAPHY
 	══════════════════════════════════════════════ -->
-	<Style x:Key="SectionTitleStyle" TargetType="Label">
-		<Setter Property="FontSize" Value="12"/>
-		<Setter Property="FontAttributes" Value="Bold"/>
-		<Setter Property="TextColor" Value="{StaticResource PrimaryGreen}"/>
+	<!-- These four now inherit their look from Styles.xaml's shared equivalents, so Patient pages
+	     match the rest of the app (Home/Reports/Billing/Treatment). Kept under the same key names
+	     so no binding in PatientDetailsPage.xaml/AddPatientPage.xaml needs to change. Only layout
+	     properties genuinely specific to this module's row/card spacing are kept as overrides. -->
+	<Style x:Key="SectionTitleStyle" TargetType="Label" BasedOn="{StaticResource CardSectionTitleStyle}">
 		<Setter Property="Margin" Value="0,0,0,12"/>
 	</Style>
 
-	<Style x:Key="RowLabelStyle" TargetType="Label">
-		<Setter Property="FontSize" Value="14"/>
-		<Setter Property="TextColor" Value="{StaticResource TextSecondary}"/>
-		<Setter Property="VerticalOptions" Value="Center"/>
-	</Style>
+	<Style x:Key="RowLabelStyle" TargetType="Label" BasedOn="{StaticResource CardRowLabelStyle}"/>
 
-	<Style x:Key="RowValueStyle" TargetType="Label">
-		<Setter Property="FontSize" Value="14"/>
-		<Setter Property="TextColor" Value="{StaticResource TextPrimary}"/>
-		<Setter Property="FontAttributes" Value="Bold"/>
-		<Setter Property="VerticalOptions" Value="Center"/>
-		<Setter Property="HorizontalTextAlignment" Value="End"/>
+	<Style x:Key="RowValueStyle" TargetType="Label" BasedOn="{StaticResource CardRowValueStyle}">
 		<Setter Property="LineBreakMode" Value="WordWrap"/>
 	</Style>
 
@@ -53,11 +41,7 @@
 	<!-- ══════════════════════════════════════════
 	     CARDS
 	══════════════════════════════════════════════ -->
-	<Style x:Key="CardStyle" TargetType="Border">
-		<Setter Property="BackgroundColor" Value="{StaticResource CardBg}"/>
-		<Setter Property="Stroke" Value="{StaticResource CardBorderColor}"/>
-		<Setter Property="StrokeThickness" Value="1"/>
-		<Setter Property="Padding" Value="16"/>
+	<Style x:Key="CardStyle" TargetType="Border" BasedOn="{StaticResource ElevatedCardStyle}">
 		<Setter Property="Margin" Value="0,0,0,12"/>
 	</Style>
 
@@ -78,13 +62,7 @@
 	<!-- ══════════════════════════════════════════
 	     BUTTONS
 	══════════════════════════════════════════════ -->
-	<Style x:Key="PrimaryButtonStyle" TargetType="Button">
-		<Setter Property="BackgroundColor" Value="{StaticResource PrimaryGreen}"/>
-		<Setter Property="TextColor" Value="{StaticResource TextOnPrimary}"/>
-		<Setter Property="FontSize" Value="16"/>
-		<Setter Property="FontAttributes" Value="Bold"/>
-		<Setter Property="CornerRadius" Value="14"/>
-		<Setter Property="HeightRequest" Value="52"/>
+	<Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryActionButtonStyle}">
 		<Setter Property="HorizontalOptions" Value="Fill"/>
 	</Style>
 

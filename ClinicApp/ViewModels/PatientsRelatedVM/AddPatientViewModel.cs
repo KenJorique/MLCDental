@@ -1,4 +1,5 @@
 ﻿using ClinicApp.Models;
+using ClinicApp.Helpers;
 using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
@@ -67,6 +68,7 @@ public partial class AddPatientViewModel : ObservableObject
     [ObservableProperty] bool isGoodHealth = true;
     [ObservableProperty] bool isPregnant;
     [ObservableProperty] bool underMedicalTreatment;
+    [ObservableProperty] string treatmentDetails = string.Empty;
     [ObservableProperty] string medicationDetails = string.Empty;
     [ObservableProperty] bool hasBeenHospitalized;
     [ObservableProperty] string hospitalizationDetails = string.Empty;
@@ -201,6 +203,7 @@ public partial class AddPatientViewModel : ObservableObject
                 IsGoodHealth = m.IsGoodHealth;
                 IsPregnant = m.IsPregnant;
                 UnderMedicalTreatment = m.UnderMedicalTreatment;
+                TreatmentDetails = m.TreatmentDetails;
                 MedicationDetails = m.MedicationDetails;
                 HasBeenHospitalized = m.HasBeenHospitalized;
                 HospitalizationDetails = m.HospitalizationDetails;
@@ -237,22 +240,9 @@ public partial class AddPatientViewModel : ObservableObject
     [RelayCommand]
     async Task SavePatient()
     {
-        var errors = new List<string>();
-        if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
-            errors.Add("• First and last name are required.");
-        if (string.IsNullOrWhiteSpace(SelectedGender))
-            errors.Add("• Gender is required.");
-        if (string.IsNullOrWhiteSpace(Address))
-            errors.Add("• Address is required.");
-        if (string.IsNullOrWhiteSpace(MobileNo))
-            errors.Add("• Mobile number is required.");
-        if (IsMinor)
-        {
-            if (string.IsNullOrWhiteSpace(GuardianName))
-                errors.Add("• Guardian name is required for patients under 18.");
-            if (string.IsNullOrWhiteSpace(GuardianMobileNo))
-                errors.Add("• Guardian mobile number is required for patients under 18.");
-        }
+        var errors = PatientValidator.Validate(
+            FirstName, LastName, SelectedGender, Address, MobileNo, Email,
+            IsMinor, GuardianName, GuardianMobileNo);
         if (errors.Count > 0)
         {
             var notice = new ConfirmationPopup(
@@ -281,6 +271,11 @@ public partial class AddPatientViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            // Clear a detail field once its checkbox is off, so an old value can't resurface if it's checked again later.
+            if (!UnderMedicalTreatment) TreatmentDetails = string.Empty;
+            if (!HasBeenHospitalized) HospitalizationDetails = string.Empty;
+            if (!TakingMedications) MedicationDetails = string.Empty;
+
             // ── 1. Save to local SQLite ───────────────────────────────
             Patient p;
             if (PatientId > 0)
@@ -332,6 +327,7 @@ public partial class AddPatientViewModel : ObservableObject
                 IsGoodHealth = IsGoodHealth,
                 IsPregnant = IsPregnant,
                 UnderMedicalTreatment = UnderMedicalTreatment,
+                TreatmentDetails = TreatmentDetails.Trim(),
                 MedicationDetails = MedicationDetails.Trim(),
                 HasBeenHospitalized = HasBeenHospitalized,
                 HospitalizationDetails = HospitalizationDetails.Trim(),
@@ -488,6 +484,7 @@ public partial class AddPatientViewModel : ObservableObject
             sp.ReferredBy = saved.ReferredBy;
             sp.GoodHealth = m?.IsGoodHealth ?? true;
             sp.UnderTreatment = m?.UnderMedicalTreatment ?? false;
+            sp.TreatmentDetails = m?.TreatmentDetails;
             sp.Hospitalized = m?.HasBeenHospitalized ?? false;
             sp.UsesTobacco = m?.UsesTobacco ?? false;
             sp.OnMedications = m?.TakingMedications ?? false;
@@ -535,6 +532,7 @@ public partial class AddPatientViewModel : ObservableObject
                 ReferredBy = saved.ReferredBy,
                 GoodHealth = m?.IsGoodHealth ?? true,
                 UnderTreatment = m?.UnderMedicalTreatment ?? false,
+                TreatmentDetails = m?.TreatmentDetails,
                 Hospitalized = m?.HasBeenHospitalized ?? false,
                 UsesTobacco = m?.UsesTobacco ?? false,
                 OnMedications = m?.TakingMedications ?? false,

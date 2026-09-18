@@ -136,7 +136,7 @@
 				<!-- Role -->
 				<Label Text="Role" Style="{StaticResource FormFieldLabel}"/>
 				<Border Style="{StaticResource FormInputBox}">
-					<Picker SelectedItem="{Binding Role}" Title="Select role" TitleColor="{StaticResource TextMuted}">
+					<Picker SelectedItem="{Binding Role}" Title="Select role" TitleColor="{StaticResource Gray500}">
 						<Picker.ItemsSource>
 							<x:Array Type="{x:Type x:String}">
 								<x:String>Dentist</x:String>

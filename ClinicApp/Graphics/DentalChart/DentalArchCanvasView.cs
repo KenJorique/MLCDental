@@ -101,11 +101,24 @@ public class DentalArchCanvasView : SKCanvasView
         int count = teeth.Count; // expected 16 per arch
         float cx = info.Width / 2f;
 
-        // Arch sizing — front teeth sit near the outer edge (away from
-        // gum line), molars curve down toward the gum line at the sides.
-        float a = info.Width * 0.42f;        // horizontal spread
-        float topPad = info.Height * 0.14f;
-        float bottomPad = info.Height * 0.12f;
+        // Margins sized to comfortably fit the label's reach (toothScale × labelOffsetLocal +
+        // text ascent ≈ 82px at this scale) without relying on the edge-clamp below to save it —
+        // when the clamp has to intervene for some teeth but not others, that's exactly what
+        // produces inconsistent number-to-tooth distances. These fractions assume roughly
+        // HeightRequest≈200 at typical 2–3x device density; if the arch views' HeightRequest
+        // changes, these may need to move with it.
+        // Lower's teeth get rotated an extra 180° so their crowns point down instead of up —
+        // correct for how they should look, but it also flips which way each tooth's shape
+        // extends relative to its pivot: Upper's outer teeth flare outward from their pivot,
+        // Lower's curl inward toward center instead, even though the pivots themselves sit at
+        // identical x-coordinates on both arches. A wider spread here compensates, so the
+        // visible teeth (not just the invisible pivot points) end up reaching out to roughly
+        // the same width as Upper's.
+        float a = Arch == ArchPosition.Upper
+            ? info.Width * 0.37f
+            : info.Width * 0.48f;
+        float topPad = info.Height * 0.22f;
+        float bottomPad = info.Height * 0.20f;
         float usableDepth = info.Height - topPad - bottomPad;
 
         float angleSpreadDeg = 210f;
@@ -152,7 +165,7 @@ public class DentalArchCanvasView : SKCanvasView
         };
         using var labelFont = new SKFont
         {
-            Size = 10
+            Size = 13
         };
 
         // Touch targets need to be a real minimum size (~44dp) regardless of screen density —
@@ -219,7 +232,10 @@ public class DentalArchCanvasView : SKCanvasView
             float cosR = (float)Math.Cos(rotRad);
 
             // Tooth number, placed just past the crown tip along the tooth's own rotated axis.
-            const float labelOffsetLocal = 34f;
+            // 46 (up from 34) leaves real clearance past the tallest teeth's tip (~61px at this
+            // scale) instead of landing almost exactly on it, which is why numbers were reading
+            // as "too close/behind" the tooth even when they were technically visible.
+            const float labelOffsetLocal = 40f;
             float lx = x + toothScale * labelOffsetLocal * sinR;
             float ly = y - toothScale * labelOffsetLocal * cosR;
 
@@ -229,6 +245,17 @@ public class DentalArchCanvasView : SKCanvasView
             labelFont.GetGlyphs(label.AsSpan(), glyphs.AsSpan());
 
             float textWidth = labelFont.MeasureText(glyphs);
+
+            // Clamp so the number always stays fully inside the canvas. A fixed offset distance
+            // has no idea how much headroom topPad/bottomPad actually leave at this view's real
+            // rendered size — on some devices/heights that headroom is smaller than the offset,
+            // which is exactly why front/side teeth's numbers were going missing rather than
+            // just landing a little off.
+            float halfTextWidth = textWidth / 2f;
+            float textAscent = -labelFont.Metrics.Ascent; // Ascent is negative in Skia
+            const float edgeMargin = 3f;
+            lx = Math.Clamp(lx, edgeMargin + halfTextWidth, info.Width - edgeMargin - halfTextWidth);
+            ly = Math.Clamp(ly, edgeMargin + textAscent, info.Height - edgeMargin);
 
             using var builder = new SKTextBlobBuilder();
             var runBuffer = builder.AllocateRun(labelFont, glyphCount, 0, 0);

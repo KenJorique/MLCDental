@@ -135,7 +135,8 @@ namespace ClinicApp.Services
         // Cascades through every table that references this patient before deleting the row itself,
         // so nothing gets orphaned (bills/items/payments, transactions, treatment records/history,
         // tooth records, treatment sequences).
-        public async Task DeletePatientAsync(SupabasePatient patient)
+        // Cascades the delete across bills, payments, transactions, treatment/tooth records and sequences, then the patient row itself. Returns false on any failure instead of swallowing it.
+        public async Task<bool> DeletePatientAsync(SupabasePatient patient)
         {
             try
             {
@@ -210,10 +211,13 @@ namespace ClinicApp.Services
 
                 // ── Finally, the patient itself ──
                 await _client!.From<SupabasePatient>().Delete(patient);
+
+                return true;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Supabase] DeletePatient: {ex.Message}");
+                return false;
             }
         }
 

@@ -94,6 +94,28 @@
 							<Label Text="PERSONAL INFORMATION" Style="{StaticResource SectionTitleStyle}"/>
 
 							<Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
+								<Label Grid.Column="0" Text="First Name" Style="{StaticResource RowLabelStyle}"/>
+								<Label Grid.Column="1" Text="{Binding FirstName}" Style="{StaticResource RowValueStyle}"
+                                       IsVisible="{Binding IsPersonalEditMode, Converter={StaticResource InvertedBoolConverter}}"/>
+								<Entry Grid.Column="1" Text="{Binding FirstName}"
+                                       HorizontalTextAlignment="End" FontSize="14"
+                                       MinimumHeightRequest="44" BackgroundColor="Transparent"
+                                       IsVisible="{Binding IsPersonalEditMode}"/>
+							</Grid>
+							<BoxView HeightRequest="1" Color="{StaticResource Divider}" Margin="0,0,0,12"/>
+
+							<Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
+								<Label Grid.Column="0" Text="Last Name" Style="{StaticResource RowLabelStyle}"/>
+								<Label Grid.Column="1" Text="{Binding LastName}" Style="{StaticResource RowValueStyle}"
+                                       IsVisible="{Binding IsPersonalEditMode, Converter={StaticResource InvertedBoolConverter}}"/>
+								<Entry Grid.Column="1" Text="{Binding LastName}"
+                                       HorizontalTextAlignment="End" FontSize="14"
+                                       MinimumHeightRequest="44" BackgroundColor="Transparent"
+                                       IsVisible="{Binding IsPersonalEditMode}"/>
+							</Grid>
+							<BoxView HeightRequest="1" Color="{StaticResource Divider}" Margin="0,0,0,12"/>
+
+							<Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
 								<Label Grid.Column="0" Text="Gender" Style="{StaticResource RowLabelStyle}"/>
 								<Label Grid.Column="1" Text="{Binding Gender}" Style="{StaticResource RowValueStyle}"
                                        IsVisible="{Binding IsPersonalEditMode, Converter={StaticResource InvertedBoolConverter}}"/>
@@ -189,7 +211,7 @@
 								<Label Grid.Column="0" Text="Mobile" Style="{StaticResource RowLabelStyle}"/>
 								<Label Grid.Column="1" Text="{Binding MobileNo}" Style="{StaticResource RowValueStyle}"
                                        IsVisible="{Binding IsPersonalEditMode, Converter={StaticResource InvertedBoolConverter}}"/>
-								<Entry Grid.Column="1" Text="{Binding MobileNo}" Keyboard="Telephone"
+								<Entry Grid.Column="1" Text="{Binding MobileNo}" Keyboard="Telephone" MaxLength="11"
                                        HorizontalTextAlignment="End" FontSize="14"
                                        MinimumHeightRequest="44" BackgroundColor="Transparent"
                                        IsVisible="{Binding IsPersonalEditMode}"/>
@@ -286,7 +308,7 @@
 								<Label Grid.Column="0" Text="Mobile" Style="{StaticResource RowLabelStyle}"/>
 								<Label Grid.Column="1" Text="{Binding GuardianMobile}" Style="{StaticResource RowValueStyle}"
                                        IsVisible="{Binding IsPersonalEditMode, Converter={StaticResource InvertedBoolConverter}}"/>
-								<Entry Grid.Column="1" Text="{Binding GuardianMobile}" Keyboard="Telephone"
+								<Entry Grid.Column="1" Text="{Binding GuardianMobile}" Keyboard="Telephone" MaxLength="11"
                                        HorizontalTextAlignment="End" FontSize="14"
                                        MinimumHeightRequest="44" BackgroundColor="Transparent"
                                        IsVisible="{Binding IsPersonalEditMode}"/>
@@ -329,61 +351,61 @@
 							<VerticalStackLayout IsVisible="{Binding IsMedicalEditMode, Converter={StaticResource InvertedBoolConverter}}" Spacing="0">
 
 								<!-- Blood Type -->
-								<Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
+								<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
 									<Label Grid.Column="0" Text="Blood Type" Style="{StaticResource RowLabelStyle}"/>
 									<Label Grid.Column="1" Text="{Binding BloodType}" Style="{StaticResource RowValueStyle}"/>
 								</Grid>
 								<BoxView HeightRequest="1" Color="{StaticResource Divider}" Margin="0,0,0,12"/>
 
 								<!-- In Good Health -->
-								<Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
+								<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
 									<Label Grid.Column="0" Text="In Good Health" Style="{StaticResource RowLabelStyle}"/>
 									<Label Grid.Column="1" Text="{Binding IsGoodHealth, Converter={StaticResource BoolToYesNoConverter}}" Style="{StaticResource RowValueStyle}"/>
 								</Grid>
 								<BoxView HeightRequest="1" Color="{StaticResource Divider}" Margin="0,0,0,12"/>
 
 								<!-- Under Medical Treatment + details -->
-								<Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
+								<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
 									<Label Grid.Column="0" Text="Under Medical Treatment" Style="{StaticResource RowLabelStyle}"/>
 									<Label Grid.Column="1" Text="{Binding UnderMedicalTreatment, Converter={StaticResource BoolToYesNoConverter}}" Style="{StaticResource RowValueStyle}"/>
 								</Grid>
-								<Label Text="{Binding MedicationDetails}"
-									   FontSize="13" TextColor="{StaticResource TextSecondary}"
+								<Label Text="{Binding TreatmentDetails}"
+									   FontSize="13" TextColor="{StaticResource Gray800}"
 									   Margin="0,0,0,12"
 									   IsVisible="{Binding UnderMedicalTreatment}"/>
 								<BoxView HeightRequest="1" Color="{StaticResource Divider}" Margin="0,0,0,12"/>
 
 								<!-- Been Hospitalized + details -->
-								<Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
+								<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
 									<Label Grid.Column="0" Text="Been Hospitalized" Style="{StaticResource RowLabelStyle}"/>
 									<Label Grid.Column="1" Text="{Binding HasBeenHospitalized, Converter={StaticResource BoolToYesNoConverter}}" Style="{StaticResource RowValueStyle}"/>
 								</Grid>
 								<Label Text="{Binding HospitalizationDetails}"
-									   FontSize="13" TextColor="{StaticResource TextSecondary}"
+									   FontSize="13" TextColor="{StaticResource Gray800}"
 									   Margin="0,0,0,12"
 									   IsVisible="{Binding HasBeenHospitalized}"/>
 								<BoxView HeightRequest="1" Color="{StaticResource Divider}" Margin="0,0,0,12"/>
 
 								<!-- Taking Medications + details -->
-								<Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
+								<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
 									<Label Grid.Column="0" Text="Taking Medications" Style="{StaticResource RowLabelStyle}"/>
 									<Label Grid.Column="1" Text="{Binding TakingMedications, Converter={StaticResource BoolToYesNoConverter}}" Style="{StaticResource RowValueStyle}"/>
 								</Grid>
 								<Label Text="{Binding MedicationDetails}"
-									   FontSize="13" TextColor="{StaticResource TextSecondary}"
+									   FontSize="13" TextColor="{StaticResource Gray800}"
 									   Margin="0,0,0,12"
 									   IsVisible="{Binding TakingMedications}"/>
 								<BoxView HeightRequest="1" Color="{StaticResource Divider}" Margin="0,0,0,12"/>
 
 								<!-- Uses Tobacco -->
-								<Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
+								<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
 									<Label Grid.Column="0" Text="Uses Tobacco" Style="{StaticResource RowLabelStyle}"/>
 									<Label Grid.Column="1" Text="{Binding UsesTobacco, Converter={StaticResource BoolToYesNoConverter}}" Style="{StaticResource RowValueStyle}"/>
 								</Grid>
 								<BoxView HeightRequest="1" Color="{StaticResource Divider}" Margin="0,0,0,12"/>
 
 								<!-- Pregnant — only visible for female patients -->
-								<Grid ColumnDefinitions="*,*" Margin="0,0,0,0"
+								<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,0"
 									  IsVisible="{Binding IsFemale}">
 									<Label Grid.Column="0" Text="Pregnant" Style="{StaticResource RowLabelStyle}"/>
 									<Label Grid.Column="1" Text="{Binding IsPregnant, Converter={StaticResource BoolToYesNoConverter}}" Style="{StaticResource RowValueStyle}"/>
@@ -418,8 +440,8 @@
 									<CheckBox Grid.Column="1" IsChecked="{Binding UnderMedicalTreatment}" Color="{StaticResource PrimaryGreen}"/>
 								</Grid>
 								<VerticalStackLayout IsVisible="{Binding UnderMedicalTreatment}" Spacing="2" Margin="16,0,0,8">
-									<Label Text="Condition being treated:" FontSize="12" TextColor="{StaticResource TextMuted}"/>
-									<Editor Text="{Binding MedicationDetails}"
+									<Label Text="Condition being treated:" FontSize="12" TextColor="{StaticResource Gray400}"/>
+									<Editor Text="{Binding TreatmentDetails}"
 											FontSize="14" BackgroundColor="Transparent"
 											MinimumHeightRequest="52"/>
 								</VerticalStackLayout>
@@ -430,7 +452,7 @@
 									<CheckBox Grid.Column="1" IsChecked="{Binding HasBeenHospitalized}" Color="{StaticResource PrimaryGreen}"/>
 								</Grid>
 								<VerticalStackLayout IsVisible="{Binding HasBeenHospitalized}" Spacing="2" Margin="16,0,0,8">
-									<Label Text="When and why:" FontSize="12" TextColor="{StaticResource TextMuted}"/>
+									<Label Text="When and why:" FontSize="12" TextColor="{StaticResource Gray500}"/>
 									<Editor Text="{Binding HospitalizationDetails}"
 											FontSize="14" BackgroundColor="Transparent"
 											MinimumHeightRequest="52"/>
@@ -442,7 +464,7 @@
 									<CheckBox Grid.Column="1" IsChecked="{Binding TakingMedications}" Color="{StaticResource PrimaryGreen}"/>
 								</Grid>
 								<VerticalStackLayout IsVisible="{Binding TakingMedications}" Spacing="2" Margin="16,0,0,8">
-									<Label Text="Please specify:" FontSize="12" TextColor="{StaticResource TextMuted}"/>
+									<Label Text="Please specify:" FontSize="12" TextColor="{StaticResource Gray500}"/>
 									<Editor Text="{Binding MedicationDetails}"
 											FontSize="14" BackgroundColor="Transparent"
 											MinimumHeightRequest="52"/>

@@ -1,4 +1,5 @@
-﻿using ClinicApp.Models.PatientModels;
+﻿using ClinicApp.Helpers;
+using ClinicApp.Models.PatientModels;
 using ClinicApp.Services;
 using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.Shared;
@@ -127,7 +128,11 @@ public partial class PatientDetailsViewModel : ObservableObject
         if (value.Date > today.AddYears(-a)) a--;
         Age = a;
         DateOfBirthDisplay = value.ToString("MMMM dd, yyyy");
+        OnPropertyChanged(nameof(IsMinor));
     }
+
+    // Whether guardian info is required — same 18-year threshold used when first registering a patient.
+    public bool IsMinor => Age < 18;
 
     [ObservableProperty] string nationality = string.Empty;
     [ObservableProperty] string religion = string.Empty;
@@ -153,6 +158,7 @@ public partial class PatientDetailsViewModel : ObservableObject
     [ObservableProperty] bool isGoodHealth;
     [ObservableProperty] bool isPregnant;
     [ObservableProperty] bool underMedicalTreatment;
+    [ObservableProperty] string treatmentDetails = string.Empty;
     [ObservableProperty] string medicationDetails = string.Empty;
     [ObservableProperty] bool hasBeenHospitalized;
     [ObservableProperty] string hospitalizationDetails = string.Empty;
@@ -250,6 +256,7 @@ public partial class PatientDetailsViewModel : ObservableObject
                 IsGoodHealth = m.IsGoodHealth;
                 IsPregnant = m.IsPregnant;
                 UnderMedicalTreatment = m.UnderMedicalTreatment;
+                TreatmentDetails = m.TreatmentDetails;
                 MedicationDetails = m.MedicationDetails;
                 HasBeenHospitalized = m.HasBeenHospitalized;
                 HospitalizationDetails = m.HospitalizationDetails;
@@ -332,10 +339,26 @@ public partial class PatientDetailsViewModel : ObservableObject
             });
     }
 
-    // Confirms with the popup, then saves Personal Info locally and to Supabase, and logs the update.
+    // Validates the form, confirms with the popup, then saves Personal Info locally and to Supabase, and logs the update.
     [RelayCommand]
     async Task SavePersonalRecord()
     {
+        var errors = PatientValidator.Validate(
+            FirstName, LastName, Gender, Address, MobileNo, Email,
+            IsMinor, GuardianName, GuardianMobile);
+
+        if (errors.Count > 0)
+        {
+            var notice = new ConfirmationPopup(
+                "Required Fields Missing",
+                string.Join("\n", errors),
+                confirmText: "OK",
+                confirmColor: Colors.Green,
+                showCancelButton: false);
+            await Shell.Current.ShowPopupAsync(notice);
+            return;
+        }
+
         var popup = new ConfirmationPopup(
             "Save Changes?",
             "Save changes to this patient's personal info?",
@@ -466,6 +489,11 @@ public partial class PatientDetailsViewModel : ObservableObject
         {
             string today = DateTime.Now.ToString("MMMM dd, yyyy h:mm tt");
 
+            // Clear a detail field once its checkbox is off, so an old value can't resurface if it's checked again later.
+            if (!UnderMedicalTreatment) TreatmentDetails = string.Empty;
+            if (!HasBeenHospitalized) HospitalizationDetails = string.Empty;
+            if (!TakingMedications) MedicationDetails = string.Empty;
+
             await _db.SaveMedicalHistory(new MedicalHistory
             {
                 PatientID = PatientId,
@@ -473,6 +501,7 @@ public partial class PatientDetailsViewModel : ObservableObject
                 IsGoodHealth = IsGoodHealth,
                 IsPregnant = IsPregnant,
                 UnderMedicalTreatment = UnderMedicalTreatment,
+                TreatmentDetails = TreatmentDetails.Trim(),
                 MedicationDetails = MedicationDetails,
                 HasBeenHospitalized = HasBeenHospitalized,
                 HospitalizationDetails = HospitalizationDetails,
@@ -507,6 +536,7 @@ public partial class PatientDetailsViewModel : ObservableObject
                 remote.GoodHealth = IsGoodHealth;
                 remote.Pregnant = IsPregnant;
                 remote.UnderTreatment = UnderMedicalTreatment;
+                remote.TreatmentDetails = TreatmentDetails;
                 remote.MedicationDetails = MedicationDetails;
                 remote.Hospitalized = HasBeenHospitalized;
                 remote.HospitalizationDetails = HospitalizationDetails;

@@ -17,7 +17,7 @@ namespace ClinicApp
 
 #if DEBUG
         // Dev-only auto-login bypass; keep false unless testing without login.
-        const bool DevSkipLogin = true;
+        const bool DevSkipLogin = false;
 #endif
 
         // Builds the app, wires global crash handlers, then boots straight into LoginPage.

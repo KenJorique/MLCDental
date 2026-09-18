@@ -52,7 +52,8 @@ namespace ClinicApp.Models.SupabaseModels
         [JsonIgnore]
         public string QuantityDisplay => $"{QuantityInPieces} pcs";
 
+        // Long readable format, e.g. "October 17, 2027".
         [JsonIgnore]
-        public string ExpirationDateDisplay => ExpirationDate?.ToString("yyyy-MM-dd") ?? string.Empty;
+        public string ExpirationDateDisplay => ExpirationDate?.ToString("MMMM d, yyyy") ?? string.Empty;
     }
 }

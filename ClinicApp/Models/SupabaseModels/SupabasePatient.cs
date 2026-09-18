@@ -44,6 +44,7 @@ namespace ClinicApp.Models.SupabaseModels
         [Column("good_health")] public bool? GoodHealth { get; set; }
         [Column("pregnant")] public bool? Pregnant { get; set; }
         [Column("under_treatment")] public bool? UnderTreatment { get; set; }
+        [Column("treatment_details")] public string? TreatmentDetails { get; set; }
         [Column("medication_details")] public string? MedicationDetails { get; set; }
         [Column("hospitalized")] public bool? Hospitalized { get; set; }
         [Column("hospitalization_details")] public string? HospitalizationDetails { get; set; }
