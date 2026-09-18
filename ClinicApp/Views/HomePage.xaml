@@ -99,75 +99,51 @@
 				<Label Text="Quick Actions" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray900}"/>
 
 				<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-					<Border Grid.Row="0" Grid.Column="0" BackgroundColor="{StaticResource Secondary}" Stroke="Transparent" Padding="10,10">
-						<Border.StrokeShape>
-							<RoundRectangle CornerRadius="14"/>
-						</Border.StrokeShape>
-						<Border.Shadow>
-							<Shadow Brush="{StaticResource Gray300Brush}" Opacity="0.15" Radius="10" Offset="0,3"/>
-						</Border.Shadow>
+					<Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Primary}" Padding="10,10">
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding AddAppointmentCommand}"/>
 						</Border.GestureRecognizers>
-						<Grid ColumnDefinitions="30,*" ColumnSpacing="6">
+						<Grid ColumnDefinitions="28,*" ColumnSpacing="6" WidthRequest="128" HorizontalOptions="Center">
 							<Label Grid.Column="0" Text="&#xef85;" FontFamily="MaterialSymbolsRounded" FontSize="24" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
 							<VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
-								<Label Text="Add" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
-								<Label Text="Appointment" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
+								<Label Text="Add" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+								<Label Text="Appointment" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
 							</VerticalStackLayout>
 						</Grid>
 					</Border>
-					<Border Grid.Row="0" Grid.Column="1" BackgroundColor="{StaticResource Secondary}" Stroke="Transparent" Padding="10,10">
-						<Border.StrokeShape>
-							<RoundRectangle CornerRadius="14"/>
-						</Border.StrokeShape>
-						<Border.Shadow>
-							<Shadow Brush="{StaticResource Gray300Brush}" Opacity="0.15" Radius="10" Offset="0,3"/>
-						</Border.Shadow>
+					<Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Primary}" Padding="10,10">
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding AddPatientCommand}"/>
 						</Border.GestureRecognizers>
-						<Grid ColumnDefinitions="30,*" ColumnSpacing="6">
+						<Grid ColumnDefinitions="28,*" ColumnSpacing="6" WidthRequest="128" HorizontalOptions="Center">
 							<Label Grid.Column="0" Text="&#xe7fe;" FontFamily="MaterialSymbolsRounded" FontSize="24" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
 							<VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
-								<Label Text="Add" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
-								<Label Text="Patient" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
+								<Label Text="Add" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+								<Label Text="Patient" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
 							</VerticalStackLayout>
 						</Grid>
 					</Border>
-					<Border Grid.Row="1" Grid.Column="0" BackgroundColor="{StaticResource Secondary}" Stroke="Transparent" Padding="10,10">
-						<Border.StrokeShape>
-							<RoundRectangle CornerRadius="14"/>
-						</Border.StrokeShape>
-						<Border.Shadow>
-							<Shadow Brush="{StaticResource Gray300Brush}" Opacity="0.15" Radius="10" Offset="0,3"/>
-						</Border.Shadow>
+					<Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Primary}" Padding="10,10">
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding RecordPaymentCommand}"/>
 						</Border.GestureRecognizers>
-						<Grid ColumnDefinitions="30,*" ColumnSpacing="6">
+						<Grid ColumnDefinitions="28,*" ColumnSpacing="6" WidthRequest="128" HorizontalOptions="Center">
 							<Label Grid.Column="0" Text="&#xeb86;" FontFamily="MaterialSymbolsRounded" FontSize="24" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
 							<VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
-								<Label Text="Record" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
-								<Label Text="Payment" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
+								<Label Text="Record" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+								<Label Text="Payment" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
 							</VerticalStackLayout>
 						</Grid>
 					</Border>
-					<Border Grid.Row="1" Grid.Column="1" BackgroundColor="{StaticResource Secondary}" Stroke="Transparent" Padding="10,10">
-						<Border.StrokeShape>
-							<RoundRectangle CornerRadius="14"/>
-						</Border.StrokeShape>
-						<Border.Shadow>
-							<Shadow Brush="{StaticResource Gray300Brush}" Opacity="0.15" Radius="10" Offset="0,3"/>
-						</Border.Shadow>
+					<Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Primary}" Padding="10,10">
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding ManageSupplyCommand}"/>
 						</Border.GestureRecognizers>
-						<Grid ColumnDefinitions="30,*" ColumnSpacing="6">
+						<Grid ColumnDefinitions="28,*" ColumnSpacing="6" WidthRequest="128" HorizontalOptions="Center">
 							<Label Grid.Column="0" Text="&#xf5a5;" FontFamily="MaterialSymbolsRounded" FontSize="24" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
 							<VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
-								<Label Text="Manage" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
-								<Label Text="Supply" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
+								<Label Text="Manage" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+								<Label Text="Supply" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
 							</VerticalStackLayout>
 						</Grid>
 					</Border>
@@ -196,13 +172,8 @@
                                         CommandParameter="{Binding .}"/>
 								</Border.GestureRecognizers>
 								<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-									<Border Grid.Column="0" BackgroundColor="{StaticResource White}" Stroke="Transparent" Padding="0" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center">
-										<Border.StrokeShape>
-											<RoundRectangle CornerRadius="13"/>
-										</Border.StrokeShape>
-										<Label Text="{Binding IconGlyph}" FontFamily="MaterialSymbolsRounded"
-                                           FontSize="16" TextColor="{Binding IconColor}" HorizontalOptions="Center" VerticalOptions="Center"/>
-									</Border>
+									<Label Grid.Column="0" Text="{Binding IconGlyph}" FontFamily="MaterialSymbolsRoundedFilled"
+                                           FontSize="20" TextColor="{Binding IconColor}" WidthRequest="22" VerticalOptions="Center"/>
 									<Label Grid.Column="1" Text="{Binding Text}" FontSize="13" TextColor="{StaticResource Gray900}" VerticalOptions="Center"/>
 									<Label Grid.Column="2" Text="›" FontSize="20" FontAttributes="Bold"
                                            TextColor="{StaticResource Gray400}" VerticalOptions="Center"/>

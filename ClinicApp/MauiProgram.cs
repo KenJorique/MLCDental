@@ -80,6 +80,10 @@ namespace ClinicApp
             builder.Services.AddSingleton<MenuViewModel>();
             builder.Services.AddSingleton<MenuPage>();
 
+            // ── Profile ────────────────────────────────────────────
+            builder.Services.AddTransient<ProfileViewModel>();
+            builder.Services.AddTransient<ProfilePage>();
+
             // ── Google Sign-In ────────────────────────────────────
             builder.Services.AddTransient<GoogleSignInPage>();
 

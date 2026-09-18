@@ -1,4 +1,6 @@
 ﻿using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 
 namespace ClinicApp.Views
 {
@@ -9,6 +11,14 @@ namespace ClinicApp.Views
             InitializeComponent();
         }
 
+        // Shows a plain OK-only popup, consistent with how alerts are shown elsewhere in the app.
+        private async Task ShowAlertAsync(string title, string message)
+        {
+            var popup = new ConfirmationPopup(title, message, confirmText: "OK", showCancelButton: false);
+            await Shell.Current.ShowPopupAsync(popup);
+        }
+
+        // Fetches a fresh access token and connects Google Tasks.
         private async void OnSignInClicked(object sender, EventArgs e)
         {
             SignInButton.IsEnabled = false;
@@ -23,7 +33,8 @@ namespace ClinicApp.Views
 
                 if (supabaseData == null)
                 {
-                    StatusLabel.Text = "Service not available";
+                    StatusLabel.IsVisible = false;
+                    await ShowAlertAsync("Error", "Service not available.");
                     return;
                 }
 
@@ -37,22 +48,20 @@ namespace ClinicApp.Views
                     Preferences.Set("google_access_token", accessToken);
                     Preferences.Set("google_email", "mlcdentalclinic1@gmail.com");
 
-                    StatusLabel.Text = "Connected to Google Tasks!";
-                    StatusLabel.TextColor = Colors.Green;
-
-                    await Task.Delay(1500);
+                    StatusLabel.IsVisible = false;
+                    await ShowAlertAsync("Connected", "Google Tasks is now connected.");
                     await Shell.Current.GoToAsync("..");
                 }
                 else
                 {
-                    StatusLabel.Text = "Failed to get token. Check internet connection.";
-                    StatusLabel.TextColor = Colors.Red;
+                    StatusLabel.IsVisible = false;
+                    await ShowAlertAsync("Error", "Failed to get token. Check internet connection.");
                 }
             }
             catch (Exception ex)
             {
-                StatusLabel.Text = $"Error: {ex.Message}";
-                StatusLabel.TextColor = Colors.Red;
+                StatusLabel.IsVisible = false;
+                await ShowAlertAsync("Error", ex.Message);
                 System.Diagnostics.Debug.WriteLine(
                     $"[GoogleSignIn] {ex.Message}");
             }
@@ -62,6 +71,7 @@ namespace ClinicApp.Views
             }
         }
 
+        // Records the skip choice and returns without connecting Google Tasks.
         private async void OnSkipClicked(object sender, EventArgs e)
         {
             Preferences.Set("google_signed_in", false);

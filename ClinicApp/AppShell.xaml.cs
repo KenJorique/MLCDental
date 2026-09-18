@@ -64,6 +64,8 @@ namespace ClinicApp
             //Google Sign In
             Routing.RegisterRoute(nameof(GoogleSignInPage), typeof(GoogleSignInPage));
 
+            Routing.RegisterRoute(nameof(ProfilePage), typeof(ProfilePage));
+
             //Cephalometric
             Routing.RegisterRoute(nameof(CephalometricPage), typeof(CephalometricPage));
             Routing.RegisterRoute("measurements", typeof(Views.CephalometricRelated.CephalometricMeasurementsPage));

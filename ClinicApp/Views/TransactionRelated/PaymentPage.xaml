@@ -64,21 +64,21 @@
                        HasShadow="False">
 					<VerticalStackLayout Spacing="10">
 						<Grid ColumnDefinitions="*,Auto">
-							<Label Text="Subtotal" FontSize="13" TextColor="{StaticResource Gray500}"/>
-							<Label Grid.Column="1" Text="{Binding SubtotalDisplay}" FontSize="13" TextColor="{StaticResource Gray500}"/>
+							<Label Text="Subtotal" FontSize="14" TextColor="{StaticResource Gray500}"/>
+							<Label Grid.Column="1" Text="{Binding SubtotalDisplay}" FontSize="14" TextColor="{StaticResource Gray500}"/>
 						</Grid>
 
 						<Grid ColumnDefinitions="*,Auto">
-							<Label Text="Discount" FontSize="13" TextColor="{StaticResource Gray500}"/>
-							<Label Grid.Column="1" Text="{Binding DiscountDisplay}" FontSize="13" TextColor="{StaticResource Gray500}"/>
+							<Label Text="Discount" FontSize="14" TextColor="{StaticResource Gray500}"/>
+							<Label Grid.Column="1" Text="{Binding DiscountDisplay}" FontSize="14" TextColor="{StaticResource Gray500}"/>
 						</Grid>
 
 						<Grid ColumnDefinitions="*,Auto"
                               Margin="0,2,0,0"
                               Padding="0,10,0,0">
 							<BoxView Grid.ColumnSpan="2" HeightRequest="0.5" Color="{StaticResource Gray100}" VerticalOptions="Start"/>
-							<Label Text="Total" FontSize="13" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
-							<Label Grid.Column="1" Text="{Binding TotalDisplay}" FontSize="13" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
+							<Label Text="Total" FontSize="14" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
+							<Label Grid.Column="1" Text="{Binding TotalDisplay}" FontSize="14" TextColor="{StaticResource Gray500}" VerticalOptions="Center" Margin="0,4,0,0"/>
 						</Grid>
 
 						<!-- Due Today: biggest, most prominent line, matching Bill Summary's own hero figure -->
@@ -106,7 +106,7 @@
                        HasShadow="False">
 					<VerticalStackLayout Spacing="12">
 						<Label Text="Amount Received Today"
-                               FontSize="13"
+                               FontSize="14"
                                TextColor="{StaticResource Gray500}"
                                FontAttributes="Bold"/>
 
@@ -138,7 +138,7 @@
                        HasShadow="False"
                        IsVisible="{Binding IsAmountTooLarge}">
 					<Label Text="{Binding BalanceDisplay, StringFormat='This is more than the total balance ({0}). Please double-check the amount.'}"
-                           FontSize="13"
+                           FontSize="14"
                            TextColor="#E65100"/>
 				</Frame>
 
@@ -151,7 +151,7 @@
                        IsVisible="{Binding HasChange}">
 					<Grid ColumnDefinitions="*,Auto">
 						<Label Text="Change"
-                               FontSize="13"
+                               FontSize="14"
                                FontAttributes="Bold"
                                TextColor="{StaticResource Primary}"
                                VerticalOptions="Center"/>
@@ -172,7 +172,7 @@
                        HasShadow="False"
                        IsVisible="{Binding HasError}">
 					<Label Text="{Binding ErrorMessage}"
-                           FontSize="13"
+                           FontSize="14"
                            TextColor="{StaticResource StatusOut}"/>
 				</Frame>
 
