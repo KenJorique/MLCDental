@@ -45,7 +45,7 @@
 		<MauiAsset Include="appsettings.json" LogicalName="appsettings.json" />
 		
 		<!-- App Icon -->
-		<MauiIcon Include="Resources\AppIcon\appicon.png" Color="#2E7D32" ForegroundScale="0.65" />
+		<MauiIcon Include="Resources\AppIcon\appicon.png" Color="#EEF5EE" ForegroundScale="0.65" />
 
 		<!-- Splash Screen -->
 		<MauiSplashScreen Include="Resources\Splash\splash_icon.png" Color="#EEF5EE" />

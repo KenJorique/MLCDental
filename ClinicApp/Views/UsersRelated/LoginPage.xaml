@@ -82,11 +82,11 @@
                                    ReturnType="Done"/>
 							<Label Text="{Binding IsPasswordHidden, Converter={StaticResource PasswordToggleIconConverter}}"
                                    FontFamily="MaterialSymbolsRounded"
-                                   FontSize="22"
+                                   FontSize="20"
                                    TextColor="{StaticResource Gray400}"
                                    HorizontalOptions="End"
                                    VerticalOptions="Center"
-                                   Margin="0,0,4,0"
+                                   Margin="0,0,10,0"
                                    InputTransparent="False">
 								<Label.GestureRecognizers>
 									<TapGestureRecognizer Command="{Binding TogglePasswordVisibilityCommand}"/>

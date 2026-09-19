@@ -72,7 +72,7 @@
 					</CollectionView.EmptyView>
 					<CollectionView.ItemTemplate>
 						<DataTemplate>
-							<Border BackgroundColor="{StaticResource AppointmentCardBg}" Stroke="{StaticResource Gold}" StrokeThickness="1" StrokeShape="RoundRectangle 14" Padding="14,12">
+							<Border BackgroundColor="{StaticResource AppointmentCardBg}" Stroke="{StaticResource GoldLight}" StrokeThickness="1" StrokeShape="RoundRectangle 14" Padding="14,12">
 								<Border.GestureRecognizers>
 									<TapGestureRecognizer
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ScheduleVM.SelectTodayAppointmentCommand}"
@@ -82,7 +82,7 @@
 									<Label Grid.Column="0" Text="{Binding AppointmentDateTimeParsed, StringFormat='{0:h:mm tt}'}"
                                            FontSize="13" TextColor="{StaticResource Gray700}" VerticalOptions="Center"/>
 									<Label Grid.Column="1" Text="{Binding PatientName}"
-                                           FontSize="14" TextColor="{StaticResource Gray900}" FontAttributes="Bold" VerticalOptions="Center" LineBreakMode="WordWrap"/>
+                                           FontSize="14" TextColor="{StaticResource Gray800}" FontAttributes="Bold" VerticalOptions="Center" LineBreakMode="WordWrap"/>
 									<Label Grid.Column="2" Text="›" FontSize="20" FontAttributes="Bold"
                                            TextColor="{StaticResource Gray400}" VerticalOptions="Center"/>
 								</Grid>
@@ -165,7 +165,7 @@
 					</CollectionView.EmptyView>
 					<CollectionView.ItemTemplate>
 						<DataTemplate>
-							<Border Stroke="{StaticResource gray}" StrokeThickness="1" StrokeShape="RoundRectangle 14" Padding="14,12">
+							<Border BackgroundColor="{StaticResource AppointmentCardBg}" Stroke="{StaticResource GoldLight}" StrokeThickness="1" StrokeShape="RoundRectangle 14" Padding="14,12">
 								<Border.GestureRecognizers>
 									<TapGestureRecognizer
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenNeedsAttentionRowCommand}"
