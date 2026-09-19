@@ -80,9 +80,9 @@
 								</Border.GestureRecognizers>
 								<Grid ColumnDefinitions="70,*,Auto">
 									<Label Grid.Column="0" Text="{Binding AppointmentDateTimeParsed, StringFormat='{0:h:mm tt}'}"
-                                           FontSize="13" TextColor="{StaticResource Gray500}" VerticalOptions="Center"/>
+                                           FontSize="13" TextColor="{StaticResource Gray700}" VerticalOptions="Center"/>
 									<Label Grid.Column="1" Text="{Binding PatientName}"
-                                           FontSize="14" TextColor="{StaticResource Gray900}" VerticalOptions="Center" LineBreakMode="WordWrap"/>
+                                           FontSize="14" TextColor="{StaticResource Gray900}" FontAttributes="Bold" VerticalOptions="Center" LineBreakMode="WordWrap"/>
 									<Label Grid.Column="2" Text="›" FontSize="20" FontAttributes="Bold"
                                            TextColor="{StaticResource Gray400}" VerticalOptions="Center"/>
 								</Grid>
@@ -99,7 +99,7 @@
 				<Label Text="Quick Actions" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray900}"/>
 
 				<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-					<Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Primary}" Padding="10,10">
+					<Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding AddAppointmentCommand}"/>
 						</Border.GestureRecognizers>
@@ -111,7 +111,7 @@
 							</VerticalStackLayout>
 						</Grid>
 					</Border>
-					<Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Primary}" Padding="10,10">
+					<Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding AddPatientCommand}"/>
 						</Border.GestureRecognizers>
@@ -123,7 +123,7 @@
 							</VerticalStackLayout>
 						</Grid>
 					</Border>
-					<Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Primary}" Padding="10,10">
+					<Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding RecordPaymentCommand}"/>
 						</Border.GestureRecognizers>
@@ -135,7 +135,7 @@
 							</VerticalStackLayout>
 						</Grid>
 					</Border>
-					<Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Primary}" Padding="10,10">
+					<Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding ManageSupplyCommand}"/>
 						</Border.GestureRecognizers>
@@ -165,7 +165,7 @@
 					</CollectionView.EmptyView>
 					<CollectionView.ItemTemplate>
 						<DataTemplate>
-							<Border BackgroundColor="{StaticResource AppointmentCardBg}" Stroke="{StaticResource Gold}" StrokeThickness="1" StrokeShape="RoundRectangle 14" Padding="14,12">
+							<Border Stroke="{StaticResource gray}" StrokeThickness="1" StrokeShape="RoundRectangle 14" Padding="14,12">
 								<Border.GestureRecognizers>
 									<TapGestureRecognizer
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenNeedsAttentionRowCommand}"
