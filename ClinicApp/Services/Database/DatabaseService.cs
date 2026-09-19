@@ -34,10 +34,10 @@ public partial class DatabaseService
             //string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
 
             // This saves it to the "Downloads" folder on the Android Emulator
-            //string dbPath = Path.Combine("/storage/emulated/0/Download", "clinic.db3");
-            var dbPath = Path.Combine(
-        FileSystem.AppDataDirectory,  // ← correct path
-        "clinic.db3");
+            string dbPath = Path.Combine("/storage/emulated/0/Download", "clinic.db3");
+            //    var dbPath = Path.Combine(
+            //FileSystem.AppDataDirectory,  // ← correct path
+            //"clinic.db3");
 
             System.Diagnostics.Debug.WriteLine($"[DB] Path: {dbPath}");
 
