@@ -32,5 +32,7 @@
 	<array>
 		<string>tel</string>
 	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Used to quickly and securely unlock MLC Dental.</string>
 </dict>
 </plist>

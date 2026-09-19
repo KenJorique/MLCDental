@@ -34,10 +34,10 @@ public partial class DatabaseService
             //string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
 
             // This saves it to the "Downloads" folder on the Android Emulator
-            string dbPath = Path.Combine("/storage/emulated/0/Download", "clinic.db3");
-            //    var dbPath = Path.Combine(
-            //FileSystem.AppDataDirectory,  // ← correct path
-            //"clinic.db3");
+            //string dbPath = Path.Combine("/storage/emulated/0/Download", "clinic.db3");
+            var dbPath = Path.Combine(
+        FileSystem.AppDataDirectory,  // ← correct path
+        "clinic.db3");
 
             System.Diagnostics.Debug.WriteLine($"[DB] Path: {dbPath}");
 
@@ -781,6 +781,65 @@ public partial class DatabaseService
 
         await _database!.UpdateAsync(local);
         System.Diagnostics.Debug.WriteLine($"[UserRealtime] Updated user '{su.Username}' from remote.");
+    }
+
+    public async Task SetRememberTokenAsync(int userId, string tokenHash, DateTime expiresAtUtc)
+    {
+        await Init();
+        var user = await _database!.Table<User>().Where(u => u.UserID == userId).FirstOrDefaultAsync();
+        if (user is null) return;
+
+        user.RememberTokenHash = tokenHash;
+        user.RememberTokenExpiresAt = expiresAtUtc;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _database!.UpdateAsync(user);
+    }
+
+    /// <summary>
+    /// Returns the user this hash belongs to, but only if the token
+    /// hasn't expired, the account is active, and it isn't soft-deleted.
+    /// Does NOT check role here — RememberMeService re-validates against
+    /// the same allowed-roles list AuthenticationService uses, so the two
+    /// stay in sync in one place.
+    /// </summary>
+    public async Task<User?> GetUserByValidRememberTokenHashAsync(string tokenHash)
+    {
+        await Init();
+        var user = await _database!.Table<User>()
+            .Where(u => u.RememberTokenHash == tokenHash && !u.IsDeleted)
+            .FirstOrDefaultAsync();
+
+        if (user is null) return null;
+        if (!user.IsActive) return null;
+        if (!user.RememberTokenExpiresAt.HasValue || user.RememberTokenExpiresAt.Value <= DateTime.UtcNow)
+            return null;
+
+        return user;
+    }
+
+    // Refreshes the expiry (sliding 30-day window) after a successful
+    // auto-login, so a device stays "remembered" as long as it's opened
+    // at least once every 30 days.
+    public async Task RefreshRememberTokenAsync(int userId, DateTime newExpiresAtUtc)
+    {
+        await Init();
+        var user = await _database!.Table<User>().Where(u => u.UserID == userId).FirstOrDefaultAsync();
+        if (user is null) return;
+        user.RememberTokenExpiresAt = newExpiresAtUtc;
+        await _database!.UpdateAsync(user);
+    }
+
+    // Called on explicit Logout — revokes this device's ability to
+    // auto-login, unlike an inactivity timeout which leaves it intact
+    // (see RememberMeService.cs for why that distinction matters).
+    public async Task ClearRememberTokenAsync(int userId)
+    {
+        await Init();
+        var user = await _database!.Table<User>().Where(u => u.UserID == userId).FirstOrDefaultAsync();
+        if (user is null) return;
+        user.RememberTokenHash = null;
+        user.RememberTokenExpiresAt = null;
+        await _database!.UpdateAsync(user);
     }
 
 

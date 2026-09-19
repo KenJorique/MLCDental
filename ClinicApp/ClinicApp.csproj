@@ -90,6 +90,7 @@
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.100" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
 		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="$(OnnxRuntimeVersion)" />
+		<PackageReference Include="Plugin.Maui.Biometric" Version="0.0.2" />
 		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
 		<PackageReference Include="SkiaSharp" Version="2.88.9" />
 		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="2.88.9" />
@@ -261,18 +262,13 @@
 	    <Version>2.16.1</Version>
 	  </PackageReference>
 	</ItemGroup>
-	<Target Name="ExtractOnnxRuntimeNativeLibs"
-			BeforeTargets="_CollectAndroidNativeLibraries;ResolveAndroidNativeLibraries;CoreCompile"
-			Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+	<Target Name="ExtractOnnxRuntimeNativeLibs" BeforeTargets="_CollectAndroidNativeLibraries;ResolveAndroidNativeLibraries;CoreCompile" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
 		<PropertyGroup>
 			<OnnxAarPath>$(NuGetPackageRoot)microsoft.ml.onnxruntime\$(OnnxRuntimeVersion)\runtimes\android\native\onnxruntime.aar</OnnxAarPath>
 			<OnnxAarExtractDir>$(IntermediateOutputPath)onnxruntime-aar\</OnnxAarExtractDir>
 		</PropertyGroup>
 
-		<Unzip
-			SourceFiles="$(OnnxAarPath)"
-			DestinationFolder="$(OnnxAarExtractDir)"
-			Condition="Exists('$(OnnxAarPath)') And !Exists('$(OnnxAarExtractDir)jni')" />
+		<Unzip SourceFiles="$(OnnxAarPath)" DestinationFolder="$(OnnxAarExtractDir)" Condition="Exists('$(OnnxAarPath)') And !Exists('$(OnnxAarExtractDir)jni')" />
 
 		<ItemGroup>
 			<AndroidNativeLibrary Include="$(OnnxAarExtractDir)jni\**\*.so" />

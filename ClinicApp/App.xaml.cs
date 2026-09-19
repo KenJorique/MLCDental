@@ -21,7 +21,7 @@ namespace ClinicApp
         // that "Remember me" gives you a real way to skip re-login during
         // normal use; only flip this on if you specifically need to
         // bypass even that.
-        const bool DevSkipLogin = true;
+        const bool DevSkipLogin = false;
 #endif
 
         public App(SupabaseDataService supabaseData, DatabaseService db,
@@ -87,17 +87,28 @@ namespace ClinicApp
         {
             try
             {
-                await Task.Delay(300); // let DatabaseService.Init() finish
-                var user = await _rememberMe.TryAutoLoginAsync();
-                if (user is null) return;
+                // Give the window/activity time to fully appear before any
+                // biometric prompt is shown — the prompt needs a live Activity.
+                await Task.Delay(1500);
 
-                _session.SignIn(user);
-                NavigationHelper.ShowApp();
+                var user = await MainThread.InvokeOnMainThreadAsync(
+                    () => _rememberMe.TryAutoLoginAsync());
+                if (user is null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[App] No auto-login (no token, gate failed, or cancelled).");
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    _session.SignIn(user);
+                    NavigationHelper.ShowApp();
+                });
                 System.Diagnostics.Debug.WriteLine($"[App] Auto-signed in remembered user '{user.Username}'.");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[App] TryRememberedSignIn error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[App] TryRememberedSignIn error: {ex}");
             }
         }
 

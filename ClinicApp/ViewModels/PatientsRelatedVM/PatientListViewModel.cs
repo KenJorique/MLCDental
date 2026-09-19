@@ -85,11 +85,15 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         }
         // Called once from PatientListPage.OnAppearing
         private bool _realtimeStarted = false;
+        private Task? _realtimeStartTask;
 
-        public async Task StartRealtimeAsync()
+        public Task StartRealtimeAsync()
         {
-            if (_realtimeStarted) return;
-            _realtimeStarted = true;
+            return _realtimeStartTask ??= StartRealtimeInternalAsync();
+        }
+
+        public async Task StartRealtimeInternalAsync()
+        {
 
             try
             {

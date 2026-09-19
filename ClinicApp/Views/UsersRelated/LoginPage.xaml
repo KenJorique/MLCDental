@@ -92,6 +92,18 @@
                             </Label>
                         </HorizontalStackLayout>
 
+                        <HorizontalStackLayout Spacing="8" Margin="24,0,0,0"
+                        IsVisible="{Binding IsBiometricAvailable}">
+                            <CheckBox IsChecked="{Binding UseBiometricLock}"
+              IsEnabled="{Binding RememberMe}"
+              Color="#C8A84B"/>
+                            <Label Text="Require fingerprint / Face ID to unlock"
+           FontSize="12"
+           TextColor="#8A7A3E"
+           VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+
+
                         <!-- Generic error — deliberately never says "no such account" vs "wrong password" -->
                         <Label Text="{Binding ErrorMessage}"
                                TextColor="Crimson"

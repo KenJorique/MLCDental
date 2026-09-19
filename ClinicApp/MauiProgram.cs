@@ -179,6 +179,7 @@ namespace ClinicApp
                         sp.GetRequiredService<RememberMeService>()));
             builder.Services.AddTransient<LoginPage>();
             builder.Services.AddTransient<AppShell>();
+            builder.Services.AddSingleton<BiometricService>();
 
             // Transactions  ─────────────────────────────────────────────
             builder.Services.AddTransient<TransactionViewModel>(s =>
