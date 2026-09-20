@@ -172,6 +172,15 @@ public class MeasurementResultViewModel : ObservableObject
         _ => Colors.Gray
     };
 
+    // Light tint of StatusColor, for the badge background — computed here instead of via a converter, since none was registered for this.
+    public Color StatusBgColor => Status switch
+    {
+        "Normal" => Color.FromArgb("#E8F5E9"),
+        "High" => Color.FromArgb("#FFF3E0"),
+        "Low" => Color.FromArgb("#E3F2FD"),
+        _ => Color.FromArgb("#F5F5F5")
+    };
+
     public double NormalizedValue
     {
         get

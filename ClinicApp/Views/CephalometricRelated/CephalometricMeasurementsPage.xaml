@@ -88,9 +88,9 @@
 										</Grid>
 									</StackLayout>
 
-									<!-- Status Badge -->
+									<!-- Status Badge: uses StatusBgColor (computed in the ViewModel) instead of a ColorToLight converter, since none was registered -->
 									<Frame Padding="8,4" CornerRadius="4" BorderColor="{Binding StatusColor}"
-                                          BackgroundColor="{Binding StatusColor, Converter={StaticResource ColorToLight}}"
+                                          BackgroundColor="{Binding StatusBgColor}"
                                           HasShadow="False" HorizontalOptions="Start">
 										<Label Text="{Binding Status}" FontSize="12" FontAttributes="Bold"
                                               TextColor="{Binding StatusColor}"/>
@@ -106,7 +106,7 @@
 				<Border BackgroundColor="{StaticResource Secondary}" Stroke="Transparent" StrokeShape="RoundRectangle 12"
                         Padding="14" Margin="0,8,0,0">
 					<VerticalStackLayout Spacing="4">
-						<Label Text="📋 Summary" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
+						<Label Text="Summary" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
 						<Label Text="Green = Normal | Orange = High | Blue = Low"
                                FontSize="12" TextColor="{StaticResource TextSecondary}"/>
 					</VerticalStackLayout>

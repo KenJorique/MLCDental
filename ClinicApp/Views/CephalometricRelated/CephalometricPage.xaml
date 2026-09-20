@@ -29,7 +29,9 @@
 				<Border Style="{StaticResource ElevatedCardStyle}"
                         IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}">
 					<VerticalStackLayout Padding="8,12" Spacing="10">
-						<Label Text="📋" FontSize="48" HorizontalTextAlignment="Center"/>
+						<Label FontFamily="MaterialSymbolsRounded" Text="&#xe3f4;"
+                               FontSize="48" TextColor="{StaticResource TextMuted}"
+                               HorizontalTextAlignment="Center"/>
 						<Label Text="No X-Ray Image" Style="{StaticResource EmptyStateTitleStyle}"
                                HorizontalTextAlignment="Center"/>
 						<Label Text="Upload a lateral cephalometric X-ray to begin analysis."
@@ -216,10 +218,6 @@
 		<!-- Bottom Bar -->
 		<StackLayout Grid.Row="2" Padding="16" BackgroundColor="{StaticResource White}"
                       Spacing="8">
-			<Button Text="+ Upload New X-Ray"
-                    Command="{Binding UploadImageCommand}"
-                    IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}"
-                    Style="{StaticResource PrimaryActionButtonStyle}"/>
 			<Label Text="The light blue outline traces the soft-tissue profile; colored lines show the construction planes used to measure each angle."
                    FontSize="12" TextColor="{StaticResource TextSecondary}" IsVisible="{Binding HasLandmarks}"/>
 		</StackLayout>
