@@ -1,4 +1,4 @@
-using ClinicApp.Services;
+using ClinicApp.Services.CephaTrain;
 using ClinicApp.ViewModels.CephalometricVM;
 using ImageSharpImage = SixLabors.ImageSharp.Image;
 
@@ -125,20 +125,25 @@ public partial class CephalometricPage : ContentPage
         if (BindingContext is not CephalometricViewModel vm || _drawable == null) return;
         var touch = e.Touches?.FirstOrDefault() ?? default;
 
-        // Placement mode: next tap creates the missing landmark here, skip hit-testing
-        if (!string.IsNullOrEmpty(vm.LandmarkBeingPlaced))
+        // Calibration mode takes priority over everything else
+        if (vm.IsCalibrating)
         {
             var (origX, origY) = _drawable.ToOriginal(touch.X, touch.Y);
-
-            // With this corrected line (remove the trailing comma and supply required arguments):
-            // According to the signature: PlaceLandmarkAt(string className, float x, float y, int imageWidth, int imageHeight);
-            // You need to provide imageWidth and imageHeight. Use _drawable._originalWidth and _drawable._originalHeight if accessible, or get them from the image info if needed.
-
-            vm.PlaceLandmarkAt(vm.LandmarkBeingPlaced, origX, origY, (int)_drawable._originalWidth, (int)_drawable._originalHeight);
+            vm.HandleCalibrationTap(origX, origY);
+            _drawable.CalibrationPointA = vm.CalibrationPointAX.HasValue
+                ? (vm.CalibrationPointAX.Value, vm.CalibrationPointAY!.Value)
+                : null;
             _landmarkCanvas?.Invalidate();
             return;
         }
 
+        if (!string.IsNullOrEmpty(vm.LandmarkBeingPlaced))
+        {
+            var (origX, origY) = _drawable.ToOriginal(touch.X, touch.Y);
+            vm.PlaceLandmarkAt(vm.LandmarkBeingPlaced, origX, origY, /* imageWidth, imageHeight — pass _drawable's stored values */ 0, 0);
+            _landmarkCanvas?.Invalidate();
+            return;
+        }
 
         _touchStartPoint = touch;
         _hasMoved = false;
@@ -230,6 +235,7 @@ internal class LandmarkDrawable : IDrawable
     private double _offsetX = 0;
     private double _offsetY = 0;
     public string? PlacementTargetName { get; set; }
+    public (float x, float y)? CalibrationPointA { get; set; }
 
     /// <summary>Landmark tapped by the user; its full name is drawn on the image until tapped again.</summary>
     public Landmark? SelectedLandmark { get; set; }
@@ -336,6 +342,14 @@ internal class LandmarkDrawable : IDrawable
             canvas.DrawString(number, dx - numSize.Width / 2, dy - numSize.Height / 2, HorizontalAlignment.Left);
         }
 
+        if (CalibrationPointA.HasValue)
+        {
+            var (cx, cy) = ToDisplay(CalibrationPointA.Value.x, CalibrationPointA.Value.y);
+            canvas.StrokeColor = Colors.Yellow;
+            canvas.StrokeSize = 3f;
+            canvas.DrawLine(cx - 12, cy, cx + 12, cy);
+            canvas.DrawLine(cx, cy - 12, cx, cy + 12);
+        }
         // Draw the selected landmark's name last so it's always on top of everything else
         if (SelectedLandmark != null && landmarks.Contains(SelectedLandmark))
         {

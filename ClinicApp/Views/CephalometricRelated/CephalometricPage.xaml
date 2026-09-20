@@ -4,182 +4,226 @@
              x:Class="ClinicApp.Views.CephalometricRelated.CephalometricPage"
              Title="Cephalometric Analysis"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#FAFAFA">
+             Shell.BackgroundColor="{StaticResource Primary}"
+             Shell.TitleColor="{StaticResource TextOnPrimary}"
+             Shell.ForegroundColor="{StaticResource TextOnPrimary}"
+             BackgroundColor="{StaticResource PageBg}">
 
-    <Grid RowDefinitions="Auto,*,Auto" Padding="0" RowSpacing="0">
+	<Grid RowDefinitions="Auto,*,Auto" Padding="0" RowSpacing="0">
 
-        <!-- Header -->
-        <StackLayout Grid.Row="0" Padding="16" BackgroundColor="#2563EB" Spacing="8">
-            <Label Text="{Binding PatientName, StringFormat='Patient: {0}'}" 
-                   FontSize="18" FontAttributes="Bold" TextColor="White"/>
-            <Label Text="Cephalometric X-Ray Analysis" 
-                   FontSize="14" TextColor="#E0E7FF"/>
-        </StackLayout>
+		<!-- Header: plain white patient-info card, matching BillSummary/Payment/DentalChart -->
+		<Border Grid.Row="0" Style="{StaticResource ElevatedCardStyle}" Margin="12,10,12,0">
+			<VerticalStackLayout Spacing="2">
+				<Label Text="{Binding PatientName, StringFormat='Patient: {0}'}"
+                       FontSize="18" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}"/>
+				<Label Text="Cephalometric X-Ray Analysis"
+                       FontSize="13" TextColor="{StaticResource TextSecondary}"/>
+			</VerticalStackLayout>
+		</Border>
 
-        <!-- Content Area -->
-        <ScrollView Grid.Row="1">
-            <StackLayout Padding="16" Spacing="16">
+		<!-- Content Area -->
+		<ScrollView Grid.Row="1">
+			<StackLayout Padding="12,10,12,16" Spacing="14">
 
-                <!-- No Image State -->
-                <StackLayout IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}" 
-                             Padding="20" Spacing="12">
-                    <Label Text="📋" FontSize="48" HorizontalTextAlignment="Center"/>
-                    <Label Text="No X-Ray Image" FontSize="16" FontAttributes="Bold" 
-                           HorizontalTextAlignment="Center"/>
-                    <Label Text="Upload a lateral cephalometric X-ray to begin analysis." 
-                           FontSize="13" TextColor="#666" HorizontalTextAlignment="Center"/>
-                    <Button Text="Upload Image" Command="{Binding UploadImageCommand}" 
-                            BackgroundColor="#2563EB" TextColor="White" CornerRadius="8" Padding="16"/>
-                </StackLayout>
+				<!-- No Image State -->
+				<Border Style="{StaticResource ElevatedCardStyle}"
+                        IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}">
+					<VerticalStackLayout Padding="8,12" Spacing="10">
+						<Label Text="📋" FontSize="48" HorizontalTextAlignment="Center"/>
+						<Label Text="No X-Ray Image" Style="{StaticResource EmptyStateTitleStyle}"
+                               HorizontalTextAlignment="Center"/>
+						<Label Text="Upload a lateral cephalometric X-ray to begin analysis."
+                               Style="{StaticResource EmptyStateSubtitleStyle}" HorizontalTextAlignment="Center"/>
+						<Button Text="Upload Image" Command="{Binding UploadImageCommand}"
+                                Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,6,0,0"/>
+					</VerticalStackLayout>
+				</Border>
 
-                <!-- Image Display with Outline + Landmark + Construction Line Overlay -->
-                <StackLayout IsVisible="{Binding HasImage}" Spacing="12">
+				<!-- Image Display with Outline + Landmark + Construction Line Overlay -->
+				<StackLayout IsVisible="{Binding HasImage}" Spacing="14">
 
-                    <!-- Image Container with Canvas Overlay -->
-                    <ScrollView x:Name="ImageScrollView" Orientation="Both">
-                        <Grid x:Name="ImageContentGrid">
-                            <Grid.GestureRecognizers>
-                                <PinchGestureRecognizer PinchUpdated="OnPinchUpdated"/>
-                            </Grid.GestureRecognizers>
+					<!-- Image Container with Canvas Overlay -->
+					<Border Style="{StaticResource ElevatedCardStyle}" Padding="0">
+						<ScrollView x:Name="ImageScrollView" Orientation="Both">
+							<Grid x:Name="ImageContentGrid">
+								<Grid.GestureRecognizers>
+									<PinchGestureRecognizer PinchUpdated="OnPinchUpdated"/>
+								</Grid.GestureRecognizers>
 
-                            <Image Source="{Binding ImagePath}" Aspect="AspectFit" HeightRequest="500"/>
-                            <GraphicsView IsVisible="{Binding HasLandmarks}" x:Name="LandmarkCanvas" HeightRequest="500"
-                     StartInteraction="OnCanvasStartInteraction"
-                     DragInteraction="OnCanvasDragInteraction"
-                     EndInteraction="OnCanvasEndInteraction"/>
-                        </Grid>
-                    </ScrollView>
+								<Image Source="{Binding ImagePath}" Aspect="AspectFit" HeightRequest="500"/>
+								<GraphicsView IsVisible="{Binding HasLandmarks}" x:Name="LandmarkCanvas" HeightRequest="500"
+                             StartInteraction="OnCanvasStartInteraction"
+                             DragInteraction="OnCanvasDragInteraction"
+                             EndInteraction="OnCanvasEndInteraction"/>
+							</Grid>
+						</ScrollView>
+					</Border>
 
-                    <!-- Legend -->
-                    <FlexLayout IsVisible="{Binding HasLandmarks}" Wrap="Wrap" Direction="Row" JustifyContent="Start">
-                        <StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
-                            <BoxView Color="LightSkyBlue" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
-                            <Label Text="Soft tissue outline" FontSize="10" TextColor="#666"/>
-                        </StackLayout>
-                        <StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
-                            <BoxView Color="Gold" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
-                            <Label Text="S-N line" FontSize="10" TextColor="#666"/>
-                        </StackLayout>
-                        <StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
-                            <BoxView Color="Cyan" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
-                            <Label Text="N-A line" FontSize="10" TextColor="#666"/>
-                        </StackLayout>
-                        <StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
-                            <BoxView Color="Magenta" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
-                            <Label Text="N-B line" FontSize="10" TextColor="#666"/>
-                        </StackLayout>
-                        <StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
-                            <BoxView Color="Orange" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
-                            <Label Text="Frankfort plane" FontSize="10" TextColor="#666"/>
-                        </StackLayout>
-                        <StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
-                            <BoxView Color="LimeGreen" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
-                            <Label Text="Mandibular plane" FontSize="10" TextColor="#666"/>
-                        </StackLayout>
-                    </FlexLayout>
+					<!-- Legend — swatch colors are functional (match the canvas-drawn construction lines 1:1), not decorative; left unchanged -->
+					<Border Style="{StaticResource ElevatedCardStyle}" IsVisible="{Binding HasLandmarks}">
+						<FlexLayout Wrap="Wrap" Direction="Row" JustifyContent="Start">
+							<StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
+								<BoxView Color="LightSkyBlue" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
+								<Label Text="Soft tissue outline" FontSize="11" TextColor="{StaticResource TextSecondary}"/>
+							</StackLayout>
+							<StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
+								<BoxView Color="Gold" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
+								<Label Text="S-N line" FontSize="11" TextColor="{StaticResource TextSecondary}"/>
+							</StackLayout>
+							<StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
+								<BoxView Color="Cyan" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
+								<Label Text="N-A line" FontSize="11" TextColor="{StaticResource TextSecondary}"/>
+							</StackLayout>
+							<StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
+								<BoxView Color="Magenta" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
+								<Label Text="N-B line" FontSize="11" TextColor="{StaticResource TextSecondary}"/>
+							</StackLayout>
+							<StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
+								<BoxView Color="Orange" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
+								<Label Text="Frankfort plane" FontSize="11" TextColor="{StaticResource TextSecondary}"/>
+							</StackLayout>
+							<StackLayout Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
+								<BoxView Color="LimeGreen" WidthRequest="14" HeightRequest="3" VerticalOptions="Center"/>
+								<Label Text="Mandibular plane" FontSize="11" TextColor="{StaticResource TextSecondary}"/>
+							</StackLayout>
+						</FlexLayout>
+					</Border>
 
-                    <!-- Missing-landmark warning: explains any gaps in the construction lines -->
-                    <Label Text="{Binding IncompletePlanesMessage}" 
-                           FontSize="11" TextColor="#B45309" 
+					<!-- Calibration status + controls -->
+					<Border Style="{StaticResource ElevatedCardStyle}" IsVisible="{Binding HasLandmarks}">
+						<VerticalStackLayout Spacing="8">
+							<Label Text="{Binding CalibrationStatusMessage}"
+               FontSize="12" TextColor="{StaticResource Primary}"
+               IsVisible="{Binding CalibrationStatusMessage, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+							<Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding IsCalibrating, Converter={StaticResource InvertedBoolConverter}}">
+								<Button Grid.Column="0" Text="Confirm Auto Scale"
+                    Command="{Binding ConfirmAutoDetectedScaleCommand}"
+                    IsVisible="{Binding IsCalibrated, Converter={StaticResource InvertedBoolConverter}}"
+                    BackgroundColor="{StaticResource Secondary}" TextColor="{StaticResource Primary}" CornerRadius="8" FontSize="13" Padding="8"/>
+								<Button Grid.Column="1" Text="📏 Calibrate Manually"
+                    Command="{Binding StartManualCalibrationCommand}"
+                    BackgroundColor="{StaticResource Secondary}" TextColor="{StaticResource Primary}" CornerRadius="8" FontSize="13" Padding="8"/>
+							</Grid>
+
+							<Button Text="Cancel Calibration"
+                Command="{Binding CancelCalibrationCommand}"
+                IsVisible="{Binding IsCalibrating}"
+                BackgroundColor="{StaticResource Secondary}" TextColor="{StaticResource Primary}" CornerRadius="8" FontSize="13" Padding="8"/>
+						</VerticalStackLayout>
+					</Border>
+
+					<!-- Missing-landmark warning: explains any gaps in the construction lines -->
+					<Label Text="{Binding IncompletePlanesMessage}"
+                           FontSize="12" TextColor="{StaticResource StatusPartial}"
                            IsVisible="{Binding ShowMissingLandmarksUI}"/>
-                    <!-- Missing landmarks: tap a chip, then tap the image to place that point -->
-                    <FlexLayout IsVisible="{Binding ShowMissingLandmarksUI}" 
+					<!-- Missing landmarks: tap a chip, then tap the image to place that point -->
+					<FlexLayout IsVisible="{Binding ShowMissingLandmarksUI}"
                                 Wrap="Wrap" Direction="Row" JustifyContent="Start"
                                 BindableLayout.ItemsSource="{Binding MissingLandmarkNames}">
-                        <BindableLayout.ItemTemplate>
-                            <DataTemplate>
-                                <Frame Padding="8,4" Margin="0,0,6,6" CornerRadius="10" HasShadow="False"
-                                       BackgroundColor="#FEF3C7" BorderColor="#D97706">
-                                    <Frame.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding BindingContext.StartPlacingLandmarkCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+						<BindableLayout.ItemTemplate>
+							<DataTemplate>
+								<Frame Padding="8,4" Margin="0,0,6,6" CornerRadius="10" HasShadow="False"
+                                       BackgroundColor="{StaticResource StatusPartialBg}" BorderColor="{StaticResource StatusPartial}">
+									<Frame.GestureRecognizers>
+										<TapGestureRecognizer Command="{Binding BindingContext.StartPlacingLandmarkCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                            CommandParameter="{Binding .}"/>
-                                    </Frame.GestureRecognizers>
-                                    <Label Text="{Binding .}" TextColor="#92400E" FontSize="11"/>
-                                </Frame>
-                            </DataTemplate>
-                        </BindableLayout.ItemTemplate>
-                    </FlexLayout>
+									</Frame.GestureRecognizers>
+									<Label Text="{Binding .}" TextColor="{StaticResource StatusPartial}" FontSize="12"/>
+								</Frame>
+							</DataTemplate>
+						</BindableLayout.ItemTemplate>
+					</FlexLayout>
 
-                    <!-- Placement-mode hint -->
-                    <Label Text="{Binding LandmarkBeingPlaced, StringFormat='📍 Tap the X-ray to place: {0}'}" 
-       FontSize="12" FontAttributes="Bold" TextColor="#2563EB"
+					<!-- Placement-mode hint -->
+					<Label Text="{Binding LandmarkBeingPlaced, StringFormat='📍 Tap the X-ray to place: {0}'}"
+       FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}"
        IsVisible="{Binding LandmarkBeingPlaced, Converter={StaticResource StringNotEmptyConverter}}"/>
 
-                    <!-- Drag hint - only shown once landmarks are on screen -->
-                    <Label Text="⚠ marked landmarks are less reliable — tap and drag any point to correct its position before calculating." 
-                           FontSize="11" TextColor="#B45309" IsVisible="{Binding HasLandmarks}"/>
+					<!-- Drag hint - only shown once landmarks are on screen -->
+					<Label Text="⚠ marked landmarks are less reliable — tap and drag any point to correct its position before calculating."
+                           FontSize="12" TextColor="{StaticResource StatusPartial}" IsVisible="{Binding HasLandmarks}"/>
 
-                    <!-- Analysis Status -->
-                    <StackLayout IsVisible="{Binding IsAnalyzing}" 
-                                 Padding="12" BackgroundColor="#F0F9FF" >
-                        <ActivityIndicator IsRunning="True" Color="#2563EB"/>
-                        <Label Text="Analyzing X-ray..." FontSize="13" TextColor="#2563EB" 
-                               HorizontalTextAlignment="Center"/>
-                    </StackLayout>
+					<!-- Analysis Status -->
+					<Border Style="{StaticResource ElevatedCardStyle}" IsVisible="{Binding IsAnalyzing}">
+						<VerticalStackLayout Spacing="8">
+							<ActivityIndicator IsRunning="True" Color="{StaticResource Primary}"/>
+							<Label Text="Analyzing X-ray..." FontSize="14" TextColor="{StaticResource Primary}"
+                                   HorizontalTextAlignment="Center"/>
+						</VerticalStackLayout>
+					</Border>
 
-                    <!-- Action Buttons -->
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <Button Grid.Column="0" Text="Analyze" 
+					<!-- Action Buttons -->
+					<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+						<Button Grid.Column="0" Text="Replace"
+                                Command="{Binding ReplaceImageCommand}"
+                                BackgroundColor="#FEE2E2" TextColor="{StaticResource StatusOut}" CornerRadius="14" FontSize="16" FontAttributes="Bold" HeightRequest="52"/>
+						<Button Grid.Column="1" Text="Analyze"
                                 Command="{Binding AnalyzeImageCommand}"
                                 IsEnabled="{Binding IsAnalyzing, Converter={StaticResource InvertedBoolConverter}}"
-                                BackgroundColor="#2563EB" TextColor="White" CornerRadius="8"/>
-                        <Button Grid.Column="1" Text="Replace" 
-                                Command="{Binding ReplaceImageCommand}"
-                                BackgroundColor="#F5F5F5" TextColor="#333" CornerRadius="8"/>
-                    </Grid>
+                                Style="{StaticResource PrimaryActionButtonStyle}"/>
+					</Grid>
 
-                    <!-- Landmarks List -->
-                    <StackLayout IsVisible="{Binding HasLandmarks}" Spacing="8">
-                        <Label Text="Detected Landmarks" FontSize="14" FontAttributes="Bold"/>
+					<!-- Landmarks List -->
+					<Border Style="{StaticResource ElevatedCardStyle}" IsVisible="{Binding HasLandmarks}">
+						<VerticalStackLayout Spacing="10">
+							<Label Text="DETECTED LANDMARKS" Style="{StaticResource CardSectionTitleStyle}" FontSize="12"/>
 
-                        <CollectionView ItemsSource="{Binding DetectedLandmarks}" SelectionMode="Single">
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate>
-                                    <StackLayout Padding="12" BackgroundColor="#F9FAFB" Margin="0,4" Spacing="4">
-                                        <Grid ColumnDefinitions="Auto,Auto,*">
-                                            <!-- Number badge, matches the on-image dot -->
-                                            <Frame Grid.Column="0" WidthRequest="22" HeightRequest="22" Padding="0"
-                                                   CornerRadius="11" BackgroundColor="{Binding ClassId, Converter={StaticResource ClassIdToColorConverter}}"
-                                                   HasShadow="False" Margin="0,0,8,0">
-                                                <Label Text="{Binding Index}" TextColor="White" FontSize="11" FontAttributes="Bold"
-                                                       HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
-                                            </Frame>
-                                            <Ellipse Grid.Column="1" WidthRequest="12" HeightRequest="12" 
-                                                     Fill="{Binding ClassId, Converter={StaticResource ClassIdToColorConverter}}"
-                                                     VerticalOptions="Center" Margin="0,0,8,0"/>
-                                            <Label Grid.Column="2" Text="{Binding ClassName}" 
-                                                   FontSize="13" FontAttributes="Bold" TextColor="#1F2937"
-                                                   VerticalOptions="Center"/>
-                                        </Grid>
-                                        <ProgressBar Progress="{Binding Confidence}" ProgressColor="#2563EB" HeightRequest="4"/>
-                                    </StackLayout>
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+							<CollectionView ItemsSource="{Binding DetectedLandmarks}" SelectionMode="Single">
+								<CollectionView.ItemTemplate>
+									<DataTemplate>
+										<Border BackgroundColor="{StaticResource White}"
+                                                Stroke="{StaticResource Gray100}"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 10"
+                                                Padding="12" Margin="0,0,0,8">
+											<VerticalStackLayout Spacing="6">
+												<Grid ColumnDefinitions="Auto,Auto,*">
+													<!-- Number badge, matches the on-image dot -->
+													<Frame Grid.Column="0" WidthRequest="22" HeightRequest="22" Padding="0"
+                                                           CornerRadius="11" BackgroundColor="{Binding ClassId, Converter={StaticResource ClassIdToColorConverter}}"
+                                                           HasShadow="False" Margin="0,0,8,0">
+														<Label Text="{Binding Index}" TextColor="{StaticResource White}" FontSize="12" FontAttributes="Bold"
+                                                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+													</Frame>
+													<Ellipse Grid.Column="1" WidthRequest="12" HeightRequest="12"
+                                                             Fill="{Binding ClassId, Converter={StaticResource ClassIdToColorConverter}}"
+                                                             VerticalOptions="Center" Margin="0,0,8,0"/>
+													<Label Grid.Column="2" Text="{Binding ClassName}"
+                                                           FontSize="14" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}"
+                                                           VerticalOptions="Center"/>
+												</Grid>
+												<ProgressBar Progress="{Binding Confidence}" ProgressColor="{StaticResource Primary}" HeightRequest="4"/>
+											</VerticalStackLayout>
+										</Border>
+									</DataTemplate>
+								</CollectionView.ItemTemplate>
+							</CollectionView>
 
-                        <!-- Only proceeds to measurements once the user has reviewed/corrected points -->
-                        <Button Text="Confirm &amp; Calculate Measurements" 
-                                Command="{Binding ConfirmMeasurementsCommand}"
-                                BackgroundColor="#16A34A" TextColor="White" CornerRadius="8" Padding="14"
-                                Margin="0,8,0,0"/>
-                    </StackLayout>
+							<!-- Only proceeds to measurements once the user has reviewed/corrected points -->
+							<Button Text="Confirm &amp; Calculate Measurements"
+                                    Command="{Binding ConfirmMeasurementsCommand}"
+                                    Style="{StaticResource PrimaryActionButtonStyle}"
+                                    Margin="0,8,0,0"/>
+						</VerticalStackLayout>
+					</Border>
 
-                </StackLayout>
+				</StackLayout>
 
-            </StackLayout>
-        </ScrollView>
+			</StackLayout>
+		</ScrollView>
 
-        <!-- Bottom Bar -->
-        <StackLayout Grid.Row="2" Padding="16" BackgroundColor="White" 
+		<!-- Bottom Bar -->
+		<StackLayout Grid.Row="2" Padding="16" BackgroundColor="{StaticResource White}"
                       Spacing="8">
-            <Button Text="+ Upload New X-Ray" 
+			<Button Text="+ Upload New X-Ray"
                     Command="{Binding UploadImageCommand}"
                     IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}"
-                    BackgroundColor="#2563EB" TextColor="White" CornerRadius="8" Padding="16"/>
-            <Label Text="The light blue outline traces the soft-tissue profile; colored lines show the construction planes used to measure each angle." 
-                   FontSize="11" TextColor="#999" IsVisible="{Binding HasLandmarks}"/>
-        </StackLayout>
+                    Style="{StaticResource PrimaryActionButtonStyle}"/>
+			<Label Text="The light blue outline traces the soft-tissue profile; colored lines show the construction planes used to measure each angle."
+                   FontSize="12" TextColor="{StaticResource TextSecondary}" IsVisible="{Binding HasLandmarks}"/>
+		</StackLayout>
 
-    </Grid>
+	</Grid>
 
 </ContentPage>

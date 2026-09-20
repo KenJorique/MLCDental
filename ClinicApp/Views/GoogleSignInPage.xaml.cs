@@ -1,6 +1,7 @@
 ﻿using ClinicApp.Services;
 using ClinicApp.Views.Shared;
 using CommunityToolkit.Maui.Views;
+using ClinicApp.Services.Database;
 
 namespace ClinicApp.Views
 {

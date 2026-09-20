@@ -2,6 +2,8 @@
 using ClinicApp.Views.UsersRelated;
 using ClinicApp.Services;
 using ClinicApp.ViewModels.PatientsRelatedVM;
+using ClinicApp.Services.LoginService;
+using ClinicApp.Services.Database;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ClinicApp
@@ -16,7 +18,7 @@ namespace ClinicApp
         readonly RememberMeService _rememberMe;
 
 #if DEBUG
-        // Dev-only auto-login bypass; keep false unless testing without login.
+        // Dev-only auto-login bypass — currently ON; flip to false before anyone else needs to actually log in to test.
         const bool DevSkipLogin = false;
 #endif
 

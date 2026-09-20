@@ -265,11 +265,27 @@ public partial class PaymentViewModel : ObservableObject
         }
     }
 
-    // Writes each follow-up session the dentist reviewed in Bill Summary, and books the chosen slot if one was picked.
+    // Writes each follow-up the dentist reviewed in Bill Summary, booking the chosen slot with the phone from this visit's appointment.
     private async Task PersistPendingFollowUpsAsync(BillDraft draft)
     {
         try
         {
+            var phone = draft.Phone;
+            var email = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(draft.SupabaseBookingId))
+            {
+                var entry = await _supabase.GetAppointmentEntryByBookingIdAsync(draft.SupabaseBookingId);
+                if (string.IsNullOrWhiteSpace(phone)) phone = entry?.Phone ?? string.Empty;
+                email = entry?.Email ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                var patient = await _supabase.GetPatientByIdAsync(draft.PatientId);
+                phone = patient?.Phone ?? string.Empty;
+            }
+
             foreach (var pending in draft.PendingFollowUps)
             {
                 var savedRow = await _supabase.PersistSessionAsync(pending.Row);
@@ -279,7 +295,7 @@ public partial class PaymentViewModel : ObservableObject
                 if (pending.SelectedSlotLocal.HasValue && pending.SelectedSlotUtc.HasValue)
                 {
                     var scheduled = await _supabase.CreateFollowUpAppointmentAsync(
-                        _db, savedRow, draft.Phone, string.Empty,
+                        _db, savedRow, phone, email,
                         pending.SelectedSlotLocal.Value, pending.SelectedSlotUtc.Value);
 
                     if (!scheduled)

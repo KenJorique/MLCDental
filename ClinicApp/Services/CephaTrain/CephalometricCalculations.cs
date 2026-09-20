@@ -1,4 +1,4 @@
-﻿namespace ClinicApp.Services;
+﻿namespace ClinicApp.Services.CephaTrain;
 
 public static class CephalometricCalculations
 {
@@ -22,7 +22,7 @@ public static class CephalometricCalculations
     private const string ANS = "Anterior nasal spine";
     private const string ARTICULARE = "Articulare";
 
-    public static Dictionary<string, double> CalculateMeasurements(List<Landmark> landmarks)
+    public static Dictionary<string, double> CalculateMeasurements(List<Landmark> landmarks, float pixelsPerMm)
     {
         var results = new Dictionary<string, double>();
         if (landmarks.Count < 4) return results;

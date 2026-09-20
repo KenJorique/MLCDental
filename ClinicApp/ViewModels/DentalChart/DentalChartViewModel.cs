@@ -1,6 +1,7 @@
 ﻿using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.TreatmentModels;
 using ClinicApp.Services;
+using ClinicApp.Services.Database;
 using ClinicApp.Views.Shared;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;

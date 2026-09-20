@@ -1,4 +1,5 @@
 ﻿using ClinicApp.Services;
+using ClinicApp.Services.Database;
 using ClinicApp.Views;
 using ClinicApp.Views.ReportRelated;
 using ClinicApp.Views.ServicesRelated;
@@ -16,6 +17,7 @@ namespace ClinicApp.ViewModels
 
         [ObservableProperty] private string fullName = "";
         [ObservableProperty] private string role = "";
+        [ObservableProperty] private bool canManageUsers;
 
         // Injects the session service.
         public MenuViewModel(SessionService session)
@@ -23,13 +25,14 @@ namespace ClinicApp.ViewModels
             _session = session;
         }
 
-        // Refreshes the hero header's name/role every time the page appears.
+        // Refreshes the hero header's name/role, and whether User Management should show, every time the page appears.
         public void OnAppearing()
         {
             try
             {
                 FullName = _session.IsAuthenticated ? _session.FullName : "";
                 Role = _session.IsAuthenticated ? _session.Role : "";
+                CanManageUsers = _session.IsAuthenticated && !_session.IsSecretary;
             }
             catch (Exception ex)
             {

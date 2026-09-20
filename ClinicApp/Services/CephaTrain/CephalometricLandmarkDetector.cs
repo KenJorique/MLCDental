@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ClinicApp.Services;
+namespace ClinicApp.Services.CephaTrain;
 
 public class CephalometricLandmarkDetector
 {
@@ -55,7 +55,9 @@ public class CephalometricLandmarkDetector
                 Landmarks = result?.Landmarks ?? new List<Landmark>(),
                 SoftTissueOutline = result?.SoftTissueOutline ?? new List<OutlinePoint>(),
                 MissingLandmarks = result?.MissingLandmarks ?? new List<string>(),
-                IncompletePlanes = result?.IncompletePlanes ?? new List<string>()
+                IncompletePlanes = result?.IncompletePlanes ?? new List<string>(),
+                PixelsPerMm = result?.PixelsPerMm,
+                RulerConfidence = result?.RulerConfidence
             };
         }
         catch (HttpRequestException ex)
@@ -124,6 +126,8 @@ public class DetectionResult
     public List<OutlinePoint> SoftTissueOutline { get; set; } = new();
     public List<string> MissingLandmarks { get; set; } = new();
     public List<string> IncompletePlanes { get; set; } = new();
+    public double? PixelsPerMm { get; set; }
+    public double? RulerConfidence { get; set; }
 }
 
 /// <summary>A single point along a traced outline curve (no class/confidence — just geometry).</summary>
@@ -156,6 +160,13 @@ public class LandmarkResponse
 
     [JsonPropertyName("incomplete_planes")]
     public List<string> IncompletePlanes { get; set; } = new();
+
+    [JsonPropertyName("pixels_per_mm")]
+    public double? PixelsPerMm { get; set; }
+
+    [JsonPropertyName("ruler_confidence")]
+    public double? RulerConfidence { get; set; }
+
 
     [JsonPropertyName("error")]
     public string? Error { get; set; }

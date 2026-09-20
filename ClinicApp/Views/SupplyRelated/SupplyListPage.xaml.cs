@@ -1,4 +1,4 @@
-using ClinicApp.Services;
+using ClinicApp.Services.Database;
 using ClinicApp.ViewModels.SupplyVM;
 
 namespace ClinicApp.Views.SupplyRelated;

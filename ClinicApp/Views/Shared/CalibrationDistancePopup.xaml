@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Small numeric-entry popup, used only for the calibration-distance prompt (ConfirmationPopup has no input field). Styled to match DentalChart's modal: green header, RoundRectangle 18, Primary/Secondary buttons. -->
+<toolkit:Popup
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    x:Class="ClinicApp.Views.Shared.CalibrationDistancePopup"
+    Color="Transparent">
+
+	<Border BackgroundColor="{StaticResource White}"
+            WidthRequest="320"
+            Padding="0"
+            StrokeThickness="0">
+		<Border.StrokeShape>
+			<RoundRectangle CornerRadius="18"/>
+		</Border.StrokeShape>
+
+		<VerticalStackLayout Spacing="0">
+
+			<!-- Header: green bar, white bold title — matches DentalChart's tooth-detail modal header. -->
+			<VerticalStackLayout BackgroundColor="{StaticResource Primary}" Padding="20,16" Spacing="2">
+				<Label Text="Calibration Distance"
+                       FontSize="17" FontAttributes="Bold"
+                       TextColor="{StaticResource TextOnPrimary}"/>
+				<Label Text="Enter the real-world distance between the two points you tapped."
+                       FontSize="12" TextColor="{StaticResource GoldLight}"
+                       LineBreakMode="WordWrap"/>
+			</VerticalStackLayout>
+
+			<VerticalStackLayout Padding="20,18" Spacing="12">
+
+				<Label Text="DISTANCE (MM)" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}"/>
+
+				<Entry x:Name="DistanceEntry"
+                       Placeholder="e.g. 10"
+                       Keyboard="Numeric"
+                       FontSize="18"
+                       TextColor="{StaticResource TextPrimary}"
+                       BackgroundColor="{StaticResource Secondary}"/>
+
+				<Label x:Name="ValidationLabel"
+                       Text="Enter a distance greater than 0."
+                       FontSize="12" TextColor="{StaticResource StatusOut}"
+                       IsVisible="False"/>
+
+				<Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,6,0,0">
+					<Button Grid.Column="0" Text="Cancel" Clicked="OnCancelClicked"
+                            BackgroundColor="{StaticResource Secondary}" TextColor="{StaticResource Primary}"
+                            CornerRadius="8" FontSize="14"/>
+					<Button Grid.Column="1" Text="OK" Clicked="OnOkClicked"
+                            BackgroundColor="{StaticResource Primary}" TextColor="{StaticResource TextOnPrimary}"
+                            CornerRadius="8" FontSize="14"/>
+				</Grid>
+
+			</VerticalStackLayout>
+		</VerticalStackLayout>
+	</Border>
+
+</toolkit:Popup>

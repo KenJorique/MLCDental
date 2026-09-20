@@ -8,11 +8,14 @@ using ClinicApp.Views.ServicesRelated;
 using ClinicApp.Views.SupplyRelated;
 using ClinicApp.Views.TransactionRelated;
 using ClinicApp.Views.UsersRelated;
+using ClinicApp.Views.Shared;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Core.Platform;
+using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Graphics;
 using Supabase.Gotrue;
 using ClinicApp.Services;
+using ClinicApp.Services.LoginService;
 
 namespace ClinicApp
 {
@@ -105,22 +108,33 @@ namespace ClinicApp
                 return;
             }
 
+            // Dental Chart / Cephalometric are clinical-record tools; User Management is
+            // staff-account admin — both are Dentist-only, Secretary is blocked from either.
             bool isSecretaryRestrictedRoute =
                 target.Contains(nameof(DentalChartPage)) ||
                 target.Contains(nameof(CephalometricPage)) ||
-                target.Contains("measurements");
+                target.Contains("measurements") ||
+                target.Contains(nameof(UserListPage)) ||
+                target.Contains(nameof(AddUserPage));
 
             if (_session.IsSecretary && isSecretaryRestrictedRoute)
             {
                 e.Cancel();
-                _ = Shell.Current.DisplayAlert(
-                    "Not available",
-                    "This section is only available to Dentist accounts.",
-                    "OK");
+                _ = ShowNotAvailablePopupAsync();
                 return;
             }
 
             _session.NotifyActivity();
+        }
+
+        // OK-only popup, matching the app's ConfirmationPopup design instead of a native DisplayAlert.
+        private static async Task ShowNotAvailablePopupAsync()
+        {
+            var popup = new ConfirmationPopup(
+                "Not Available",
+                "This section is only available to Dentist accounts.",
+                "OK", PopupAction.Positive, showCancelButton: false);
+            await Shell.Current.CurrentPage.ShowPopupAsync(popup);
         }
 
         // ── CHANGED: swap MainPage instead of Shell.GoToAsync ──

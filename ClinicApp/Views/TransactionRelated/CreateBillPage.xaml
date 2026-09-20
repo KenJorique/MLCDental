@@ -150,7 +150,7 @@
 
 					<Label Grid.Column="0"
                            Text="{Binding ServicesCountLabel}"
-                           FontSize="13" TextColor="{StaticResource TextMuted}"
+                           FontSize="13" TextColor="{StaticResource Gray500}"
                            VerticalOptions="Center"
                            HorizontalOptions="Start"/>
 

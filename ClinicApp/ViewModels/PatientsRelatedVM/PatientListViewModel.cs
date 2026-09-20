@@ -1,6 +1,7 @@
 ﻿using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Services.Database;
 using ClinicApp.Views;
 using ClinicApp.Views.CephalometricRelated;
 using ClinicApp.Views.DentalChart;
@@ -19,6 +20,10 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         readonly SupabaseRealtimeService _realtime;
         readonly SupabaseDataService _supabaseData;
 
+        // Nullable: the secondary (local-only) constructor below doesn't take one, so any
+        // Secretary-restriction check against this must null-check rather than assume it's set.
+        readonly SessionService? _session;
+
         private List<PatientCardViewModel> _allPatients = new();
         public ObservableCollection<PatientCardViewModel> Patients { get; set; } = new();
 
@@ -29,12 +34,14 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         [ObservableProperty] private int newBookingCount;
         [ObservableProperty] private bool hasNewBookings;
 
-        // Main constructor — injects local DB, realtime sync, and Supabase data services.
-        public PatientListViewModel(DatabaseService db, SupabaseRealtimeService realtime, SupabaseDataService supabaseData)
+        // Main constructor — injects local DB, realtime sync, Supabase data, and session services.
+        public PatientListViewModel(DatabaseService db, SupabaseRealtimeService realtime,
+            SupabaseDataService supabaseData, SessionService session)
         {
             _db = db;
             _realtime = realtime;
             _supabaseData = supabaseData;
+            _session = session;
 
             // When Supabase fires a new booking, reload the list.
             _realtime.OnNewBookingReceived += async () =>
@@ -152,8 +159,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         [ObservableProperty] private string searchText = string.Empty;
         [ObservableProperty] private string currentSort = "All";
 
-        // Secondary constructor (local-only, no realtime/Supabase). Leaves _realtime and
-        // _supabaseData null if this is the one that ends up being used — see earlier note.
+        // Secondary constructor (local-only, no realtime/Supabase/session). Leaves _realtime,
+        // _supabaseData, and _session null if this is the one that ends up being used — see earlier note.
         public PatientListViewModel(DatabaseService db) => _db = db;
 
         // Loads patients from local SQLite and applies the current filter/sort.
@@ -248,7 +255,9 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         // Guards against double-tapping a card while the sheet is still opening.
         private bool _isSheetOpen = false;
 
-        // Opens the bottom action sheet when a card is tapped.
+        // Opens the bottom action sheet when a card is tapped — Dental Chart and Cephalometric
+        // are left out entirely for Secretary accounts, matching the same restriction AppShell
+        // already enforces at the route level.
         [RelayCommand]
         async Task OpenActionSheet(PatientCardViewModel card)
         {
@@ -257,46 +266,48 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
 
             try
             {
-                var sheet = new ItemActionSheet();
-                sheet.Configure(
-                    title: card.Patient.FullName,
-                    subtitle: $"Patient ID: {card.Patient.PatientID:D3}",
-                    options: new[]
+                var options = new List<ActionSheetOption>
+                {
+                    new ActionSheetOption
                     {
-                new ActionSheetOption
+                        Icon = "\ue09e",
+                        Label = "Patient Records",
+                        Subtitle = "View full patient details",
+                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                        IconColor = Color.FromArgb("#1A6B2F"),
+                        OnTapped = async () =>
+                            await Shell.Current.GoToAsync(
+                                $"{nameof(PatientDetailsPage)}?id={card.Patient.PatientID}"),
+                    },
+                };
+
+                if (_session?.IsSecretary != true)
                 {
-                    Icon = "\ue09e",
-                    Label = "Patient Records",
-                    Subtitle = "View full patient details",
-                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
-                    IconColor = Color.FromArgb("#1A6B2F"),
-                    OnTapped = async () =>
-                        await Shell.Current.GoToAsync(
-                            $"{nameof(PatientDetailsPage)}?id={card.Patient.PatientID}"),
-                },
-                new ActionSheetOption
-                {
-                    Icon = "\ue0a6",
-                    Label = "Dental Chart",
-                    Subtitle = "View dental chart",
-                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
-                    IconColor = Color.FromArgb("#1A6B2F"),
-                    OnTapped = async () =>
-                        await Shell.Current.GoToAsync(
-                            $"{nameof(DentalChartPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
-                },
-                new ActionSheetOption
-                {
-                    Icon = "\ue0aa",
-                    Label = "Cephalometric",
-                    Subtitle = "View cephalometric analysis",
-                    IconBackgroundColor = Color.FromArgb("#E8F5E9"),
-                    IconColor = Color.FromArgb("#1A6B2F"),
-                    OnTapped = async () =>
-                        await Shell.Current.GoToAsync(
-                            $"{nameof(CephalometricPage)}?PatientId={card.Patient.PatientID}&PatientName={Uri.EscapeDataString(card.Patient.FullName)}"),
-                },
-                new ActionSheetOption
+                    options.Add(new ActionSheetOption
+                    {
+                        Icon = "\ue0a6",
+                        Label = "Dental Chart",
+                        Subtitle = "View dental chart",
+                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                        IconColor = Color.FromArgb("#1A6B2F"),
+                        OnTapped = async () =>
+                            await Shell.Current.GoToAsync(
+                                $"{nameof(DentalChartPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
+                    });
+                    options.Add(new ActionSheetOption
+                    {
+                        Icon = "\ue0aa",
+                        Label = "Cephalometric",
+                        Subtitle = "View cephalometric analysis",
+                        IconBackgroundColor = Color.FromArgb("#E8F5E9"),
+                        IconColor = Color.FromArgb("#1A6B2F"),
+                        OnTapped = async () =>
+                            await Shell.Current.GoToAsync(
+                                $"{nameof(CephalometricPage)}?PatientId={card.Patient.PatientID}&PatientName={Uri.EscapeDataString(card.Patient.FullName)}"),
+                    });
+                }
+
+                options.Add(new ActionSheetOption
                 {
                     Icon = "\ue889",
                     Label = "Treatment History",
@@ -306,8 +317,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                     OnTapped = async () =>
                         await Shell.Current.GoToAsync(
                             $"{nameof(TreatmentHistoryPage)}?patientId={card.Patient.PatientID}&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
-                },
-                new ActionSheetOption
+                });
+                options.Add(new ActionSheetOption
                 {
                     Icon = "\ue8f1",
                     Label = "Patient Ledger",
@@ -319,8 +330,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                             $"{nameof(TransactionPage)}" +
                             $"?patientId={card.Patient.SupabaseId}" +
                             $"&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
-                },
-                new ActionSheetOption
+                });
+                options.Add(new ActionSheetOption
                 {
                     Icon = "\ue872",
                     Label = "Delete Patient",
@@ -329,8 +340,13 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                     IconBackgroundColor = Color.FromArgb("#FFEBEE"),
                     IconColor = Colors.Crimson,
                     OnTapped = async () => await DeletePatient(card),
-                },
-                    });
+                });
+
+                var sheet = new ItemActionSheet();
+                sheet.Configure(
+                    title: card.Patient.FullName,
+                    subtitle: $"Patient ID: {card.Patient.PatientID:D3}",
+                    options: options.ToArray());
 
                 await sheet.ShowAsync();
             }
@@ -429,21 +445,22 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             await MainThread.InvokeOnMainThreadAsync(async () => await LoadPatients());
         }
 
-        // Opens the dental chart for the tapped patient.
+        // Opens the dental chart for the tapped patient — Secretary-blocked, kept in sync with OpenActionSheet
+        // even though nothing currently binds to this command directly (it's not referenced in PatientListPage.xaml).
         [RelayCommand]
         async Task ViewDentalChart(PatientCardViewModel card)
         {
-            if (card is null) return;
+            if (card is null || _session?.IsSecretary == true) return;
             await Shell.Current.GoToAsync(
                 $"{nameof(DentalChartPage)}?patientId={card.Patient.PatientID}" +
                 $"&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
         }
 
-        // Opens the cephalometric analysis page for the tapped patient.
+        // Opens the cephalometric analysis page for the tapped patient — Secretary-blocked, same note as above.
         [RelayCommand]
         async Task GoToCephalometric(PatientCardViewModel card)
         {
-            if (card == null) return;
+            if (card == null || _session?.IsSecretary == true) return;
             string fullName = Uri.EscapeDataString(
                 $"{card.Patient.FirstName} {card.Patient.LastName}");
             await Shell.Current.GoToAsync(

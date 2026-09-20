@@ -364,4 +364,3 @@ public partial class BillSummaryViewModel : ObservableObject
         await Shell.Current.GoToAsync(nameof(PaymentPage));
     }
 }
-    

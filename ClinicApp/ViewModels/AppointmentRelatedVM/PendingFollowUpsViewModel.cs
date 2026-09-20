@@ -111,6 +111,17 @@ namespace ClinicApp.ViewModels
                 var phone = patient?.Phone ?? string.Empty;
                 var email = patient?.Email ?? string.Empty;
 
+                if (string.IsNullOrWhiteSpace(phone) && !string.IsNullOrWhiteSpace(item.Sequence.SourceAppointmentId))
+                {
+                    var source = await _supabase.GetAppointmentEntryByBookingIdAsync(item.Sequence.SourceAppointmentId);
+                    phone = source?.Phone ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(email)) email = source?.Email ?? string.Empty;
+                }
+
+                // Temporary: logs whether the patient lookup succeeded and what phone it returned.
+                System.Diagnostics.Debug.WriteLine(
+                    $"[CreateFollowUp] patientId='{item.Sequence.PatientId}' found={patient != null} phone='{phone}'");
+
                 var success = await _supabase.CreateFollowUpAppointmentAsync(
                     _db, item.Sequence, phone, email,
                     item.SelectedSlotLocal!.Value, item.SelectedSlotUtc!.Value);

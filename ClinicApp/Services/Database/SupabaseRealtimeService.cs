@@ -4,7 +4,7 @@ using Supabase.Realtime;
 using Supabase.Realtime.PostgresChanges;
 using static Supabase.Realtime.PostgresChanges.PostgresChangesOptions;
 
-namespace ClinicApp.Services
+namespace ClinicApp.Services.Database
 {
     public class SupabaseRealtimeService
     {

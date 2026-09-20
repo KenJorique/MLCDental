@@ -18,40 +18,40 @@
 				<Label Text="Today's Overview" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray900}"/>
 
 				<Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="4">
-					<Border Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" Padding="8,12">
+					<Border Grid.Column="0" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource GoldLight}" Stroke="{StaticResource GoldLight}" Padding="8,12">
 						<VerticalStackLayout Spacing="4">
 							<HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
 								<Label Text="&#xe878;" FontFamily="MaterialSymbolsRounded" FontSize="20" TextColor="{StaticResource Gray500}" VerticalOptions="Center"/>
 								<Label Text="{Binding TotalAppointments}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource Gray900}" VerticalOptions="Center"/>
 							</HorizontalStackLayout>
-							<Label Text="Total" FontSize="11" TextColor="{StaticResource Gray400}" HorizontalTextAlignment="Center"/>
+							<Label Text="Total" FontSize="11" TextColor="{StaticResource Gray900}" HorizontalTextAlignment="Center"/>
 						</VerticalStackLayout>
 					</Border>
-					<Border Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" Padding="8,12">
+					<Border Grid.Column="1" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource GoldLight}" Stroke="{StaticResource GoldLight}" Padding="8,12">
 						<VerticalStackLayout Spacing="4">
 							<HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
 								<Label Text="&#xe614;" FontFamily="MaterialSymbolsRounded" FontSize="20" TextColor="{StaticResource Primary}" VerticalOptions="Center"/>
 								<Label Text="{Binding DoneAppointments}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource Primary}" VerticalOptions="Center"/>
 							</HorizontalStackLayout>
-							<Label Text="Completed" FontSize="11" TextColor="{StaticResource Gray400}" HorizontalTextAlignment="Center"/>
+							<Label Text="Completed" FontSize="11" TextColor="{StaticResource Gray900}" HorizontalTextAlignment="Center"/>
 						</VerticalStackLayout>
 					</Border>
-					<Border Grid.Column="2" Style="{StaticResource ElevatedCardStyle}" Padding="8,12">
+					<Border Grid.Column="2" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource GoldLight}" Stroke="{StaticResource GoldLight}" Padding="8,12">
 						<VerticalStackLayout Spacing="4">
 							<HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
 								<Label Text="&#xf540;" FontFamily="MaterialSymbolsRounded" FontSize="20" TextColor="{StaticResource StatusLow}" VerticalOptions="Center"/>
 								<Label Text="{Binding PendingAppointments}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource StatusLow}" VerticalOptions="Center"/>
 							</HorizontalStackLayout>
-							<Label Text="Pending" FontSize="11" TextColor="{StaticResource Gray400}" HorizontalTextAlignment="Center"/>
+							<Label Text="Pending" FontSize="11" TextColor="{StaticResource Gray900}" HorizontalTextAlignment="Center"/>
 						</VerticalStackLayout>
 					</Border>
-					<Border Grid.Column="3" Style="{StaticResource ElevatedCardStyle}" Padding="8,12">
+					<Border Grid.Column="3" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource GoldLight}" Stroke="{StaticResource GoldLight}" Padding="8,12">
 						<VerticalStackLayout Spacing="4">
 							<HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
 								<Label Text="&#xe615;" FontFamily="MaterialSymbolsRounded" FontSize="20" TextColor="{StaticResource StatusOut}" VerticalOptions="Center"/>
 								<Label Text="{Binding CancelledAppointments}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource StatusOut}" VerticalOptions="Center"/>
 							</HorizontalStackLayout>
-							<Label Text="Cancelled" FontSize="11" TextColor="{StaticResource Gray400}" HorizontalTextAlignment="Center"/>
+							<Label Text="Cancelled" FontSize="11" TextColor="{StaticResource Gray900}" HorizontalTextAlignment="Center"/>
 						</VerticalStackLayout>
 					</Border>
 				</Grid>
@@ -80,10 +80,10 @@
 								</Border.GestureRecognizers>
 								<Grid ColumnDefinitions="70,*,Auto">
 									<Label Grid.Column="0" Text="{Binding AppointmentDateTimeParsed, StringFormat='{0:h:mm tt}'}"
-                                           FontSize="13" TextColor="{StaticResource Gray700}" VerticalOptions="Center"/>
+                                           FontSize="13" TextColor="{StaticResource Gray900}" VerticalOptions="Center"/>
 									<Label Grid.Column="1" Text="{Binding PatientName}"
-                                           FontSize="14" TextColor="{StaticResource Gray800}" FontAttributes="Bold" VerticalOptions="Center" LineBreakMode="WordWrap"/>
-									<Label Grid.Column="2" Text="›" FontSize="20" FontAttributes="Bold"
+                                           FontSize="14" TextColor="{StaticResource Black}"  VerticalOptions="Center" LineBreakMode="WordWrap"/>
+									<Label Grid.Column="2" Text="&#xe5cc;" FontFamily="MaterialSymbolsRounded" FontSize="18"
                                            TextColor="{StaticResource Gray400}" VerticalOptions="Center"/>
 								</Grid>
 							</Border>
@@ -100,6 +100,9 @@
 
 				<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
 					<Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
+						<Border.Shadow>
+							<Shadow Brush="Black" Opacity="0.12" Radius="6" Offset="0,2"/>
+						</Border.Shadow>
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding AddAppointmentCommand}"/>
 						</Border.GestureRecognizers>
@@ -112,6 +115,9 @@
 						</Grid>
 					</Border>
 					<Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
+						<Border.Shadow>
+							<Shadow Brush="Black" Opacity="0.12" Radius="6" Offset="0,2"/>
+						</Border.Shadow>
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding AddPatientCommand}"/>
 						</Border.GestureRecognizers>
@@ -124,6 +130,9 @@
 						</Grid>
 					</Border>
 					<Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
+						<Border.Shadow>
+							<Shadow Brush="Black" Opacity="0.12" Radius="6" Offset="0,2"/>
+						</Border.Shadow>
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding RecordPaymentCommand}"/>
 						</Border.GestureRecognizers>
@@ -136,6 +145,9 @@
 						</Grid>
 					</Border>
 					<Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
+						<Border.Shadow>
+							<Shadow Brush="Black" Opacity="0.12" Radius="6" Offset="0,2"/>
+						</Border.Shadow>
 						<Border.GestureRecognizers>
 							<TapGestureRecognizer Command="{Binding ManageSupplyCommand}"/>
 						</Border.GestureRecognizers>
@@ -175,7 +187,7 @@
 									<Label Grid.Column="0" Text="{Binding IconGlyph}" FontFamily="MaterialSymbolsRoundedFilled"
                                            FontSize="20" TextColor="{Binding IconColor}" WidthRequest="22" VerticalOptions="Center"/>
 									<Label Grid.Column="1" Text="{Binding Text}" FontSize="13" TextColor="{StaticResource Gray900}" VerticalOptions="Center"/>
-									<Label Grid.Column="2" Text="›" FontSize="20" FontAttributes="Bold"
+									<Label Grid.Column="2" Text="&#xe5cc;" FontFamily="MaterialSymbolsRounded" FontSize="18"
                                            TextColor="{StaticResource Gray400}" VerticalOptions="Center"/>
 								</Grid>
 							</Border>
@@ -210,7 +222,7 @@
 									<Label Grid.Column="1" Text="{Binding TimeAgoDisplay}" FontSize="11"
                                            TextColor="{StaticResource Gray400}" VerticalOptions="Center" Margin="10,0,0,0"/>
 								</Grid>
-								<BoxView HeightRequest=".1" Color="{StaticResource Gray100}"/>
+								<BoxView HeightRequest=".5" Color="{StaticResource Gray100}"/>
 							</VerticalStackLayout>
 						</DataTemplate>
 					</CollectionView.ItemTemplate>

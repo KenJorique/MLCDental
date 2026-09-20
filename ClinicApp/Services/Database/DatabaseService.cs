@@ -30,14 +30,11 @@ public partial class DatabaseService
 
         try
         {
-            // this saves in windows
-            //string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
-
-            // This saves it to the "Downloads" folder on the Android Emulator
-            //string dbPath = Path.Combine("/storage/emulated/0/Download", "clinic.db3");
-            var dbPath = Path.Combine(
-        FileSystem.AppDataDirectory,  // ← correct path
-        "clinic.db3");
+            // FileSystem.AppDataDirectory is the correct path on every platform (Android, iOS,
+            // Windows, MacCatalyst) — it's the app's own sandboxed storage, so it needs no
+            // runtime permissions and isn't subject to Android's scoped-storage restrictions
+            // the way a raw "/storage/emulated/0/..." path is.
+            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "clinic.db3");
 
             System.Diagnostics.Debug.WriteLine($"[DB] Path: {dbPath}");
 

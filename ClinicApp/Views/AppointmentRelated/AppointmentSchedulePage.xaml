@@ -102,7 +102,7 @@
 		<VerticalStackLayout Grid.Row="1" Spacing="1">
 
 			<!-- Active queue banner: in-procedure + billing -->
-			<Border BackgroundColor="#2563EB"
+			<Border BackgroundColor="#C8A84B"
                     IsVisible="{Binding HasInProcedureQueue}"
                     Padding="12,8">
 				<Border.GestureRecognizers>
@@ -239,7 +239,7 @@
 						<CollectionView ItemsSource="{Binding GroupedWeekAppointments}">
 							<CollectionView.ItemTemplate>
 								<DataTemplate x:DataType="vm:AppointmentDateGroup">
-									<VerticalStackLayout Spacing="0" Margin="0,20,0,0">
+									<VerticalStackLayout Spacing="0" Margin="0,10,0,0">
 
 										<!-- Date section header, e.g. "Monday, July 20" or "Today, July 21" -->
 										<Label Text="{Binding Header}" FontSize="13" FontAttributes="Bold"

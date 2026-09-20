@@ -21,6 +21,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Handlers;
 using The49.Maui.BottomSheet;
 using SkiaSharp.Views.Maui.Controls.Hosting;
+using ClinicApp.Services.Database;
+using ClinicApp.Services.CephaTrain;
+using ClinicApp.Services.LoginService;
 using Syncfusion.Maui.Core.Hosting;
 
 namespace ClinicApp
@@ -144,7 +147,8 @@ namespace ClinicApp
                 new PatientListViewModel(
                     sp.GetRequiredService<DatabaseService>(),
                     sp.GetRequiredService<SupabaseRealtimeService>(),
-                    sp.GetRequiredService<SupabaseDataService>()
+                    sp.GetRequiredService<SupabaseDataService>(),
+                    sp.GetRequiredService<SessionService>()
                 ));
             builder.Services.AddSingleton<PatientListPage>();
             builder.Services.AddTransient<AddPatientViewModel>(sp =>
@@ -239,6 +243,7 @@ namespace ClinicApp
             // ── Cephalometric ─────────────────────────────
             builder.Services.AddTransient<Views.CephalometricRelated.CephalometricMeasurementsPage>();
             builder.Services.AddTransient<CephalometricMeasurementsViewModel>();
+            builder.Services.AddSingleton<OnDeviceCephalometricDetector>();
 
             // ── Reports ─────────────────────────────
             builder.Services.AddTransient<Views.ReportRelated.ReportsPage>();

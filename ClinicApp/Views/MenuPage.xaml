@@ -104,8 +104,8 @@
                            FontSize="18" TextColor="{StaticResource TextMuted}" VerticalOptions="Center"/>
 				</Grid>
 
-				<!-- User Management -->
-				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+				<!-- User Management — Dentist only; hidden entirely for Secretary, not just blocked on tap -->
+				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16" IsVisible="{Binding CanManageUsers}">
 					<Grid.GestureRecognizers>
 						<TapGestureRecognizer Command="{Binding GoToUsersCommand}"/>
 					</Grid.GestureRecognizers>
