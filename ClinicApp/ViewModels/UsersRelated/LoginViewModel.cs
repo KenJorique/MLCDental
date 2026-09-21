@@ -33,6 +33,8 @@ public partial class LoginViewModel : ObservableObject
     [ObservableProperty] bool isPasswordHidden = true;
     [ObservableProperty] bool isBusy;
 
+    [ObservableProperty] string? errorMessage;
+
     // Bound to the "Remember me" checkbox on LoginPage.xaml.
     [ObservableProperty] bool rememberMe;
 

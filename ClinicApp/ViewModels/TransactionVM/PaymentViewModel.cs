@@ -7,6 +7,7 @@ using ClinicApp.Views.Shared;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ClinicApp.Services.BillingService;
 
 namespace ClinicApp.ViewModels.TransactionVM;
 
