@@ -44,10 +44,15 @@ public static class CephalometricCalculations
             results["FMA"] = AngleBetween(byName[PORION], byName[ORBITALE], byName[GONION], byName[MENTON]);
         if (Has(SELLA, NASION, GONION, MENTON))
             results["SN_GoGn"] = AngleBetween(byName[SELLA], byName[NASION], byName[GONION], byName[MENTON]);
-        if (Has(NASION, MENTON))
-            results["AFH"] = Distance(byName[NASION], byName[MENTON]);
-        if (Has(PORION, GONION))
-            results["PFH"] = Distance(byName[PORION], byName[GONION]);
+
+        // Linear measurements are only meaningful with a confirmed scale (px -> mm)
+        if (pixelsPerMm > 0)
+        {
+            if (Has(NASION, MENTON))
+                results["AFH"] = Distance(byName[NASION], byName[MENTON]) / pixelsPerMm;
+            if (Has(PORION, GONION))
+                results["PFH"] = Distance(byName[PORION], byName[GONION]) / pixelsPerMm;
+        }
 
         return results;
     }
