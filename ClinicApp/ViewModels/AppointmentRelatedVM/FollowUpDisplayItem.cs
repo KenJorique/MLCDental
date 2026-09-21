@@ -45,6 +45,7 @@ namespace ClinicApp.ViewModels
         public DateTime MinDate => DateTime.Today;
         public DateTime MaxDate => DateTime.Today.AddDays(180);
 
+        // Seeds the recommended date (or a week out, if none) for this sequence.
         public FollowUpDisplayItem(SupabaseTreatmentSequence sequence, SupabaseDataService supabase)
         {
             Sequence = sequence;
@@ -52,20 +53,17 @@ namespace ClinicApp.ViewModels
             SelectedDate = sequence.RecommendedDate?.ToLocalTime().Date ?? DateTime.Today.AddDays(7);
         }
 
-        /// Preloads slots for a not-yet-scheduled item — call right after construction.
+        // Preloads slots for a not-yet-scheduled item — call right after construction.
         public async Task InitializeAsync() => await LoadSlotsAsync();
 
-        /// Records the current appointment's date/time for display, without
-        /// opening the editor or loading slots yet.
+        // Records the current appointment's date/time for display, without opening the editor yet.
         public void SetScheduledInfo(DateTime localDateTime, DateTime utcDateTime)
         {
             _currentAppointmentUtc = utcDateTime;
             CurrentAppointmentDisplay = localDateTime.ToString("MMM dd, yyyy h:mm tt");
         }
 
-        /// Dentist tapped "Edit Date" — opens the picker seeded with the
-        /// current date, and excludes the item's own current slot from
-        /// showing as "taken" so re-picking the same slot still works.
+        // Opens the date/slot picker for an already-scheduled item, keeping its own current slot selectable.
         public async Task ToggleEditModeAsync()
         {
             IsEditingDate = !IsEditingDate;
@@ -77,12 +75,20 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Reloads slots whenever the picked date changes.
         partial void OnSelectedDateChanged(DateTime value) => _ = LoadSlotsAsync();
+
+        // Tracks the most recent LoadSlotsAsync call, so a slower older request can't overwrite a newer one's result.
+        int _loadRequestId;
 
         public async Task LoadSlotsAsync()
         {
-            if (SelectedDate.DayOfWeek == DayOfWeek.Sunday)
+            var requestedDate = SelectedDate; // snapshot once — never re-read the live property after an await
+            var myRequestId = ++_loadRequestId;
+
+            if (requestedDate.DayOfWeek == DayOfWeek.Sunday)
             {
+                if (myRequestId != _loadRequestId) return;
                 TimeSlots.Clear();
                 HasNoSlots = true;
                 HasSelection = false;
@@ -96,13 +102,17 @@ namespace ClinicApp.ViewModels
 
             try
             {
-                var bookedSlots = await _supabase.GetBookedTimeSlotsForDateAsync(SelectedDate);
+                var bookedSlots = await _supabase.GetBookedTimeSlotsForDateAsync(requestedDate);
+
+                // A newer date change started its own load while this one was in flight — drop this stale result.
+                if (myRequestId != _loadRequestId) return;
+
                 TimeSlots.Clear();
 
                 var hours = new[] { 10, 11, 13, 14, 15, 16 };
                 foreach (var h in hours)
                 {
-                    var slotTime = new DateTime(SelectedDate.Year, SelectedDate.Month, SelectedDate.Day, h, 0, 0);
+                    var slotTime = new DateTime(requestedDate.Year, requestedDate.Month, requestedDate.Day, h, 0, 0);
                     var slotUtc = TimeZoneInfo.ConvertTimeToUtc(slotTime, ManilaTz);
 
                     // Don't grey out this appointment's own current slot while editing it
@@ -128,10 +138,12 @@ namespace ClinicApp.ViewModels
             }
             finally
             {
-                IsLoadingSlots = false;
+                if (myRequestId == _loadRequestId)
+                    IsLoadingSlots = false;
             }
         }
 
+        // Selects a slot (ignored if taken), refreshing every slot's color so only the new pick shows selected.
         [RelayCommand]
         void SelectSlot(TimeSlotItem slot)
         {

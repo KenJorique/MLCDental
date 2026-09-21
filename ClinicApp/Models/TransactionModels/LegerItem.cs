@@ -8,6 +8,43 @@ public class LedgerItem
     public string Reference { get; set; } = "";
     public decimal Amount { get; set; }
     public decimal RemainingBalance { get; set; }
+
+    // Amount already paid on this bill — needed for the "Bill Amount /
+    // Paid" two-column layout on the redesigned ledger card. Set
+    // alongside Amount/RemainingBalance in TransactionViewModel.
+    public decimal PaidAmount { get; set; }
+    public string PaidAmountDisplay => $"₱{PaidAmount:N2}";
+
+    // Raw status string mirrors SupabaseBill.Status ("paid" / "partial" /
+    // "unpaid") — display/color helpers below match SupabaseBill's own
+    // StatusDisplay/StatusColor/StatusBgColor exactly, so the same status
+    // pill looks identical wherever it shows up in the app.
+    public string Status { get; set; } = "";
+
+    public string StatusDisplay => Status switch
+    {
+        "paid" => "Paid",
+        "partial" => "Partial",
+        "unpaid" => "Unpaid",
+        _ => Status
+    };
+
+    public Color StatusColor => Status switch
+    {
+        "paid" => Color.FromArgb("#2E7D32"),
+        "partial" => Color.FromArgb("#E65100"),
+        "unpaid" => Color.FromArgb("#C62828"),
+        _ => Color.FromArgb("#888888")
+    };
+
+    public Color StatusBgColor => Status switch
+    {
+        "paid" => Color.FromArgb("#E8F5E9"),
+        "partial" => Color.FromArgb("#FFF3E0"),
+        "unpaid" => Color.FromArgb("#FCEAEA"),
+        _ => Color.FromArgb("#F5F5F5")
+    };
+
     public DateTime Date { get; set; }
     public bool IsPayment { get; set; }
     public bool IsBill { get; set; }

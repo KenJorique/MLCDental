@@ -6,6 +6,9 @@
     x:Class="ClinicApp.Views.PatientsRelated.AddPatientPage"
     x:DataType="vm:AddPatientViewModel"
     Title="{Binding PageTitle}"
+	Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+    Shell.TitleColor="White"
+	Shell.ForegroundColor="White"
     BackgroundColor="{StaticResource PageBg}"
     Shell.TabBarIsVisible="False">
 
@@ -117,7 +120,7 @@
 					<Label Text="*" Style="{StaticResource FormRequiredStar}"/>
 				</HorizontalStackLayout>
 				<Border Style="{StaticResource FormInputBox}">
-					<Entry Text="{Binding MobileNo}" Keyboard="Telephone"
+					<Entry Text="{Binding MobileNo}" Keyboard="Telephone" MaxLength="11"
                            Style="{StaticResource FormEntry}"/>
 				</Border>
 
@@ -181,7 +184,7 @@
                            IsVisible="{Binding IsMinor}"/>
 				</HorizontalStackLayout>
 				<Border Style="{StaticResource FormInputBox}">
-					<Entry Text="{Binding GuardianMobileNo}" Keyboard="Telephone"
+					<Entry Text="{Binding GuardianMobileNo}" Keyboard="Telephone" MaxLength="11"
                            Style="{StaticResource FormEntry}"/>
 				</Border>
 
@@ -219,6 +222,14 @@
                                IsVisible="{Binding IsFemale}"/>
 					</Grid>
 				</Grid>
+
+				<!-- Treatment details — shown when checked -->
+				<VerticalStackLayout IsVisible="{Binding UnderMedicalTreatment}" Spacing="0">
+					<Label Text="Condition being treated" Style="{StaticResource FormFieldLabel}"/>
+					<Border Style="{StaticResource FormInputBoxTall}">
+						<Editor Text="{Binding TreatmentDetails}" Style="{StaticResource FormEditor}"/>
+					</Border>
+				</VerticalStackLayout>
 
 				<!-- Medication details — shown when checked -->
 				<VerticalStackLayout IsVisible="{Binding TakingMedications}" Spacing="0">
@@ -301,11 +312,15 @@
 			</VerticalStackLayout>
 		</ScrollView>
 
-		<Grid Grid.Row="1" Padding="20,10,20,24" BackgroundColor="{StaticResource PageBg}">
-			<Button Text="Save Patient"
+		<Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="16,12" ColumnSpacing="12"
+              BackgroundColor="{StaticResource White}">
+			<Button Grid.Column="0" Text="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Style="{StaticResource SecondaryActionButtonStyle}"/>
+			<Button Grid.Column="1" Text="Save"
                     Command="{Binding SavePatientCommand}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
-                    Style="{StaticResource PrimaryButtonStyle}"/>
+                    Style="{StaticResource PrimaryActionButtonStyle}"/>
 		</Grid>
 	</Grid>
 </ContentPage>

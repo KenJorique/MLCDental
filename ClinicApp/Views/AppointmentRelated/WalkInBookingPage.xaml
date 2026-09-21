@@ -33,7 +33,7 @@
                  PATIENT INFORMATION
             ═══════════════════════════════════ -->
 			<Border BackgroundColor="White"
-                    Stroke="{StaticResource BorderColor}"
+                    Stroke="{StaticResource CardBorderColor}"
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 12"
                     Padding="16"
@@ -56,7 +56,7 @@
 					<!-- Live dropdown results -->
 					<Border IsVisible="{Binding HasSearchResults}"
                             BackgroundColor="White"
-                            Stroke="{StaticResource BorderColor}"
+                            Stroke="{StaticResource CardBorderColor}"
                             StrokeThickness="1"
                             StrokeShape="RoundRectangle 10"
                             Margin="0,2,0,0">
@@ -133,7 +133,7 @@
                  APPOINTMENT DETAILS
             ═══════════════════════════════════ -->
 			<Border BackgroundColor="White"
-                    Stroke="{StaticResource BorderColor}"
+                    Stroke="{StaticResource CardBorderColor}"
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 12"
                     Padding="16"
@@ -156,7 +156,7 @@
                                     TextColor="{StaticResource TextPrimary}"/>
 					</Border>
 
-					<!-- Sunday warning -->
+					<!-- Sunday warning. temp close
 					<Border BackgroundColor="#FCEAEA"
                             Stroke="#FFCDD2"
                             StrokeThickness="1"
@@ -167,6 +167,7 @@
 						<Label Text="⚠ Clinic is closed on Sundays."
                                FontSize="12" TextColor="#C62828"/>
 					</Border>
+					 -->
 
 					<!-- Time slots -->
 					<Label Text="Select Time Slot" Style="{StaticResource FormFieldLabel}"
@@ -202,11 +203,18 @@
                                                       Path=BindingContext.SelectSlotCommand}"
                                             CommandParameter="{Binding .}"/>
 									</Border.GestureRecognizers>
-									<Label Text="{Binding Display}"
-                                           FontSize="13" FontAttributes="Bold"
-                                           TextColor="{Binding TextColor}"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center"/>
+									<VerticalStackLayout VerticalOptions="Center"
+                                                         HorizontalOptions="Center"
+                                                         Spacing="2">
+										<Label Text="{Binding Display}"
+                                               FontSize="13" FontAttributes="Bold"
+                                               TextColor="{Binding TextColor}"
+                                               HorizontalOptions="Center"/>
+										<Label Text="{Binding StatusText}"
+                                               FontSize="10"
+                                               TextColor="{Binding StatusColor}"
+                                               HorizontalOptions="Center"/>
+									</VerticalStackLayout>
 								</Border>
 							</DataTemplate>
 						</CollectionView.ItemTemplate>
@@ -264,7 +272,7 @@
                     HeightRequest="52"
                     HorizontalOptions="Fill"
                     Command="{Binding ConfirmBookingCommand}"
-                    Margin="0,0,0,10"/>
+                    Margin="0,0,0,32"/>
 
 		</VerticalStackLayout>
 	</ScrollView>

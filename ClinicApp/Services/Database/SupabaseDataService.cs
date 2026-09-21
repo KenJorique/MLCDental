@@ -1,5 +1,7 @@
 ﻿using ClinicApp.Models.AppointmentModels;
+using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
+using ClinicApp.Helpers;
 using Supabase;
 
 namespace ClinicApp.Services
@@ -76,6 +78,25 @@ namespace ClinicApp.Services
             return saved;
         }
 
+        // Fetches one patient by their Supabase id — used to merge partial edits onto the full record before updating.
+        public async Task<SupabasePatient?> GetPatientByIdAsync(string id)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                if (string.IsNullOrEmpty(id)) return null;
+
+                var result = await _client!.From<SupabasePatient>().Where(p => p.Id == id).Get();
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetPatientById: {ex.Message}");
+                return null;
+            }
+        }
+
+        // Overwrites the FULL row — callers must merge onto the existing record first, or unset fields get blanked.
         public async Task<bool> UpdatePatientAsync(SupabasePatient patient)
         {
             try
@@ -93,6 +114,15 @@ namespace ClinicApp.Services
                 // Direct update using the model — supabase-csharp matches by PrimaryKey
                 var result = await _client!.From<SupabasePatient>().Update(patient);
                 System.Diagnostics.Debug.WriteLine($"[Supabase] Update done. Rows: {result.Models.Count}");
+
+                // A 0-row result means RLS silently blocked it (or the row's gone) — Postgres doesn't
+                // throw for that, so without this check the caller would wrongly believe it worked.
+                if (result.Models.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("[Supabase] UpdatePatient: 0 rows affected — check RLS UPDATE policy on 'patients'");
+                    return false;
+                }
+
                 return true;
             }
             catch (Exception ex)
@@ -102,7 +132,11 @@ namespace ClinicApp.Services
             }
         }
 
-        public async Task DeletePatientAsync(SupabasePatient patient)
+        // Cascades through every table that references this patient before deleting the row itself,
+        // so nothing gets orphaned (bills/items/payments, transactions, treatment records/history,
+        // tooth records, treatment sequences).
+        // Cascades the delete across bills, payments, transactions, treatment/tooth records and sequences, then the patient row itself. Returns false on any failure instead of swallowing it.
+        public async Task<bool> DeletePatientAsync(SupabasePatient patient)
         {
             try
             {
@@ -163,10 +197,13 @@ namespace ClinicApp.Services
 
                 // ── Finally, the patient itself ──
                 await _client!.From<SupabasePatient>().Delete(patient);
+
+                return true;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Supabase] DeletePatient: {ex.Message}");
+                return false;
             }
         }
 
@@ -331,6 +368,25 @@ namespace ClinicApp.Services
             }
         }
 
+        // Fetches a single booking by its id — used when a caller only has the id (e.g. rescheduling a pending booking).
+        public async Task<SupabaseBooking?> GetBookingByIdAsync(string bookingId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseBooking>()
+                    .Where(b => b.Id == bookingId)
+                    .Single();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetBookingById: {ex.Message}");
+                return null;
+            }
+        }
+
         // Fixed — correct supabase-csharp update API
         public async Task UpdateBookingStatusAsync(string bookingId, string status)
         {
@@ -403,6 +459,166 @@ namespace ClinicApp.Services
                     $"[Supabase] AddAppointmentEntry: {ex.Message}");
                 return null;
             }
+        }
+
+        // Approves a booking at the given local (Manila) date/time: resolves/creates the patient (Supabase phone match, then name match, then local-DB fallback), guards against a double-booked slot, creates the appointment entry (local + Supabase), marks the booking approved, and syncs Google Tasks. Shared by AppointmentViewModel.Approve() and RescheduleViewModel (for rescheduling a booking that was never approved yet).
+        public async Task<(bool Success, string? ErrorMessage)> ApproveBookingAsync(
+            DatabaseService db, SupabaseBooking booking, DateTime localDateTime)
+        {
+            try
+            {
+                SupabasePatient? patient = null;
+                Patient? localOnlyMatch = null;
+
+                if (!string.IsNullOrEmpty(booking.Phone))
+                    patient = await GetPatientByPhoneAsync(booking.Phone);
+
+                if (patient == null && !string.IsNullOrEmpty(booking.FullName))
+                    patient = await GetPatientByNameAsync(booking.FullName);
+
+                if (patient == null)
+                {
+                    var localPatients = await db.GetPatients();
+                    var bookingTokens = TokenizeName(booking.FullName ?? "");
+                    localOnlyMatch = localPatients.FirstOrDefault(p =>
+                        NamesMatch(bookingTokens, TokenizeName(p.FullName)) ||
+                        (!string.IsNullOrEmpty(booking.Phone) && PhoneEndsMatch(p.MobileNo, booking.Phone)));
+                }
+
+                if (patient == null && localOnlyMatch == null)
+                {
+                    // No match anywhere — genuinely a new patient.
+                    var parts = (booking.FullName ?? "").Trim().Split(' ', 2);
+                    var localPatient = new Patient
+                    {
+                        FirstName = parts.Length > 0 ? parts[0] : "",
+                        LastName = parts.Length > 1 ? parts[1] : "",
+                        MobileNo = booking.Phone ?? "",
+                        Email = booking.Email ?? "",
+                        ReferredBy = "Online Booking",
+                        DateRegistered = DateTime.Now.ToString("yyyy-MM-dd")
+                    };
+
+                    var supPatient = new SupabasePatient
+                    {
+                        FirstName = localPatient.FirstName,
+                        LastName = localPatient.LastName,
+                        Phone = localPatient.MobileNo,
+                        Email = localPatient.Email,
+                        ReferredBy = "Online Booking",
+                        DateRegistered = DateTime.UtcNow
+                    };
+                    patient = await AddPatientAsync(supPatient);
+
+                    if (patient != null)
+                        localPatient.SupabaseId = patient.Id;
+
+                    await db.AddPatient(localPatient);
+                }
+                else if (patient != null)
+                {
+                    // Matched on Supabase — overwrite the phone there and locally if this booking used a different number.
+                    if (!string.IsNullOrEmpty(booking.Phone) && patient.Phone != booking.Phone)
+                    {
+                        patient.Phone = booking.Phone;
+                        await UpdatePatientAsync(patient);
+                        await db.SyncPatientFromSupabase(patient);
+                    }
+                }
+                else if (localOnlyMatch != null)
+                {
+                    // Found locally but never made it to Supabase — sync it up now.
+                    if (!string.IsNullOrEmpty(booking.Phone))
+                        localOnlyMatch.MobileNo = booking.Phone;
+
+                    var supPatient = new SupabasePatient
+                    {
+                        FirstName = localOnlyMatch.FirstName,
+                        LastName = localOnlyMatch.LastName,
+                        Phone = localOnlyMatch.MobileNo,
+                        Email = localOnlyMatch.Email,
+                        ReferredBy = localOnlyMatch.ReferredBy,
+                        DateRegistered = DateTime.UtcNow
+                    };
+                    var inserted = await AddPatientAsync(supPatient);
+
+                    if (inserted != null)
+                    {
+                        localOnlyMatch.SupabaseId = inserted.Id;
+                        patient = inserted;
+                    }
+
+                    await db.UpdatePatient(localOnlyMatch);
+                }
+
+                // Convert the picked local (Manila) time to UTC explicitly, then guard against a slot taken since it was offered.
+                var utcDate = TimeZoneInfo.ConvertTimeToUtc(
+                    DateTime.SpecifyKind(localDateTime, DateTimeKind.Unspecified), ManilaTz);
+
+                var slotStillFree = await IsSlotAvailableAsync(utcDate);
+                if (!slotStillFree)
+                {
+                    return (false,
+                        $"{localDateTime:MMM dd, yyyy h:mm tt} has already been booked by another approved appointment. " +
+                        "Please choose a different time.");
+                }
+
+                var localEntry = new AppointmentEntry
+                {
+                    SupabaseBookingId = booking.Id,
+                    PatientName = booking.FullName ?? "",
+                    Phone = booking.Phone ?? "",
+                    Email = booking.Email ?? "",
+                    Notes = booking.Notes ?? "",
+                    AppointmentDateTime = localDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Status = "approved"
+                };
+                await db.AddAppointmentEntry(localEntry);
+
+                var supEntry = new SupabaseAppointmentEntry
+                {
+                    SupabaseBookingId = booking.Id,
+                    PatientId = patient?.Id ?? "",
+                    PatientName = booking.FullName ?? "",
+                    Phone = booking.Phone ?? "",
+                    Email = booking.Email ?? "",
+                    Notes = booking.Notes ?? "",
+                    AppointmentDateTime = utcDate,
+                    Status = "approved"
+                };
+                await AddAppointmentEntryAsync(supEntry);
+
+                await UpdateBookingStatusAsync(booking.Id, "approved");
+
+                try
+                {
+                    await SyncToGoogleTasksAsync(
+                        "", booking.FullName ?? "", " ", localDateTime, booking.Phone ?? "", booking.Notes ?? "");
+                }
+                catch (Exception gEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApproveBooking] Google: {gEx.Message}");
+                }
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ApproveBooking] {ex.Message}");
+                return (false, ex.Message);
+            }
+        }
+
+        // Compares two phone numbers by their last 7 digits, to tolerate formatting differences.
+        private static bool PhoneEndsMatch(string a, string b)
+        {
+            var digitsA = new string((a ?? "").Where(char.IsDigit).ToArray());
+            var digitsB = new string((b ?? "").Where(char.IsDigit).ToArray());
+            if (digitsA.Length == 0 || digitsB.Length == 0) return false;
+
+            var tailA = digitsA.Length >= 7 ? digitsA[^7..] : digitsA;
+            var tailB = digitsB.Length >= 7 ? digitsB[^7..] : digitsB;
+            return tailA == tailB;
         }
 
         public async Task<List<SupabaseAppointmentEntry>> GetAppointmentEntriesAsync()
@@ -796,15 +1012,23 @@ namespace ClinicApp.Services
         static readonly TimeZoneInfo ManilaTz =
     TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
 
-        /// The Supabase client deserializes `timestamptz` columns already converted to this
-        /// device's local time zone (confirmed against real data — every stored row comes back
-        /// shifted by exactly the Manila UTC+8 offset, with Kind mislabeled as Unspecified).
-        /// This reverses that shift, returning the TRUE UTC instant the column actually stores,
-        /// so every other method in this file can keep treating AppointmentDateTime as real UTC.
+        static readonly int[] BusinessHours = { 10, 11, 13, 14, 15, 16 };
+
+        // Old bookings stored the Manila hour directly, mislabeled as UTC; newer bookings store genuine UTC.
+        // The two interpretations never overlap for this clinic's fixed hours, so the raw hour alone tells
+        // us which format a given row is in — no data migration needed, this just reads each row correctly.
+        // Kept under its original name since AppointmentScheduleViewModel and RescheduleViewModel call it directly.
         public static DateTime NormalizeSupabaseUtc(DateTime deserializedValue)
         {
-            var asManilaLocal = DateTime.SpecifyKind(deserializedValue, DateTimeKind.Unspecified);
-            return TimeZoneInfo.ConvertTimeToUtc(asManilaLocal, ManilaTz);
+            if (BusinessHours.Contains(deserializedValue.Hour))
+            {
+                // Raw value IS the Manila local time (old format) — convert it to true UTC.
+                var asManilaLocal = DateTime.SpecifyKind(deserializedValue, DateTimeKind.Unspecified);
+                return TimeZoneInfo.ConvertTimeToUtc(asManilaLocal, ManilaTz);
+            }
+
+            // Raw value already IS true UTC (new format) — just fix the Kind tag.
+            return DateTime.SpecifyKind(deserializedValue, DateTimeKind.Utc);
         }
 
         public async Task<List<DateTime>> GetBookedTimeSlotsForDateAsync(DateTime date)
@@ -913,6 +1137,50 @@ namespace ClinicApp.Services
             }
         }
 
+        // Looks up a patient by comparing the booking's full name against FirstName+LastName combined, whitespace/case normalized — avoids brittle first/last splitting mismatches.
+        public async Task<SupabasePatient?> GetPatientByNameAsync(string fullName)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var targetTokens = TokenizeName(fullName);
+                if (targetTokens.Count == 0)
+                    return null;
+
+                var result = await _client!.From<SupabasePatient>().Get();
+                var patients = result.Models ?? new List<SupabasePatient>();
+
+                return patients.FirstOrDefault(p =>
+                    NamesMatch(targetTokens, TokenizeName($"{p.FirstName} {p.LastName}")));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetPatientByName: {ex.Message}");
+                return null;
+            }
+        }
+
+        // Splits a name into lowercase word tokens, for tolerant comparisons.
+        private static HashSet<string> TokenizeName(string name) =>
+            (name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => w.Trim().ToLowerInvariant())
+                .ToHashSet();
+
+        // Matches names ignoring word order and tolerating extra words (e.g. a middle name) — the shorter name's words must all appear in the longer one.
+        private static bool NamesMatch(HashSet<string> a, HashSet<string> b)
+        {
+            if (a.Count == 0 || b.Count == 0) return false;
+            var shorter = a.Count <= b.Count ? a : b;
+            var longer = a.Count <= b.Count ? b : a;
+
+            // Guards against a single common word (e.g. "Maria") loosely matching any longer name that happens to contain it.
+            if (shorter.Count < 2 && shorter.Count != longer.Count) return false;
+
+            return shorter.IsSubsetOf(longer);
+        }
+
+        // Looks up a patient by phone, matching on the last 7 digits to tolerate formatting differences.
         public async Task<SupabasePatient?> GetPatientByPhoneAsync(string phone)
         {
             try
@@ -1097,24 +1365,38 @@ namespace ClinicApp.Services
 
                 var bills = result.Models ?? new List<SupabaseBill>();
 
-                var matches = bills.Where(b => b.PatientId == patientId).ToList();
-                if (matches.Any())
-                    return matches;
+                var byId = bills.Where(b => b.PatientId == patientId).ToList();
 
-                // Walk-in fallback: match by patient name instead of ID
-                var patientResult = await _client!
-                    .From<SupabasePatient>()
-                    .Where(p => p.Id == patientId)
-                    .Get();
+                // Also match by name, so older bills created before proper ID-linking still show up
+                // alongside correctly-linked ones. Isolated in its own try/catch — a bad patient row
+                // (e.g. a null boolean column) shouldn't cost us the byId results we already have.
+                var byName = new List<SupabaseBill>();
+                try
+                {
+                    var patientResult = await _client!
+                        .From<SupabasePatient>()
+                        .Where(p => p.Id == patientId)
+                        .Get();
 
-                var patient = patientResult.Models?.FirstOrDefault();
-                if (patient == null)
-                    return new List<SupabaseBill>();
+                    var patient = patientResult.Models?.FirstOrDefault();
+                    if (patient != null)
+                    {
+                        var fullName = $"{patient.FirstName} {patient.LastName}".Trim();
+                        byName = bills
+                            .Where(b => string.Equals(b.PatientName?.Trim(), fullName, StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                    }
+                }
+                catch (Exception nameLookupEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Supabase] GetBillsForPatient name-lookup skipped: {nameLookupEx.Message}");
+                }
 
-                var fullName = $"{patient.FirstName} {patient.LastName}".Trim();
-
-                return bills
-                    .Where(b => string.Equals(b.PatientName?.Trim(), fullName, StringComparison.OrdinalIgnoreCase))
+                return byId
+                    .Concat(byName)
+                    .GroupBy(b => b.Id)
+                    .Select(g => g.First())
+                    .OrderByDescending(b => b.VisitDate)
                     .ToList();
             }
             catch (Exception ex)
@@ -1185,6 +1467,213 @@ namespace ClinicApp.Services
             }
         }
 
+        // Computes what's actually due THIS visit, freshly, from the current
+        // state of each bill_item — unlike Bill.MinimumDueToday, which is a
+        // snapshot taken once at bill creation and never updated. Call this
+        // every time the Payment page loads, not just on the first visit.
+        // Calculates, purely from an item's stored fields, what it currently
+        // owes according to its fixed schedule — and lets advance payments
+        // net out naturally, since AmountPaid already reflects them.
+        //
+        // - "monthsElapsed" = how many monthly due dates have already
+        //   passed, counting from InstallmentStartDate (the downpayment
+        //   date), capped at InstallmentMonths.
+        // - "totalOwedByNow" = what should have been paid by THIS point in
+        //   the schedule if nothing had been paid early: downpayment, plus
+        //   one MonthlyPayment for every month that's passed.
+        // - AmountDueNow = totalOwedByNow minus whatever's actually been
+        //   paid (AmountPaid) — so if the patient already paid ahead, this
+        //   comes out to 0 (or less than a full MonthlyPayment) automatically,
+        //   without needing to track "advance credit" as a separate number.
+        //
+        // Once every scheduled month has passed (monthsElapsed >=
+        // InstallmentMonths), the schedule is over — whatever's left is
+        // simply owed in full, same as a non-installment item.
+        private static (decimal AmountDueNow, DateTime? NextDueDate) GetInstallmentDueState(
+            SupabaseBillItem item)
+        {
+            if (!item.IsInstallment || item.Balance <= 0)
+                return (0, null);
+
+            // Downpayment not made yet — handled separately by the caller,
+            // not via this schedule math (there's no start date to anchor on).
+            if (item.AmountPaid <= 0 || !item.InstallmentStartDate.HasValue)
+                return (0, null);
+
+            var start = item.InstallmentStartDate.Value;
+            var monthsElapsed = 0;
+
+            while (monthsElapsed < item.InstallmentMonths &&
+                   start.AddMonths(monthsElapsed + 1) <= DateTime.UtcNow)
+            {
+                monthsElapsed++;
+            }
+
+            if (monthsElapsed >= item.InstallmentMonths)
+            {
+                // Full term has elapsed by the calendar — no more "next
+                // monthly due", whatever remains is simply owed in full.
+                return (item.Balance, null);
+            }
+
+            var totalOwedByNow = Math.Min(
+                item.DownpaymentAmount + (item.MonthlyPayment * monthsElapsed),
+                item.Subtotal);
+
+            var amountDueNow = Math.Max(0m, Math.Min(totalOwedByNow - item.AmountPaid, item.Balance));
+            var nextDueDate = start.AddMonths(monthsElapsed + 1);
+
+            return (amountDueNow, nextDueDate);
+        }
+
+        public async Task<decimal> GetMinimumDueForBillAsync(string billId)
+        {
+            try
+            {
+                var items = await GetBillItemsAsync(billId);
+                decimal minimum = 0;
+
+                foreach (var item in items)
+                {
+                    if (item.Balance <= 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: skipped (Balance={item.Balance} <= 0)");
+                        continue;
+                    }
+
+                    if (!item.IsInstallment)
+                    {
+                        // Non-installment items are always due in full.
+                        minimum += item.Balance;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: non-installment, contributes full Balance={item.Balance}");
+                    }
+                    else if (item.AmountPaid <= 0)
+                    {
+                        // Nothing paid on this item yet — the downpayment
+                        // is what starts the schedule, still required.
+                        var contribution = Math.Min(item.DownpaymentAmount, item.Balance);
+                        minimum += contribution;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: AmountPaid=0, " +
+                            $"DownpaymentAmount={item.DownpaymentAmount}, Balance={item.Balance}, " +
+                            $"contributes={contribution}");
+                    }
+                    else
+                    {
+                        // Downpayment already made — no forced minimum unless
+                        // a scheduled monthly due date has actually arrived,
+                        // and any advance/early payment already made nets
+                        // straight out of what's owed for that cycle.
+                        var (amountDueNow, nextDueDate) = GetInstallmentDueState(item);
+                        minimum += amountDueNow;
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DIAG-MINIMUM] {item.ServiceName}: AmountPaid={item.AmountPaid}, " +
+                            $"nextDueDate={(nextDueDate.HasValue ? nextDueDate.Value.ToString("o") : "schedule complete")}, " +
+                            $"contributes={amountDueNow}");
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[DIAG-MINIMUM] TOTAL minimum={minimum}");
+
+                return minimum;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetMinimumDueForBill: {ex.Message}");
+                return 0;
+            }
+        }
+
+        // Distributes a payment across this bill's items instead of just the
+        // bill-level total: non-installment items are paid off first (always
+        // due in full), then installment items in due-date order (items that
+        // haven't started their schedule yet — DueDate null — go first,
+        // since that represents the still-unpaid downpayment stage). Each
+        // item's own balance/amount_paid/due_date gets updated so the NEXT
+        // visit's minimum (see GetMinimumDueForBillAsync above) reflects
+        // what's actually still owed on THAT item, not a stale bill-wide figure.
+        //
+        // FIX: this used to catch-and-log any failure here and carry on —
+        // meaning a payment could "succeed" at the bill level while every
+        // bill_item stayed completely untouched (AmountPaid/Balance never
+        // moved), which is exactly what silently broke "due today" on repeat
+        // visits. Now returns success/error so the caller can stop BEFORE
+        // recording anything else, instead of leaving bill-level and
+        // item-level data out of sync.
+        private async Task<(bool Success, string? Error)> AllocatePaymentToBillItemsAsync(
+            string billId, decimal amount, DateTime paymentDate)
+        {
+            try
+            {
+                var items = await GetBillItemsAsync(billId);
+                var remaining = amount;
+
+                var ordered = items
+                    .Where(i => i.Balance > 0)
+                    .OrderBy(i => i.IsInstallment ? 1 : 0)
+                    .ThenBy(i => i.DueDate ?? DateTime.MinValue)
+                    .ToList();
+
+                foreach (var item in ordered)
+                {
+                    if (remaining <= 0) break;
+
+                    var applied = Math.Min(item.Balance, remaining);
+                    var wasUnstarted = item.IsInstallment && item.AmountPaid <= 0;
+
+                    item.AmountPaid += applied;
+                    item.Balance -= applied;
+                    item.LastPaymentDate = paymentDate;
+
+                    // Anchor the schedule ONCE, right when the downpayment
+                    // lands — never touched again after this, so a later
+                    // early/advance payment can't shift it.
+                    if (wasUnstarted && item.InstallmentStartDate == null)
+                        item.InstallmentStartDate = paymentDate;
+
+                    // DueDate is stored purely for display (Bill Details,
+                    // Receipt overdue flags) — always recomputed from the
+                    // fixed schedule, never bumped by "1 month from whenever
+                    // this payment happened" like before.
+                    item.DueDate = item.Balance <= 0
+                        ? null
+                        : (item.IsInstallment
+                            ? GetInstallmentDueState(item).NextDueDate
+                            : item.DueDate);
+
+                    var updateResult = await _client!.From<SupabaseBillItem>().Update(item);
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[DIAG-ALLOCATE] {item.ServiceName}: applied={applied} " +
+                        $"newBalance={item.Balance} IsInstallment={item.IsInstallment} " +
+                        $"computedDueDate={(item.DueDate.HasValue ? item.DueDate.Value.ToString("o") : "NULL")} " +
+                        $"Update() returned {updateResult.Models.Count} row(s).");
+
+                    // A 0-row response means the update didn't actually
+                    // touch anything in the DB (most commonly an RLS policy
+                    // silently blocking the write) — treat that the same as
+                    // a thrown exception, not a success.
+                    if (updateResult.Models.Count == 0)
+                    {
+                        return (false,
+                            $"Update to bill_items for '{item.ServiceName}' affected 0 rows " +
+                            "— check Supabase RLS policies allow UPDATE on bill_items for this user/role.");
+                    }
+
+                    remaining -= applied;
+                }
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] AllocatePaymentToBillItems: {ex.Message}");
+                return (false, ex.Message);
+            }
+        }
+
         public async Task<(bool Success, string? Error)> RecordPaymentAsync(
      string billId, decimal amount, string? notes = null)
         {
@@ -1199,12 +1688,27 @@ namespace ClinicApp.Services
                 if (billResult == null)
                     return (false, "Bill not found");
 
+                var paymentDate = DateTime.UtcNow;
+
+                // Allocate to bill_items FIRST, before writing anything else.
+                // If this fails, nothing else has been touched yet, so there's
+                // nothing to roll back — the caller gets a clear error instead
+                // of a payment that "succeeded" while items stayed stale.
+                var (allocated, allocError) =
+                    await AllocatePaymentToBillItemsAsync(billId, amount, paymentDate);
+
+                if (!allocated)
+                {
+                    return (false,
+                        $"Payment was not recorded — could not update bill items ({allocError}).");
+                }
+
                 var payment = new SupabasePayment
                 {
                     Id = Guid.NewGuid().ToString(),
                     BillId = billId,
                     Amount = amount,
-                    PaymentDate = DateTime.UtcNow,
+                    PaymentDate = paymentDate,
                     Notes = notes
                 };
                 await _client!.From<SupabasePayment>().Insert(payment);
@@ -1223,13 +1727,28 @@ namespace ClinicApp.Services
                     billResult.Status = billResult.AmountPaid > 0 ? "partial" : "unpaid";
 
                     if (billResult.IsInstallment)
-                        billResult.DueDate = payment.PaymentDate.AddMonths(1);
+                    {
+                        // Bill-level DueDate is just a display rollup — mirror
+                        // whatever the item-level schedule (already recomputed
+                        // and anchored in AllocatePaymentToBillItemsAsync above)
+                        // actually says is next, instead of a flat "+1 month
+                        // from today", which used to push the due date forward
+                        // on every advance/early payment even though the real,
+                        // anchored per-item schedule hadn't moved at all.
+                        var refreshedItems = await GetBillItemsAsync(billId);
+                        billResult.DueDate = refreshedItems
+                            .Where(i => i.Balance > 0 && i.DueDate.HasValue)
+                            .OrderBy(i => i.DueDate)
+                            .Select(i => (DateTime?)i.DueDate)
+                            .FirstOrDefault();
+                    }
                 }
 
                 var updateResult = await _client!.From<SupabaseBill>().Update(billResult);
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[Supabase] RecordPayment UPDATE rows returned: {updateResult.Models.Count}");
+
 
                 if (updateResult.Models.Count == 0)
                 {
@@ -1576,6 +2095,31 @@ namespace ClinicApp.Services
             }
         }
 
+        // Reads supply_stock_logs for the Reports page's Medical Supply
+        // chart — every restock/usage/adjustment is already logged here
+        // by ApplyStockChangeAsync above, so this just filters that
+        // existing log to the selected period (same fetch-then-filter
+        // pattern as GetAllBookingsForReportAsync below).
+        public async Task<List<SupabaseStockLog>> GetAllStockLogsForReportAsync(
+            DateTime rangeStart, DateTime rangeEnd)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseStockLog>().Get();
+
+                return result.Models
+                    .Where(l => l.CreatedAt >= rangeStart && l.CreatedAt < rangeEnd)
+                    .OrderBy(l => l.CreatedAt)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllStockLogsForReport: {ex.Message}");
+                return new List<SupabaseStockLog>();
+            }
+        }
+
         // ── Reports support ────────────────────────────────────────────
 
         public async Task<List<SupabaseBooking>> GetAllBookingsForReportAsync(
@@ -1595,6 +2139,69 @@ namespace ClinicApp.Services
             {
                 System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllBookingsForReport: {ex.Message}");
                 return new List<SupabaseBooking>();
+            }
+        }
+
+        // Gets every appointment_entries row (the real schedule) within a date range, for the Reports page.
+        public async Task<List<SupabaseAppointmentEntry>> GetAllAppointmentEntriesForReportAsync(
+            DateTime rangeStart, DateTime rangeEnd)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseAppointmentEntry>().Get();
+
+                return result.Models
+                    .Where(a => a.AppointmentDateTime >= rangeStart && a.AppointmentDateTime < rangeEnd)
+                    .OrderBy(a => a.AppointmentDateTime)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllAppointmentEntriesForReport: {ex.Message}");
+                return new List<SupabaseAppointmentEntry>();
+            }
+        }
+
+        // Writes one row to cancelled_appointments — called right before an appointment_entries row gets deleted, so Reports still has something to count later.
+        public async Task LogCancelledAppointmentAsync(DateTime originalAppointmentDateTime, string? patientName)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var log = new SupabaseCancelledAppointment
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    AppointmentDateTime = originalAppointmentDateTime,
+                    PatientName = patientName,
+                    CancelledAt = DateTime.UtcNow
+                };
+                await _client!.From<SupabaseCancelledAppointment>().Insert(log);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] LogCancelledAppointment: {ex.Message}");
+            }
+        }
+
+        // Gets every logged cancellation whose ORIGINAL appointment date falls within a date range, for the Reports page.
+        public async Task<List<SupabaseCancelledAppointment>> GetAllCancelledAppointmentsForReportAsync(
+            DateTime rangeStart, DateTime rangeEnd)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseCancelledAppointment>().Get();
+
+                return result.Models
+                    .Where(c => c.AppointmentDateTime >= rangeStart && c.AppointmentDateTime < rangeEnd)
+                    .OrderBy(c => c.AppointmentDateTime)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllCancelledAppointmentsForReport: {ex.Message}");
+                return new List<SupabaseCancelledAppointment>();
             }
         }
 
@@ -1747,6 +2354,72 @@ namespace ClinicApp.Services
             }
         }
 
+        /// Builds what the next session row would look like WITHOUT writing anything to Supabase —
+        /// used by BillSummaryViewModel before payment, so the dentist can review/schedule the
+        /// follow-up before anything is committed. Call PersistSessionAsync with the returned row
+        /// once payment actually succeeds.
+        public async Task<SupabaseTreatmentSequence?> PreviewNextSessionAsync(
+            string patientId, string patientName, SupabaseService service, string? sourceAppointmentId)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var previous = await GetActiveSequenceAsync(patientId, service.Id);
+
+                // Guard against double-recording the same session (e.g. a bill retried)
+                if (previous != null && previous.Status != "completed")
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Supabase] PreviewNextSession: open sequence already exists for {service.Name}, skipping duplicate.");
+                    return null;
+                }
+
+                int nextSessionNumber = (previous?.SessionNumber ?? 0) + 1;
+                int totalSessions = previous?.TotalSessions ?? service.DefaultTotalSessions ?? 1;
+                bool isFinal = nextSessionNumber >= totalSessions;
+
+                return new SupabaseTreatmentSequence
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    PatientId = patientId,
+                    PatientName = patientName,
+                    ServiceId = service.Id,
+                    ServiceName = service.Name,
+                    SessionNumber = nextSessionNumber,
+                    TotalSessions = totalSessions,
+                    SourceAppointmentId = sourceAppointmentId,
+                    Status = isFinal ? "completed" : "awaiting_schedule",
+                    RecommendedDate = (!isFinal && service.FollowupIntervalDays.HasValue)
+                        ? DateTime.UtcNow.AddDays(service.FollowupIntervalDays.Value)
+                        : null,
+                    CreatedAt = DateTime.UtcNow
+                };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] PreviewNextSession: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// Actually inserts a previously-previewed session row (see PreviewNextSessionAsync above) —
+        /// call only once payment has succeeded, so a bill that never completes never creates a row.
+        public async Task<SupabaseTreatmentSequence?> PersistSessionAsync(SupabaseTreatmentSequence row)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!.From<SupabaseTreatmentSequence>().Insert(row);
+                return result.Models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] PersistSession: {ex.Message}");
+                return null;
+            }
+        }
+
         /// Links a newly booked follow-up appointment back to its treatment sequence row.
         public async Task LinkNextAppointmentToSequenceAsync(string sequenceId, string nextAppointmentCorrelationId)
         {
@@ -1786,23 +2459,6 @@ namespace ClinicApp.Services
             {
                 System.Diagnostics.Debug.WriteLine($"[Supabase] GetPendingFollowUps: {ex.Message}");
                 return new List<SupabaseTreatmentSequence>();
-            }
-        }
-
-        public async Task<SupabasePatient?> GetPatientByIdAsync(string patientId)
-        {
-            try
-            {
-                await EnsureInitializedAsync();
-                return await _client!
-                    .From<SupabasePatient>()
-                    .Where(p => p.Id == patientId)
-                    .Single();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Supabase] GetPatientById: {ex.Message}");
-                return null;
             }
         }
 
@@ -1939,6 +2595,67 @@ namespace ClinicApp.Services
             {
                 System.Diagnostics.Debug.WriteLine($"[Supabase] UpdateAppointmentEntryDateTime: {ex.Message}");
                 return false;
+            }
+        }
+
+        // ── Activity Log ──────────────────────────────────────────
+
+        // Writes one activity row. Call this from wherever the actual action happens (payment recorded, patient added, etc.).
+        public async Task LogActivityAsync(string type, string description, string? relatedId = null)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                await _client!.From<SupabaseActivityLog>().Insert(new SupabaseActivityLog
+                {
+                    Type = type,
+                    Description = description,
+                    RelatedId = relatedId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] LogActivity: {ex.Message}");
+            }
+        }
+
+        // Newest activities first, capped to count — used by Home's Recent Activity card.
+        public async Task<List<SupabaseActivityLog>> GetRecentActivitiesAsync(int count = 10)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseActivityLog>()
+                    .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Limit(count)
+                    .Get();
+                return result.Models ?? new List<SupabaseActivityLog>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetRecentActivities: {ex.Message}");
+                return new List<SupabaseActivityLog>();
+            }
+        }
+
+        // Full activity history, newest first — used by the "View All" page.
+        public async Task<List<SupabaseActivityLog>> GetAllActivitiesAsync()
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+                var result = await _client!
+                    .From<SupabaseActivityLog>()
+                    .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
+                    .Get();
+                return result.Models ?? new List<SupabaseActivityLog>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] GetAllActivities: {ex.Message}");
+                return new List<SupabaseActivityLog>();
             }
         }
     }

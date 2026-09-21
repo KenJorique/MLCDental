@@ -5,7 +5,6 @@ using ClinicApp.Views;
 using ClinicApp.Views.TransactionRelated;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.VisualBasic;
 using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels.TransactionVM;
@@ -16,37 +15,20 @@ public partial class TransactionViewModel : ObservableObject
 {
     readonly SupabaseDataService _supabase;
     readonly DatabaseService _database;
-    public ObservableCollection<LedgerItem> Ledger { get; }
-    = new();
+
+    // Remembers the last sort choice so Refresh doesn't reset it.
+    string _currentSortMode = "Newest";
 
     public ObservableCollection<LedgerItem> PendingPayments { get; }
     = new();
 
-    const int HistoryPreviewCount = 4;
-
     public ObservableCollection<SupabaseBill> Bills { get; } = new();
     public ObservableCollection<SupabaseBill> UnpaidBills { get; } = new();
 
-    [ObservableProperty]
-    bool isHistoryExpanded;
-
-    public IEnumerable<LedgerItem> VisibleHistory =>
-        IsHistoryExpanded ? Ledger : Ledger.Take(HistoryPreviewCount);
-
-    public bool HasMoreHistory =>
-        Ledger.Count > HistoryPreviewCount;
-
-    public string HistoryToggleLabel =>
-        IsHistoryExpanded ? "Show less" : $"Show all history ({Ledger.Count})";
-
-    partial void OnIsHistoryExpandedChanged(bool value)
-    {
-        OnPropertyChanged(nameof(VisibleHistory));
-        OnPropertyChanged(nameof(HistoryToggleLabel));
-    }
-
-    [RelayCommand]
-    void ToggleHistory() => IsHistoryExpanded = !IsHistoryExpanded;
+    // One card per bill — replaces the old single unified ledger list.
+    // Each card carries its own payment history, fetched per-bill in
+    // LoadBillsAsync below.
+    public ObservableCollection<BillCardItem> BillCards { get; } = new();
 
     [ObservableProperty]
     string patientId = string.Empty;
@@ -77,6 +59,23 @@ public partial class TransactionViewModel : ObservableObject
 
     [ObservableProperty]
     string paymentStatus = string.Empty;
+
+    // Pill colors for the patient-summary status badge
+    public Color PaymentStatusColor => PaymentStatus switch
+    {
+        "Paid" => Color.FromArgb("#2E7D32"),
+        "Partially Paid" => Color.FromArgb("#E65100"),
+        "Unpaid" => Color.FromArgb("#C62828"),
+        _ => Color.FromArgb("#888888")
+    };
+
+    public Color PaymentStatusBgColor => PaymentStatus switch
+    {
+        "Paid" => Color.FromArgb("#E8F5E9"),
+        "Partially Paid" => Color.FromArgb("#FFF3E0"),
+        "Unpaid" => Color.FromArgb("#FCEAEA"),
+        _ => Color.FromArgb("#F5F5F5")
+    };
 
     [ObservableProperty]
     DateTime? lastPaymentDate;
@@ -146,36 +145,42 @@ public partial class TransactionViewModel : ObservableObject
                 System.Diagnostics.Debug.WriteLine(
                     $"[TransactionVM]   Bill Id={b.Id} PatientId={b.PatientId} Total={b.TotalAmount}");
 
-            Ledger.Clear();
-            PendingPayments.Clear();
-            IsHistoryExpanded = false;
             Bills.Clear();
             foreach (var bill in all)
-                Bills.Add(bill);          // ← was missing entirely
+                Bills.Add(bill);
 
-            var items = all.Select(bill => new LedgerItem
+            // Build one card per bill, newest bill first. Each card
+            // fetches and owns its own payment history so a multi-bill
+            // patient's payments never get mixed up across bills.
+            BillCards.Clear();
+            foreach (var bill in all.OrderByDescending(b => b.VisitDate))
             {
-                BillId = bill.Id,
-                IsBill = true,
-                IsOverdue = bill.IsOverdue,
-                Title = "Bill Created",
-                Subtitle = bill.VisitDate.ToString("MMM dd, yyyy hh:mm tt"),
-                Reference = bill.BillNumber ?? bill.Id,
-                Amount = bill.TotalAmount,
-                RemainingBalance = bill.Balance,
-                Date = bill.VisitDate
-            }).ToList();
+                var payments = await _supabase.GetPaymentsForBillAsync(bill.Id);
 
-            foreach (var item in items.OrderByDescending(x => x.Date))
-                Ledger.Add(item);
+                // Oldest-first display: first payment made appears at the
+                // top of the table, most recent at the bottom.
+                var chronological = payments.OrderBy(p => p.PaymentDate).ToList();
+                var rows = new List<PaymentRowItem>();
+                var runningBalance = bill.TotalAmount;
 
-            var pending = items
-                .Where(x => x.ShowPayAction)
-                .OrderByDescending(x => x.IsOverdue)
-                .ThenBy(x => x.Date);
+                foreach (var p in chronological)
+                {
+                    runningBalance -= p.Amount;
+                    rows.Add(new PaymentRowItem
+                    {
+                        PaymentId = p.Id,
+                        BillId = bill.Id,
+                        Date = p.PaymentDate,
+                        Amount = p.Amount,
+                        RemainingBalance = runningBalance
+                    });
+                }
 
-            foreach (var item in pending)
-                PendingPayments.Add(item);
+                BillCards.Add(new BillCardItem(bill, rows));
+            }
+
+            // Re-apply the user's last sort pick so refresh keeps it.
+            ApplySortInternal();
 
             TotalBilled = Bills.Sum(x => x.TotalAmount);
             TotalPaid = Bills.Sum(x => x.AmountPaid);
@@ -211,9 +216,8 @@ public partial class TransactionViewModel : ObservableObject
             OnPropertyChanged(nameof(NextDueDisplay));
             OnPropertyChanged(nameof(OverdueBillsCount));
             OnPropertyChanged(nameof(OverdueSummary));
-            OnPropertyChanged(nameof(VisibleHistory));
-            OnPropertyChanged(nameof(HasMoreHistory));
-            OnPropertyChanged(nameof(HistoryToggleLabel));
+            OnPropertyChanged(nameof(PaymentStatusColor));
+            OnPropertyChanged(nameof(PaymentStatusBgColor));
         }
         catch (Exception ex)
         {
@@ -261,21 +265,23 @@ public partial class TransactionViewModel : ObservableObject
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
+    // Add Payment button inside an individual bill card 
     [RelayCommand]
-    private async Task PayNow(LedgerItem item)
+    private async Task AddPaymentForBill(SupabaseBill bill)
     {
-        if (item == null)
+        if (bill == null)
             return;
 
         await Shell.Current.GoToAsync(
-            $"{nameof(PaymentPage)}" +
-            $"?billId={item.BillId}" +
+            $"{nameof(AdditionalPaymentPage)}" +
+            $"?billId={bill.Id}" +
             $"&patientId={Uri.EscapeDataString(PatientId)}" +
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
+    // Tapping a payment row opens Bill Details
     [RelayCommand]
-    private async Task OpenLedgerItem(LedgerItem item)
+    private async Task OpenPayment(PaymentRowItem item)
     {
         if (item == null)
             return;
@@ -286,6 +292,56 @@ public partial class TransactionViewModel : ObservableObject
             $"&patientId={Uri.EscapeDataString(PatientId)}" +
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
+
+    // Opens the sort picker and applies the chosen order.
+    [RelayCommand]
+    async Task SortOptions()
+    {
+        var choice = await Shell.Current.DisplayActionSheet(
+            "Sort By",
+            "Cancel",
+            null,
+            "Unpaid",
+            "Newest");
+
+        if (string.IsNullOrEmpty(choice) || choice == "Cancel")
+            return;
+
+        _currentSortMode = choice;
+        ApplySortInternal();
+    }
+
+    // Reorders BillCards in place.
+    void ApplySortInternal()
+    {
+        if (BillCards.Count == 0)
+            return;
+
+        IEnumerable<BillCardItem> sorted = _currentSortMode switch
+        {
+            // Unpaid and Partially Paid both surface first — either way, money is still owed on the bill.
+            // Paid bills sink to the bottom. Ties within each bucket break by newest visit date.
+            "Unpaid" => BillCards
+                .OrderBy(b => HasBalanceDue(b.Bill.Status) ? 0 : 1)
+                .ThenByDescending(SortDate),
+
+            // Default order: newest bill on top, oldest at the bottom.
+            _ => BillCards.OrderByDescending(SortDate)
+        };
+
+        var ordered = sorted.ToList();
+        BillCards.Clear();
+        foreach (var item in ordered)
+            BillCards.Add(item);
+    }
+
+    // True for "unpaid" and "partial" — anything still owing money on the bill.
+    static bool HasBalanceDue(string? status) =>
+        status?.ToLowerInvariant() is "unpaid" or "partial";
+
+    // Date used for sorting — falls back to CreatedAt if VisitDate is unset.
+    static DateTime SortDate(BillCardItem item) =>
+        item.Bill.VisitDate != default ? item.Bill.VisitDate : item.Bill.CreatedAt;
 
     public string NextDueDisplay
     {

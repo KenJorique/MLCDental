@@ -3,11 +3,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-	<!-- ══════════════════════════════════════════
-         FORM STYLES — MLC Clinic
-         Shared across ALL form pages.
-         Theme: green accent, yellowish inputs.
-    ══════════════════════════════════════════════ -->
+	<!-- FORM STYLES — MLC Clinic. Shared across all form pages; green accent, yellowish inputs. -->
 
 	<!-- Warm yellow tint for all input backgrounds -->
 	<Color x:Key="InputBg">#FBF8E8</Color>
@@ -37,13 +33,13 @@
 
 	<Style x:Key="FormHintLabel" TargetType="Label">
 		<Setter Property="FontSize" Value="12"/>
-		<Setter Property="TextColor" Value="{StaticResource TextMuted}"/>
+		<Setter Property="TextColor" Value="{StaticResource Gray400}"/>
 		<Setter Property="Margin" Value="2,2,0,0"/>
 	</Style>
 
 	<Style x:Key="FormErrorLabel" TargetType="Label">
 		<Setter Property="FontSize" Value="12"/>
-		<Setter Property="TextColor" Value="#D32F2F"/>
+		<Setter Property="TextColor" Value="{StaticResource StatusOut}"/>
 		<Setter Property="Margin" Value="2,2,0,0"/>
 	</Style>
 
@@ -68,7 +64,7 @@
 	<Style x:Key="FormEntry" TargetType="Entry">
 		<Setter Property="FontSize" Value="14"/>
 		<Setter Property="TextColor" Value="{StaticResource TextPrimary}"/>
-		<Setter Property="PlaceholderColor" Value="{StaticResource TextMuted}"/>
+		<Setter Property="PlaceholderColor" Value="{StaticResource Gray500}"/>
 		<Setter Property="BackgroundColor" Value="Transparent"/>
 		<Setter Property="VerticalOptions" Value="Center"/>
 		<Setter Property="Keyboard" Value="Text"/>

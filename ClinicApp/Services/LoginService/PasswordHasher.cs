@@ -1,21 +1,15 @@
-﻿
-using BC = BCrypt.Net.BCrypt;
+﻿using BC = BCrypt.Net.BCrypt;
 using ClinicApp.Models;
 using ClinicApp.Models.SupabaseModels;
 
 namespace ClinicApp.Services;
 
-/// <summary>
-/// Thin wrapper around BCrypt so the rest of the app never touches a
-/// hashing library directly. Work factor 12 is a reasonable default for
-/// a mobile app in 2026 — high enough to be slow for an attacker,
-/// low enough not to noticeably delay login on a phone.
-/// </summary>
+// Thin wrapper around BCrypt so the rest of the app never touches a hashing library directly.
 public static class PasswordHasher
 {
     private const int WorkFactor = 12;
 
-    /// <summary>Hashes a plaintext password. Never persist the input string anywhere else.</summary>
+    // Hashes a plaintext password. Never persist the input string anywhere else.
     public static string Hash(string plaintextPassword)
     {
         if (string.IsNullOrWhiteSpace(plaintextPassword))
@@ -24,11 +18,7 @@ public static class PasswordHasher
         return BC.HashPassword(plaintextPassword, workFactor: WorkFactor);
     }
 
-    /// <summary>
-    /// Verifies a plaintext password against a stored BCrypt hash.
-    /// Returns false (never throws) for null/malformed hashes so a bad
-    /// DB row can't turn into an unhandled exception during login.
-    /// </summary>
+    // Verifies a plaintext password against a stored BCrypt hash — never throws, so a bad DB row can't crash login.
     public static bool Verify(string plaintextPassword, string? storedHash)
     {
         if (string.IsNullOrWhiteSpace(plaintextPassword) || string.IsNullOrWhiteSpace(storedHash))
@@ -40,12 +30,12 @@ public static class PasswordHasher
         }
         catch (BCrypt.Net.SaltParseException)
         {
-            // storedHash isn't a valid BCrypt hash (e.g. a leftover plaintext
-            // value from before migration) — treat as "does not match".
+            // storedHash isn't a valid BCrypt hash (e.g. a leftover plaintext value from before migration).
             return false;
         }
     }
 
+    // Whether a stored hash should be re-hashed at the current work factor.
     public static bool NeedsRehash(string storedHash)
     {
         try { return BC.PasswordNeedsRehash(storedHash, WorkFactor); }
@@ -56,7 +46,7 @@ public static class PasswordHasher
 public enum LoginFailureReason
 {
     None,
-    InvalidCredentials,   // wrong identifier, wrong password, inactive, or wrong role — always shown the same way
+    InvalidCredentials,   // wrong identifier, wrong password, or inactive — always shown the same way
     AccountLocked,
 }
 
@@ -66,9 +56,7 @@ public class LoginResult
     public User? User { get; init; }
     public LoginFailureReason FailureReason { get; init; } = LoginFailureReason.None;
 
-    // The ONLY string this service ever hands to the UI. Never build your
-    // own message from FailureReason in a way that leaks more detail
-    // (e.g. don't say "no such user" vs "wrong password").
+    // The ONLY string this service ever hands to the UI — never build a more specific message elsewhere.
     public string ErrorMessage { get; init; } = "";
 
     public static LoginResult Ok(User user) => new() { Success = true, User = user };
@@ -77,33 +65,36 @@ public class LoginResult
         => new() { Success = false, ErrorMessage = message, FailureReason = reason };
 }
 
-/// <summary>
-/// The one place that is allowed to decide "yes, this person may use the
-/// dentist/secretary side of the app". Every rule from the spec lives
-/// here: hashed-password verification, active-account check, exact role
-/// check, brute-force lockout with escalating duration, and a single
-/// generic error message regardless of which check failed.
-/// </summary>
+// Decides whether a person may log in: hashed-password verification, active-account check,
+// and brute-force lockout with escalating duration. Deliberately role-agnostic — any active
+// staff account can log in regardless of role; what that role can then DO is a separate
+// concern handled by SessionService.IsDentist/IsSecretary/etc. elsewhere in the app.
 public class AuthenticationService
 {
     private readonly DatabaseService _db;
 
-    // Allowed roles for this login. Must match User.Role exactly.
+    // Every role allowed to sign in at all — a login-eligibility gate, separate from per-feature
+    // access (see SessionService.IsDentist/IsSecretary/IsAdmin/IsAssistant for that). Must match
+    // User.Role exactly.
     private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
     {
         "Dentist",
         "Secretary",
+        "Admin",
+        "Assistant",
     };
 
     private const int MaxFailedAttempts = 5;
     private const string GenericError = "Invalid email or password.";
     private const string LockedError = "Too many failed attempts. Please try again later.";
 
+    // Injects the local database.
     public AuthenticationService(DatabaseService db)
     {
         _db = db;
     }
 
+    // Validates credentials and account status, returning a generic error regardless of which check failed.
     public async Task<LoginResult> LoginAsync(string identifier, string password)
     {
         // 1) Required-field validation
@@ -114,8 +105,7 @@ public class AuthenticationService
         var user = await _db.GetUserByLoginIdentifierAsync(identifier);
         if (user is null)
         {
-            // Constant-ish work so a timing attack can't distinguish
-            // "no such user" from "user exists, wrong password".
+            // Constant-ish work so a timing attack can't distinguish "no such user" from "wrong password".
             PasswordHasher.Verify(password, PasswordHasher.Hash("decoy-value-not-a-real-password"));
             LogSecurityEvent("login_failed_unknown_identifier");
             return LoginResult.Fail(GenericError);
@@ -145,7 +135,7 @@ public class AuthenticationService
             return LoginResult.Fail(GenericError);
         }
 
-        // 6) Role check — correct password but wrong role is still a deny,
+        // 6) Role check — correct password but a role not in AllowedRoles is still a deny,
         //    and it must look identical to any other failure to the user.
         if (!AllowedRoles.Contains(user.Role ?? ""))
         {
@@ -153,15 +143,13 @@ public class AuthenticationService
             return LoginResult.Fail(GenericError);
         }
 
-        // 7) Success
+        // 7) Success — role-based feature access is handled elsewhere, via SessionService.
         await _db.RecordSuccessfulLoginAsync(user);
         LogSecurityEvent("login_success", user.UserID);
         return LoginResult.Ok(user);
     }
 
-    // Escalating lockout: 5min, 15min, 30min, 60min, then caps at 2h for
-    // any further threshold hits, so a persistent attacker doesn't get a
-    // fixed, predictable retry window.
+    // Escalating lockout: 5min, 15min, 30min, 60min, then caps at 2h for further threshold hits.
     private static TimeSpan GetLockoutDuration(int failedAttempts)
     {
         if (failedAttempts < MaxFailedAttempts) return TimeSpan.Zero; // not locked yet
@@ -184,19 +172,10 @@ public class AuthenticationService
     }
 }
 
-/// <summary>
-/// Auth-related data access, split out from the main DatabaseService
-/// partial class so the (already huge) DatabaseService.cs doesn't grow
-/// further. Everything here talks to the same local SQLite connection
-/// via the shared Init()/_database from DatabaseService.cs.
-/// </summary>
+// Auth-related data access, split from the main DatabaseService partial class.
 public partial class DatabaseService
 {
-    /// <summary>
-    /// Looks a user up by username OR email, case-insensitively.
-    /// Returns null for no match — callers must not distinguish this
-    /// from "wrong password" in anything shown to the user.
-    /// </summary>
+    // Looks up a user by username or email, case-insensitively. Returns null for no match.
     public async Task<User?> GetUserByLoginIdentifierAsync(string identifier)
     {
         await Init();
@@ -213,6 +192,7 @@ public partial class DatabaseService
             (u.Email != null && u.Email.ToLowerInvariant() == needle));
     }
 
+    // Records a failed login attempt, locking the account out once the threshold is hit.
     public async Task RecordFailedLoginAsync(User user, int maxAttempts, TimeSpan lockoutDuration)
     {
         await Init();
@@ -227,6 +207,7 @@ public partial class DatabaseService
         await _database!.UpdateAsync(user);
     }
 
+    // Resets lockout state and records the successful login timestamp.
     public async Task RecordSuccessfulLoginAsync(User user)
     {
         await Init();
@@ -238,18 +219,8 @@ public partial class DatabaseService
     }
 }
 
-
-/// <summary>
-/// Holds the current authenticated session. Register this as a Singleton
-/// in MauiProgram.cs — there is exactly one of these for the app's
-/// lifetime, and it is the single source of truth for "who is logged in
-/// right now" that every page/service checks before doing anything
-/// sensitive.
-///
-/// Deliberately stores only what the UI needs (id, name, role) — never
-/// the password or its hash — so nothing sensitive sits in memory longer
-/// than it has to.
-/// </summary>
+// Holds the current authenticated session — register as a Singleton in MauiProgram.cs.
+// Deliberately stores only what the UI needs (id, name, role) — never the password/hash.
 public class SessionService
 {
     // Auto logout after this much inactivity.
@@ -264,14 +235,13 @@ public class SessionService
 
     public bool IsDentist => IsAuthenticated && string.Equals(Role, "Dentist", StringComparison.OrdinalIgnoreCase);
     public bool IsSecretary => IsAuthenticated && string.Equals(Role, "Secretary", StringComparison.OrdinalIgnoreCase);
+    public bool IsAdmin => IsAuthenticated && string.Equals(Role, "Admin", StringComparison.OrdinalIgnoreCase);
+    public bool IsAssistant => IsAuthenticated && string.Equals(Role, "Assistant", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Raised when the session ends — either an explicit Logout() call or
-    /// an inactivity timeout. Subscribe to this in AppShell to force
-    /// navigation back to the login page and clear the nav stack.
-    /// </summary>
+    // Raised when the session ends (explicit logout or inactivity timeout) — AppShell should navigate back to login.
     public event Action? SessionEnded;
 
+    // Starts a session for the given user and resets the inactivity clock.
     public void SignIn(User user)
     {
         UserId = user.UserID;
@@ -281,12 +251,13 @@ public class SessionService
         ResetInactivityTimer();
     }
 
-    /// <summary>Call this from any user-driven activity (page navigation, button taps) to keep the session alive.</summary>
+    // Call from any user-driven activity (navigation, taps) to keep the session alive.
     public void NotifyActivity()
     {
         if (IsAuthenticated) ResetInactivityTimer();
     }
 
+    // Ends the session and raises SessionEnded if one was active.
     public void Logout()
     {
         bool wasAuthenticated = IsAuthenticated;
@@ -304,6 +275,7 @@ public class SessionService
             SessionEnded?.Invoke();
     }
 
+    // Restarts the inactivity countdown.
     private void ResetInactivityTimer()
     {
         _inactivityTimer?.Stop();
@@ -315,86 +287,17 @@ public class SessionService
         };
         _inactivityTimer.Elapsed += (_, _) =>
         {
-            // Timer callback runs on a background thread — hop to the UI
-            // thread before touching anything Shell/UI related downstream.
+            // Timer callback runs on a background thread — hop to the UI thread before touching Shell/UI.
             MainThread.BeginInvokeOnMainThread(Logout);
         };
         _inactivityTimer.Start();
     }
 }
 
-/// <summary>
-/// Auth-related data access, split out from the main DatabaseService
-/// partial class so the (already huge) DatabaseService.cs doesn't grow
-/// further. Everything here talks to the same local SQLite connection
-/// via the shared Init()/_database from DatabaseService.cs.
-/// </summary>
-/// <summary>
-/// Local-SQLite side of User ↔ Supabase syncing — the User-table analogue
-/// of the Patient SupabaseId linking already in DatabaseService.cs
-/// (GetPatientBySupabaseId / BackfillSupabaseIds). Requires the
-/// "SupabaseId" column added to the User table (see Init() note below)
-/// and the SupabaseId property already on Models/User.cs.
-/// </summary>
-//public partial class DatabaseService
-//{
-//    // Add this one line inside Init(), next to the other
-//    // "ALTER TABLE User ADD COLUMN ..." lines:
-//    //
-//    //   try { await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN SupabaseId TEXT DEFAULT ''"); }
-//    //   catch { /* already exists */ }
-
-//    public async Task<User?> GetUserBySupabaseId(string supabaseId)
-//    {
-//        await Init();
-//        return await _database!.Table<User>()
-//            .Where(u => u.SupabaseId == supabaseId)
-//            .FirstOrDefaultAsync();
-//    }
-
-//    // Matches by Username, since — unlike patients — it's guaranteed
-//    // unique and stable, rather than a fuzzy name+phone heuristic.
-//    public async Task BackfillUserSupabaseIds(List<SupabaseUser> supabaseUsers)
-//    {
-//        await Init();
-//        foreach (var su in supabaseUsers)
-//        {
-//            if (string.IsNullOrEmpty(su.Id) || string.IsNullOrEmpty(su.Username)) continue;
-
-//            var local = await _database!.Table<User>()
-//                .Where(u => u.Username == su.Username && u.SupabaseId == "")
-//                .FirstOrDefaultAsync();
-
-//            if (local != null)
-//            {
-//                local.SupabaseId = su.Id;
-//                await _database!.UpdateAsync(local);
-//                System.Diagnostics.Debug.WriteLine(
-//                    $"[Backfill] Linked UserID={local.UserID} → SupabaseId={su.Id}");
-//            }
-//        }
-//    }
-
-//    // Called right after a successful SupabaseDataService.AddUserAsync so
-//    // the local row remembers the remote row's id for future updates/deletes.
-//    public async Task SetUserSupabaseId(int userId, string supabaseId)
-//    {
-//        await Init();
-//        var user = await _database!.Table<User>().Where(u => u.UserID == userId).FirstOrDefaultAsync();
-//        if (user is null) return;
-//        user.SupabaseId = supabaseId;
-//        await _database!.UpdateAsync(user);
-//    }
-//}
-
-
-/// <summary>
-/// Users/staff CRUD against the Supabase "users" table. Split into its own
-/// partial-class file for the same reason as the rest of this service is
-/// getting split up — SupabaseDataService.cs is already huge.
-/// </summary>
+// Users/staff CRUD against the Supabase "users" table.
 public partial class SupabaseDataService
 {
+    // Fetches every staff account, sorted by name.
     public async Task<List<SupabaseUser>> GetUsersAsync()
     {
         try
@@ -413,6 +316,7 @@ public partial class SupabaseDataService
         }
     }
 
+    // Inserts a new staff account.
     public async Task<SupabaseUser?> AddUserAsync(SupabaseUser user)
     {
         try
@@ -431,6 +335,7 @@ public partial class SupabaseDataService
         }
     }
 
+    // Updates an existing staff account's full row.
     public async Task<bool> UpdateUserAsync(SupabaseUser user)
     {
         try
@@ -454,19 +359,26 @@ public partial class SupabaseDataService
         }
     }
 
-    // Soft delete to match local IsDeleted semantics — flips the flag
-    // remotely rather than removing the row, so other devices that pull
-    // this user still see why they disappeared instead of a hard 404.
-    public async Task<bool> SoftDeleteUserAsync(SupabaseUser user)
+    // Flips IsDeleted remotely, fetching the full existing row first — updating from a freshly-constructed
+    // object with only Id set would send null for every other column, including NOT NULL ones like username.
+    public async Task<bool> SoftDeleteUserAsync(string supabaseId)
     {
         try
         {
             await EnsureInitializedAsync();
-            if (string.IsNullOrEmpty(user.Id)) return false;
+            if (string.IsNullOrEmpty(supabaseId)) return false;
 
-            user.IsDeleted = true;
-            user.UpdatedAt = DateTime.UtcNow;
-            await _client!.From<SupabaseUser>().Update(user);
+            var all = await GetUsersAsync();
+            var existing = all.FirstOrDefault(u => u.Id == supabaseId);
+            if (existing == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Supabase] SoftDeleteUser: no row found for Id={supabaseId}");
+                return false;
+            }
+
+            existing.IsDeleted = true;
+            existing.UpdatedAt = DateTime.UtcNow;
+            await _client!.From<SupabaseUser>().Update(existing);
             return true;
         }
         catch (Exception ex)

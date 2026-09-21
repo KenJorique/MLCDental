@@ -11,6 +11,53 @@
              Shell.ForegroundColor="White"
              BackgroundColor="{StaticResource PageBg}">
 
+	<Shell.TitleView>
+		<Grid ColumnDefinitions="*,Auto" Padding="0,0,16,0">
+			<Label Grid.Column="0"
+                   Text="Appointment"
+                   FontSize="18" FontAttributes="Bold"
+                   TextColor="White"
+                   VerticalOptions="Center"
+                   Margin="16,0,0,0"/>
+
+			<!-- Notification bell with badge — replaces the old pending-bookings banner -->
+			<Grid Grid.Column="1"
+                  WidthRequest="44" HeightRequest="44"
+                  VerticalOptions="Center"
+                  Margin="0,0,5,0">
+				<Grid.GestureRecognizers>
+					<TapGestureRecognizer Command="{Binding GoToPendingCommand}"/>
+				</Grid.GestureRecognizers>
+
+				<!-- Bell icon -->
+				<Label FontFamily="MaterialSymbolsRounded"
+                       Text="&#xe7f4;"
+                       FontSize="26"
+                       TextColor="White"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
+
+				<!-- Red badge with count -->
+				<Border BackgroundColor="#DC143C"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 10"
+                        HeightRequest="16"
+                        MinimumWidthRequest="16"
+                        Padding="3,0"
+                        HorizontalOptions="End"
+                        VerticalOptions="Start"
+                        Margin="0,6,4,0"
+                        IsVisible="{Binding HasPendingBookings}">
+					<Label Text="{Binding PendingBookingsCount}"
+                           FontSize="10" FontAttributes="Bold"
+                           TextColor="White"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"/>
+				</Border>
+			</Grid>
+		</Grid>
+	</Shell.TitleView>
+
 	<Grid RowDefinitions="Auto,Auto,Auto,*">
 
 		<!-- ══ ROW 0: LIST / CALENDAR TAB TOGGLE ══
@@ -23,7 +70,7 @@
 				<VerticalStackLayout.GestureRecognizers>
 					<TapGestureRecognizer Command="{Binding ShowListCommand}"/>
 				</VerticalStackLayout.GestureRecognizers>
-				<Label Text="List View" Padding="0,12"
+				<Label Text="List" Padding="0,12"
                        HorizontalTextAlignment="Center" FontSize="14"
                        FontAttributes="{Binding IsListView, Converter={StaticResource BoolToFontAttrConverter}}"
                        TextColor="{Binding IsListView, Converter={StaticResource BoolToTabTextConverter}}"/>
@@ -50,121 +97,86 @@
 
 		</Grid>
 
-        <!-- ══ ROW 1: BANNERS (pending review + active queue) ══ -->
-        <VerticalStackLayout Grid.Row="1" Spacing="1">
+		<!-- ══ ROW 1: BANNERS (active queue + follow-ups needed) ══
+             Pending-bookings banner removed — the title-bar bell covers that now. -->
+		<VerticalStackLayout Grid.Row="1" Spacing="1">
 
-            <!-- Pending bookings banner -->
-            <Border BackgroundColor="#FFDC143C"
-            IsVisible="{Binding HasPendingBookings}"
-            Padding="12,8">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding GoToPendingCommand}"/>
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                    <Label Grid.Column="0"
-                   FontFamily="MaterialSymbolsRounded"
-                   Text="&#xe002;"
-                   FontSize="16" TextColor="White"
-                   VerticalOptions="Center" Margin="0,0,6,0"/>
-                    <Label Grid.Column="1"
-                   TextColor="White" FontSize="13"
-                   VerticalOptions="Center">
-                        <Label.FormattedText>
-                            <FormattedString>
-                                <Span Text="{Binding PendingBookingsCount}" TextColor="White" FontAttributes="Bold"/>
-                                <Span Text=" booking(s) waiting for approval" TextColor="White" FontAttributes="Bold"/>
-                            </FormattedString>
-                        </Label.FormattedText>
-                    </Label>
-                    <HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
-                        <Label Text="Review"
-                       TextColor="White"
-                       FontSize="13" FontAttributes="Bold"
-                       VerticalOptions="Center"/>
-                        <Label FontFamily="MaterialSymbolsRoundedFilled"
-                       Text="&#xe941;"
-                       FontSize="16" TextColor="White"
-                       VerticalOptions="Center"/>
-                    </HorizontalStackLayout>
-                </Grid>
-            </Border>
+			<!-- Active queue banner: in-procedure + billing -->
+			<Border BackgroundColor="#2563EB"
+                    IsVisible="{Binding HasInProcedureQueue}"
+                    Padding="12,8">
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Command="{Binding GoToInProcedureCommand}"/>
+				</Border.GestureRecognizers>
+				<Grid ColumnDefinitions="Auto,*,Auto">
+					<Label Grid.Column="0"
+                           FontFamily="MaterialSymbolsRounded"
+                           Text="&#xe425;"
+                           FontSize="16" TextColor="White"
+                           VerticalOptions="Center" Margin="0,0,6,0"/>
+					<Label Grid.Column="1"
+                           TextColor="White" FontSize="13"
+                           VerticalOptions="Center">
+						<Label.FormattedText>
+							<FormattedString>
+								<Span Text="{Binding InProcedureQueueCount}" TextColor="White" FontAttributes="Bold"/>
+								<Span Text=" patient(s) in procedure" TextColor="White" FontAttributes="Bold"/>
+							</FormattedString>
+						</Label.FormattedText>
+					</Label>
+					<HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
+						<Label Text="View"
+                               TextColor="White"
+                               FontSize="13" FontAttributes="Bold"
+                               VerticalOptions="Center"/>
+						<Label FontFamily="MaterialSymbolsRoundedFilled"
+                               Text="&#xe941;"
+                               FontSize="16" TextColor="White"
+                               VerticalOptions="Center"/>
+					</HorizontalStackLayout>
+				</Grid>
+			</Border>
 
-            <!-- Active queue banner: in-procedure + billing -->
-            <Border BackgroundColor="#2563EB"
-            IsVisible="{Binding HasInProcedureQueue}"
-            Padding="12,8">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding GoToInProcedureCommand}"/>
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                    <Label Grid.Column="0"
-                   FontFamily="MaterialSymbolsRounded"
-                   Text="&#xe425;"
-                   FontSize="16" TextColor="White"
-                   VerticalOptions="Center" Margin="0,0,6,0"/>
-                    <Label Grid.Column="1"
-                   TextColor="White" FontSize="13"
-                   VerticalOptions="Center">
-                        <Label.FormattedText>
-                            <FormattedString>
-                                <Span Text="{Binding InProcedureQueueCount}" TextColor="White" FontAttributes="Bold"/>
-                                <Span Text=" patient(s) in procedure" TextColor="White" FontAttributes="Bold"/>
-                            </FormattedString>
-                        </Label.FormattedText>
-                    </Label>
-                    <HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
-                        <Label Text="View"
-                       TextColor="White"
-                       FontSize="13" FontAttributes="Bold"
-                       VerticalOptions="Center"/>
-                        <Label FontFamily="MaterialSymbolsRoundedFilled"
-                       Text="&#xe941;"
-                       FontSize="16" TextColor="White"
-                       VerticalOptions="Center"/>
-                    </HorizontalStackLayout>
-                </Grid>
-            </Border>
+			<!-- Follow-ups needed banner -->
+			<Border BackgroundColor="{StaticResource Gold}"
+                    IsVisible="{Binding HasFollowUpsNeeded}"
+                    Padding="12,8">
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Command="{Binding GoToFollowUpsCommand}"/>
+				</Border.GestureRecognizers>
+				<Grid ColumnDefinitions="Auto,*,Auto">
+					<Label Grid.Column="0"
+                           FontFamily="MaterialSymbolsRoundedFilled"
+                           Text="&#xe5d5;"
+                           FontSize="16" TextColor="White"
+                           VerticalOptions="Center" Margin="0,0,6,0"/>
+					<Label Grid.Column="1"
+                           TextColor="White" FontSize="13"
+                           VerticalOptions="Center">
+						<Label.FormattedText>
+							<FormattedString>
+								<Span Text="{Binding FollowUpsNeededCount}" TextColor="White" FontAttributes="Bold"/>
+								<Span Text=" follow-up(s) need scheduling" TextColor="White" FontAttributes="Bold"/>
+							</FormattedString>
+						</Label.FormattedText>
+					</Label>
+					<HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
+						<Label Text="Schedule"
+                               TextColor="White"
+                               FontSize="13" FontAttributes="Bold"
+                               VerticalOptions="Center"/>
+						<Label FontFamily="MaterialSymbolsRoundedFilled"
+                               Text="&#xe941;"
+                               FontSize="16" TextColor="White"
+                               VerticalOptions="Center"/>
+					</HorizontalStackLayout>
+				</Grid>
+			</Border>
 
-            <!-- Follow-ups needed banner -->
-            <Border BackgroundColor="{StaticResource Gold}"
-            IsVisible="{Binding HasFollowUpsNeeded}"
-            Padding="12,8">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding GoToFollowUpsCommand}"/>
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                    <Label Grid.Column="0"
-                   FontFamily="MaterialSymbolsRoundedFilled"
-                   Text="&#xe5d5;"
-                   FontSize="16" TextColor="White"
-                   VerticalOptions="Center" Margin="0,0,6,0"/>
-                    <Label Grid.Column="1"
-                   TextColor="White" FontSize="13"
-                   VerticalOptions="Center">
-                        <Label.FormattedText>
-                            <FormattedString>
-                                <Span Text="{Binding FollowUpsNeededCount}" TextColor="White" FontAttributes="Bold"/>
-                                <Span Text=" follow-up(s) need scheduling" TextColor="White" FontAttributes="Bold"/>
-                            </FormattedString>
-                        </Label.FormattedText>
-                    </Label>
-                    <HorizontalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
-                        <Label Text="Schedule"
-                       TextColor="White"
-                       FontSize="13" FontAttributes="Bold"
-                       VerticalOptions="Center"/>
-                        <Label FontFamily="MaterialSymbolsRoundedFilled"
-                       Text="&#xe941;"
-                       FontSize="16" TextColor="White"
-                       VerticalOptions="Center"/>
-                    </HorizontalStackLayout>
-                </Grid>
-            </Border>
-
-        </VerticalStackLayout>
+		</VerticalStackLayout>
 
 
-        <!-- ══ ROW 2: WEEK NAVIGATION ══
+		<!-- ══ ROW 2: WEEK NAVIGATION ══
              Arrow buttons go gray when disabled (CanGoPrevious = false) -->
 		<Grid Grid.Row="2" ColumnDefinitions="36,*,36"
               BackgroundColor="{StaticResource Secondary}"
@@ -265,33 +277,23 @@
                                                                               Path=BindingContext.SelectWeekAppointmentCommand}"
                                                                     CommandParameter="{Binding .}"/>
 															</Frame.GestureRecognizers>
-                                                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                                                                <Label Grid.Row="0" Grid.Column="0"
-                                                                       Text="{Binding PatientName}"
+															<!-- Status badge removed per team decision; follow-up badge kept -->
+															<VerticalStackLayout Spacing="4">
+																<Label Text="{Binding PatientName}"
                                                                        FontSize="15" FontAttributes="Bold"
                                                                        TextColor="{StaticResource Gray800}"
                                                                        VerticalOptions="Center"/>
-                                                                <Border Grid.Row="0" Grid.Column="1"
-                                                                        BackgroundColor="{Binding StatusColor}"
-                                                                        StrokeShape="RoundRectangle 6"
-                                                                        StrokeThickness="0" Padding="8,3"
-                                                                        VerticalOptions="Center">
-                                                                    <Label Text="{Binding StatusLabel}"
-                                                                           FontSize="12" FontAttributes="Bold"
-                                                                           TextColor="White"/>
-                                                                </Border>
-                                                                <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
-                                                                       Spacing="4" Margin="0,4,0,0"
+																<HorizontalStackLayout Spacing="4"
                                                                        IsVisible="{Binding IsFollowUp}">
-                                                                    <Label FontFamily="MaterialSymbolsRoundedFilled"
+																	<Label FontFamily="MaterialSymbolsRoundedFilled"
                                                                            Text="&#xe5d5;" FontSize="12"
                                                                            TextColor="{StaticResource Gold}"/>
-                                                                    <Label Text="{Binding SessionBadge}"
+																	<Label Text="{Binding SessionBadge}"
                                                                            FontSize="11" FontAttributes="Bold"
                                                                            TextColor="{StaticResource Gold}"/>
-                                                                </HorizontalStackLayout>
-                                                            </Grid>
-                                                        </Frame>
+																</HorizontalStackLayout>
+															</VerticalStackLayout>
+														</Frame>
 													</Grid>
 												</DataTemplate>
 											</CollectionView.ItemTemplate>
@@ -321,31 +323,26 @@
 			</VerticalStackLayout>
 
 			<!-- CALENDAR VIEW -->
-			<VerticalStackLayout IsVisible="{Binding IsCalendarView}" Spacing="0">
-				<GraphicsView x:Name="CalendarGraphics"
-                              Drawable="{Binding CalendarDrawable}"
-                              HeightRequest="300"
-                              BackgroundColor="{StaticResource PageBg}">
-					<GraphicsView.GestureRecognizers>
-						<TapGestureRecognizer Tapped="OnCalendarTapped"/>
-					</GraphicsView.GestureRecognizers>
-				</GraphicsView>
-			</VerticalStackLayout>
+			<GraphicsView x:Name="CalendarGraphics"
+                          IsVisible="{Binding IsCalendarView}"
+                          Drawable="{Binding CalendarDrawable}"
+                          HorizontalOptions="Fill"
+                          VerticalOptions="Fill"
+                          Margin="0,0,0,90"
+                          BackgroundColor="White">
+				<GraphicsView.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnCalendarTapped"/>
+				</GraphicsView.GestureRecognizers>
+			</GraphicsView>
 
-			<!-- FAB — Book Appointment (green, same style as Patient page) -->
+			<!-- FAB — Book Appointment -->
 			<Button Text="+ Book Appointment"
-                    BackgroundColor="{StaticResource Primary}"
-                    TextColor="White"
-                    CornerRadius="24"
-                    HeightRequest="48"
-                    Padding="16,0"
-                    FontSize="13"
-                    FontAttributes="Bold"
+                    Command="{Binding GoToWalkInCommand}"
+                    Style="{StaticResource FabStyle}"
                     VerticalOptions="End"
                     HorizontalOptions="End"
                     Margin="0,0,16,24"
                     ZIndex="5"
-                    Command="{Binding GoToWalkInCommand}"
                     IsVisible="{Binding ShowDetail,
                         Converter={StaticResource InvertedBoolConverter}}"/>
 

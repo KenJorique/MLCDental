@@ -178,6 +178,8 @@ public partial class DatabaseService
 
             try { await _database.CreateTableAsync<TreatmentHistory>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] TreatmentHistory table: {ex.Message}"); }
+            try { await _database.ExecuteAsync("ALTER TABLE TreatmentHistory ADD COLUMN IsGeneralService INTEGER DEFAULT 0"); } catch { }
+            System.Diagnostics.Debug.WriteLine("[DB] TreatmentHistory migration ran");
 
             try { await _database.CreateTableAsync<SupplyStockLog>(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DB] SupplyStockLog table: {ex.Message}"); }
@@ -771,8 +773,10 @@ public partial class DatabaseService
         local.SupabaseId = su.Id;
         local.FullName = su.FullName;
         local.Username = su.Username;
-        local.PasswordHash = su.PasswordHash;
-        local.Role = su.Role;
+        if (!string.IsNullOrWhiteSpace(su.PasswordHash))
+            local.PasswordHash = su.PasswordHash; // never let a blank/missing remote hash wipe out a working local one
+        if (!string.IsNullOrWhiteSpace(su.Role))
+            local.Role = su.Role; // same reasoning — a blank remote role must never override a working local one
         local.ContactNo = su.ContactNo;
         local.Email = su.Email;
         local.IsActive = su.IsActive;
@@ -1394,21 +1398,21 @@ public partial class DatabaseService
             // whatever's already on file rather than blank defaults.
             var existingHistory = await GetMedicalHistory(patientId) ?? new MedicalHistory { PatientID = patientId };
             existingHistory.BloodType = sp.BloodType ?? "";
-            existingHistory.IsGoodHealth = sp.GoodHealth;
-            existingHistory.UnderMedicalTreatment = sp.UnderTreatment;
-            existingHistory.HasBeenHospitalized = sp.Hospitalized;
-            existingHistory.UsesTobacco = sp.UsesTobacco;
-            existingHistory.TakingMedications = sp.OnMedications;
+            existingHistory.IsGoodHealth = sp.GoodHealth ?? false;
+            existingHistory.UnderMedicalTreatment = sp.UnderTreatment ?? false;
+            existingHistory.HasBeenHospitalized = sp.Hospitalized ?? false;
+            existingHistory.UsesTobacco = sp.UsesTobacco ?? false;
+            existingHistory.TakingMedications = sp.OnMedications ?? false;
             await SaveMedicalHistory(existingHistory);
 
             await SaveAllergy(new Allergy
             {
                 PatientID = patientId,
-                HasLatexAllergy = sp.LatexAllergy,
-                HasAspirinAllergy = sp.AspirinAllergy,
-                HasPenicillinAllergy = sp.PenicillinAllergy,
-                HasSulfaAllergy = sp.SulfaAllergy,
-                HasLocalAnestheticAllergy = sp.LocalAnestheticAllergy,
+                HasLatexAllergy = sp.LatexAllergy ?? false,
+                HasAspirinAllergy = sp.AspirinAllergy ?? false,
+                HasPenicillinAllergy = sp.PenicillinAllergy ?? false,
+                HasSulfaAllergy = sp.SulfaAllergy ?? false,
+                HasLocalAnestheticAllergy = sp.LocalAnestheticAllergy ?? false,
                 OtherAllergy = sp.OtherAllergy ?? ""
             });
 

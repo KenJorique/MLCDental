@@ -14,33 +14,23 @@ namespace ClinicApp.ViewModels
     public partial class MenuViewModel : ObservableObject
     {
         private readonly SessionService _session;
-        private readonly RememberMeService _rememberMe; // ── NEW ──
 
-        [ObservableProperty] private string googleEmail = "Not connected";
-        [ObservableProperty] private string googleButtonText = "Connect";
-        [ObservableProperty] private bool isGoogleConnected;
-        [ObservableProperty] private string loggedInAs = "";
+        [ObservableProperty] private string fullName = "";
+        [ObservableProperty] private string role = "";
 
-        public MenuViewModel(SessionService session, RememberMeService rememberMe) // ── CHANGED ──
+        // Injects the session service.
+        public MenuViewModel(SessionService session)
         {
             _session = session;
-            _rememberMe = rememberMe;
         }
 
+        // Refreshes the hero header's name/role every time the page appears.
         public void OnAppearing()
         {
             try
             {
-                var isSignedIn = Preferences.Get("google_signed_in", false);
-                IsGoogleConnected = isSignedIn;
-                GoogleEmail = isSignedIn
-                    ? Preferences.Get("google_email", "Connected")
-                    : "Not connected";
-                GoogleButtonText = isSignedIn ? "Disconnect" : "Connect";
-
-                LoggedInAs = _session.IsAuthenticated
-                    ? $"{_session.FullName} ({_session.Role})"
-                    : "";
+                FullName = _session.IsAuthenticated ? _session.FullName : "";
+                Role = _session.IsAuthenticated ? _session.Role : "";
             }
             catch (Exception ex)
             {
@@ -48,36 +38,15 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Opens the Profile page (tapping the hero header).
         [RelayCommand]
-        async Task GoogleSignIn()
+        async Task GoToProfile()
         {
-            try
-            {
-                if (Preferences.Get("google_signed_in", false))
-                {
-                    try { GoogleTasksService.Instance.SignOut(); }
-                    catch { /* ignore if not initialized */ }
-
-                    Preferences.Set("google_signed_in", false);
-                    Preferences.Set("google_email", "");
-                    Preferences.Set("google_access_token", "");
-
-                    IsGoogleConnected = false;
-                    GoogleEmail = "Not connected";
-                    GoogleButtonText = "Connect";
-                }
-                else
-                {
-                    await Shell.Current.GoToAsync(nameof(GoogleSignInPage));
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoogleSignIn error: {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", $"Navigation failed: {ex.Message}", "OK");
-            }
+            try { await Shell.Current.GoToAsync(nameof(ProfilePage)); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToProfile: {ex.Message}"); }
         }
 
+        // Opens the Services and Pricing page.
         [RelayCommand]
         async Task GoToServices()
         {
@@ -85,6 +54,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToServices: {ex.Message}"); }
         }
 
+        // Opens the User Management page.
         [RelayCommand]
         async Task GoToUsers()
         {
@@ -92,6 +62,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToUsers: {ex.Message}"); }
         }
 
+        // Opens the Add Staff page.
         [RelayCommand]
         async Task GoToAddStaff()
         {
@@ -99,6 +70,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToAddStaff: {ex.Message}"); }
         }
 
+        // Opens the Medical Supply page.
         [RelayCommand]
         async Task GoToSupply()
         {
@@ -106,6 +78,7 @@ namespace ClinicApp.ViewModels
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToSupply: {ex.Message}"); }
         }
 
+        // Opens the Balance Management page.
         [RelayCommand]
         async Task GoToPaymentManagement()
         {
@@ -113,29 +86,12 @@ namespace ClinicApp.ViewModels
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToPaymentManagement: {ex.Message}"); }
         }
 
+        // Opens the Reports page.
         [RelayCommand]
         async Task GoToReports()
         {
             try { await Shell.Current.GoToAsync(nameof(ReportsPage)); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MenuViewModel] GoToReports: {ex.Message}"); }
-        }
-
-        // ── CHANGED: now also revokes the "remember this device" token,
-        // so an explicit Log Out genuinely requires a fresh login next
-        // time — unlike an inactivity timeout, which leaves it intact. ──
-        [RelayCommand]
-        async Task Logout()
-        {
-            bool confirm = await Shell.Current.DisplayAlert(
-                "Log Out",
-                "Are you sure you want to log out?",
-                "Log Out", "Cancel");
-
-            if (!confirm) return;
-
-            int userId = _session.UserId;
-            _session.Logout();
-            await _rememberMe.ForgetAsync(userId);
         }
     }
 }

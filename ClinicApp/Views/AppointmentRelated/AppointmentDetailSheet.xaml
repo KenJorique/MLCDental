@@ -75,11 +75,9 @@
 			</HorizontalStackLayout>
 		</VerticalStackLayout>
 
-		<!-- Action rows — icon + label + caption + chevron, matching ItemActionSheet style -->
 		<VerticalStackLayout Padding="20,0" Spacing="8">
 
 			<!-- Complete — approved only -->
-			<!-- TODO: "check" glyph below (e5ca) is a best-guess, not verified against your .ttf -->
 			<Border BackgroundColor="White" StrokeThickness="1" Stroke="{StaticResource Gray200}"
                     Padding="14,12"
                     IsVisible="{Binding IsSelectedApproved}">
@@ -177,8 +175,7 @@
 
             </Border>
 
-            <!-- Reschedule -->
-			<!-- TODO: "refresh" glyph below (e5d5) is a best-guess, not verified against your .ttf -->
+			<!-- Reschedule -->
 			<Border BackgroundColor="White" StrokeThickness="1" Stroke="{StaticResource Gray200}"
                     Padding="14,12"
                     IsVisible="{Binding CanChangeDate}">
@@ -189,13 +186,13 @@
 					<TapGestureRecognizer Command="{Binding RescheduleAppointmentCommand}"/>
 				</Border.GestureRecognizers>
 				<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-					<Border Grid.Column="0" BackgroundColor="{StaticResource GoldLight}" StrokeThickness="0"
+					<Border Grid.Column="0" BackgroundColor="#E3F2FD" StrokeThickness="0"
                             HeightRequest="44" WidthRequest="44">
 						<Border.StrokeShape>
 							<RoundRectangle CornerRadius="22"/>
 						</Border.StrokeShape>
 						<Label FontFamily="MaterialSymbolsRounded" Text="&#xe5d5;"
-                               FontSize="22" TextColor="{StaticResource Gold}"
+                               FontSize="22" TextColor="#1565C0"
                                HorizontalOptions="Center" VerticalOptions="Center"/>
 					</Border>
 					<VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
@@ -211,7 +208,6 @@
 			</Border>
 
 			<!-- Cancel — destructive, colored label like Delete Patient elsewhere in the app -->
-			<!-- TODO: "close" glyph below (e5cd) is a best-guess, not verified against your .ttf -->
 			<Border BackgroundColor="White" StrokeThickness="1" Stroke="{StaticResource Gray200}"
                     Padding="14,12"
                     IsVisible="{Binding CanCancel}">

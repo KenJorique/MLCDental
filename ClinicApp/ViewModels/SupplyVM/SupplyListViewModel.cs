@@ -2,12 +2,15 @@
 using ClinicApp.Services;
 using ClinicApp.Views.Shared;
 using ClinicApp.Views.SupplyRelated;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels.SupplyVM;
 
+// Lets other pages open this pre-filtered via ?filter=Low Stock / ?filter=Out of Stock.
+[QueryProperty(nameof(CurrentFilter), "filter")]
 public partial class SupplyListViewModel : ObservableObject
 {
     private readonly SupabaseDataService _supabase;
@@ -19,16 +22,75 @@ public partial class SupplyListViewModel : ObservableObject
     [ObservableProperty] private string lowStockSummary = string.Empty;
     [ObservableProperty] private bool hasLowStock;
     [ObservableProperty] private string searchText = string.Empty;
-    [ObservableProperty] private string currentSort = "All";
+    [ObservableProperty] private string currentFilter = "All";
+    [ObservableProperty] private string currentSortOption = "Default";
+
+    // Filter pill counts.
+    [ObservableProperty] private int allCount;
+    [ObservableProperty] private int lowStockOnlyCount;
+    [ObservableProperty] private int outOfStockCount;
 
     public ObservableCollection<SupplyCardViewModel> AllCards { get; } = new();
     public ObservableCollection<SupplyCardViewModel> FilteredCards { get; } = new();
 
+    // Empty-state title, computed from the active filter and search text.
+    public string EmptyStateTitle
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(SearchText)) return "No matches";
+            return CurrentFilter switch
+            {
+                "Low Stock" => "No low stock supplies",
+                "Out of Stock" => "No out of stock supplies",
+                _ => "No supplies found"
+            };
+        }
+    }
+
+    // Empty-state subtitle, computed from the active filter and search text.
+    public string EmptyStateMessage
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(SearchText))
+                return $"No supplies match \"{SearchText.Trim()}\".";
+            return CurrentFilter switch
+            {
+                "Low Stock" => "No supplies are currently low in stock.",
+                "Out of Stock" => "No supplies are currently out of stock.",
+                _ => "Tap + to add your first supply item."
+            };
+        }
+    }
+
+    // Injects the shared data service.
     public SupplyListViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
-    partial void OnSearchTextChanged(string value) => ApplyFilter();
-    partial void OnCurrentSortChanged(string value) => ApplyFilter();
+    // Re-filters as the user types.
+    partial void OnSearchTextChanged(string value)
+    {
+        ApplyFilterAndSort();
+        OnPropertyChanged(nameof(EmptyStateTitle));
+        OnPropertyChanged(nameof(EmptyStateMessage));
+    }
 
+    // Re-filters when the filter pill or the incoming ?filter= query changes.
+    partial void OnCurrentFilterChanged(string value)
+    {
+        ApplyFilterAndSort();
+        OnPropertyChanged(nameof(EmptyStateTitle));
+        OnPropertyChanged(nameof(EmptyStateMessage));
+    }
+
+    // Re-sorts when the sort option changes.
+    partial void OnCurrentSortOptionChanged(string value) => ApplyFilterAndSort();
+
+    // Sets the active filter (used by the filter pills).
+    [RelayCommand]
+    void SetFilter(string mode) => CurrentFilter = mode;
+
+    // Loads all supplies and rebuilds the filtered/sorted list.
     [RelayCommand]
     public async Task LoadSuppliesAsync()
     {
@@ -42,7 +104,7 @@ public partial class SupplyListViewModel : ObservableObject
                 AllCards.Clear();
                 foreach (var s in list)
                     AllCards.Add(new SupplyCardViewModel(s));
-                ApplyFilter();
+                ApplyFilterAndSort();
                 RefreshSummary();
             });
         }
@@ -53,9 +115,9 @@ public partial class SupplyListViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
-    private void ApplyFilter()
+    // Applies search + filter + sort, then rebuilds FilteredCards.
+    private void ApplyFilterAndSort()
     {
-        FilteredCards.Clear();
         var q = SearchText?.Trim().ToLowerInvariant() ?? string.Empty;
 
         var source = AllCards.AsEnumerable();
@@ -63,19 +125,38 @@ public partial class SupplyListViewModel : ObservableObject
         if (!string.IsNullOrEmpty(q))
             source = source.Where(c => c.Supply.Name.ToLowerInvariant().Contains(q));
 
-        source = CurrentSort switch
+        source = CurrentFilter switch
         {
             "Low Stock" => source.Where(c => c.IsLowStock && !c.IsOutOfStock),
             "Out of Stock" => source.Where(c => c.IsOutOfStock),
             _ => source
         };
 
+        source = ApplySort(source);
+
+        FilteredCards.Clear();
         foreach (var card in source)
             FilteredCards.Add(card);
 
         IsEmpty = FilteredCards.Count == 0;
     }
 
+    // Sorts by status priority by default, or by the picked sort option.
+    private IEnumerable<SupplyCardViewModel> ApplySort(IEnumerable<SupplyCardViewModel> source) =>
+        CurrentSortOption switch
+        {
+            "Ascending" => source.OrderBy(c => c.Supply.Name, StringComparer.OrdinalIgnoreCase),
+            "Descending" => source.OrderByDescending(c => c.Supply.Name, StringComparer.OrdinalIgnoreCase),
+            "Stock: Low to High" => source.OrderBy(c => c.Supply.QuantityInPieces),
+            "Stock: High to Low" => source.OrderByDescending(c => c.Supply.QuantityInPieces),
+            _ => source.OrderBy(StatusPriority).ThenBy(c => c.Supply.Name, StringComparer.OrdinalIgnoreCase)
+        };
+
+    // Out of stock first, then low stock, then everything else.
+    private static int StatusPriority(SupplyCardViewModel c) =>
+        c.IsOutOfStock ? 0 : c.IsLowStock ? 1 : 2;
+
+    // Recomputes the filter-pill counts and low-stock banner text.
     private void RefreshSummary()
     {
         LowStockCount = AllCards.Count(c => c.IsLowStock);
@@ -83,23 +164,31 @@ public partial class SupplyListViewModel : ObservableObject
         LowStockSummary = LowStockCount == 0 ? string.Empty
             : LowStockCount == 1 ? "1 item is low or out of stock"
             : $"{LowStockCount} items are low or out of stock";
+
+        AllCount = AllCards.Count;
+        OutOfStockCount = AllCards.Count(c => c.IsOutOfStock);
+        LowStockOnlyCount = AllCards.Count(c => c.IsLowStock && !c.IsOutOfStock);
     }
 
+    // Shows the sort-options action sheet and applies the pick.
     [RelayCommand]
     async Task ShowSortOptions()
     {
         var result = await Shell.Current.DisplayActionSheet(
-            "Filter by Stock Status", "Cancel", null,
-            "All", "Low Stock", "Out of Stock");
+            "Sort By", "Cancel", null,
+            "Ascending", "Descending",
+            "Stock: Low to High", "Stock: High to Low");
 
         if (result is null || result == "Cancel") return;
-        CurrentSort = result;
+        CurrentSortOption = result;
     }
 
+    // Opens the Add Supply page.
     [RelayCommand]
     async Task GoToAddSupply() =>
         await Shell.Current.GoToAsync(nameof(AddSupplyPage));
 
+    // Opens the tapped item's info page.
     [RelayCommand]
     async Task ViewSupplyInfo(SupplyCardViewModel card)
     {
@@ -107,6 +196,7 @@ public partial class SupplyListViewModel : ObservableObject
         await Shell.Current.GoToAsync($"{nameof(SupplyInfoPage)}?supplyId={card.Supply.Id}");
     }
 
+    // Pull-to-refresh.
     [RelayCommand]
     async Task Refresh()
     {
@@ -115,6 +205,7 @@ public partial class SupplyListViewModel : ObservableObject
         finally { IsRefreshing = false; }
     }
 
+    // Opens Add Stock for the tapped item.
     [RelayCommand]
     async Task QuickAddStock(SupplyCardViewModel card)
     {
@@ -123,6 +214,7 @@ public partial class SupplyListViewModel : ObservableObject
             $"{nameof(AddStockPage)}?supplyId={card.Supply.Id}&hasExpiration={card.Supply.HasExpiration}");
     }
 
+    // Opens Reduce Stock for the tapped item, if it has any stock left.
     [RelayCommand]
     async Task QuickReduceStock(SupplyCardViewModel card)
     {
@@ -138,6 +230,8 @@ public partial class SupplyListViewModel : ObservableObject
         await Shell.Current.GoToAsync(
             $"{nameof(ReduceStockPage)}?supplyId={card.Supply.Id}&currentStock={card.Supply.QuantityInPieces}");
     }
+
+    // Shows the per-item action sheet (add/reduce stock, view info, edit, delete).
     [RelayCommand]
     async Task ShowActionSheet(SupplyCardViewModel card)
     {
@@ -201,13 +295,17 @@ public partial class SupplyListViewModel : ObservableObject
         await sheet.ShowAsync();
     }
 
+    // Confirms with the popup, then deletes the item, logs it, and removes it from both card lists.
     private async Task DeleteSupplyAsync(SupplyCardViewModel card)
     {
-        bool ok = await Shell.Current.DisplayAlert(
-            "Remove Supply",
+        var popup = new ConfirmationPopup(
+            "Remove Supply?",
             $"Remove \"{card.Supply.Name}\" from the supply list?",
-            "Remove", "Cancel");
-        if (!ok) return;
+            confirmText: "Remove",
+            confirmColor: Colors.Crimson);
+
+        var result = await Shell.Current.ShowPopupAsync(popup);
+        if (result is not bool confirmed || !confirmed) return;
 
         IsBusy = true;
         try
@@ -218,6 +316,8 @@ public partial class SupplyListViewModel : ObservableObject
                 await Shell.Current.DisplayAlert("Error", "Could not delete item. Try again.", "OK");
                 return;
             }
+
+            await _supabase.LogActivityAsync("SupplyDeleted", $"Item {card.Supply.Name} was deleted");
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -237,6 +337,7 @@ public partial class SupplyListViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    // Expands/collapses the tapped card.
     [RelayCommand]
     void ToggleCard(SupplyCardViewModel card)
     {

@@ -8,194 +8,240 @@ using Column = Supabase.Postgrest.Attributes.ColumnAttribute;
 using ClinicApp.Helpers;
 
 namespace ClinicApp.Models.SupabaseModels
+{
+    [Table("bills")]
+    public class SupabaseBill : BaseModel
     {
-        [Table("bills")]
-        public class SupabaseBill : BaseModel
+        // Primary key of the bill row.
+        [PrimaryKey("id")]
+        public string Id { get; set; } = string.Empty;
+
+        // Foreign key to the patient this bill belongs to.
+        [Column("patient_id")]
+        public string PatientId { get; set; } = string.Empty;
+
+        // Denormalized patient name, kept on the bill for quick display.
+        [Column("patient_name")]
+        public string PatientName { get; set; } = string.Empty;
+
+        // Optional link back to the appointment this bill was generated from.
+        [Column("appointment_entry_id")]
+        public string? AppointmentEntryId { get; set; }
+
+        // Full amount charged for the bill before payments.
+        [Column("total_amount")]
+        public decimal TotalAmount { get; set; }
+
+        // Total amount the patient has paid so far.
+        [Column("amount_paid")]
+        public decimal AmountPaid { get; set; }
+
+        // Remaining amount owed (TotalAmount - AmountPaid).
+        [Column("balance")]
+        public decimal Balance { get; set; }
+
+        // Payment status: "unpaid", "partial", or "paid".
+        [Column("status")]
+        public string Status { get; set; } = "unpaid";
+
+        // Whether this bill is being paid off via an installment plan.
+        [Column("is_installment")]
+        public bool IsInstallment { get; set; }
+
+        // Free-text notes specific to the installment arrangement.
+        [Column("installment_notes")]
+        public string? InstallmentNotes { get; set; }
+
+        // Date the next/current payment is due.
+        [Column("due_date")]
+        public DateTime? DueDate { get; set; }
+
+        // Human-readable bill/invoice number.
+        [Column("bill_number")]
+        public string? BillNumber { get; set; }
+
+        // Date of the visit this bill is associated with.
+        [Column("visit_date")]
+        public DateTime VisitDate { get; set; }
+
+        // General free-text notes on the bill.
+        [Column("notes")]
+        public string? Notes { get; set; }
+
+        // Timestamp the bill row was created.
+        [Column("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        // Sum of line items before discount.
+        [Column("subtotal")]
+        public decimal Subtotal { get; set; }
+
+        // Discount applied, expressed as a percentage (e.g. 0.10 = 10%).
+        [Column("discount_percent")]
+        public decimal DiscountPercent { get; set; }
+
+        // Discount applied, expressed as a fixed peso amount.
+        [Column("discount_amount")]
+        public decimal DiscountAmount { get; set; }
+
+        // Number of months the installment plan runs for.
+        [Column("installment_months")]
+        public int InstallmentMonths { get; set; }
+
+        // Fixed amount due each month under the installment plan.
+        [Column("monthly_payment")]
+        public decimal MonthlyPayment { get; set; }
+
+        // Date of the most recent payment made against this bill.
+        [Column("last_payment_date")]
+        public DateTime? LastPaymentDate { get; set; }
+
+        // What's collected this visit (full price for non-installment items + 50% down for installment items, minus discount); distinct from Balance, the full lifetime amount owed.
+        [Column("minimum_due_today")]
+        public decimal MinimumDueToday { get; set; }
+
+        // Formatted peso display of MinimumDueToday.
+        [Ignore]
+        [JsonIgnore]
+        public string MinimumDueTodayDisplay => $"₱{MinimumDueToday:N2}";
+
+        // Formatted display of LastPaymentDate, or an em dash if none.
+        [Ignore]
+        [JsonIgnore]
+        public string LastPaymentDateDisplay =>
+    LastPaymentDate.HasValue
+        ? LastPaymentDate.Value.ToLocalSafe().ToString("MMM dd, yyyy")
+        : "—";
+
+        // Formatted display of DueDate, or an em dash if none.
+        [Ignore]
+        [JsonIgnore]
+        public string DueDateDisplay =>
+            DueDate.HasValue
+                ? DueDate.Value.ToLocalSafe().ToString("MMM dd, yyyy")
+                : "—";
+
+        // Whether a due date has been set at all.
+        [Ignore]
+        [JsonIgnore]
+        public bool HasDueDate => DueDate.HasValue;
+
+        // Human-readable summary of the installment plan, if any.
+        [Ignore]
+        [JsonIgnore]
+        public string InstallmentDisplay =>
+            IsInstallment && InstallmentMonths > 0
+                ? $"{InstallmentMonths} months @ ₱{MonthlyPayment:N2}/month"
+                : string.Empty;
+
+        // Display helpers — no [Column] needed
+        // Human-readable label for the raw Status code.
+        [Ignore]
+        [JsonIgnore]
+        public string StatusDisplay => Status switch
         {
-            [PrimaryKey("id")]
-            public string Id { get; set; } = string.Empty;
+            "paid" => "Paid",
+            "partial" => "Partial",
+            "unpaid" => "Unpaid",
+            _ => Status
+        };
 
-            [Column("patient_id")]
-            public string PatientId { get; set; } = string.Empty;
+        // Text color associated with the current Status — pulled from Colors.xaml, the single shared source.
+        [Ignore]
+        [JsonIgnore]
+        public Color StatusColor => Status switch
+        {
+            "paid" => (Color)Application.Current!.Resources["PrimaryGreen"],
+            "partial" => (Color)Application.Current!.Resources["StatusPartial"],
+            "unpaid" => (Color)Application.Current!.Resources["StatusUnpaid"],
+            _ => Color.FromArgb("#888888")
+        };
 
-            [Column("patient_name")]
-            public string PatientName { get; set; } = string.Empty;
+        // Background color associated with the current Status — pulled from Colors.xaml, the single shared source.
+        [Ignore]
+        [JsonIgnore]
+        public Color StatusBgColor => Status switch
+        {
+            "paid" => (Color)Application.Current!.Resources["StatusPaidBg"],
+            "partial" => (Color)Application.Current!.Resources["StatusPartialBg"],
+            "unpaid" => (Color)Application.Current!.Resources["StatusUnpaidBg"],
+            _ => Color.FromArgb("#F5F5F5")
+        };
 
-            [Column("appointment_entry_id")]
-            public string? AppointmentEntryId { get; set; }
+        // Formatted peso display of TotalAmount.
+        [Ignore]
+        [JsonIgnore]
+        public string TotalDisplay => $"₱{TotalAmount:N2}";
 
-            [Column("total_amount")]
-            public decimal TotalAmount { get; set; }
+        // Formatted peso display of AmountPaid.
+        [Ignore]
+        [JsonIgnore]
+        public string PaidDisplay => $"₱{AmountPaid:N2}";
 
-            [Column("amount_paid")]
-            public decimal AmountPaid { get; set; }
+        // Formatted peso display of Balance.
+        [Ignore]
+        [JsonIgnore]
+        public string BalanceDisplay => $"₱{Balance:N2}";
 
-            [Column("balance")]
-            public decimal Balance { get; set; }
+        // Display value for BillNumber, or an em dash if none.
+        [Ignore]
+        [JsonIgnore]
+        public string BillNumberDisplay => BillNumber ?? "—";
 
-            [Column("status")]
-            public string Status { get; set; } = "unpaid";
+        // Formatted peso display of Subtotal.
+        [Ignore]
+        [JsonIgnore]
+        public string SubtotalDisplay => $"₱{Subtotal:N2}";
 
-            [Column("is_installment")]
-            public bool IsInstallment { get; set; }
+        // Formatted peso display of DiscountAmount.
+        [Ignore]
+        [JsonIgnore]
+        public string DiscountAmountDisplay => $"₱{DiscountAmount:N2}";
 
-            [Column("installment_notes")]
-            public string? InstallmentNotes { get; set; }
+        // Formatted percentage display of DiscountPercent.
+        [Ignore]
+        [JsonIgnore]
+        public string DiscountPercentDisplay =>
+            DiscountPercent <= 0 ? "0%" : $"{DiscountPercent * 100m:N0}%";
 
-            [Column("due_date")]
-            public DateTime? DueDate { get; set; }
+        // Display date: VisitDate if set, otherwise falls back to CreatedAt.
+        [Ignore]
+        [JsonIgnore]
+        public string DateDisplay =>
+    VisitDate == default
+        ? CreatedAt.ToLocalSafe().ToString("MMM dd, yyyy")
+        : VisitDate.ToLocalSafe().ToString("MMM dd, yyyy");
 
-            [Column("bill_number")]
-            public string? BillNumber { get; set; }
+        // True when there's still a balance owed and today is past the due date (applies to any bill, not just installments).
+        [Ignore]
+        [JsonIgnore]
+        public bool IsOverdue =>
+    Balance > 0 &&
+    DueDate.HasValue &&
+    DateTime.Now.Date > DueDate.Value.ToLocalSafe().Date;
 
-            [Column("visit_date")]
-            public DateTime VisitDate { get; set; }
+        // Installment-plan status text: blank for non-installment bills, otherwise "Paid"/"Overdue"/"On Schedule".
+        [Ignore]
+        [JsonIgnore]
+        public string DueStatusText =>
+            !IsInstallment
+                ? ""
+                : Balance <= 0
+                    ? "Paid"
+                    : IsOverdue
+                        ? "Overdue"
+                        : "On Schedule";
 
-            [Column("notes")]
-            public string? Notes { get; set; }
-
-            [Column("created_at")]
-            public DateTime CreatedAt { get; set; }
-
-            [Column("subtotal")]
-            public decimal Subtotal { get; set; }
-
-            [Column("discount_percent")]
-            public decimal DiscountPercent { get; set; }
-
-            [Column("discount_amount")]
-            public decimal DiscountAmount { get; set; }
-
-            [Column("installment_months")]
-            public int InstallmentMonths { get; set; }
-
-            [Column("monthly_payment")]
-            public decimal MonthlyPayment { get; set; }
-
-            [Column("last_payment_date")]
-            public DateTime? LastPaymentDate { get; set; }
-
-            [Ignore]
-            [JsonIgnore]
-            public string LastPaymentDateDisplay =>
-        LastPaymentDate.HasValue
-            ? LastPaymentDate.Value.ToLocalSafe().ToString("MMM dd, yyyy")
-            : "—";
-
-            [Ignore]
-            [JsonIgnore]
-            public string DueDateDisplay =>
-                DueDate.HasValue
-                    ? DueDate.Value.ToLocalSafe().ToString("MMM dd, yyyy")
-                    : "—";
-
-            [Ignore]
-            [JsonIgnore]
-            public bool HasDueDate => DueDate.HasValue;
-
-            [Ignore]
-            [JsonIgnore]
-            public string InstallmentDisplay =>
-                IsInstallment && InstallmentMonths > 0
-                    ? $"{InstallmentMonths} months @ ₱{MonthlyPayment:N2}/month"
-                    : string.Empty;
-
-            // Display helpers — no [Column] needed
-            [Ignore]
-            [JsonIgnore]
-            public string StatusDisplay => Status switch
-            {
-                "paid" => "Paid",
-                "partial" => "Partial",
-                "unpaid" => "Unpaid",
-                _ => Status
-            };
-
-            [Ignore]
-            [JsonIgnore]
-            public Color StatusColor => Status switch
-            {
-                "paid" => Color.FromArgb("#2E7D32"),
-                "partial" => Color.FromArgb("#E65100"),
-                "unpaid" => Color.FromArgb("#C62828"),
-                _ => Color.FromArgb("#888888")
-            };
-
-            [Ignore]
-            [JsonIgnore]
-            public Color StatusBgColor => Status switch
-            {
-                "paid" => Color.FromArgb("#E8F5E9"),
-                "partial" => Color.FromArgb("#FFF3E0"),
-                "unpaid" => Color.FromArgb("#FCEAEA"),
-                _ => Color.FromArgb("#F5F5F5")
-            };
-
-            [Ignore]
-            [JsonIgnore]
-            public string TotalDisplay => $"₱{TotalAmount:N2}";
-
-            [Ignore]
-            [JsonIgnore]
-            public string PaidDisplay => $"₱{AmountPaid:N2}";
-
-            [Ignore]
-            [JsonIgnore]
-            public string BalanceDisplay => $"₱{Balance:N2}";
-            [Ignore]
-            [JsonIgnore]
-            public string BillNumberDisplay => BillNumber ?? "—";
-            [Ignore]
-            [JsonIgnore]
-            public string SubtotalDisplay => $"₱{Subtotal:N2}";
-
-            [Ignore]
-            [JsonIgnore]
-            public string DiscountAmountDisplay => $"₱{DiscountAmount:N2}";
-
-            [Ignore]
-            [JsonIgnore]
-            public string DiscountPercentDisplay =>
-                DiscountPercent <= 0 ? "0%" : $"{DiscountPercent * 100m:N0}%";
-            [Ignore]
-            [JsonIgnore]
-            public string DateDisplay =>
-        VisitDate == default
-            ? CreatedAt.ToLocalSafe().ToString("MMM dd, yyyy")
-            : VisitDate.ToLocalSafe().ToString("MMM dd, yyyy");
-
-            [Ignore]
-            [JsonIgnore]
-            public bool IsOverdue =>
-        IsInstallment &&
-        Balance > 0 &&
-        DueDate.HasValue &&
-        DateTime.Now.Date > DueDate.Value.ToLocalSafe().Date;
-
-            [Ignore]
-            [JsonIgnore]
-            public string DueStatusText =>
-                !IsInstallment
-                    ? ""
-                    : Balance <= 0
-                        ? "Paid"
-                        : IsOverdue
-                            ? "Overdue"
-                            : "On Schedule";
-
-            [Ignore]
-            [JsonIgnore]
-            public Color DueStatusColor =>
-                !IsInstallment
-                    ? Color.FromArgb("#6B7280")
-                    : Balance <= 0
-                        ? Color.FromArgb("#16A34A")
-                        : IsOverdue
-                            ? Color.FromArgb("#DC2626")
-                            : Color.FromArgb("#F59E0B");
-
-
-
-
-        }
+        // Color associated with DueStatusText.
+        [Ignore]
+        [JsonIgnore]
+        public Color DueStatusColor =>
+            !IsInstallment
+                ? Color.FromArgb("#6B7280")
+                : Balance <= 0
+                    ? Color.FromArgb("#16A34A")
+                    : IsOverdue
+                        ? Color.FromArgb("#DC2626")
+                        : Color.FromArgb("#F59E0B");
     }
+}

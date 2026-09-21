@@ -4,6 +4,7 @@ namespace ClinicApp.Views.AppointmentRelated
 {
     public partial class FollowUpRequiredSheet : BottomSheet
     {
+        // Sets up the sheet and disables shape animations on Android.
         public FollowUpRequiredSheet()
         {
             InitializeComponent();

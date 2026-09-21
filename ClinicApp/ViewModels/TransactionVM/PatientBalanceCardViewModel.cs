@@ -7,7 +7,7 @@ namespace ClinicApp.ViewModels.TransactionVM
     /// all their unpaid/partial bills. Built from a group of SupabaseBill.
     public partial class PatientBalanceCardViewModel : ObservableObject
     {
-        public const int DueSoonWindowDays = 3;
+        public const int DueSoonWindowDays = 7;
 
         public string PatientId { get; }
         public string PatientName { get; }
@@ -20,6 +20,7 @@ namespace ClinicApp.ViewModels.TransactionVM
 
         public decimal TotalBalance { get; }
         public DateTime? NextDueDate { get; }
+        public DateTime MostRecentBillDate { get; }
         public decimal NextPaymentAmount { get; }
         public bool IsOverdue { get; }
         public bool IsDueSoon { get; }
@@ -41,11 +42,16 @@ namespace ClinicApp.ViewModels.TransactionVM
                 .First();
 
             NextDueDate = PrimaryBill.DueDate ?? PrimaryBill.VisitDate.AddDays(30);
+            MostRecentBillDate = bills.Max(b => b.CreatedAt);
             NextPaymentAmount = PrimaryBill.IsInstallment && PrimaryBill.MonthlyPayment > 0
                 ? PrimaryBill.MonthlyPayment
                 : PrimaryBill.Balance;
 
-            IsOverdue = bills.Any(b => b.IsOverdue);
+            // Computed from NextDueDate (which already falls back to
+            // VisitDate+30 when DueDate is null) rather than
+            // SupabaseBill.IsOverdue, so the pill/filter never disagree
+            // with the due date actually shown on the card.
+            IsOverdue = NextDueDate.HasValue && NextDueDate.Value.Date < DateTime.Today;
 
             IsDueSoon = !IsOverdue && NextDueDate.HasValue &&
                         NextDueDate.Value.Date <= DateTime.Today.AddDays(DueSoonWindowDays) &&
@@ -67,7 +73,7 @@ namespace ClinicApp.ViewModels.TransactionVM
                 : 0;
 
         public string StatusLabel =>
-            IsOverdue ? (DaysOverdue > 0 ? $"Overdue · {DaysOverdue}d" : "Overdue")
+            IsOverdue ? "Overdue"
             : IsDueSoon ? "Due Soon"
             : string.Empty;
 
@@ -76,5 +82,9 @@ namespace ClinicApp.ViewModels.TransactionVM
         public string StatusBg => IsOverdue ? "#FFF1F2" : "#FEF3C7";
         public string StatusBorder => IsOverdue ? "#FECACA" : "#FDE68A";
         public string StatusText => IsOverdue ? "#B91C1C" : "#92400E";
+
+        /// Left edge accent stripe on the card. Overdue = FormErrorLabel red,
+        /// Due Soon = brand Gold, otherwise fully transparent (no accent).
+        public string AccentColor => IsOverdue ? "#D32F2F" : IsDueSoon ? "#C8A84B" : "Transparent";
     }
 }

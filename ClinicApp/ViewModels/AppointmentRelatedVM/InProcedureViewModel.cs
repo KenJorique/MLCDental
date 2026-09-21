@@ -1,6 +1,8 @@
 ﻿using ClinicApp.Services;
 using ClinicApp.Views.AppointmentRelated;
 using ClinicApp.Views;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -9,14 +11,7 @@ using ClinicApp.Models.SupabaseModels;
 
 namespace ClinicApp.ViewModels
 {
-    /// <summary>
-    /// Backing VM for InProcedurePage — the "active visit" queue.
-    /// Separated from AppointmentScheduleViewModel because in-procedure/billing
-    /// patients are no longer "scheduled", they're mid-visit; mixing them into
-    /// the week schedule made the list ambiguous to read at a glance.
-    /// Mirrors the AppointmentDetailSheet binding contract used by
-    /// AppointmentScheduleViewModel so the same bottom sheet can be reused here.
-    /// </summary>
+    /// <summary>Backing VM for InProcedurePage's active-visit queue — kept separate from AppointmentScheduleViewModel and reuses AppointmentDetailSheet's binding contract.</summary>
     public partial class InProcedureViewModel : ObservableObject
     {
         readonly SupabaseDataService _supabaseData;
@@ -36,6 +31,33 @@ namespace ClinicApp.ViewModels
         [ObservableProperty] private bool isInProcedureTabActive = true;
         [ObservableProperty] private bool isBillingTabActive = false;
 
+        // ConfirmationPopup helpers, replacing Shell.Current.DisplayAlert everywhere in this ViewModel.
+
+        static Page CurrentPage =>
+            Shell.Current?.CurrentPage
+            ?? Application.Current?.Windows.FirstOrDefault()?.Page
+            ?? throw new InvalidOperationException("No current page available to host the popup.");
+
+        // Yes/No confirmation. Returns true only if the confirm button was tapped.
+        static async Task<bool> ShowConfirmAsync(
+            string title, string message, string confirmText = "Yes", Color? confirmColor = null)
+        {
+            var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+            var result = await CurrentPage.ShowPopupAsync(popup);
+            return result is true;
+        }
+
+        // Plain OK-only notice (used in place of single-button DisplayAlert calls).
+        static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+        {
+            var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+            await CurrentPage.ShowPopupAsync(popup);
+        }
+
+        // Convenience wrapper for error alerts so call sites read the same as before.
+        static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
+
+        // Switches the active tab between "in-procedure" and "billing".
         [RelayCommand]
         void SwitchTab(string tab)
         {
@@ -64,16 +86,19 @@ namespace ClinicApp.ViewModels
         public bool CanCancel => false;
         public bool CanChangeDate => false;
 
+        // Refreshes IsSelectedInTransit whenever the selected appointment changes.
         partial void OnSelectedAppointmentChanged(AppointmentEntry? value)
         {
             OnPropertyChanged(nameof(IsSelectedInTransit));
         }
 
+        // Injects the shared Supabase data service.
         public InProcedureViewModel(SupabaseDataService supabaseData)
         {
             _supabaseData = supabaseData;
         }
 
+        // Loads and splits entries into the In Procedure and Billing lists.
         [RelayCommand]
         public async Task LoadAsync()
         {
@@ -116,6 +141,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Maps a remote Supabase entry to the local display model, normalizing its timestamp to local time.
         private static AppointmentEntry MapToEntry(SupabaseAppointmentEntry e)
         {
             var localDt = e.AppointmentDateTime.Kind == DateTimeKind.Utc
@@ -136,6 +162,7 @@ namespace ClinicApp.ViewModels
             };
         }
 
+        // Pull-to-refresh.
         [RelayCommand]
         async Task Refresh()
         {
@@ -144,6 +171,7 @@ namespace ClinicApp.ViewModels
             finally { IsRefreshing = false; }
         }
 
+        // Opens the shared detail sheet for the tapped entry.
         [RelayCommand]
         async Task SelectEntry(AppointmentEntry entry)
         {
@@ -167,6 +195,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Closes the detail sheet and clears the selection.
         [RelayCommand]
         async Task CloseDetail()
         {
@@ -175,6 +204,7 @@ namespace ClinicApp.ViewModels
             await CloseSheetAsync();
         }
 
+        // Dismisses the detail bottom sheet, if one is open.
         async Task CloseSheetAsync()
         {
             if (_detailSheet == null) return;
@@ -187,15 +217,16 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Confirms, then closes the sheet and navigates to CreateBillPage for the selected patient.
         [RelayCommand]
         async Task ProceedToBilling()
         {
             if (SelectedAppointment == null) return;
 
-            bool confirm = await Shell.Current.DisplayAlert(
+            bool confirm = await ShowConfirmAsync(
                 "Start Billing",
                 $"Procedure for {SelectedAppointment.PatientName} is done.\nStart billing now?",
-                "Yes, proceed", "Cancel");
+                "Yes, proceed");
 
             if (!confirm) return;
 
@@ -223,16 +254,17 @@ namespace ClinicApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[InProcedureViewModel.ProceedToBilling] {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+                await ShowErrorAsync(ex.Message);
             }
         }
 
+        // Opens the device dialer with the given phone number.
         [RelayCommand]
         async Task CallPatient(string phoneNumber)
         {
             if (string.IsNullOrWhiteSpace(phoneNumber))
             {
-                await Shell.Current.DisplayAlert("Error", "No phone number available for this patient.", "OK");
+                await ShowNoticeAsync("Error", "No phone number available for this patient.");
                 return;
             }
 
@@ -241,12 +273,12 @@ namespace ClinicApp.ViewModels
                 if (PhoneDialer.Default.IsSupported)
                     PhoneDialer.Default.Open(phoneNumber);
                 else
-                    await Shell.Current.DisplayAlert("Not Supported", "Phone dialing is not supported on this device.", "OK");
+                    await ShowNoticeAsync("Not Supported", "Phone dialing is not supported on this device.");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[InProcedureViewModel.CallPatient] {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", "Unable to open phone dialer.", "OK");
+                await ShowErrorAsync("Unable to open phone dialer.");
             }
         }
 

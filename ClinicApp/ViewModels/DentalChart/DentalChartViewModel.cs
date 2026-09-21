@@ -1,6 +1,8 @@
 ﻿using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.TreatmentModels;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using ClinicApp.Services.Database;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -42,12 +44,33 @@ public partial class DentalChartViewModel : ObservableObject
         "Caries",
         "Completed",
         "Missing",
-        "Root Canal",
         "Crown"
     };
 
+    // One row in the Legend card — Color always resolved live from ConditionColors above,
+    // so the swatch shown can never fall out of sync with the color actually applied to a tooth.
+    public class LegendEntry
+    {
+        public string Label { get; init; } = string.Empty;
+        public Color Color { get; init; } = Colors.White;
+    }
+
+    // Looks up a ConditionColors hex value and parses it, falling back to white if missing.
+    private static Color ColorOf(string conditionKey) =>
+        ConditionColors.TryGetValue(conditionKey, out var hex) ? Color.FromArgb(hex) : Colors.White;
+
+    public List<LegendEntry> LegendItems { get; } = new()
+    {
+        new() { Label = "Normal / Untreated",         Color = ColorOf("Normal") },
+        new() { Label = "Filling / Restoration",      Color = ColorOf("Filling") },
+        new() { Label = "Active Decay / Caries",      Color = ColorOf("Caries") },
+        new() { Label = "Completed Treatment",        Color = ColorOf("Completed") },
+        new() { Label = "Missing / Extracted",        Color = ColorOf("Missing") },
+        new() { Label = "Crown / Bridge / Prosthetic", Color = ColorOf("Crown") },
+    };
+
     private readonly DatabaseService _db;
-    private readonly SupabaseRealtimeService _realtimeService; 
+    private readonly SupabaseRealtimeService _realtimeService;
 
 
     // ═══════════════════════════════════════════════════════════════
@@ -64,7 +87,7 @@ public partial class DentalChartViewModel : ObservableObject
     private bool isBusy;
 
     [ObservableProperty]
-    private string statusMessage = string.Empty;
+    private string conditionCountText = "0 conditions";
 
     // ═══════════════════════════════════════════════════════════════
     // TEETH
@@ -97,6 +120,14 @@ public partial class DentalChartViewModel : ObservableObject
     [ObservableProperty]
     private string modalCondition = string.Empty;
 
+    // Nothing to clear on a tooth that's already Normal — the Clear button binds to this.
+    public bool CanClearTooth =>
+        !string.Equals(ModalCondition, "Normal", StringComparison.OrdinalIgnoreCase);
+
+    // Auto-generated ModalCondition setter calls this — keep CanClearTooth in sync whenever
+    // the modal's displayed condition changes (tooth tapped, edit saved, edit cancelled).
+    partial void OnModalConditionChanged(string value) => OnPropertyChanged(nameof(CanClearTooth));
+
     [ObservableProperty]
     private Color modalConditionColor = Colors.White;
 
@@ -124,6 +155,28 @@ public partial class DentalChartViewModel : ObservableObject
         BuildTeeth();
 
         _realtimeService.OnToothRecordChanged += OnToothRecordChangedRemotely;
+    }
+
+    // Plain OK-only popup for error notices — matches the rest of the app's convention of
+    // surfacing errors via popup instead of an inline status label.
+    private static Task ShowNoticeAsync(string title, string message)
+    {
+        var popup = new ConfirmationPopup(title, message, "OK",
+            Color.FromArgb("#2E7D32"), showCancelButton: false);
+        return Shell.Current.CurrentPage.ShowPopupAsync(popup);
+    }
+
+    // Recomputes the "N conditions" pill from the teeth currently in memory. Called after
+    // LoadChartAsync AND after Save/Clear — those change a tooth's Condition directly without
+    // reloading the whole chart, so without this call the pill goes stale until the next visit
+    // to this page (this was the "cleared a tooth but the count didn't go down" bug).
+    private void RefreshConditionCount()
+    {
+        var affectedTeeth =
+            _allTeeth.Count(t =>
+                !string.Equals(t.Condition, "Normal", StringComparison.OrdinalIgnoreCase));
+
+        ConditionCountText = $"{affectedTeeth} condition{(affectedTeeth == 1 ? "" : "s")}";
     }
 
     private async void OnToothRecordChangedRemotely()
@@ -305,27 +358,15 @@ public partial class DentalChartViewModel : ObservableObject
                 tooth.ApplyRecord(historyRecord);
             }
 
-            // -------------------------------------------------------
-            // Count UNIQUE teeth with a condition.
-            // -------------------------------------------------------
-
-            var affectedTeeth =
-                _allTeeth.Count(t =>
-                    !string.Equals(
-                        t.Condition,
-                        "Normal",
-                        StringComparison.OrdinalIgnoreCase));
-
-            StatusMessage = affectedTeeth > 0
-                ? $"{affectedTeeth} tooth condition(s) on record."
-                : "No tooth conditions yet — tap a tooth to begin.";
+            RefreshConditionCount();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(
                 $"[DentalChart] Load error: {ex}");
 
-            StatusMessage = "Unable to load dental chart.";
+            await ShowNoticeAsync("Unable to Load Chart",
+                "Something went wrong loading this patient's dental chart. Please try again.");
         }
         finally
         {
@@ -337,10 +378,20 @@ public partial class DentalChartViewModel : ObservableObject
     // DETERMINE CHART CONDITION FROM TREATMENT HISTORY
     // ═══════════════════════════════════════════════════════════════
 
-    private static string GetChartCondition(TreatmentHistory history)
+    // Convenience overload for a full TreatmentHistory record — combines its Condition and
+    // Description before handing off to the shared text-based matcher below.
+    private static string GetChartCondition(TreatmentHistory history) =>
+        GetChartCondition(history.Condition, history.Description);
+
+    // Shared bucket-matcher: turns any free-text condition/description into one of the fixed
+    // ConditionColors keys. Public so callers outside this ViewModel (e.g. BillingService, when
+    // it logs a treatment from a service name) resolve the SAME chart color this page would —
+    // instead of doing their own exact-string lookup against ConditionColors that silently
+    // misses whenever the wording doesn't match verbatim.
+    public static string GetChartCondition(string condition, string description = "")
     {
         // -----------------------------------------------------------
-        // Start with the Condition field.
+        // Combine both fields into one text to scan.
         //
         // Example:
         // "Filled (Composite)"
@@ -349,7 +400,7 @@ public partial class DentalChartViewModel : ObservableObject
         // -----------------------------------------------------------
 
         var text =
-            $"{history.Condition} {history.Description}";
+            $"{condition} {description}";
 
         text = text.Trim();
 
@@ -480,7 +531,9 @@ public partial class DentalChartViewModel : ObservableObject
     // COLOR HELPER
     // ═══════════════════════════════════════════════════════════════
 
-    private static string GetConditionColor(string condition)
+    // Public so BillingService can turn a chart bucket (from GetChartCondition above) into the
+    // same hex color this page uses, instead of maintaining its own copy of this lookup.
+    public static string GetConditionColor(string condition)
     {
         if (ConditionColors.TryGetValue(
                 condition,
@@ -586,8 +639,23 @@ public partial class DentalChartViewModel : ObservableObject
     // ═══════════════════════════════════════════════════════════════
 
     [RelayCommand]
-    private void CloseModal()
+    private async Task CloseModal()
     {
+        // Editing in progress — closing now would silently throw away whatever was typed,
+        // so confirm first instead of assuming a stray backdrop tap meant "discard this."
+        if (IsEditMode)
+        {
+            var confirm = new ConfirmationPopup(
+                "Discard Changes?",
+                "You have unsaved changes to this tooth. Discard them?",
+                "Discard",
+                Color.FromArgb("#D32F2F"));
+
+            var confirmed = await Shell.Current.CurrentPage.ShowPopupAsync(confirm);
+            if (confirmed is not true)
+                return;
+        }
+
         IsModalVisible = false;
         IsEditMode = false;
 
@@ -642,6 +710,16 @@ public partial class DentalChartViewModel : ObservableObject
         if (_modalTooth == null || IsBusy)
             return;
 
+        var confirm = new ConfirmationPopup(
+            "Save Changes?",
+            $"Save this condition for Tooth #{_modalTooth.ToothNumber}?",
+            "Save",
+            Color.FromArgb("#2E7D32"));
+
+        var confirmed = await Shell.Current.CurrentPage.ShowPopupAsync(confirm);
+        if (confirmed is not true)
+            return;
+
         IsBusy = true;
 
         try
@@ -692,6 +770,7 @@ public partial class DentalChartViewModel : ObservableObject
             // -------------------------------------------------------
 
             _modalTooth.ApplyRecord(record);
+            RefreshConditionCount();
 
             // -------------------------------------------------------
             // Add treatment history
@@ -752,9 +831,6 @@ public partial class DentalChartViewModel : ObservableObject
             ModalNotes =
                 EditNotes ?? string.Empty;
 
-            StatusMessage =
-                $"✓ Tooth #{_modalTooth.ToothNumber}: {EditCondition} saved.";
-
             IsEditMode = false;
         }
         catch (Exception ex)
@@ -762,8 +838,8 @@ public partial class DentalChartViewModel : ObservableObject
             System.Diagnostics.Debug.WriteLine(
                 $"[DentalChart] Save error: {ex}");
 
-            StatusMessage =
-                "Unable to save tooth condition.";
+            await ShowNoticeAsync("Unable to Save",
+                "Something went wrong saving this tooth's condition. Please try again.");
         }
         finally
         {
@@ -779,6 +855,17 @@ public partial class DentalChartViewModel : ObservableObject
     private async Task ClearToothFromModalAsync()
     {
         if (_modalTooth == null || IsBusy)
+            return;
+
+        // Destructive and permanent — confirm before wiping the tooth's recorded condition.
+        var confirm = new ConfirmationPopup(
+            "Clear Tooth Condition?",
+            $"This will remove Tooth #{_modalTooth.ToothNumber}'s recorded condition. This can't be undone.",
+            "Clear",
+            Color.FromArgb("#D32F2F"));
+
+        var confirmed = await Shell.Current.CurrentPage.ShowPopupAsync(confirm);
+        if (confirmed is not true)
             return;
 
         IsBusy = true;
@@ -846,19 +933,17 @@ public partial class DentalChartViewModel : ObservableObject
                 toothNumber);
 
             _modalTooth.Reset();
+            RefreshConditionCount();
 
-            StatusMessage =
-                $"Tooth #{toothNumber} cleared.";
-
-            CloseModal();
+            await CloseModal();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(
                 $"[DentalChart] Clear error: {ex}");
 
-            StatusMessage =
-                "Unable to clear tooth.";
+            await ShowNoticeAsync("Unable to Clear",
+                "Something went wrong clearing this tooth's condition. Please try again.");
         }
         finally
         {
@@ -889,9 +974,6 @@ public partial class DentalChartViewModel : ObservableObject
             await _db.DeleteToothRecord(
                 PatientId,
                 toothNumber);
-
-            StatusMessage =
-                $"Tooth #{toothNumber} cleared.";
         }
         finally
         {

@@ -8,14 +8,25 @@ public partial class UserCardViewModel : ObservableObject
 {
     public User User { get; }
 
+    // Wraps the given user record for display in a list card.
     public UserCardViewModel(User user)
     {
         User = user;
     }
 
-    // Returns green if active, red if inactive — used for the status dot color
-    public Color StatusColor => User.IsActive ? Colors.Green : Colors.Red;
+    // Returns the active/inactive dot color, from app resources with a fallback.
+    public Color StatusColor
+    {
+        get
+        {
+            var key = User.IsActive ? "StatusGood" : "StatusOut";
+            if (Application.Current?.Resources.TryGetValue(key, out var color) == true)
+                return (Color)color;
 
-    // Returns "Active" or "Inactive" label text
+            return User.IsActive ? Colors.Green : Colors.Red; // fallback
+        }
+    }
+
+    // Returns "Active" or "Inactive" label text.
     public string StatusText => User.IsActive ? "Active" : "Inactive";
 }

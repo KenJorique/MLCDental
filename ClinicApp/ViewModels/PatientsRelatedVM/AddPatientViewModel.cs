@@ -1,10 +1,14 @@
 ﻿using ClinicApp.Models;
+using ClinicApp.Helpers;
 using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 
 namespace ClinicApp.ViewModels.PatientsRelatedVM;
 
@@ -14,8 +18,13 @@ public partial class AddPatientViewModel : ObservableObject
     readonly DatabaseService _db;
     readonly SupabaseDataService _supabase;
 
-    // Tracks the Supabase UUID when editing an existing patient
+    // Tracks the Supabase UUID when editing an existing patient.
     private string _supabaseId = string.Empty;
+
+    // Tracks whether the user has made any unsaved edits, so Cancel / the
+    // back arrow know whether a "discard changes?" prompt is actually needed.
+    private bool _isLoading;
+    private bool _isDirty;
 
     public AddPatientViewModel(DatabaseService db, SupabaseDataService supabase)
     {
@@ -59,6 +68,7 @@ public partial class AddPatientViewModel : ObservableObject
     [ObservableProperty] bool isGoodHealth = true;
     [ObservableProperty] bool isPregnant;
     [ObservableProperty] bool underMedicalTreatment;
+    [ObservableProperty] string treatmentDetails = string.Empty;
     [ObservableProperty] string medicationDetails = string.Empty;
     [ObservableProperty] bool hasBeenHospitalized;
     [ObservableProperty] string hospitalizationDetails = string.Empty;
@@ -92,27 +102,46 @@ public partial class AddPatientViewModel : ObservableObject
         }
     }
 
+    // Refreshes IsMinor whenever the birthdate changes.
     partial void OnDateOfBirthChanged(DateTime value) =>
         OnPropertyChanged(nameof(IsMinor));
 
-    // Shows Pregnant checkbox only for Female patients
+    // Shows Pregnant checkbox only for Female patients.
     public bool IsFemale => SelectedGender?.Equals("Female", StringComparison.OrdinalIgnoreCase) ?? false;
 
+    // Refreshes IsFemale whenever gender changes.
     partial void OnSelectedGenderChanged(string value) =>
         OnPropertyChanged(nameof(IsFemale));
 
+    // Marks the form dirty on any field edit, except computed/internal properties or during a load.
+    // NOTE: this does NOT catch checkbox toggles inside the Conditions list — those live on
+    // ConditionCheckItem, not on this ViewModel, so they don't flow through here. Flag if you want
+    // condition changes to also count toward "unsaved changes."
+    protected override void OnPropertyChanged(PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        if (_isLoading) return;
+        if (e.PropertyName is nameof(IsBusy) or nameof(PageTitle) or nameof(PatientId)
+            or nameof(IsMinor) or nameof(IsFemale))
+            return;
+        _isDirty = true;
+    }
+
+    // Loads the condition checklist for a brand-new patient.
     public async Task InitializeAsync()
     {
         if (PatientId <= 0)
             await LoadConditionListAsync();
     }
 
+    // Loads the full patient record for editing once PatientId is set via navigation.
     partial void OnPatientIdChanged(int value)
     {
         if (value > 0)
             MainThread.BeginInvokeOnMainThread(async () => await LoadForEditAsync(value));
     }
 
+    // Loads the full condition checklist, unchecked, for a new patient.
     private async Task LoadConditionListAsync()
     {
         await _db.EnsureDefaultConditions();
@@ -127,9 +156,11 @@ public partial class AddPatientViewModel : ObservableObject
             });
     }
 
+    // Loads an existing patient's full record into the form for editing.
     private async Task LoadForEditAsync(int id)
     {
         IsBusy = true;
+        _isLoading = true;
         try
         {
             PageTitle = "Edit Patient";
@@ -172,6 +203,7 @@ public partial class AddPatientViewModel : ObservableObject
                 IsGoodHealth = m.IsGoodHealth;
                 IsPregnant = m.IsPregnant;
                 UnderMedicalTreatment = m.UnderMedicalTreatment;
+                TreatmentDetails = m.TreatmentDetails;
                 MedicationDetails = m.MedicationDetails;
                 HasBeenHospitalized = m.HasBeenHospitalized;
                 HospitalizationDetails = m.HospitalizationDetails;
@@ -196,38 +228,54 @@ public partial class AddPatientViewModel : ObservableObject
             foreach (var item in Conditions)
                 item.IsSelected = selectedIds.Contains(item.ConditionID);
         }
-        finally { IsBusy = false; }
+        finally
+        {
+            IsBusy = false;
+            _isLoading = false;
+            _isDirty = false; // freshly loaded data isn't a user edit
+        }
     }
 
+    // Validates the form, confirms with the popup, saves locally and to Supabase, and logs the activity.
     [RelayCommand]
     async Task SavePatient()
     {
-        var errors = new List<string>();
-        if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
-            errors.Add("• First and last name are required.");
-        if (string.IsNullOrWhiteSpace(SelectedGender))
-            errors.Add("• Gender is required.");
-        if (string.IsNullOrWhiteSpace(Address))
-            errors.Add("• Address is required.");
-        if (string.IsNullOrWhiteSpace(MobileNo))
-            errors.Add("• Mobile number is required.");
-        if (IsMinor)
-        {
-            if (string.IsNullOrWhiteSpace(GuardianName))
-                errors.Add("• Guardian name is required for patients under 18.");
-            if (string.IsNullOrWhiteSpace(GuardianMobileNo))
-                errors.Add("• Guardian mobile number is required for patients under 18.");
-        }
+        var errors = PatientValidator.Validate(
+            FirstName, LastName, SelectedGender, Address, MobileNo, Email,
+            IsMinor, GuardianName, GuardianMobileNo);
         if (errors.Count > 0)
         {
-            await Shell.Current.DisplayAlert("Required Fields Missing",
-                string.Join("\n", errors), "OK");
+            var notice = new ConfirmationPopup(
+                "Required Fields Missing",
+                string.Join("\n", errors),
+                confirmText: "OK",
+                confirmColor: Colors.Green,
+                showCancelButton: false);
+            await Shell.Current.ShowPopupAsync(notice);
             return;
         }
+
+        bool isNewPatient = PatientId <= 0;
+
+        var confirmPopup = new ConfirmationPopup(
+            "Save Patient?",
+            isNewPatient
+                ? $"Add {FirstName.Trim()} {LastName.Trim()} as a new patient?"
+                : $"Save changes to {FirstName.Trim()} {LastName.Trim()}?",
+            confirmText: "Save",
+            confirmColor: Colors.Green);
+
+        var confirmResult = await Shell.Current.ShowPopupAsync(confirmPopup);
+        if (confirmResult is not bool confirmed || !confirmed) return;
 
         IsBusy = true;
         try
         {
+            // Clear a detail field once its checkbox is off, so an old value can't resurface if it's checked again later.
+            if (!UnderMedicalTreatment) TreatmentDetails = string.Empty;
+            if (!HasBeenHospitalized) HospitalizationDetails = string.Empty;
+            if (!TakingMedications) MedicationDetails = string.Empty;
+
             // ── 1. Save to local SQLite ───────────────────────────────
             Patient p;
             if (PatientId > 0)
@@ -279,6 +327,7 @@ public partial class AddPatientViewModel : ObservableObject
                 IsGoodHealth = IsGoodHealth,
                 IsPregnant = IsPregnant,
                 UnderMedicalTreatment = UnderMedicalTreatment,
+                TreatmentDetails = TreatmentDetails.Trim(),
                 MedicationDetails = MedicationDetails.Trim(),
                 HasBeenHospitalized = HasBeenHospitalized,
                 HospitalizationDetails = HospitalizationDetails.Trim(),
@@ -306,6 +355,12 @@ public partial class AddPatientViewModel : ObservableObject
             // ── 2. Sync to Supabase — errors shown to user ────────────
             await SyncToSupabaseAsync(pid);
 
+            await _supabase.LogActivityAsync(
+                isNewPatient ? "NewPatient" : "PatientUpdated",
+                isNewPatient ? $"New patient {p.FullName} added" : $"{p.FullName}'s info was updated");
+
+            _isDirty = false;
+
             await MainThread.InvokeOnMainThreadAsync(async () =>
                 await Shell.Current.GoToAsync(".."));
         }
@@ -316,6 +371,30 @@ public partial class AddPatientViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    // Confirms discard with the popup if there are unsaved edits, then goes back.
+    [RelayCommand]
+    async Task CancelAsync()
+    {
+        if (_isDirty)
+        {
+            var popup = new ConfirmationPopup(
+                "Discard Changes?",
+                "Are you sure you want to discard the changes you made?",
+                confirmText: "Discard",
+                confirmColor: Colors.Crimson);
+
+            var result = await Shell.Current.ShowPopupAsync(popup);
+            if (result is not bool discard || !discard)
+                return;
+        }
+
+        await Shell.Current.GoToAsync("..");
+    }
+
+    // Saves locally then pushes the full record to Supabase, insert or update as appropriate.
+    // Guardian and Conditions are both normalized tables in Supabase (SupabasePatient only holds
+    // a GuardianId foreign key and has no Conditions column at all), so both are resolved/synced
+    // through their own dedicated methods rather than written as flat fields on the patient row.
     private async Task SyncToSupabaseAsync(int localPid)
     {
         // Read fresh from SQLite — never use ViewModel fields directly
@@ -375,47 +454,50 @@ public partial class AddPatientViewModel : ObservableObject
             }
         }
 
-        // Build from SQLite data — guaranteed to have the saved values
-        var sp = new SupabasePatient
-        {
-            FirstName = saved.FirstName,
-            LastName = saved.LastName,
-            Nickname = saved.Nickname,
-            Gender = saved.Gender,
-            DateOfBirth = DateTime.TryParse(saved.DateOfBirth, out var dob) ? dob : null,
-            Nationality = saved.Nationality,
-            Religion = saved.Religion,
-            Occupation = saved.Occupation,
-            Address = saved.Address,
-            Phone = saved.MobileNo,
-            HomeNo = saved.HomeNo,
-            OfficeNo = saved.OfficeNo,
-            FaxNo = saved.FaxNo,
-            Email = saved.Email,
-            DateRegistered = DateTime.TryParse(saved.DateRegistered, out var reg)
-                     ? reg.ToUniversalTime()  // ← Supabase needs UTC
-                     : DateTime.UtcNow,
-            ReferredBy = saved.ReferredBy,
-            GoodHealth = m?.IsGoodHealth ?? true,
-            UnderTreatment = m?.UnderMedicalTreatment ?? false,
-            Hospitalized = m?.HasBeenHospitalized ?? false,
-            UsesTobacco = m?.UsesTobacco ?? false,
-            OnMedications = m?.TakingMedications ?? false,
-            GuardianId = guardianId,
-            GuardianRelationship = g?.RelationshipToPatient,
-            BloodType = m?.BloodType,
-            LatexAllergy = a?.HasLatexAllergy ?? false,
-            AspirinAllergy = a?.HasAspirinAllergy ?? false,
-            PenicillinAllergy = a?.HasPenicillinAllergy ?? false,
-            SulfaAllergy = a?.HasSulfaAllergy ?? false,
-            LocalAnestheticAllergy = a?.HasLocalAnestheticAllergy ?? false,
-            OtherAllergy = a?.OtherAllergy
-        };
-
         if (!string.IsNullOrEmpty(_supabaseId))
         {
-            // UPDATE — throws on failure so user sees the error
-            sp.Id = _supabaseId;
+            // Fetches the existing row first — Supabase's client only sends changed properties on
+            // Update(), and a freshly-constructed object has no baseline to diff against, so the
+            // update can silently do nothing even though it reports success. Mutating the fetched
+            // instance in place gives it that baseline, and also means fields this form doesn't
+            // know about (e.g. Medical tab fields) are preserved instead of blanked.
+            var sp = await _supabase.GetPatientByIdAsync(_supabaseId)
+                ?? new SupabasePatient { Id = _supabaseId };
+
+            sp.FirstName = saved.FirstName;
+            sp.LastName = saved.LastName;
+            sp.Nickname = saved.Nickname;
+            sp.Gender = saved.Gender;
+            sp.DateOfBirth = DateTime.TryParse(saved.DateOfBirth, out var dobU) ? dobU : null;
+            sp.Nationality = saved.Nationality;
+            sp.Religion = saved.Religion;
+            sp.Occupation = saved.Occupation;
+            sp.Address = saved.Address;
+            sp.Phone = saved.MobileNo;
+            sp.HomeNo = saved.HomeNo;
+            sp.OfficeNo = saved.OfficeNo;
+            sp.FaxNo = saved.FaxNo;
+            sp.Email = saved.Email;
+            sp.DateRegistered = DateTime.TryParse(saved.DateRegistered, out var regU)
+                ? regU.ToUniversalTime()
+                : sp.DateRegistered;
+            sp.ReferredBy = saved.ReferredBy;
+            sp.GoodHealth = m?.IsGoodHealth ?? true;
+            sp.UnderTreatment = m?.UnderMedicalTreatment ?? false;
+            sp.TreatmentDetails = m?.TreatmentDetails;
+            sp.Hospitalized = m?.HasBeenHospitalized ?? false;
+            sp.UsesTobacco = m?.UsesTobacco ?? false;
+            sp.OnMedications = m?.TakingMedications ?? false;
+            sp.GuardianId = guardianId;
+            sp.GuardianRelationship = g?.RelationshipToPatient;
+            sp.BloodType = m?.BloodType;
+            sp.LatexAllergy = a?.HasLatexAllergy ?? false;
+            sp.AspirinAllergy = a?.HasAspirinAllergy ?? false;
+            sp.PenicillinAllergy = a?.HasPenicillinAllergy ?? false;
+            sp.SulfaAllergy = a?.HasSulfaAllergy ?? false;
+            sp.LocalAnestheticAllergy = a?.HasLocalAnestheticAllergy ?? false;
+            sp.OtherAllergy = a?.OtherAllergy;
+
             System.Diagnostics.Debug.WriteLine($"[Sync] Updating {_supabaseId}");
             var ok = await _supabase.UpdatePatientAsync(sp);
             System.Diagnostics.Debug.WriteLine($"[Sync] Update result: {ok}");
@@ -427,6 +509,44 @@ public partial class AddPatientViewModel : ObservableObject
         }
         else
         {
+            // Build from SQLite data — guaranteed to have the saved values
+            var sp = new SupabasePatient
+            {
+                FirstName = saved.FirstName,
+                LastName = saved.LastName,
+                Nickname = saved.Nickname,
+                Gender = saved.Gender,
+                DateOfBirth = DateTime.TryParse(saved.DateOfBirth, out var dob) ? dob : null,
+                Nationality = saved.Nationality,
+                Religion = saved.Religion,
+                Occupation = saved.Occupation,
+                Address = saved.Address,
+                Phone = saved.MobileNo,
+                HomeNo = saved.HomeNo,
+                OfficeNo = saved.OfficeNo,
+                FaxNo = saved.FaxNo,
+                Email = saved.Email,
+                DateRegistered = DateTime.TryParse(saved.DateRegistered, out var reg)
+                         ? reg.ToUniversalTime()  // ← Supabase needs UTC
+                         : DateTime.UtcNow,
+                ReferredBy = saved.ReferredBy,
+                GoodHealth = m?.IsGoodHealth ?? true,
+                UnderTreatment = m?.UnderMedicalTreatment ?? false,
+                TreatmentDetails = m?.TreatmentDetails,
+                Hospitalized = m?.HasBeenHospitalized ?? false,
+                UsesTobacco = m?.UsesTobacco ?? false,
+                OnMedications = m?.TakingMedications ?? false,
+                GuardianId = guardianId,
+                GuardianRelationship = g?.RelationshipToPatient,
+                BloodType = m?.BloodType,
+                LatexAllergy = a?.HasLatexAllergy ?? false,
+                AspirinAllergy = a?.HasAspirinAllergy ?? false,
+                PenicillinAllergy = a?.HasPenicillinAllergy ?? false,
+                SulfaAllergy = a?.HasSulfaAllergy ?? false,
+                LocalAnestheticAllergy = a?.HasLocalAnestheticAllergy ?? false,
+                OtherAllergy = a?.OtherAllergy
+            };
+
             // INSERT — throws on failure so user sees the error
             System.Diagnostics.Debug.WriteLine("[Sync] Inserting new patient to Supabase");
             var inserted = await _supabase.AddPatientAsync(sp);
@@ -449,7 +569,7 @@ public partial class AddPatientViewModel : ObservableObject
             }
         }
 
-        // Conditions live in the normalized patient_conditions join table now —
+        // Conditions live in the normalized patient_conditions join table —
         // resolve local condition names to their Supabase medical_conditions ids
         // and replace the patient's full set. Needs _supabaseId, so this only
         // runs once the patient row itself exists in Supabase (update, or a

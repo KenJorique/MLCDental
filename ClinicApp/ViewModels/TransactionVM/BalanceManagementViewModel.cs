@@ -8,6 +8,8 @@ using System.Collections.ObjectModel;
 
 namespace ClinicApp.ViewModels.TransactionVM;
 
+// Lets other pages open this pre-filtered via ?filter=Overdue / ?filter=DueSoon.
+[QueryProperty(nameof(CurrentFilter), "filter")]
 public partial class BalanceManagementViewModel : ObservableObject
 {
     readonly SupabaseDataService _supabase;
@@ -25,13 +27,53 @@ public partial class BalanceManagementViewModel : ObservableObject
     [ObservableProperty] int dueSoonCount;
     [ObservableProperty] int overdueCount;
 
+    // Empty-state title, varies by filter/search.
+    public string EmptyStateTitle
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(SearchText))
+                return "No matches";
+
+            return CurrentFilter switch
+            {
+                "DueSoon" => "Nothing due soon",
+                "Overdue" => "No overdue balances",
+                _ => "No outstanding balances"
+            };
+        }
+    }
+
+    // Empty-state subtitle, varies by filter/search.
+    public string EmptyStateMessage
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(SearchText))
+                return $"No patients match \"{SearchText.Trim()}\".";
+
+            return CurrentFilter switch
+            {
+                "DueSoon" => "No payments are due in the next few days.",
+                "Overdue" => "No payments are overdue right now.",
+                _ => "Every patient is paid up."
+            };
+        }
+    }
+
+    // Injects the shared data service.
     public BalanceManagementViewModel(SupabaseDataService supabase)
     {
         _supabase = supabase;
     }
 
+    // Re-filters as the user types.
     partial void OnSearchTextChanged(string value) => ApplyFilterAndSort();
 
+    // Re-filters when the filter changes — covers chip taps and the incoming ?filter= query.
+    partial void OnCurrentFilterChanged(string value) => ApplyFilterAndSort();
+
+    // Loads every unpaid bill, groups them per patient, and rebuilds the filtered list.
     [RelayCommand]
     public async Task LoadBalancesAsync()
     {
@@ -42,9 +84,7 @@ public partial class BalanceManagementViewModel : ObservableObject
         {
             var bills = await _supabase.GetUnpaidBillsAsync();
 
-            // Only bills that actually still owe something — a "paid"
-            // status filter alone can miss $0-balance edge cases.
-            bills = bills.Where(b => b.Balance > 0).ToList();
+            bills = bills.Where(b => b.Balance > 0).ToList(); // guards against $0-balance edge cases
 
             var grouped = bills
                 .GroupBy(b => string.IsNullOrWhiteSpace(b.PatientId)
@@ -75,6 +115,7 @@ public partial class BalanceManagementViewModel : ObservableObject
         }
     }
 
+    // Pull-to-refresh.
     [RelayCommand]
     async Task Refresh()
     {
@@ -82,19 +123,17 @@ public partial class BalanceManagementViewModel : ObservableObject
         await LoadBalancesAsync();
     }
 
+    // Switches the active filter chip — OnCurrentFilterChanged handles re-filtering.
     [RelayCommand]
-    void SelectFilter(string filter)
-    {
-        CurrentFilter = filter;
-        ApplyFilterAndSort();
-    }
+    void SelectFilter(string filter) => CurrentFilter = filter;
 
+    // Shows the sort-options action sheet and applies the pick.
     [RelayCommand]
     async Task ShowSortOptions()
     {
         var result = await Shell.Current.DisplayActionSheet(
             "Sort By", "Cancel", null,
-            "Overdue first", "Nearest due date", "Highest balance", "Patient name A-Z");
+            "Nearest due date", "Highest balance", "Newest balance", "Patient name A-Z");
 
         if (!string.IsNullOrEmpty(result) && result != "Cancel")
         {
@@ -103,8 +142,12 @@ public partial class BalanceManagementViewModel : ObservableObject
         }
     }
 
+    // Applies search + filter + sort, then rebuilds the visible Patients list.
     void ApplyFilterAndSort()
     {
+        OnPropertyChanged(nameof(EmptyStateTitle));
+        OnPropertyChanged(nameof(EmptyStateMessage));
+
         var filtered = _allPatients.AsEnumerable();
 
         if (!string.IsNullOrWhiteSpace(SearchText))
@@ -122,9 +165,8 @@ public partial class BalanceManagementViewModel : ObservableObject
 
         filtered = CurrentSort switch
         {
-            "Overdue first" => filtered.OrderByDescending(p => p.IsOverdue)
-                                        .ThenBy(p => p.NextDueDate ?? DateTime.MaxValue),
             "Highest balance" => filtered.OrderByDescending(p => p.TotalBalance),
+            "Newest balance" => filtered.OrderByDescending(p => p.MostRecentBillDate),
             "Patient name A-Z" => filtered.OrderBy(p => p.DisplayName),
             _ => filtered.OrderBy(p => p.NextDueDate ?? DateTime.MaxValue) // Nearest due date
         };
@@ -134,6 +176,7 @@ public partial class BalanceManagementViewModel : ObservableObject
             Patients.Add(p);
     }
 
+    // Opens the tapped patient's billing/transaction page.
     [RelayCommand]
     async Task OpenPatient(PatientBalanceCardViewModel card)
     {

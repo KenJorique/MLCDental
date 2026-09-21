@@ -40,6 +40,9 @@ namespace ClinicApp.Models.SupabaseModels
         [Column("created_at")]
         public DateTime CreatedAt { get; set; }
 
+        [Column("updated_at")]
+        public DateTime UpdatedAt { get; set; }
+
         [JsonIgnore]
         public bool IsLowStock => QuantityInPieces <= MinimumStockPieces;
 
@@ -49,7 +52,8 @@ namespace ClinicApp.Models.SupabaseModels
         [JsonIgnore]
         public string QuantityDisplay => $"{QuantityInPieces} pcs";
 
+        // Long readable format, e.g. "October 17, 2027".
         [JsonIgnore]
-        public string ExpirationDateDisplay => ExpirationDate?.ToString("yyyy-MM-dd") ?? string.Empty;
+        public string ExpirationDateDisplay => ExpirationDate?.ToString("MMMM d, yyyy") ?? string.Empty;
     }
 }

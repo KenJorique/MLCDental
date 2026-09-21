@@ -2,6 +2,8 @@
 using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -29,6 +31,36 @@ namespace ClinicApp.ViewModels
             _supabase = supabase;
             InitializeEmptySlots();
         }
+
+        // ---------------------------------------------------------------
+        // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
+        // everywhere in this ViewModel with the app's dimmed-backdrop
+        // rounded-card popup.
+        // ---------------------------------------------------------------
+
+        static Page CurrentPage =>
+            Shell.Current?.CurrentPage
+            ?? Application.Current?.Windows.FirstOrDefault()?.Page
+            ?? throw new InvalidOperationException("No current page available to host the popup.");
+
+        // Yes/No confirmation. Returns true only if the confirm button was tapped.
+        static async Task<bool> ShowConfirmAsync(
+            string title, string message, string confirmText = "Yes", Color? confirmColor = null)
+        {
+            var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+            var result = await CurrentPage.ShowPopupAsync(popup);
+            return result is true;
+        }
+
+        // Plain OK-only notice (used in place of single-button DisplayAlert calls).
+        static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+        {
+            var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+            await CurrentPage.ShowPopupAsync(popup);
+        }
+
+        // Convenience wrapper for error alerts so call sites read the same as before.
+        static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
 
         // Pre-populate 6 empty slots so TimeSlots[0-5] bindings never crash
         void InitializeEmptySlots()
@@ -110,16 +142,9 @@ namespace ClinicApp.ViewModels
                 IsNewPatient = false;
                 Phone = string.Empty;
                 Email = string.Empty;
-                FullName = string.Empty;
                 _existingPatient = null;
             }
 
-            // BUGFIX: FullName was only ever set inside SelectPatient() (tapping a
-            // dropdown result). For a brand-new patient with no matching record,
-            // nothing was ever available to tap, so FullName stayed empty forever
-            // and CanConfirm could never become true. Keep it in sync with what's
-            // typed here; SelectPatient() still overwrites it correctly afterward
-            // if the user does pick an existing patient.
             FullName = value;
             IsNewPatient = !string.IsNullOrWhiteSpace(value);
 
@@ -241,6 +266,7 @@ namespace ClinicApp.ViewModels
 TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
         public async Task LoadSlotsAsync(DateTime date)
         {
+
             if (date.DayOfWeek == DayOfWeek.Sunday)
             {
                 TimeSlots.Clear();
@@ -253,7 +279,21 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
 
             try
             {
+                // Check both bookings table (website) AND appointment_entries (app)
                 var booked = await _supabase.GetBookedTimeSlotsForDateAsync(date);
+
+                var allEntries = await _supabase.GetAppointmentEntriesAsync();
+                var startUtc = date.Date.ToUniversalTime();
+                var endUtc = startUtc.AddDays(1);
+                var entrySlots = allEntries
+                    .Where(e => e.AppointmentDateTime >= startUtc
+                             && e.AppointmentDateTime < endUtc
+                             && e.Status != "rejected"
+                             && e.Status != "cancelled")
+                    .Select(e => e.AppointmentDateTime)
+                    .ToList();
+
+                var allBooked = booked.Concat(entrySlots).ToList();
                 var hours = new[] { 10, 11, 13, 14, 15, 16 };
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -294,6 +334,7 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
             finally { IsLoadingSlots = false; }
         }
 
+        // Selects a time slot and refreshes the summary.
         [RelayCommand]
         void SelectSlot(TimeSlotItem slot)
         {
@@ -314,6 +355,7 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
             UpdateSummary();
         }
 
+        // Rebuilds the confirmation summary text.
         void UpdateSummary()
         {
             if (string.IsNullOrWhiteSpace(FullName) || _selectedSlot == null)
@@ -325,9 +367,9 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
             HasSummary = true;
             SummaryText =
                 $"Patient:   {FullName}\n" +
-                $"Date:        {_selectedSlot.SlotDateTime:MMM dd, yyyy}\n" +
-                $"Time:        {_selectedSlot.Display}\n" +
-                $"Status:     Auto-approved ✓";
+                $"Date:      {_selectedSlot.SlotDateTime:MMM dd, yyyy}\n" +
+                $"Time:      {_selectedSlot.Display}\n" +
+                $"Status:     Auto-approved";
         }
 
         // ── Confirm booking ───────────────────────────────────
@@ -336,6 +378,14 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
         {
             if (!CanConfirm || _selectedSlot == null)
                 return;
+
+            bool confirmed = await ShowConfirmAsync(
+                "Confirm Booking",
+                $"Book this walk-in appointment for {FullName} on " +
+                $"{_selectedSlot.SlotDateTime:MMM dd, yyyy} at {_selectedSlot.Display}?",
+                "Yes, book");
+
+            if (!confirmed) return;
 
             HasError = false;
             IsBusy = true;
@@ -352,10 +402,9 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
 
                 if (!available)
                 {
-                    await Shell.Current.DisplayAlert(
+                    await ShowNoticeAsync(
                         "Slot Taken",
-                        "This time slot has already been booked. Please choose another time.",
-                        "OK");
+                        "This time slot has already been booked. Please choose another time.");
 
                     await LoadSlotsAsync(AppointmentDate);
 
@@ -402,8 +451,8 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
                         _existingPatient = await _supabase.AddPatientAsync(supabasePatient);
                         if (_existingPatient != null)
                         {
-                            patient.SupabaseId = _existingPatient.Id;   
-                            await _db.UpdatePatient(patient);           
+                            patient.SupabaseId = _existingPatient.Id;
+                            await _db.UpdatePatient(patient);
                         }
                     }
                 }
@@ -456,12 +505,12 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
 
                 if (created == null)
                 {
-                    await Shell.Current.DisplayAlert(
-                        "Error",
-                        "Unable to save appointment.",
-                        "OK");
+                    await ShowErrorAsync("Unable to save appointment.");
                     return;
                 }
+
+                await _supabase.LogActivityAsync("NewBooking",
+                    $"New appointment booked for {FullName} on {localTime:MMM d, h:mm tt}");
 
                 _selectedSlot.IsTaken = true;
                 _selectedSlot.IsSelected = false;
@@ -484,8 +533,8 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
                     System.Diagnostics.Debug.WriteLine(ex.Message);
                 }
 
-                await Shell.Current.DisplayAlert(
-                    "✓ Booking Confirmed",
+                await ShowNoticeAsync(
+                    "Booking Confirmed",
                     $"Walk-in appointment booked!\n\n" +
                     $"Patient: {FullName}\n" +
                     $"Date: {localTime:MMM dd, yyyy}\n" +
@@ -505,6 +554,7 @@ TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
             }
         }
 
+        // Discards the form and goes back.
         [RelayCommand]
         async Task Cancel() => await Shell.Current.GoToAsync("..");
     }

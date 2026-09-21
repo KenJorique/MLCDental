@@ -18,28 +18,28 @@ namespace DentalClinicBooking.ViewModels
         [Display(Name = "Email Address")]
         public string? Email { get; set; }
 
-
-
-        // In BookingViewModel.cs, update AppointmentDate property:
+        // The two fields the form's hidden inputs actually bind to now
+        // (PH-local date/time, set by JS when a slot is picked). The
+        // controller parses these together ("yyyy-MM-dd" + "HH:mm") and
+        // converts to true UTC via TimeZoneInfo, then sets AppointmentDate
+        // below from that result — so these are the real input, and
+        // AppointmentDate is a server-computed output, not a bound field.
         [Required(ErrorMessage = "Please choose an appointment date")]
-        public string AppointmentDateStr { get; set; } = string.Empty; // yyyy-MM-dd
+        public string AppointmentDateStr { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Please choose a time slot")]
-        public string AppointmentTimeStr { get; set; } = string.Empty; // HH:mm
+        public string AppointmentTimeStr { get; set; } = string.Empty;
 
-        // No longer bound from the form — computed server-side in the controller
+        // Set by the controller after parsing AppointmentDateStr +
+        // AppointmentTimeStr above — not bound directly from the form,
+        // so no [Required]/[DataType] here (those would be misleading
+        // now that nothing posts to this field directly).
         public DateTime AppointmentDate { get; set; }
-
-        // Add these helper properties for JS validation:
-        public string MinTime => "10:00";
-        public string MaxTime => "15:00"; // 3:30 PM is last slot (30 min before 4PM closing)
-
-  
 
         [Display(Name = "Additional Notes")]
         [StringLength(500)]
         public string? Notes { get; set; }
 
-    
+
     }
 }

@@ -8,361 +8,263 @@
              x:Class="ClinicApp.Views.CreateBillPage"
              Shell.NavBarIsVisible="True"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F5F5F5">
+             Shell.BackgroundColor="{StaticResource PrimaryGreen}"
+             Shell.ForegroundColor="{StaticResource White}"
+             Shell.TitleColor="{StaticResource White}"
+             BackgroundColor="{StaticResource PageBg}">
 
-    <ContentPage.Title>
-        <Binding Path="PatientName" StringFormat="Bill — {0}"/>
-    </ContentPage.Title>
+	<ContentPage.Title>
+		<x:String>Select Services</x:String>
+	</ContentPage.Title>
 
-    <Grid>
-        <Grid RowDefinitions="*,Auto">
-            <ScrollView Grid.Row="0">
-                <ScrollView.Behaviors>
-                    <behaviors:ScrollToTopBehavior Trigger="{Binding ScrollTrigger}"/>
-                </ScrollView.Behaviors>
-                <VerticalStackLayout Padding="16,16,16,20" Spacing="14">
+	<Grid>
+		<ScrollView>
+			<VerticalStackLayout Padding="16,16,16,120" Spacing="14">
 
-                    <!-- Header -->
-                    <Frame BackgroundColor="#4A4A8A" BorderColor="#4A4A8A"
-                       CornerRadius="12" Padding="14" HasShadow="False">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="{Binding PatientName}"
-                               FontSize="16" FontAttributes="Bold"
-                               TextColor="White"/>
-                            <Label Text="Select services and enter treated teeth"
-                               FontSize="11" TextColor="#B0B0D0"/>
-                            <Label Text="{Binding TotalAmount,
-                                   StringFormat='Total: ₱{0:N2}'}"
-                               FontSize="14" FontAttributes="Bold"
-                               TextColor="#FFD700"
-                               Margin="0,4,0,0"/>
-                        </VerticalStackLayout>
-                    </Frame>
+				<!-- Available services (bound to FilteredServices: AvailableServiceItem) -->
+				<Frame BackgroundColor="{StaticResource White}" BorderColor="{StaticResource Gray200}"
+					   CornerRadius="12" Padding="14" HasShadow="False">
+					<VerticalStackLayout Spacing="12">
 
-                    <!-- Empty-state hint — shown until the first service is added -->
-                    <Frame BackgroundColor="#F0F0FA" BorderColor="#D8D8F0"
-                       CornerRadius="10" Padding="12" HasShadow="False"
-                       IsVisible="{Binding SelectedServices.Count,
-                           Converter={StaticResource IntEqualZeroConverter}}">
-                        <Label Text="No services added yet — search below and tap + Add to start the bill."
-                           FontSize="12" TextColor="#4A4A8A"/>
-                    </Frame>
+						<!-- Search bar -->
+						<Border Style="{StaticResource FormInputBox}">
+							<Grid ColumnDefinitions="Auto,*">
+								<Label Grid.Column="0" Text="&#xe8b6;"
+									   FontFamily="MaterialSymbolsRounded" FontSize="16"
+									   TextColor="{StaticResource Gray500}"
+									   VerticalOptions="Center"
+									   Margin="0,0,6,0"/>
+								<Entry Grid.Column="1"
+									   Style="{StaticResource FormEntry}"
+									   Text="{Binding ServiceSearch}"
+									   FontSize="14"
+									   Placeholder="Search services..."/>
+							</Grid>
+						</Border>
 
-                    <!-- Selected services (bound to SelectedServices: ServiceLineItem) -->
-                    <Frame BackgroundColor="White" BorderColor="#E0E0E0"
-                       CornerRadius="12" Padding="14" HasShadow="False"
-                       IsVisible="{Binding SelectedServices.Count,
-                           Converter={StaticResource IntNotEqualZeroConverter}}">
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding SelectedServices}"
-                        Spacing="0">
+						<ActivityIndicator IsRunning="{Binding IsLoadingServices}"
+										   IsVisible="{Binding IsLoadingServices}"
+										   Color="{StaticResource Primary}" HeightRequest="36"/>
 
-                            <Label Text="Added Services"
-                               FontSize="14" FontAttributes="Bold"
-                               TextColor="#222" Margin="0,0,0,10"/>
+						<Label Text="No services found"
+							   FontSize="13" TextColor="{StaticResource TextMuted}"
+							   IsVisible="{Binding FilteredServices.Count,
+                       Converter={StaticResource IntEqualZeroConverter}}"/>
 
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="vm:ServiceLineItem">
-                                    <VerticalStackLayout Spacing="0" Margin="0,0,0,12">
+						<!-- Filtered services list: name, price, installment tag (if any), Add button only -->
+						<VerticalStackLayout
+							BindableLayout.ItemsSource="{Binding FilteredServices}"
+							Spacing="0">
+							<BindableLayout.ItemTemplate>
+								<DataTemplate x:DataType="vm:AvailableServiceItem">
+									<VerticalStackLayout Spacing="0">
+										<Grid ColumnDefinitions="*,Auto"
+											  Padding="4,12" ColumnSpacing="10">
+											<VerticalStackLayout Grid.Column="0" Spacing="3" VerticalOptions="Center">
+												<Label Text="{Binding Name}"
+													   FontSize="15" FontAttributes="Bold"
+													   TextColor="{StaticResource TextPrimary}"
+													   LineBreakMode="WordWrap"/>
+												<Label Text="{Binding PriceDisplay}"
+													   FontSize="14" TextColor="{StaticResource Primary}"
+													   FontAttributes="Bold"/>
+												<HorizontalStackLayout Spacing="4"
+													IsVisible="{Binding Name,
+                                            Converter={StaticResource InstallmentConverter}}">
+													<Label Text="&#xe838;" FontFamily="MaterialSymbolsRoundedFilled"
+														   FontSize="13" TextColor="{StaticResource Gold}" VerticalOptions="Center"/>
+													<Label Text="Installment available"
+														   FontSize="12" TextColor="{StaticResource Gold}" VerticalOptions="Center"/>
+												</HorizontalStackLayout>
+											</VerticalStackLayout>
+											<Button Grid.Column="1"
+												Text="&#xe145;"
+												FontFamily="MaterialSymbolsRoundedFilled"
+												FontSize="20"
+												BackgroundColor="{StaticResource Primary}"
+												TextColor="{StaticResource White}"
+												CornerRadius="8"
+												HeightRequest="40" WidthRequest="40"
+												Padding="0"
+												VerticalOptions="Center"
+												Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                              Path=BindingContext.ToggleServiceCommand}"
+												CommandParameter="{Binding .}">
+												<Button.Triggers>
+													<DataTrigger TargetType="Button" Binding="{Binding IsAddDisabled}" Value="True">
+														<Setter Property="Text" Value="&#xe15b;"/>
+														<Setter Property="BackgroundColor" Value="{StaticResource StatusOut}"/>
+													</DataTrigger>
+												</Button.Triggers>
+											</Button>
+										</Grid>
+										<BoxView HeightRequest="0.5" Color="{StaticResource Gray100}"/>
+									</VerticalStackLayout>
+								</DataTemplate>
+							</BindableLayout.ItemTemplate>
+						</VerticalStackLayout>
 
-                                        <Grid ColumnDefinitions="*,Auto,Auto"
-                      ColumnSpacing="4">
-                                            <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                                <Label Text="{Binding ServiceName}"
-                               FontSize="13" FontAttributes="Bold"
-                               TextColor="#222"
-                               LineBreakMode="WordWrap"/>
-                                                <Label Text="{Binding TeethDisplay}"
-                               FontSize="11" TextColor="#2E7D32"
-                               FontAttributes="Italic"
-                               IsVisible="{Binding TeethDisplay,
-                                   Converter={StaticResource StringNotEmptyConverter}}"/>
-                                            </VerticalStackLayout>
+					</VerticalStackLayout>
+				</Frame>
 
-                                            <!-- Quantity controls: only shown for tooth-required services -->
-                                            <HorizontalStackLayout Grid.Column="1"
-                            Spacing="4"
-                            VerticalOptions="Center"
-                            IsVisible="{Binding ShowTeethInput}">
+				<!-- Error -->
+				<Frame BackgroundColor="{StaticResource PageBg}" BorderColor="{StaticResource Gray500}"
+					   CornerRadius="12" Padding="12" HasShadow="False"
+					   IsVisible="{Binding HasError}">
+					<Label Text="{Binding ErrorMessage}"
+						   FontSize="13" TextColor="{StaticResource StatusOut}"/>
+				</Frame>
 
-                                                <Button Text="−"
-                                FontSize="14" BackgroundColor="#E0E0E0"
-                                TextColor="#333" CornerRadius="6"
-                                HeightRequest="30" WidthRequest="30" Padding="0"
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                          Path=BindingContext.DecreaseQtyCommand}"
-                                CommandParameter="{Binding .}"/>
+			</VerticalStackLayout>
+		</ScrollView>
 
-                                                <Label Text="{Binding Quantity}"
-                               FontSize="14" FontAttributes="Bold"
-                               TextColor="#333"
-                               VerticalOptions="Center"
-                               HorizontalOptions="Center"
-                               WidthRequest="22"
-                               HorizontalTextAlignment="Center"/>
-
-                                                <Button Text="+"
-                                FontSize="14" BackgroundColor="#4A4A8A"
-                                TextColor="White" CornerRadius="6"
-                                HeightRequest="30" WidthRequest="30" Padding="0"
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                          Path=BindingContext.IncreaseQtyCommand}"
-                                CommandParameter="{Binding .}"/>
-                                            </HorizontalStackLayout>
-
-                                            <Button Grid.Column="2" Text="✕"
-                            FontSize="12" BackgroundColor="Transparent"
-                            TextColor="#C62828"
-                            HeightRequest="30" WidthRequest="30" Padding="0"
-                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                      Path=BindingContext.RemoveServiceCommand}"
-                            CommandParameter="{Binding .}"/>
-                                        </Grid>
-
-                                        <!-- Subtotal -->
-                                        <Label Text="{Binding SubtotalDisplay}"
-                       FontSize="12" FontAttributes="Bold"
-                       TextColor="#4A4A8A"
-                       HorizontalOptions="End"
-                       Margin="0,2,0,0"/>
-
-                                        <!-- Tooth input -->
-                                        <Frame BackgroundColor="#F0F7FF"
-                       BorderColor="#BBDEFB"
-                       CornerRadius="8" Padding="10"
-                       HasShadow="False"
-                       Margin="0,6,0,0"
-                       IsVisible="{Binding ShowTeethInput}">
-                                            <VerticalStackLayout Spacing="6">
-                                                <Label FontSize="11" TextColor="#1565C0"
-                               FontAttributes="Bold">
-                                                    <Label.FormattedText>
-                                                        <FormattedString>
-                                                            <Span Text="🦷 Teeth treated — "/>
-                                                            <Span Text="{Binding ServiceName}"
-                                          FontAttributes="Bold"/>
-                                                        </FormattedString>
-                                                    </Label.FormattedText>
-                                                </Label>
-                                                <Entry Text="{Binding ToothNumbers}"
-                               Placeholder="e.g. 12, 13, 24"
-                               Keyboard="Default"
-                               FontSize="14"
-                               TextColor="#222"
-                               PlaceholderColor="#AAAAAA"
-                               BackgroundColor="White"/>
-                                                <Label Text="FDI numbering: Upper right 18→11, Upper left 21→28, Lower left 31→38, Lower right 41→48"
-                               FontSize="10" TextColor="#888"
-                               LineHeight="1.4"/>
-                                            </VerticalStackLayout>
-                                        </Frame>
-
-                                        <!-- Installment badge -->
-                                        <Frame BackgroundColor="#FFF8E1"
-                       BorderColor="#FFE082"
-                       CornerRadius="6" Padding="8"
-                       HasShadow="False"
-                       Margin="0,4,0,0"
-                       IsVisible="{Binding IsInstallmentEligible}">
-                                            <Label Text="⭐ Supports flexible installment payments"
-                           FontSize="10" TextColor="#F57F17"/>
-                                        </Frame>
-
-                                        <BoxView HeightRequest="0.5" Color="#E0E0E0"
-                         Margin="0,8,0,0"/>
-
-                                    </VerticalStackLayout>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-
-
-                        </VerticalStackLayout>
-                    </Frame>
-
-                    <!-- Total -->
-                    <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
-                        <Label Grid.Column="0" Text="Total"
-                                   FontSize="16" FontAttributes="Bold"
-                                   TextColor="#222" VerticalOptions="Center"/>
-                        <Label Grid.Column="1"
-                                   Text="{Binding TotalAmount,
-                                       StringFormat='₱{0:N2}'}"
-                                   FontSize="20" FontAttributes="Bold"
-                                   TextColor="#4A4A8A"/>
-                    </Grid>
-
-
-
-                    <!-- Available services (bound to FilteredServices: AvailableServiceItem) -->
-                    <Frame BackgroundColor="White" BorderColor="#E0E0E0"
-       CornerRadius="12" Padding="14" HasShadow="False">
-                        <VerticalStackLayout Spacing="10">
-
-                            <Label Text="Available Services"
-               FontSize="14" FontAttributes="Bold"
-               TextColor="#222"/>
-
-                            <!-- Search bar -->
-                            <Border BackgroundColor="#F5F5F5"
-                StrokeShape="RoundRectangle 10"
-                Stroke="#E0E0E0"
-                Padding="10,0">
-                                <Grid ColumnDefinitions="Auto,*">
-                                    <Label Grid.Column="0" Text="🔍"
-                       FontSize="14" VerticalOptions="Center"
-                       Margin="0,0,6,0"/>
-                                    <Entry Grid.Column="1"
-                       Text="{Binding ServiceSearch}"
-                       Placeholder="Search services..."
-                       PlaceholderColor="#AAAAAA"
-                       TextColor="#222"
-                       BackgroundColor="Transparent"
-                       HeightRequest="40"/>
-                                </Grid>
-                            </Border>
-
-                            <ActivityIndicator IsRunning="{Binding IsBusy}"
-                           IsVisible="{Binding IsBusy}"
-                           Color="#4A4A8A" HeightRequest="36"/>
-
-                            <Label Text="No services found"
-               FontSize="12" TextColor="#888"
-               IsVisible="{Binding FilteredServices.Count,
-                   Converter={StaticResource IntEqualZeroConverter}}"/>
-
-                            <!-- Filtered services list -->
-                            <VerticalStackLayout
-            BindableLayout.ItemsSource="{Binding FilteredServices}"
-            Spacing="0">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:AvailableServiceItem">
-                                        <VerticalStackLayout Spacing="0">
-                                            <Grid ColumnDefinitions="*,Auto"
-                              Padding="4,8" ColumnSpacing="8">
-                                                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                                    <Label Text="{Binding Name}"
-                                       FontSize="13" TextColor="#222"
-                                       LineBreakMode="WordWrap"/>
-                                                    <Label Text="{Binding PriceDisplay}"
-                                       FontSize="12" TextColor="#4A4A8A"
-                                       FontAttributes="Bold"/>
-                                                    <Label Text="🦷 Requires tooth numbers"
-                                       FontSize="10" TextColor="#1565C0"
-                                       IsVisible="{Binding RequiresTeeth}"/>
-                                                    <Label Text="⭐ Installment available"
-                                       FontSize="10" TextColor="#F57F17"
-                                       IsVisible="{Binding Name,
-                                           Converter={StaticResource InstallmentConverter}}"/>
-                                                </VerticalStackLayout>
-                                                <Button Grid.Column="1"
-                                    Text="+ Add"
-                                    BackgroundColor="#4A4A8A"
-                                    TextColor="White"
-                                    CornerRadius="8"
-                                    FontSize="12"
-                                    HeightRequest="38"
-                                    WidthRequest="70"
-                                    Padding="0"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                              Path=BindingContext.AddServiceCommand}"
-                                    CommandParameter="{Binding .}">
-                                                    <Button.Triggers>
-                                                        <DataTrigger TargetType="Button" Binding="{Binding IsAddDisabled}" Value="True">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                            <Setter Property="Text" Value="Added"/>
-                                                            <Setter Property="BackgroundColor" Value="#BBBBBB"/>
-                                                            <Setter Property="Opacity" Value="0.7"/>
-                                                        </DataTrigger>
-                                                    </Button.Triggers>
-                                                </Button>
-                                            </Grid>
-                                            <BoxView HeightRequest="0.5" Color="#F0F0F0"/>
-                                        </VerticalStackLayout>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </VerticalStackLayout>
-
-                        </VerticalStackLayout>
-                    </Frame>
-
-                    <!-- Notes -->
-                    <Frame BackgroundColor="White" BorderColor="#E0E0E0"
-                       CornerRadius="12" Padding="14" HasShadow="False">
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Notes (optional)"
-                               FontSize="12" TextColor="#666"/>
-                            <Editor Text="{Binding Notes}"
-                                Placeholder="Additional notes..."
-                                HeightRequest="60" FontSize="13"
-                                TextColor="#222" PlaceholderColor="#AAAAAA"/>
-                        </VerticalStackLayout>
-                    </Frame>
-
-                    <!-- Error -->
-                    <Frame BackgroundColor="#FCEAEA" BorderColor="#FFCDD2"
-                       CornerRadius="12" Padding="12" HasShadow="False"
-                       IsVisible="{Binding HasError}">
-                        <Label Text="{Binding ErrorMessage}"
-                           FontSize="12" TextColor="#C62828"/>
-                    </Frame>
-
-                    <Button Text="Cancel"
-                        BackgroundColor="Transparent"
-                        BorderColor="#E0E0E0" BorderWidth="1"
-                        TextColor="#888" CornerRadius="12"
-                        HeightRequest="44" FontSize="13"
-                        Command="{Binding CancelCommand}"/>
-
-                </VerticalStackLayout>
-            </ScrollView>
-
-            <!-- Docked action bar — always visible, no scrolling to reach Proceed -->
-            <Border Grid.Row="1"
-                BackgroundColor="White"
-                Stroke="#E5E5E5"
-                Padding="16,10">
-                <Border.Shadow>
-                    <Shadow Brush="Black" Opacity="0.08" Radius="14" Offset="0,-4"/>
-                </Border.Shadow>
-
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <VerticalStackLayout Grid.Column="0" VerticalOptions="Center" Spacing="0">
-                        <Label Text="Total" FontSize="11" TextColor="Gray"/>
-                        <Label Text="{Binding TotalAmount, StringFormat='₱{0:N2}'}"
-                           FontSize="20" FontAttributes="Bold"
-                           TextColor="#4A4A8A"/>
-                    </VerticalStackLayout>
-
-                    <Button Grid.Column="1"
-                        Text="Proceed"
-                        BackgroundColor="{Binding CanCreateBill,
-                            Converter={StaticResource BoolToColorConverter},
-                            ConverterParameter='#4A4A8A|#BBBBBB'}"
-                        TextColor="White"
-                        CornerRadius="12"
-                        HeightRequest="50"
-                        WidthRequest="150"
-                        FontSize="15"
-                        FontAttributes="Bold"
-                        IsEnabled="{Binding CanCreateBill}"
-                        Command="{Binding CreateBillCommand}"/>
-                </Grid>
-            </Border>
-        </Grid>
-
-
-
-        <!-- Loading overlay -->
-        <Grid IsVisible="{Binding IsBusy}"
+		<!-- Loading overlay -->
+		<Grid IsVisible="{Binding IsBusy}"
               BackgroundColor="#80000000" ZIndex="20">
-            <VerticalStackLayout VerticalOptions="Center"
+			<VerticalStackLayout VerticalOptions="Center"
                                  HorizontalOptions="Center"
                                  Spacing="12">
-                <ActivityIndicator IsRunning="True" Color="White"
+				<ActivityIndicator IsRunning="True" Color="{StaticResource White}"
                                    WidthRequest="40" HeightRequest="40"/>
-                <Label Text="Saving..." TextColor="White"
+				<Label Text="Saving..." TextColor="{StaticResource White}"
                        FontSize="14" HorizontalOptions="Center"/>
-            </VerticalStackLayout>
-        </Grid>
+			</VerticalStackLayout>
+		</Grid>
 
-    </Grid>
+		<!-- Bottom summary panel: plain page content, so Total/Proceed always stay visible regardless of the services list's expand state. -->
+		<Border VerticalOptions="End"
+                BackgroundColor="{StaticResource White}"
+                Stroke="{StaticResource Gray300}"
+                StrokeThickness="1.5"
+                StrokeShape="RoundRectangle 20,20,0,0"
+                Padding="0"
+                ZIndex="10">
+			<VerticalStackLayout Spacing="0">
+
+				<!-- Handle / toggle row -->
+				<Grid Padding="16,10,16,8" ColumnDefinitions="*,Auto"
+                      IsVisible="{Binding HasSelectedServices}">
+					<Grid.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding ToggleServicesExpandedCommand}"/>
+					</Grid.GestureRecognizers>
+
+					<Label Grid.Column="0"
+                           Text="{Binding ServicesCountLabel}"
+                           FontSize="13" TextColor="{StaticResource TextMuted}"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Start"/>
+
+					<HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+						<Label Text="{Binding ToggleLabelText}"
+                               FontSize="13" FontAttributes="Bold"
+                               TextColor="{StaticResource Primary}"
+                               VerticalOptions="Center"/>
+						<Label Text="{Binding ToggleIconGlyph}"
+                               FontFamily="MaterialSymbolsRounded" FontSize="16"
+                               TextColor="{StaticResource Primary}"
+                               VerticalOptions="Center"/>
+					</HorizontalStackLayout>
+				</Grid>
+
+				<!-- Services list: only shown when expanded, capped so it never grows too tall -->
+				<ScrollView IsVisible="{Binding IsServicesExpanded}"
+                            MaximumHeightRequest="340">
+					<VerticalStackLayout Padding="16,0,16,10"
+                                         BindableLayout.ItemsSource="{Binding SelectedServices}"
+                                         Spacing="0">
+						<BindableLayout.ItemTemplate>
+							<DataTemplate x:DataType="vm:ServiceLineItem">
+								<VerticalStackLayout Spacing="0" Margin="0,0,0,14">
+
+									<Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+										<Label Grid.Column="0" Text="{Binding ServiceName}"
+                                               FontSize="15" TextColor="{StaticResource TextPrimary}"
+                                               VerticalOptions="Center"
+                                               LineBreakMode="WordWrap"/>
+										<Label Grid.Column="1" Text="{Binding SubtotalDisplay}"
+                                               FontSize="15" FontAttributes="Bold"
+                                               TextColor="{StaticResource TextPrimary}"
+                                               VerticalOptions="Center"/>
+									</Grid>
+
+									<!-- Tooth number entry + quantity, tooth-required services only -->
+									<Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,8,0,0"
+                                          IsVisible="{Binding ShowTeethInput}">
+										<Border Grid.Column="0" Style="{StaticResource FormInputBox}">
+											<Entry Style="{StaticResource FormEntry}"
+                                                   Text="{Binding ToothNumbers}"
+                                                   Placeholder="e.g 12, 13, 14"/>
+										</Border>
+
+										<HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+											<Button Text="&#xe15b;"
+                                                    FontFamily="MaterialSymbolsRoundedFilled" FontSize="16"
+                                                    BackgroundColor="{StaticResource Gray200}"
+                                                    TextColor="{StaticResource TextPrimary}" CornerRadius="6"
+                                                    HeightRequest="34" WidthRequest="34" Padding="0"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                              Path=BindingContext.DecreaseQtyCommand}"
+                                                    CommandParameter="{Binding .}"/>
+											<Label Text="{Binding Quantity}"
+                                                   FontSize="15" FontAttributes="Bold"
+                                                   TextColor="{StaticResource TextPrimary}"
+                                                   VerticalOptions="Center" WidthRequest="20"
+                                                   HorizontalTextAlignment="Center"/>
+											<Button Text="&#xe145;"
+                                                    FontFamily="MaterialSymbolsRoundedFilled" FontSize="16"
+                                                    BackgroundColor="{StaticResource Primary}"
+                                                    TextColor="{StaticResource White}" CornerRadius="6"
+                                                    HeightRequest="34" WidthRequest="34" Padding="0"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                                              Path=BindingContext.IncreaseQtyCommand}"
+                                                    CommandParameter="{Binding .}"/>
+										</HorizontalStackLayout>
+									</Grid>
+
+									<!-- Tooth count must match Quantity and use valid adult tooth numbers (1-32) -->
+									<Label Text="{Binding ToothValidationMessage}"
+                                           FontSize="12" TextColor="{StaticResource StatusOut}"
+                                           Margin="0,4,0,0"
+                                           IsVisible="{Binding HasToothValidationMessage}"/>
+
+									<BoxView HeightRequest="0.5" Color="{StaticResource Gray200}" Margin="0,10,0,0"/>
+
+								</VerticalStackLayout>
+							</DataTemplate>
+						</BindableLayout.ItemTemplate>
+					</VerticalStackLayout>
+				</ScrollView>
+
+				<!-- Total + Proceed: ordinary content, always visible regardless of expand state -->
+				<Border BackgroundColor="{StaticResource White}"
+                        Stroke="{StaticResource Gray200}"
+                        Padding="16,10,16,16">
+					<Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+						<VerticalStackLayout Grid.Column="0" VerticalOptions="Center" Spacing="0">
+							<Label Text="Total" FontSize="13" TextColor="{StaticResource TextMuted}"/>
+							<Label Text="{Binding TotalAmount, StringFormat='₱{0:N2}'}"
+                                   FontSize="20" FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}"/>
+						</VerticalStackLayout>
+
+						<Button Grid.Column="1"
+                                Text="Proceed"
+                                BackgroundColor="{Binding CanCreateBill,
+                                    Converter={StaticResource BoolToColorConverter},
+                                    ConverterParameter='#2E7D32|#ACACAC'}"
+                                TextColor="{StaticResource White}"
+                                CornerRadius="12"
+                                HeightRequest="50"
+                                WidthRequest="150"
+                                FontSize="15"
+                                FontAttributes="Bold"
+                                IsEnabled="{Binding CanCreateBill}"
+                                Command="{Binding CreateBillCommand}"/>
+					</Grid>
+				</Border>
+
+			</VerticalStackLayout>
+		</Border>
+
+	</Grid>
 </ContentPage>

@@ -17,6 +17,7 @@ public class MedicalHistory
     public bool IsGoodHealth { get; set; } = true;
     public bool IsPregnant { get; set; } = false;
     public bool UnderMedicalTreatment { get; set; } = false;
+    public string TreatmentDetails { get; set; } = string.Empty; // what condition/treatment — separate from MedicationDetails below
     public string MedicationDetails { get; set; } = string.Empty;
     public bool HasBeenHospitalized { get; set; } = false;
     public string HospitalizationDetails { get; set; } = string.Empty;

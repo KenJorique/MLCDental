@@ -10,6 +10,7 @@ public class BillingService
     private readonly SupabaseDataService _supabase;
     private readonly DatabaseService _database;
 
+    // Injects the shared data service and local database.
     public BillingService(
         SupabaseDataService supabase,
         DatabaseService database)
@@ -18,6 +19,7 @@ public class BillingService
         _database = database;
     }
 
+    // Creates the bill, links it to a patient (Supabase ID, then phone, then name), and writes each service's bill item plus its treatment/tooth record.
     public async Task<BillingResult> CreateBillAsync(
      BillDraft draft,
      string? appointmentEntryId,
@@ -30,13 +32,24 @@ public class BillingService
             var patientId = draft.PatientId;
 
             // Walk-in fallback
-            if (string.IsNullOrWhiteSpace(patientId))
+            if (string.IsNullOrWhiteSpace(patientId) && !string.IsNullOrWhiteSpace(draft.Phone))
             {
                 var patient = await _supabase.GetPatientByPhoneAsync(draft.Phone);
 
                 if (patient != null)
                     patientId = patient.Id;
             }
+
+            // Name fallback — same as GetLocalPatientIdAsync below uses for treatment records,
+            // so a bill can't end up orphaned from the patient while the treatment record links fine.
+            if (string.IsNullOrWhiteSpace(patientId) && !string.IsNullOrWhiteSpace(draft.PatientName))
+            {
+                var patient = await _supabase.GetPatientByNameAsync(draft.PatientName);
+
+                if (patient != null)
+                    patientId = patient.Id;
+            }
+
             if (string.IsNullOrWhiteSpace(patientId))
             {
                 System.Diagnostics.Debug.WriteLine(
@@ -57,6 +70,7 @@ public class BillingService
                 DiscountAmount = draft.DiscountAmount,
                 TotalAmount = draft.Total,
                 Balance = draft.Total,
+                MinimumDueToday = draft.AmountDueToday,
                 IsInstallment = draft.IsInstallment,
                 InstallmentMonths = draft.IsInstallment ? draft.InstallmentMonths : 0,
                 MonthlyPayment = draft.IsInstallment ? draft.MonthlyPayment : 0,
@@ -86,33 +100,27 @@ public class BillingService
             var localPatientId = await GetLocalPatientIdAsync(
     draft.PatientId,
     draft.PatientName);
-            if (!string.IsNullOrWhiteSpace(supabaseEntryId))
-            {
-                try
-                {
-                    await _supabase.DeleteAppointmentEntryAsync(supabaseEntryId);
 
-                    var entries = await _supabase.GetAppointmentEntriesAsync();
-
-                    var entry = entries.FirstOrDefault(x =>
-                        x.Id == supabaseEntryId);
-
-                    if (entry != null &&
-                        !string.IsNullOrWhiteSpace(entry.SupabaseBookingId))
-                    {
-                        await _supabase.DeleteBookingAsync(
-                            entry.SupabaseBookingId);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[BillingService] Appointment cleanup: {ex.Message}");
-                }
-            }
+            // Cleanup (deleting the source appointment_entries/booking row) happens in
+            // ReceiptViewModel.Done() instead of here, so an abandoned payment flow
+            // doesn't remove the patient from "In Procedure" before payment is confirmed.
             result.Bill = saved;
+
+            // Installment-eligible items are excluded from the discount entirely (matches BillSummaryViewModel.CalculateTotals); the rest share draft.DiscountAmount proportionally by subtotal.
+            var discountEligibleSubtotal = draft.Services
+                .Where(s => !s.IsInstallmentEligible)
+                .Sum(s => s.Subtotal);
+
             foreach (var item in draft.Services)
             {
+                // This item's proportional share of the discount — none if installment-eligible.
+                var itemDiscountShare =
+                    (!item.IsInstallmentEligible && discountEligibleSubtotal > 0)
+                        ? Math.Round(
+                            item.Subtotal / discountEligibleSubtotal * draft.DiscountAmount,
+                            2)
+                        : 0m;
+
                 var billItem = new SupabaseBillItemInsert
                 {
                     Id = Guid.NewGuid().ToString(),
@@ -134,7 +142,18 @@ public class BillingService
 
                     AffectsTeeth =
                         item.ShowTeethInput &&
-                        item.ParsedTeethNumbers.Count > 0
+                        item.ParsedTeethNumbers.Count > 0,
+
+                    // Per-item installment: 50% down today, remainder over the chosen months — only when eligible AND selected.
+                    IsInstallment = item.IsInstallmentEligible && item.IsInstallmentSelected,
+                    InstallmentMonths = item.IsInstallmentSelected ? item.SelectedInstallmentMonths : 0,
+                    DownpaymentAmount = item.DownpaymentAmount,
+                    MonthlyPayment = item.MonthlyPaymentAmount,
+                    // Starts at the full subtotal (the downpayment is recorded as a payment against it, not subtracted here).
+                    // Eligible items are always due in full and excluded from the discount, regardless of plan selection.
+                    Balance = item.IsInstallmentEligible
+                        ? item.Subtotal
+                        : Math.Round(item.Subtotal - itemDiscountShare, 2)
                 };
                 if (localPatientId > 0)
                 {
@@ -172,11 +191,12 @@ public class BillingService
         return result;
     }
 
-    
 
+
+    // Logs a general (non-tooth-specific) service as a treatment history entry.
     private async Task LogGeneralServiceAsync(
     int patientId,
-    string serviceName) 
+    string serviceName)
     {
         var history = new TreatmentHistory
         {
@@ -193,6 +213,7 @@ public class BillingService
 
         await _database.AddTreatmentHistory(history);
     }
+    // Updates each tooth's chart record and logs a treatment history entry per tooth.
     private async Task ApplyToothConditionsAsync(
      int patientId,
      string serviceName,
@@ -200,13 +221,16 @@ public class BillingService
     {
         try
         {
+            // condition keeps ToothAwareServices' descriptive wording (e.g. "Filled (Composite)")
+            // for display/DB purposes — chartCondition/hex below are resolved separately through
+            // the shared fuzzy matcher so the color always lands on a real ConditionColors bucket,
+            // even when "condition" itself doesn't match one of those keys verbatim.
             var condition = ToothAwareServices.GetCondition(serviceName);
 
-            // Look up the hex color for this condition, same palette
-            // used by DentalChartViewModel, so history entries match
-            // the chart's color-coding.
-            var hex = ViewModels.DentalChart.DentalChartViewModel
-                .ConditionColors.TryGetValue(condition, out var c) ? c : "#FFFFFF";
+            var chartCondition = ClinicApp.ViewModels.DentalChart.DentalChartViewModel
+                .GetChartCondition(condition, serviceName);
+            var hex = ClinicApp.ViewModels.DentalChart.DentalChartViewModel
+                .GetConditionColor(chartCondition);
 
             foreach (var toothNum in teethNumbers)
             {
@@ -222,8 +246,7 @@ public class BillingService
                 };
                 await _database.SaveToothRecord(record);
 
-                // Add ONE treatment history entry PER tooth, with ToothNumber
-                // and Color set correctly (previously defaulted to 0 / white).
+                // One treatment history entry per tooth, with the correct ToothNumber and Color.
                 var history = new TreatmentHistory
                 {
                     PatientId = patientId,
@@ -251,6 +274,7 @@ public class BillingService
         }
     }
 
+    // Resolves the local SQLite patient ID by Supabase ID, then by name.
     private async Task<int> GetLocalPatientIdAsync(
     string patientSupabaseId,
     string patientName)

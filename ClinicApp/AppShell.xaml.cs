@@ -32,7 +32,6 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(DentalChartPage), typeof(DentalChartPage));
             Routing.RegisterRoute(nameof(TreatmentHistoryPage), typeof(TreatmentHistoryPage));
             Routing.RegisterRoute(nameof(CephalometricPage), typeof(CephalometricPage));
-            Routing.RegisterRoute(nameof(VisitDetailsPage), typeof(VisitDetailsPage));
 
             //Services
             Routing.RegisterRoute(nameof(ServiceListPage), typeof(ServiceListPage));
@@ -66,6 +65,8 @@ namespace ClinicApp
             //Google Sign In
             Routing.RegisterRoute(nameof(GoogleSignInPage), typeof(GoogleSignInPage));
 
+            Routing.RegisterRoute(nameof(ProfilePage), typeof(ProfilePage));
+
             //Cephalometric
             Routing.RegisterRoute(nameof(CephalometricPage), typeof(CephalometricPage));
             Routing.RegisterRoute("measurements", typeof(Views.CephalometricRelated.CephalometricMeasurementsPage));
@@ -74,14 +75,15 @@ namespace ClinicApp
             Routing.RegisterRoute(nameof(TransactionPage), typeof(TransactionPage));
             Routing.RegisterRoute(nameof(CreateBillPage), typeof(CreateBillPage));
             Routing.RegisterRoute(nameof(ReceiptPage), typeof(ReceiptPage));
-            Routing.RegisterRoute(nameof(ServiceSummaryPage), typeof(ServiceSummaryPage));
             Routing.RegisterRoute(nameof(BillSummaryPage), typeof(BillSummaryPage));
             Routing.RegisterRoute(nameof(PaymentPage), typeof(PaymentPage));
+            Routing.RegisterRoute(nameof(AdditionalPaymentPage), typeof(AdditionalPaymentPage));
             Routing.RegisterRoute(nameof(BillDetailsPage), typeof(BillDetailsPage));
             Routing.RegisterRoute(nameof(BalanceManagementPage), typeof(BalanceManagementPage));
 
             //Reports
             Routing.RegisterRoute(nameof(Views.ReportRelated.ReportsPage), typeof(Views.ReportRelated.ReportsPage));
+            Routing.RegisterRoute(nameof(ActivityLogPage), typeof(ActivityLogPage));
 
             Navigating += OnShellNavigating;
             _session.SessionEnded += OnSessionEnded;

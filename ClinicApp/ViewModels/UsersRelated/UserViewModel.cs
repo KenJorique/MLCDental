@@ -4,6 +4,7 @@ using ClinicApp.Services;
 using ClinicApp.Services.Database;
 using ClinicApp.Views.Shared;
 using ClinicApp.Views.UsersRelated;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -14,35 +15,52 @@ public partial class UserViewModel : ObservableObject
 {
     private readonly DatabaseService _db;
     private readonly SupabaseDataService _supabaseData;
-    private readonly SupabaseRealtimeService _realtime; // ── NEW ──
+    private readonly SupabaseRealtimeService _realtime;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isRefreshing;
 
     public ObservableCollection<UserCardViewModel> Users { get; set; } = new();
 
+    // Injects the local, Supabase, and realtime services.
     public UserViewModel(DatabaseService db, SupabaseDataService supabaseData, SupabaseRealtimeService realtime)
     {
         _db = db;
         _supabaseData = supabaseData;
         _realtime = realtime;
 
-        // ── NEW: another device adding/editing/removing a staff account
-        // shows up here live, same as patients do elsewhere in the app.
-        // Safe to add more than once if StartSupabaseSyncAsync somehow
-        // runs twice — _syncStarted below guards the actual subscribe
-        // call, this just wires the UI reaction.
+        // Another device adding/editing/removing a staff account shows up here live, same as patients elsewhere.
         _realtime.OnUserChanged += async () => await LoadUsers();
     }
 
-    // Called once from UserListPage.OnAppearing. Backfills SupabaseId
-    // links so this device's rows are matched up with their Supabase
-    // counterparts. The actual realtime subscription + missed-changes
-    // catch-up for "users" now lives in PatientListViewModel.
-    // StartRealtimeAsync (started once at app startup, alongside every
-    // other table's subscription) — NOT here, to avoid opening a second
-    // "realtime-users" channel on top of that one.
-    private bool _syncStarted = false;
+    // Resolves the page currently on screen, to host the popup.
+    static Page CurrentPage =>
+        Shell.Current?.CurrentPage
+        ?? Application.Current?.Windows.FirstOrDefault()?.Page
+        ?? throw new InvalidOperationException("No current page available to host the popup.");
 
+    // Shows a Yes/No popup and returns true only if confirmed.
+    static async Task<bool> ShowConfirmAsync(
+        string title, string message, string confirmText = "Yes", Color? confirmColor = null)
+    {
+        var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+        var result = await CurrentPage.ShowPopupAsync(popup);
+        return result is true;
+    }
+
+    // Shows a plain OK-only notice popup.
+    static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+    {
+        var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+        await CurrentPage.ShowPopupAsync(popup);
+    }
+
+    // Shows an OK-only error popup titled "Error".
+    static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
+
+    // Set once StartSupabaseSyncAsync has run, so it doesn't repeat every OnAppearing.
+    private bool _syncStarted = true;
+
+    // Pulls remote users and backfills local Supabase IDs.
     public async Task StartSupabaseSyncAsync()
     {
         if (_syncStarted) return;
@@ -59,6 +77,7 @@ public partial class UserViewModel : ObservableObject
         }
     }
 
+    // Loads the staff list from local SQLite.
     [RelayCommand]
     public async Task LoadUsers()
     {
@@ -82,7 +101,7 @@ public partial class UserViewModel : ObservableObject
         }
     }
 
-    // Tap on card → open action sheet
+    // Opens the Edit/Delete action sheet for a tapped staff card.
     [RelayCommand]
     async Task ShowActionSheet(UserCardViewModel card)
     {
@@ -119,28 +138,47 @@ public partial class UserViewModel : ObservableObject
         await sheet.ShowAsync();
     }
 
+    // Confirms, then soft-deletes the user locally and on Supabase, and logs it.
     private async Task SoftDeleteUserAsync(UserCardViewModel card)
     {
-        bool confirm = await Shell.Current.DisplayAlert(
+        bool confirm = await ShowConfirmAsync(
             "Remove Staff",
             $"Remove \"{card.User.FullName}\" from the staff list?",
-            "Remove", "Cancel");
+            "Remove", Colors.Crimson);
 
         if (!confirm) return;
 
         await _db.DeleteUser(card.User); // now soft deletes locally
 
-        // Mirror the soft delete to Supabase if this user was ever synced.
-        if (!string.IsNullOrEmpty(card.User.SupabaseId))
+        // Mirror the delete to Supabase, matching by SupabaseId or username, so it doesn't resurrect on next sync.
+        var supabaseId = card.User.SupabaseId;
+        if (string.IsNullOrEmpty(supabaseId) && !string.IsNullOrEmpty(card.User.Username))
         {
-            await _supabaseData.SoftDeleteUserAsync(new SupabaseUser { Id = card.User.SupabaseId });
+            var remoteUsers = await _supabaseData.GetUsersAsync();
+            var match = remoteUsers.FirstOrDefault(u =>
+                string.Equals(u.Username, card.User.Username, StringComparison.OrdinalIgnoreCase));
+            supabaseId = match?.Id;
         }
+
+        bool remoteOk = true;
+        if (!string.IsNullOrEmpty(supabaseId))
+        {
+            remoteOk = await _supabaseData.SoftDeleteUserAsync(supabaseId);
+        }
+
+        if (!remoteOk)
+        {
+            await ShowErrorAsync($"\"{card.User.FullName}\" was removed locally, but the cloud update failed — it may reappear after the next sync. Check your connection and try again.");
+        }
+
+        await _supabaseData.LogActivityAsync("UserDeleted", $"{card.User.FullName} was removed from staff");
 
         var existing = Users.FirstOrDefault(u => u.User.UserID == card.User.UserID);
         if (existing is not null)
             Users.Remove(existing);
     }
 
+    // Opens the Add Staff page.
     [RelayCommand]
     async Task GoToAddUser() =>
         await Shell.Current.GoToAsync(nameof(AddUserPage));

@@ -7,6 +7,8 @@ using ClinicApp.Services.BillingService;
 using ClinicApp.Views;
 using ClinicApp.Views.AppointmentRelated;
 using ClinicApp.Views.TransactionRelated;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -16,54 +18,81 @@ namespace ClinicApp.ViewModels.TransactionVM;
 
 public partial class BillSummaryViewModel : ObservableObject
 {
-    readonly BillingService _billing;
     readonly SupabaseDataService _supabase;
-    readonly DatabaseService _db;
 
     public ObservableCollection<ServiceLineItem> Services { get; } = new();
 
-    [ObservableProperty] string patientName = "";
-    [ObservableProperty] decimal subtotal;
-    [ObservableProperty] decimal discountPercent;
-    [ObservableProperty] decimal discountAmount;
-    [ObservableProperty] decimal total;
-    [ObservableProperty] bool isInstallment;
-    [ObservableProperty] bool isBusy;
-    [ObservableProperty] string createdBillId = "";
-    [ObservableProperty] string createdBillNumber = "";
-    [ObservableProperty] int installmentMonths = 3;
-    [ObservableProperty] decimal monthlyPayment;
+    [ObservableProperty]
+    string patientName = "";
 
-    public bool HasDiscount => DiscountPercent > 0;
-    public bool HasInstallmentService => Services.Any(x => x.IsInstallmentEligible);
+    [ObservableProperty]
+    decimal subtotal;
+
+    [ObservableProperty]
+    decimal discountPercent;
+
+    [ObservableProperty]
+    decimal discountAmount;
+
+    // Flat peso discount option — when on, the entered amount is used directly instead of DiscountPercent (capped to what's eligible).
+    [ObservableProperty]
+    bool isSpecialDiscount;
+
+    [ObservableProperty]
+    decimal specialDiscountAmount;
+
+    [ObservableProperty]
+    decimal total;
+
+    // Installment is a per-service decision now (see ServiceLineItem.IsInstallmentSelected / SelectedInstallmentMonths).
+    [ObservableProperty]
+    decimal amountDueToday;
+
+    [ObservableProperty]
+    bool isBusy;
+
+    // ── Follow-up detection — dentist sets the next-session date right here, before moving on to payment ──
+    public ObservableCollection<FollowUpDisplayItem> PendingFollowUps { get; } = new();
+
+    [ObservableProperty]
+    bool showFollowUpSheet;
+
+    FollowUpRequiredSheet? _followUpSheet;
+
+    // True if either a percent or a flat discount is active.
+    public bool HasDiscount => DiscountPercent > 0 || SpecialDiscountAmount > 0;
+
+    // True if any service on the bill is eligible for an installment plan.
+    public bool HasInstallmentService =>
+        Services.Any(x => x.IsInstallmentEligible);
+
+    // Discount is disabled only when every service on the bill is installment-eligible.
+    public bool CanApplyDiscount =>
+        Services.Any(x => !x.IsInstallmentEligible);
+
+    // True on a mixed bill where discount applies to only part of it — drives the "Excludes installment items" hint.
+    public bool HasMixedInstallmentAndRegular =>
+        HasInstallmentService && CanApplyDiscount;
+
+    // True if the bill currently has at least one service line.
     public bool HasServices => Services.Count > 0;
-    public int TotalItems => Services.Count;
 
-    public string InstallmentSummary =>
-        IsInstallment && InstallmentMonths > 0
-            ? $"{InstallmentMonths} months @ ₱{MonthlyPayment:N2}/month"
-            : string.Empty;
+    // Number of service lines on the bill.
+    public int TotalItems => Services.Count;
 
     public string SubtotalDisplay => $"₱{Subtotal:N2}";
     public string DiscountDisplay => $"₱{DiscountAmount:N2}";
     public string TotalDisplay => $"₱{Total:N2}";
+    public string AmountDueTodayDisplay => $"₱{AmountDueToday:N2}";
 
-    // ── Follow-up detection — dentist sets the date right here, no separate page ──
-    public ObservableCollection<FollowUpDisplayItem> PendingFollowUps { get; } = new();
-    [ObservableProperty] bool showFollowUpSheet;
-
-    FollowUpRequiredSheet? _followUpSheet;
-    SupabaseBill? _pendingNavBill;
-    BillDraft? _pendingNavDraft;
-
-    public BillSummaryViewModel(BillingService billing, SupabaseDataService supabase, DatabaseService db)
+    // Injects the shared data service, then loads the current draft.
+    public BillSummaryViewModel(SupabaseDataService supabase)
     {
-        _billing = billing;
         _supabase = supabase;
-        _db = db;
         LoadDraft();
     }
 
+    // Pulls the active BillDraftStore draft into this ViewModel and recalculates totals.
     public void LoadDraft()
     {
         if (BillDraftStore.Current == null)
@@ -72,19 +101,33 @@ public partial class BillSummaryViewModel : ObservableObject
         var draft = BillDraftStore.Current;
 
         PatientName = draft.PatientName;
-        IsInstallment = draft.IsInstallment;
-        InstallmentMonths = draft.InstallmentMonths > 0 ? draft.InstallmentMonths : 3;
+
+        // Unsubscribe from any items left over from a previous load before clearing.
+        foreach (var old in Services)
+            old.PropertyChanged -= OnServiceItemPropertyChanged;
 
         Services.Clear();
         foreach (var item in draft.Services)
+        {
             Services.Add(item);
+            item.PropertyChanged += OnServiceItemPropertyChanged;
+        }
 
         CalculateTotals();
     }
 
-    partial void OnIsInstallmentChanged(bool value) => CalculateTotals();
-    partial void OnInstallmentMonthsChanged(int value) => CalculateTotals();
+    // Recalculates totals whenever a service line's installment choice or subtotal changes.
+    void OnServiceItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ServiceLineItem.IsInstallmentSelected)
+                            or nameof(ServiceLineItem.SelectedInstallmentMonths)
+                            or nameof(ServiceLineItem.Subtotal))
+        {
+            CalculateTotals();
+        }
+    }
 
+    // Keeps the draft's DiscountPercent in sync and recalculates.
     partial void OnDiscountPercentChanged(decimal value)
     {
         if (BillDraftStore.Current != null)
@@ -93,16 +136,38 @@ public partial class BillSummaryViewModel : ObservableObject
         CalculateTotals();
     }
 
+    // Recalculates whenever the flat discount amount changes.
+    partial void OnSpecialDiscountAmountChanged(decimal value)
+    {
+        CalculateTotals();
+    }
+
+    // Recalculates whenever the special-discount toggle changes.
+    partial void OnIsSpecialDiscountChanged(bool value)
+    {
+        CalculateTotals();
+    }
+
+    // Recomputes subtotal, discount, total, and amount due today, and mirrors them into the draft.
     private void CalculateTotals()
     {
         Subtotal = Services.Sum(x => x.Subtotal);
-        DiscountAmount = Math.Round(Subtotal * DiscountPercent, 2);
+
+        // Discount excludes any installment-eligible service, regardless of whether a plan was actually chosen.
+        var discountEligibleSubtotal = Services
+            .Where(x => !x.IsInstallmentEligible)
+            .Sum(x => x.Subtotal);
+
+        DiscountAmount = !CanApplyDiscount
+            ? 0m
+            : IsSpecialDiscount
+                ? Math.Min(SpecialDiscountAmount, discountEligibleSubtotal)
+                : Math.Round(discountEligibleSubtotal * DiscountPercent, 2);
+
         Total = Subtotal - DiscountAmount;
 
-        if (IsInstallment && InstallmentMonths > 0)
-            MonthlyPayment = Math.Round(Total / InstallmentMonths, 2);
-        else
-            MonthlyPayment = 0;
+        // Due today = sum of each item's own contribution (full price, or down payment if on a plan), minus the discount.
+        AmountDueToday = Services.Sum(x => x.AmountDueToday) - DiscountAmount;
 
         if (BillDraftStore.Current != null)
         {
@@ -110,48 +175,74 @@ public partial class BillSummaryViewModel : ObservableObject
             BillDraftStore.Current.DiscountPercent = DiscountPercent;
             BillDraftStore.Current.DiscountAmount = DiscountAmount;
             BillDraftStore.Current.Total = Total;
-            BillDraftStore.Current.IsInstallment = IsInstallment;
-            BillDraftStore.Current.InstallmentMonths = IsInstallment ? InstallmentMonths : 0;
-            BillDraftStore.Current.MonthlyPayment = MonthlyPayment;
+            BillDraftStore.Current.AmountDueToday = AmountDueToday;
+
+            // Bridging fields for bill-level Supabase columns until payment allocation moves fully to bill_items.
+            BillDraftStore.Current.IsInstallment = HasInstallmentService &&
+                Services.Any(x => x.IsInstallmentSelected);
+            BillDraftStore.Current.InstallmentMonths = Services
+                .Where(x => x.IsInstallmentSelected)
+                .Select(x => x.SelectedInstallmentMonths)
+                .DefaultIfEmpty(0)
+                .Max();
+            BillDraftStore.Current.MonthlyPayment = Services
+                .Where(x => x.IsInstallmentSelected)
+                .Sum(x => x.MonthlyPaymentAmount);
         }
 
         OnPropertyChanged(nameof(SubtotalDisplay));
         OnPropertyChanged(nameof(DiscountDisplay));
         OnPropertyChanged(nameof(TotalDisplay));
-        OnPropertyChanged(nameof(InstallmentSummary));
+        OnPropertyChanged(nameof(AmountDueTodayDisplay));
         OnPropertyChanged(nameof(HasInstallmentService));
+        OnPropertyChanged(nameof(CanApplyDiscount));
+        OnPropertyChanged(nameof(HasMixedInstallmentAndRegular));
         OnPropertyChanged(nameof(HasServices));
         OnPropertyChanged(nameof(TotalItems));
         OnPropertyChanged(nameof(HasDiscount));
         ProceedCommand.NotifyCanExecuteChanged();
     }
 
+    // Removes a service line from the bill after confirmation.
     [RelayCommand]
     async Task RemoveService(ServiceLineItem item)
     {
-        if (item == null) return;
+        if (item == null)
+            return;
 
-        bool confirm = await Shell.Current.CurrentPage.DisplayAlert(
+        var popup = new ConfirmationPopup(
             "Remove Service",
             $"Remove \"{item.ServiceName}\" from this bill?",
-            "Remove", "Cancel");
+            "Remove", Colors.Crimson);
+        var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
+        bool confirm = result is bool b && b;
 
-        if (!confirm) return;
+        if (!confirm)
+            return;
 
+        item.PropertyChanged -= OnServiceItemPropertyChanged;
         Services.Remove(item);
         BillDraftStore.Current?.Services.Remove(item);
+
         CalculateTotals();
     }
 
+    // Navigates back without changing the draft.
     [RelayCommand]
-    async Task Back() => await Shell.Current.GoToAsync("..");
+    async Task Back()
+    {
+        await Shell.Current.GoToAsync("..");
+    }
 
+    // Proceed is only enabled while there are services and no operation is in flight.
     bool CanProceed() => HasServices && !IsBusy;
 
+    // Checks for services needing a follow-up session, then navigates to PaymentPage once scheduling is resolved.
     [RelayCommand(CanExecute = nameof(CanProceed))]
     async Task Proceed()
     {
-        if (BillDraftStore.Current == null)
+        var draft = BillDraftStore.Current;
+        if (draft == null)
             return;
 
         IsBusy = true;
@@ -159,52 +250,6 @@ public partial class BillSummaryViewModel : ObservableObject
 
         try
         {
-            var draft = BillDraftStore.Current;
-
-            var result = await _billing.CreateBillAsync(
-                draft,
-                draft.AppointmentEntryId,
-                draft.SupabaseEntryId);
-
-            if (!result.Success)
-            {
-                await Shell.Current.DisplayAlert(
-                    "Billing Error",
-                    result.ErrorMessage ?? "Unable to create the bill. Please try again.",
-                    "OK");
-                return;
-            }
-
-            if (result.Bill == null)
-            {
-                await Shell.Current.DisplayAlert(
-                    "Billing Error",
-                    "Bill was not returned from Supabase.",
-                    "OK");
-                return;
-            }
-
-            CreatedBillStore.Current = result.Bill;
-
-            // ── Auto-deduct linked supplies for every service on this bill ──
-            var lowStockItems = new List<string>();
-            foreach (var service in draft.Services)
-            {
-                var (_, insufficient) = await _supabase.DeductSuppliesForServiceAsync(
-                    service.ServiceId, draft.PatientId, draft.PatientName, service.Quantity);
-                lowStockItems.AddRange(insufficient);
-            }
-
-            if (lowStockItems.Count > 0)
-            {
-                await Shell.Current.DisplayAlert(
-                    "Low Stock Warning",
-                    $"These items are now low/out of stock: {string.Join(", ", lowStockItems.Distinct())}",
-                    "OK");
-            }
-
-            // ── Detect any service that requires another treatment session ──
-            // ── Detect any service that requires another treatment session ──
             var newlyOpenedFollowUps = new List<FollowUpDisplayItem>();
             foreach (var line in draft.Services)
             {
@@ -212,12 +257,13 @@ public partial class BillSummaryViewModel : ObservableObject
                 if (service == null || !service.RequiresMultipleSessions)
                     continue;
 
-                var sequence = await _supabase.RecordCompletedSessionAsync(
+                // Read-only preview — nothing is written to Supabase until payment succeeds.
+                var previewRow = await _supabase.PreviewNextSessionAsync(
                     draft.PatientId, draft.PatientName, service, draft.SupabaseBookingId);
 
-                if (sequence != null && sequence.Status == "awaiting_schedule")
+                if (previewRow != null && previewRow.Status == "awaiting_schedule")
                 {
-                    var item = new FollowUpDisplayItem(sequence, _supabase);
+                    var item = new FollowUpDisplayItem(previewRow, _supabase);
                     await item.InitializeAsync();
                     newlyOpenedFollowUps.Add(item);
                 }
@@ -225,22 +271,33 @@ public partial class BillSummaryViewModel : ObservableObject
 
             if (newlyOpenedFollowUps.Count > 0)
             {
-                // Hold the payment-page navigation until the dentist has
-                // either scheduled or explicitly deferred every follow-up.
-                _pendingNavBill = result.Bill;
-                _pendingNavDraft = draft;
-
                 PendingFollowUps.Clear();
                 foreach (var f in newlyOpenedFollowUps)
                     PendingFollowUps.Add(f);
 
                 _followUpSheet = new FollowUpRequiredSheet { BindingContext = this };
+
+                // If dragged closed, clear our reference so the next Proceed tap re-checks fresh data instead of assuming this sheet is still valid.
+                _followUpSheet.Dismissed += (s, origin) =>
+                {
+                    _followUpSheet = null;
+                    ShowFollowUpSheet = false;
+                };
+
                 ShowFollowUpSheet = true;
                 await _followUpSheet.ShowAsync();
                 return;
             }
 
-            await GoToPaymentAsync(result.Bill, draft);
+            await Shell.Current.GoToAsync(nameof(PaymentPage));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[BillSummary] Proceed: {ex}");
+            await Shell.Current.CurrentPage.ShowPopupAsync(new ConfirmationPopup(
+                "Couldn't Proceed",
+                $"Something went wrong while checking follow-up sessions: {ex.Message}",
+                "OK", showCancelButton: false));
         }
         finally
         {
@@ -249,19 +306,8 @@ public partial class BillSummaryViewModel : ObservableObject
         }
     }
 
-    async Task GoToPaymentAsync(SupabaseBill bill, BillDraft draft)
-    {
-        await Shell.Current.GoToAsync(
-            $"{nameof(PaymentPage)}" +
-            $"?billId={bill.Id}" +
-            $"&patientId={Uri.EscapeDataString(bill.PatientId)}" +
-            $"&patientName={Uri.EscapeDataString(bill.PatientName)}" +
-            $"&appointmentEntryId={Uri.EscapeDataString(draft.AppointmentEntryId ?? string.Empty)}" +
-            $"&supabaseEntryId={Uri.EscapeDataString(draft.SupabaseEntryId ?? string.Empty)}" +
-            $"&supabaseBookingId={Uri.EscapeDataString(draft.SupabaseBookingId ?? string.Empty)}");
-    }
-
-    async Task CloseFollowUpSheetAsync()
+    // Dismisses the follow-up sheet if it's currently open.
+    public async Task CloseFollowUpSheetAsync()
     {
         if (_followUpSheet == null) return;
         var sheet = _followUpSheet;
@@ -270,57 +316,54 @@ public partial class BillSummaryViewModel : ObservableObject
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BillSummary] CloseFollowUpSheet: {ex.Message}"); }
     }
 
-    /// Dentist picked a date/time for this session right in the sheet — create
-    /// the follow-up appointment immediately, no navigation away from billing.
+    // Confirms, then records the dentist's picked slot for this follow-up locally (not booked yet).
     [RelayCommand]
     async Task CreateFollowUpNow(FollowUpDisplayItem item)
     {
-        if (item == null || item.IsBusy || item.SelectedSlot == null) return;
+        if (item == null || item.SelectedSlot == null) return;
 
-        item.IsBusy = true;
-        try
+        var popup = new ConfirmationPopup(
+            "Confirm Follow-Up",
+            $"Book the follow-up for {item.ServiceName} on {item.SelectedSummary}?",
+            "Confirm", Color.FromArgb("#2E7D32"));
+        var result = await Shell.Current.CurrentPage.ShowPopupAsync(popup);
+        if (result is not bool ok || !ok)
+            return;
+
+        BillDraftStore.Current?.PendingFollowUps.Add(new PendingFollowUpChoice
         {
-            var phone = _pendingNavDraft?.Phone ?? string.Empty;
+            Row = item.Sequence,
+            SelectedSlotLocal = item.SelectedSlotLocal,
+            SelectedSlotUtc = item.SelectedSlotUtc
+        });
 
-            var success = await _supabase.CreateFollowUpAppointmentAsync(
-                _db, item.Sequence, phone, string.Empty,
-                item.SelectedSlotLocal!.Value, item.SelectedSlotUtc!.Value);
+        PendingFollowUps.Remove(item);
 
-            if (!success)
-            {
-                await Shell.Current.DisplayAlert(
-                    "Error",
-                    "That time slot may already be booked, or the appointment could not be saved. Please try a different time.",
-                    "OK");
-                return;
-            }
-
-            PendingFollowUps.Remove(item);
-
-            if (PendingFollowUps.Count == 0)
-            {
-                ShowFollowUpSheet = false;
-                await CloseFollowUpSheetAsync();
-
-                if (_pendingNavBill != null && _pendingNavDraft != null)
-                    await GoToPaymentAsync(_pendingNavBill, _pendingNavDraft);
-            }
-        }
-        finally
+        if (PendingFollowUps.Count == 0)
         {
-            item.IsBusy = false;
+            ShowFollowUpSheet = false;
+            await CloseFollowUpSheetAsync();
+            await Shell.Current.GoToAsync(nameof(PaymentPage));
         }
     }
 
-    /// Defers every remaining follow-up — sequence rows stay "awaiting_schedule"
-    /// and show up in the Appointment Schedule page's "Follow-ups Needed" banner.
+    // Defers every remaining follow-up — recorded with no chosen slot, so it lands as "awaiting_schedule" once payment succeeds.
     [RelayCommand]
     async Task ContinueToPayment()
     {
+        foreach (var item in PendingFollowUps)
+        {
+            BillDraftStore.Current?.PendingFollowUps.Add(new PendingFollowUpChoice
+            {
+                Row = item.Sequence,
+                SelectedSlotLocal = null,
+                SelectedSlotUtc = null
+            });
+        }
+
         ShowFollowUpSheet = false;
         await CloseFollowUpSheetAsync();
-
-        if (_pendingNavBill != null && _pendingNavDraft != null)
-            await GoToPaymentAsync(_pendingNavBill, _pendingNavDraft);
+        await Shell.Current.GoToAsync(nameof(PaymentPage));
     }
 }
+    

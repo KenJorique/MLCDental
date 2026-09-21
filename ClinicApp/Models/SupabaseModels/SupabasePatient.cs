@@ -39,20 +39,24 @@ namespace ClinicApp.Models.SupabaseModels
         [Column("guardian_id")] public long? GuardianId { get; set; }
         [Column("guardian_relationship")] public string? GuardianRelationship { get; set; }
 
-        // Medical History (Health Status)
+        // Medical History (Health Status) — nullable: the DB allows unset/unknown, not just true/false.
         [Column("blood_type")] public string? BloodType { get; set; }
-        [Column("good_health")] public bool GoodHealth { get; set; }
-        [Column("under_treatment")] public bool UnderTreatment { get; set; }
-        [Column("hospitalized")] public bool Hospitalized { get; set; }
-        [Column("uses_tobacco")] public bool UsesTobacco { get; set; }
-        [Column("on_medications")] public bool OnMedications { get; set; }
+        [Column("good_health")] public bool? GoodHealth { get; set; }
+        [Column("pregnant")] public bool? Pregnant { get; set; }
+        [Column("under_treatment")] public bool? UnderTreatment { get; set; }
+        [Column("treatment_details")] public string? TreatmentDetails { get; set; }
+        [Column("medication_details")] public string? MedicationDetails { get; set; }
+        [Column("hospitalized")] public bool? Hospitalized { get; set; }
+        [Column("hospitalization_details")] public string? HospitalizationDetails { get; set; }
+        [Column("uses_tobacco")] public bool? UsesTobacco { get; set; }
+        [Column("on_medications")] public bool? OnMedications { get; set; }
 
-        // Allergies
-        [Column("latex_allergy")] public bool LatexAllergy { get; set; }
-        [Column("aspirin_allergy")] public bool AspirinAllergy { get; set; }
-        [Column("penicillin_allergy")] public bool PenicillinAllergy { get; set; }
-        [Column("sulfa_allergy")] public bool SulfaAllergy { get; set; }
-        [Column("local_anesthetic_allergy")] public bool LocalAnestheticAllergy { get; set; }
+        // Allergies — same reasoning, nullable rather than defaulting a missing answer to false.
+        [Column("latex_allergy")] public bool? LatexAllergy { get; set; }
+        [Column("aspirin_allergy")] public bool? AspirinAllergy { get; set; }
+        [Column("penicillin_allergy")] public bool? PenicillinAllergy { get; set; }
+        [Column("sulfa_allergy")] public bool? SulfaAllergy { get; set; }
+        [Column("local_anesthetic_allergy")] public bool? LocalAnestheticAllergy { get; set; }
         [Column("other_allergy")] public string? OtherAllergy { get; set; }
     }
 }

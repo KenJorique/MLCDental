@@ -4,86 +4,108 @@
              xmlns:conv="clr-namespace:ClinicApp.Converters"
              x:Class="ClinicApp.Views.UsersRelated.LoginPage"
              Shell.NavBarIsVisible="False"
-             Shell.TabBarIsVisible="False"
-             BackgroundColor="#F5F0D0">
+             Shell.TabBarIsVisible="False">
 
-    <ContentPage.Resources>
-        <ResourceDictionary>
-            <conv:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
-            <conv:PasswordToggleTextConverter x:Key="PasswordToggleTextConverter"/>
-            <conv:StringNotEmptyConverter x:Key="StringNotEmptyConverter"/>
-        </ResourceDictionary>
-    </ContentPage.Resources>
+	<ContentPage.Resources>
+		<ResourceDictionary>
+			<conv:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
+			<conv:PasswordToggleIconConverter x:Key="PasswordToggleIconConverter"/>
+		</ResourceDictionary>
+	</ContentPage.Resources>
 
-    <!-- NOTE: back-button/hardware-back handling for this page is done in
+	<!-- Page background: soft white-to-green wash instead of a flat fill -->
+	<ContentPage.Background>
+		<LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+			<GradientStop Color="{StaticResource White}" Offset="0.0"/>
+			<GradientStop Color="{StaticResource Secondary}" Offset="1.0"/>
+		</LinearGradientBrush>
+	</ContentPage.Background>
+
+	<!-- NOTE: back-button/hardware-back handling for this page is done in
          LoginPage.xaml.cs (OnBackButtonPressed) so a logged-out user can
          never navigate "back" into the app. -->
 
-    <ScrollView>
-        <Grid Padding="28" RowSpacing="0" VerticalOptions="Center"> 
-            <VerticalStackLayout Spacing="6" MaximumWidthRequest="420" HorizontalOptions="Center">
+	<ScrollView>
+		<Grid Padding="24,20" RowSpacing="0" VerticalOptions="Center">
+			<VerticalStackLayout Spacing="6" MaximumWidthRequest="420" HorizontalOptions="Center">
 
-                <!-- Clinic branding -->
-                <Image Source="clinic_logo.png"
-                       HeightRequest="90"
+				<!-- MLC brand logo (replaces the old text wordmark) -->
+				<Image Source="logo.png"
+                       HeightRequest="140"
                        Aspect="AspectFit"
                        HorizontalOptions="Center"
-                       Margin="0,0,0,8"
-                       IsVisible="False"
-                       x:Name="ClinicLogo"/>
-                <!-- Swap IsVisible to True once clinic_logo.png is added to Resources/Images -->
+                       Margin="0,-20,0,10"/>
 
-                <Label Text="MLC Dental Clinic"
-                       FontSize="24"
-                       FontAttributes="Bold"
-                       TextColor="#4A3B14"
-                       HorizontalOptions="Center"/>
+				<!-- Was a Frame — switched to Border to match every other card in the app; kept its
+                     larger padding/radius/shadow since this is the one "hero" card on an auth screen,
+                     not a compact list-item card like ElevatedCardStyle is meant for. -->
+				<Border Padding="28" Margin="0,20,0,0"
+                        BackgroundColor="{StaticResource White}"
+                        Stroke="{StaticResource Secondary}"
+                        StrokeThickness="1">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="22"/>
+					</Border.StrokeShape>
+					<Border.Shadow>
+						<Shadow Brush="{StaticResource PrimaryDark}"
+                                Opacity="0.12"
+                                Radius="20"
+                                Offset="0,8"/>
+					</Border.Shadow>
 
-                <Label Text="Dentist Login"
-                       FontSize="16"
-                       TextColor="#8A7A3E"
-                       HorizontalOptions="Center"
-                       Margin="0,0,0,20"/>
+					<VerticalStackLayout Spacing="16">
 
-                <Frame Padding="24"
-                       CornerRadius="16"
-                       BackgroundColor="White"
-                       BorderColor="#E8DFB0"
-                       HasShadow="True">
-
-                    <VerticalStackLayout Spacing="14">
-
-                        <Label Text="Email or Username" FontAttributes="Bold" TextColor="#4A3B14"/>
-                        <Entry Text="{Binding Identifier}"
+						<!-- Label color/size now matches FormFieldLabel (dark TextPrimary, not brand green) —
+                             Margin overridden to 0 since spacing here already comes from this stack's
+                             own Spacing="16", not from the style's built-in margin. -->
+						<Label Text="Email or Username" Style="{StaticResource FormFieldLabel}" Margin="0"/>
+						<!-- Entry left exactly as-is per Yang's request — same colors, sizing, placeholder. -->
+						<Entry TextColor="{StaticResource Gray600}"
+                               PlaceholderColor="{StaticResource Gray300}"
+                               FontSize="15"
+                               Text="{Binding Identifier}"
                                Placeholder="you@mlcdental.com"
                                Keyboard="Email"
                                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                                ReturnType="Next"/>
 
-                        <Label Text="Password" FontAttributes="Bold" TextColor="#4A3B14"/>
-                        <Grid ColumnDefinitions="*,Auto">
-                            <Entry Grid.Column="0"
+						<Label Text="Password" Style="{StaticResource FormFieldLabel}" Margin="0"/>
+						<Grid>
+							<!-- Entry fills the full width so its underline matches the email field's length; the eye icon sits on top of it, not beside it. -->
+							<Entry TextColor="{StaticResource Gray600}"
+                                   PlaceholderColor="{StaticResource Gray300}"
+                                   FontSize="15"
                                    Text="{Binding Password}"
                                    Placeholder="Enter password"
                                    IsPassword="{Binding IsPasswordHidden}"
                                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                                    ReturnType="Done"/>
-                            <Button Grid.Column="1"
-                                    Text="{Binding IsPasswordHidden, Converter={StaticResource PasswordToggleTextConverter}}"
-                                    Command="{Binding TogglePasswordVisibilityCommand}"
-                                    BackgroundColor="Transparent"
-                                    TextColor="#8A7A3E"
-                                    FontSize="12"
-                                    Padding="8,0"/>
-                        </Grid>
+							<Label Text="{Binding IsPasswordHidden, Converter={StaticResource PasswordToggleIconConverter}}"
+                                   FontFamily="MaterialSymbolsRounded"
+                                   FontSize="22"
+                                   TextColor="{StaticResource Gray400}"
+                                   HorizontalOptions="End"
+                                   VerticalOptions="Center"
+                                   Margin="0,0,4,0"
+                                   InputTransparent="False">
+								<Label.GestureRecognizers>
+									<TapGestureRecognizer Command="{Binding TogglePasswordVisibilityCommand}"/>
+								</Label.GestureRecognizers>
+							</Label>
+						</Grid>
 
-                        <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
-                            <CheckBox IsChecked="{Binding RememberMe}"
-                                      Color="#C8A84B"
+						<Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" Margin="0,4,0,0">
+							<CheckBox Grid.Column="0"
+                                      WidthRequest="22"
+                                      HeightRequest="22"
+                                      IsChecked="{Binding RememberMe}"
+                                      Color="{StaticResource Primary}"
                                       IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
-                            <Label Text="Remember me on this device for 30 days"
-                                   FontSize="13"
-                                   TextColor="#4A3B14"
+							<Label Grid.Column="1"
+                                   Text="Remember me on this device for 30 days"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}"
+                                   LineBreakMode="NoWrap"
                                    VerticalOptions="Center">
                                 <Label.GestureRecognizers>
                                     <!-- Tapping the label toggles it too, not just the tiny checkbox hit-target -->
@@ -109,36 +131,39 @@
                                TextColor="Crimson"
                                FontSize="13"
                                IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}"/>
+								<Label.GestureRecognizers>
+									<!-- Tapping the label toggles it too, not just the tiny checkbox hit-target -->
+									<TapGestureRecognizer Tapped="OnRememberMeLabelTapped"/>
+								</Label.GestureRecognizers>
+							</Label>
+						</Grid>
 
-                        <Grid Margin="0,10,0,0">
-                            <Button Text="Log In"
+						<Grid Margin="0,10,0,0">
+							<!-- Was custom BackgroundColor/TextColor/FontAttributes/HeightRequest/CornerRadius — now just PrimaryActionButtonStyle, same as every Save/primary button elsewhere.
+                                 No IsEnabled binding anymore — the button stays green and tappable even with empty/invalid fields; Login() validates and shows the popup instead. -->
+							<Button Text="Log In"
                                     Command="{Binding LoginCommand}"
-                                    IsEnabled="{Binding CanLogin}"
-                                    BackgroundColor="#C8A84B"
-                                    TextColor="White"
-                                    FontAttributes="Bold"
-                                    HeightRequest="48"
-                                    CornerRadius="10"
+                                    Style="{StaticResource PrimaryActionButtonStyle}"
                                     IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
 
-                            <ActivityIndicator IsRunning="{Binding IsBusy}"
+							<ActivityIndicator IsRunning="{Binding IsBusy}"
                                                 IsVisible="{Binding IsBusy}"
-                                                Color="#C8A84B"
-                                                HeightRequest="48"/>
-                        </Grid>
+                                                Color="{StaticResource Primary}"
+                                                HeightRequest="52"/>
+						</Grid>
 
-                    </VerticalStackLayout>
-                </Frame>
+					</VerticalStackLayout>
+				</Border>
 
-                <Label Text="Dentist and Secretary accounts are created by clinic administration."
+				<Label Text="Dentist and Secretary accounts are created by clinic administration."
                        FontSize="11"
-                       TextColor="#8A7A3E"
+                       TextColor="{StaticResource Gray500}"
                        HorizontalOptions="Center"
                        HorizontalTextAlignment="Center"
                        Margin="0,16,0,0"/>
-                <!-- Deliberately no "Register" link/button here — see spec: no self-service dentist signup. -->
+				<!-- Deliberately no "Register" link/button here — see spec: no self-service dentist signup. -->
 
-            </VerticalStackLayout>
-        </Grid>
-    </ScrollView>
+			</VerticalStackLayout>
+		</Grid>
+	</ScrollView>
 </ContentPage>

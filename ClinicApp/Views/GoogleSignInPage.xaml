@@ -3,72 +3,66 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ClinicApp.Views.GoogleSignInPage"
              Title="Google Tasks"
-             BackgroundColor="White">
+             BackgroundColor="{StaticResource PageBg}">
 
-    <VerticalStackLayout Padding="32" Spacing="24"
+	<VerticalStackLayout Padding="28" Spacing="20"
                          VerticalOptions="Center">
 
-        <Label Text="🗂️" FontSize="48" HorizontalOptions="Center"/>
+		<!-- Icon badge, matching the circular icon-badge treatment used elsewhere in the app -->
+		<Border WidthRequest="84" HeightRequest="84"
+                BackgroundColor="{StaticResource Secondary}"
+                Stroke="Transparent"
+                HorizontalOptions="Center">
+			<Border.StrokeShape>
+				<RoundRectangle CornerRadius="42"/>
+			</Border.StrokeShape>
+			<Label Text="&#xe2e6;" FontFamily="MaterialSymbolsRounded"
+                   FontSize="40" TextColor="{StaticResource Primary}"
+                   HorizontalOptions="Center" VerticalOptions="Center"/>
+		</Border>
 
-        <Label Text="Connect Google Tasks"
+		<Label Text="Connect Google Tasks"
                FontSize="20" FontAttributes="Bold"
-               TextColor="#333" HorizontalOptions="Center"/>
+               TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center"/>
 
-        <Label Text="Approved appointments will automatically appear in your Google Tasks so you never miss a scheduled patient."
-               FontSize="13" TextColor="#666"
+		<Label Text="Approved appointments will automatically appear in your Google Tasks so you never miss a scheduled patient."
+               FontSize="14" TextColor="{StaticResource TextMuted}"
                HorizontalOptions="Center"
                HorizontalTextAlignment="Center"
-               LineHeight="1.5"/>
+               LineHeight="1.4"/>
 
-        <Frame BackgroundColor="#F8F9FA" BorderColor="#E0E0E0"
-               CornerRadius="12" Padding="16">
-            <VerticalStackLayout Spacing="10">
-                <Label FontSize="12" TextColor="#444">
-                    <Label.FormattedText>
-                        <FormattedString>
-                            <Span Text="✓  " TextColor="#2E7D32" FontAttributes="Bold"/>
-                            <Span Text="Tasks created automatically on approval"/>
-                        </FormattedString>
-                    </Label.FormattedText>
-                </Label>
-                <Label FontSize="12" TextColor="#444">
-                    <Label.FormattedText>
-                        <FormattedString>
-                            <Span Text="✓  " TextColor="#2E7D32" FontAttributes="Bold"/>
-                            <Span Text="Tasks marked complete when appointment done"/>
-                        </FormattedString>
-                    </Label.FormattedText>
-                </Label>
-               
-            </VerticalStackLayout>
-        </Frame>
+		<Border BackgroundColor="{StaticResource Secondary}" Stroke="Transparent" Padding="16">
+			<Border.StrokeShape>
+				<RoundRectangle CornerRadius="14"/>
+			</Border.StrokeShape>
+			<VerticalStackLayout Spacing="10">
+				<HorizontalStackLayout Spacing="8">
+					<Label Text="&#xe5ca;" FontFamily="MaterialSymbolsRounded" FontSize="16" TextColor="{StaticResource Primary}"/>
+					<Label Text="Tasks created automatically on approval" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
+				</HorizontalStackLayout>
+				<HorizontalStackLayout Spacing="8">
+					<Label Text="&#xe5ca;" FontFamily="MaterialSymbolsRounded" FontSize="16" TextColor="{StaticResource Primary}"/>
+					<Label Text="Tasks marked complete when appointment done" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
+				</HorizontalStackLayout>
+			</VerticalStackLayout>
+		</Border>
 
-        <Button x:Name="SignInButton"
+		<Button x:Name="SignInButton"
                 Text="Connect to Google Tasks"
-                BackgroundColor="#4285F4"
-                TextColor="White"
-                CornerRadius="10"
-                HeightRequest="50"
-                FontSize="14"
-                FontAttributes="Bold"
+                Style="{StaticResource PrimaryActionButtonStyle}"
                 Clicked="OnSignInClicked"/>
 
-        <Button Text="Skip for now"
-                BackgroundColor="Transparent"
-                TextColor="#888"
-                BorderColor="#E0E0E0"
-                BorderWidth="1"
-                CornerRadius="10"
-                HeightRequest="44"
-                FontSize="13"
+		<Button Text="Skip for now"
+                Style="{StaticResource SecondaryActionButtonStyle}"
                 Clicked="OnSkipClicked"/>
 
-        <Label x:Name="StatusLabel"
+		<!-- Transient in-progress message only — the final result (success/error) now shows as a popup instead. -->
+		<Label x:Name="StatusLabel"
                FontSize="12"
-               TextColor="#888"
+               TextColor="{StaticResource TextMuted}"
                HorizontalOptions="Center"
                HorizontalTextAlignment="Center"
                IsVisible="False"/>
 
-    </VerticalStackLayout>
+	</VerticalStackLayout>
 </ContentPage>

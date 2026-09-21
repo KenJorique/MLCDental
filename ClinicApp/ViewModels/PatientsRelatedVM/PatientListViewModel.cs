@@ -7,6 +7,7 @@ using ClinicApp.Views.CephalometricRelated;
 using ClinicApp.Views.DentalChart;
 using ClinicApp.Views.PatientsRelated;
 using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -25,17 +26,18 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         [ObservableProperty] private bool isBusy;
         [ObservableProperty] private bool isRefreshing;
 
-        // Badge count for new online bookings not yet reviewed
+        // Badge count for new online bookings not yet reviewed.
         [ObservableProperty] private int newBookingCount;
         [ObservableProperty] private bool hasNewBookings;
 
+        // Main constructor — injects local DB, realtime sync, and Supabase data services.
         public PatientListViewModel(DatabaseService db, SupabaseRealtimeService realtime, SupabaseDataService supabaseData)
         {
             _db = db;
             _realtime = realtime;
             _supabaseData = supabaseData;
 
-            // When Supabase fires a new booking, reload the list
+            // When Supabase fires a new booking, reload the list.
             _realtime.OnNewBookingReceived += async () =>
             {
                 newBookingCount++;
@@ -44,6 +46,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             _supabaseData = supabaseData;
         }
 
+        // Reloads the patient list from local SQLite.
         private async Task LoadPatientsInternal()
         {
             try
@@ -61,7 +64,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 System.Diagnostics.Debug.WriteLine($"[LoadPatientsInternal] {ex.Message}");
             }
         }
-        // Pull-to-refresh — syncs from Supabase first then reloads local SQLite
+
+        // Pull-to-refresh — syncs from Supabase first then reloads local SQLite.
         [RelayCommand]
         async Task Refresh()
         {
@@ -69,9 +73,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             IsRefreshing = true;
             try
             {
-                // Pull latest from Supabase into local SQLite
                 await _realtime.SyncMissedPatientsAsync();
-                // Then reload list from local SQLite
                 await LoadPatientsInternal();
             }
             catch (Exception ex)
@@ -83,16 +85,13 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 IsRefreshing = false;
             }
         }
-        // Called once from PatientListPage.OnAppearing
+
+        // Called once from PatientListPage.OnAppearing.
         private bool _realtimeStarted = false;
         private Task? _realtimeStartTask;
 
-        public Task StartRealtimeAsync()
-        {
-            return _realtimeStartTask ??= StartRealtimeInternalAsync();
-        }
-
-        public async Task StartRealtimeInternalAsync()
+        // One-time setup: connects to Supabase, syncs missed data, and subscribes to live changes.
+        public async Task StartRealtimeAsync()
         {
 
             try
@@ -101,32 +100,33 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 var key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4YWNkcWtrb2NiamFpcXN6cHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NTExNTUsImV4cCI6MjA5NjAyNzE1NX0.Jt-Dsn6j3m9uL_R0A1Y0AVlUKBA_hmNI-NfHDBQYLUA";
 
                 await _realtime.InitializeAsync(url, key);
-                // Sync any patients/bookings missed while offline
+                // Sync any patients/bookings/users missed while offline.
                 await _realtime.SyncMissedPatientsAsync();
                 await _realtime.SyncMissedBookingsAsync();
                 await _realtime.SyncMissedTreatmentHistoryAsync();
                 await _realtime.SyncMissedToothRecordsAsync();
                 await _realtime.SyncMissedUsersAsync();
 
-                // Backfill SupabaseId for patients that don't have it yet
+                // Backfill SupabaseId for patients that don't have it yet.
                 var allSupabase = await _supabaseData.GetPatientsAsync();
                 await _db.BackfillSupabaseIds(allSupabase);
 
-                // Subscribe to live changes
+                // Subscribe to live changes.
                 await _realtime.SubscribeToBookingsAsync();
                 await _realtime.SubscribeToPatientsAsync();
                 await _realtime.SubscribeToTreatmentHistoryAsync();
                 await _realtime.SubscribeToToothRecordsAsync();
                 await _realtime.SubscribeToUsersAsync();
 
-                // Temporary debug — check what's actually in Supabase bookings
+                // Temporary debug — check what's actually in Supabase bookings.
                 var allBookings = await _supabaseData.GetAllBookingsDebugAsync();
                 System.Diagnostics.Debug.WriteLine(
                     $"[Debug] Total bookings in Supabase: {allBookings.Count}");
                 foreach (var b in allBookings)
                     System.Diagnostics.Debug.WriteLine(
                         $"[Debug] Booking: {b.FullName} | Status={b.Status} | Date={b.AppointmentDate}");
-                // When another device adds/edits a patient → sync + reload
+
+                // When another device adds/edits a patient → sync + reload.
                 _realtime.OnPatientChanged += async () =>
                 {
                     System.Diagnostics.Debug.WriteLine("[Realtime] Patient changed — reloading");
@@ -134,7 +134,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                     await LoadPatientsInternal();
                 };
 
-                // When another device makes a booking → update badge
+                // When another device makes a booking → update badge.
                 _realtime.OnNewBookingReceived += async () =>
                 {
                     NewBookingCount++;
@@ -147,14 +147,16 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             {
                 System.Diagnostics.Debug.WriteLine($"[StartRealtime] {ex.Message}");
             }
-
-
         }
+
         [ObservableProperty] private string searchText = string.Empty;
         [ObservableProperty] private string currentSort = "All";
 
+        // Secondary constructor (local-only, no realtime/Supabase). Leaves _realtime and
+        // _supabaseData null if this is the one that ends up being used — see earlier note.
         public PatientListViewModel(DatabaseService db) => _db = db;
 
+        // Loads patients from local SQLite and applies the current filter/sort.
         [RelayCommand]
         async Task LoadPatients()
         {
@@ -173,13 +175,11 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             }
         }
 
-
-        // Maps SupabasePatient → local Patient model
+        // Maps SupabasePatient → local Patient model.
         private static Patient MapToPatient(SupabasePatient sp)
         {
             return new Patient
             {
-                // Try to parse the Supabase UUID as a local ID fallback
                 FirstName = sp.FirstName,
                 LastName = sp.LastName ?? string.Empty,
                 Nickname = sp.Nickname ?? string.Empty,
@@ -202,8 +202,10 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             };
         }
 
+        // Re-filters as the user types.
         partial void OnSearchTextChanged(string value) => ApplyFilterAndSort();
 
+        // Applies search + sort, then rebuilds the visible Patients list.
         private void ApplyFilterAndSort()
         {
             var filtered = _allPatients.AsEnumerable();
@@ -217,8 +219,8 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
 
             filtered = CurrentSort switch
             {
-                "A-Z" => filtered.OrderBy(c => c.Patient.LastName).ThenBy(c => c.Patient.FirstName),
-                "Z-A" => filtered.OrderByDescending(c => c.Patient.LastName).ThenByDescending(c => c.Patient.FirstName),
+                "Ascending" => filtered.OrderBy(c => c.Patient.LastName).ThenBy(c => c.Patient.FirstName),
+                "Descending" => filtered.OrderByDescending(c => c.Patient.LastName).ThenByDescending(c => c.Patient.FirstName),
                 "Recently Added" => filtered.OrderByDescending(c => c.Patient.PatientID),
                 _ => filtered
             };
@@ -228,12 +230,13 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 Patients.Add(card);
         }
 
+        // Shows the sort-options action sheet and applies the pick.
         [RelayCommand]
         async Task ShowSortOptions()
         {
             string result = await Shell.Current.DisplayActionSheet(
                 "Sort Patients", "Cancel", null,
-                "All", "A-Z", "Z-A", "Recently Added");
+                "All", "Ascending", "Descending", "Recently Added");
 
             if (!string.IsNullOrEmpty(result) && result != "Cancel")
             {
@@ -242,10 +245,10 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             }
         }
 
-        // Opens the bottom action sheet when a card is tapped
+        // Guards against double-tapping a card while the sheet is still opening.
         private bool _isSheetOpen = false;
 
-        // Opens the bottom action sheet when a card is tapped
+        // Opens the bottom action sheet when a card is tapped.
         [RelayCommand]
         async Task OpenActionSheet(PatientCardViewModel card)
         {
@@ -269,7 +272,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                     IconColor = Color.FromArgb("#1A6B2F"),
                     OnTapped = async () =>
                         await Shell.Current.GoToAsync(
-                            $"{nameof(PatientDetailsPage)}?patientId={card.Patient.PatientID}"),
+                            $"{nameof(PatientDetailsPage)}?id={card.Patient.PatientID}"),
                 },
                 new ActionSheetOption
                 {
@@ -341,7 +344,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             }
         }
 
-        // Call button — opens phone dialer
+        // Call button — opens phone dialer.
         [RelayCommand]
         async Task CallPatient(PatientCardViewModel card)
         {
@@ -357,17 +360,20 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             }
         }
 
+        // Opens the Add Patient page.
         [RelayCommand]
         async Task GoToAddPatient() =>
             await Shell.Current.GoToAsync(nameof(AddPatientPage));
 
+        // Opens the tapped patient's details page.
         [RelayCommand]
         async Task ViewPatient(PatientCardViewModel card)
         {
             if (card is null) return;
-            await Shell.Current.GoToAsync($"{nameof(PatientDetailsPage)}?patientId={card.Patient.PatientID}");
+            await Shell.Current.GoToAsync($"{nameof(PatientDetailsPage)}?id={card.Patient.PatientID}");
         }
 
+        // Opens Add Patient pre-filled for editing the tapped patient.
         [RelayCommand]
         async Task EditPatient(PatientCardViewModel card)
         {
@@ -375,39 +381,55 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             await Shell.Current.GoToAsync($"{nameof(AddPatientPage)}?PatientId={card.Patient.PatientID}");
         }
 
+        // Confirms with the popup, then deletes the patient locally, from Supabase, and logs it.
         [RelayCommand]
         async Task DeletePatient(PatientCardViewModel card)
         {
             if (card is null) return;
 
-            bool answer = await Shell.Current.DisplayAlert(
-                "Confirm Delete",
+            var popup = new ConfirmationPopup(
+                "Delete Patient?",
                 $"Are you sure you want to delete {card.Patient.FullName}?",
-                "Yes", "No");
+                confirmText: "Delete");
 
-            if (answer)
+            var result = await Shell.Current.ShowPopupAsync(popup);
+            if (result is not bool confirmed || !confirmed) return;
+
+            try
             {
-                try
-                {
-                    // Delete from local SQLite
-                    await _db.DeletePatient(card.Patient);
+                // Delete from local SQLite.
+                await _db.DeletePatient(card.Patient);
 
-                    // Delete from Supabase if it has a cloud ID
-                    if (!string.IsNullOrEmpty(card.Patient.SupabaseId))
-                    {
-                        var sp = new SupabasePatient { Id = card.Patient.SupabaseId };
-                        await _supabaseData.DeletePatientAsync(sp);
-                    }
-                }
-                catch (Exception ex)
+                // Delete from Supabase if it has a cloud ID.
+                bool remoteOk = true;
+                if (!string.IsNullOrEmpty(card.Patient.SupabaseId))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Delete] {ex.Message}");
+                    var sp = new SupabasePatient { Id = card.Patient.SupabaseId };
+                    remoteOk = await _supabaseData.DeletePatientAsync(sp);
                 }
 
-                await MainThread.InvokeOnMainThreadAsync(async () => await LoadPatients());
+                await _supabaseData.LogActivityAsync("PatientDeleted", $"{card.Patient.FullName} was deleted");
+
+                if (!remoteOk)
+                {
+                    var warning = new ConfirmationPopup(
+                        "Cloud Delete Incomplete",
+                        $"\"{card.Patient.FullName}\" was removed locally, but some cloud records may remain. Check your connection and try again if needed.",
+                        confirmText: "OK",
+                        confirmColor: Colors.Green,
+                        showCancelButton: false);
+                    await Shell.Current.ShowPopupAsync(warning);
+                }
             }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Delete] {ex.Message}");
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(async () => await LoadPatients());
         }
 
+        // Opens the dental chart for the tapped patient.
         [RelayCommand]
         async Task ViewDentalChart(PatientCardViewModel card)
         {
@@ -417,6 +439,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 $"&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
         }
 
+        // Opens the cephalometric analysis page for the tapped patient.
         [RelayCommand]
         async Task GoToCephalometric(PatientCardViewModel card)
         {
@@ -427,6 +450,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 $"{nameof(CephalometricPage)}?PatientId={card.Patient.PatientID}&PatientName={Uri.EscapeDataString(card.Patient.FullName)}");
         }
 
+        // Opens the treatment history page for the tapped patient.
         [RelayCommand]
         async Task ViewTreatmentHistory(PatientCardViewModel card)
         {
@@ -436,7 +460,7 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                 $"&patientName={Uri.EscapeDataString(card.Patient.FirstName + " " + card.Patient.LastName)}");
         }
 
-        // Change this current implementation at the bottom of your PatientListViewModel.cs:
+        // Opens the tapped patient's billing/transaction page.
         [RelayCommand]
         async Task ViewTransactions(PatientCardViewModel card)
         {

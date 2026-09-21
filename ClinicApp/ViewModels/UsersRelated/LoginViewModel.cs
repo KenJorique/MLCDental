@@ -1,4 +1,6 @@
 ﻿using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using ClinicApp.Services.LoginService;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -10,6 +12,7 @@ public partial class LoginViewModel : ObservableObject
     private readonly SessionService _session;
     private readonly RememberMeService _rememberMe;
 
+    // Injects auth, session, and remember-me services.
     public LoginViewModel(AuthenticationService auth, SessionService session, RememberMeService rememberMe)
     {
         _auth = auth;
@@ -29,19 +32,27 @@ public partial class LoginViewModel : ObservableObject
     [ObservableProperty] string? password;
     [ObservableProperty] bool isPasswordHidden = true;
     [ObservableProperty] bool isBusy;
-    [ObservableProperty] string? errorMessage;
 
+    // Bound to the "Remember me" checkbox on LoginPage.xaml.
     [ObservableProperty] bool rememberMe;
 
+    // Resolves the page currently on screen, to host the popup.
+    static Page CurrentPage =>
+        Shell.Current?.CurrentPage
+        ?? Application.Current?.Windows.FirstOrDefault()?.Page
+        ?? throw new InvalidOperationException("No current page available to host the popup.");
     // ── NEW ──
     [ObservableProperty] bool isBiometricAvailable;
     [ObservableProperty] bool useBiometricLock;
 
     public bool CanLogin => !IsBusy && !string.IsNullOrWhiteSpace(Identifier) && !string.IsNullOrWhiteSpace(Password);
 
-    partial void OnIdentifierChanged(string? value) => LoginCommand.NotifyCanExecuteChanged();
-    partial void OnPasswordChanged(string? value) => LoginCommand.NotifyCanExecuteChanged();
-    partial void OnIsBusyChanged(bool value) => LoginCommand.NotifyCanExecuteChanged();
+    // Shows an OK-only notice popup — used for validation messages and login failures alike.
+    static async Task ShowNoticeAsync(string title, string message)
+    {
+        var popup = new ConfirmationPopup(title, message, "OK", PopupAction.Positive, showCancelButton: false);
+        await CurrentPage.ShowPopupAsync(popup);
+    }
 
     // Turning off "Remember me" makes the biometric option meaningless
     // (there'd be no token for it to gate) — keep them in sync so the UI
@@ -59,18 +70,33 @@ public partial class LoginViewModel : ObservableObject
     [RelayCommand]
     void TogglePasswordVisibility() => IsPasswordHidden = !IsPasswordHidden;
 
-    [RelayCommand(CanExecute = nameof(CanLogin))]
+    // Validates input, authenticates, starts the session, and opens the app — the button stays enabled
+    // and green regardless of field state; any problem is surfaced via the popup instead of disabling it.
+    [RelayCommand]
     async Task Login()
     {
-        ErrorMessage = null;
+        if (IsBusy) return;
+
+        if (string.IsNullOrWhiteSpace(Identifier) || string.IsNullOrWhiteSpace(Password))
+        {
+            await ShowNoticeAsync("Missing Information", "Please enter both your email/username and password.");
+            return;
+        }
+
+        if (Password.Length < 6)
+        {
+            await ShowNoticeAsync("Invalid Password", "Password must be at least 6 characters.");
+            return;
+        }
+
         IsBusy = true;
         try
         {
-            var result = await _auth.LoginAsync(Identifier ?? "", Password ?? "");
+            var result = await _auth.LoginAsync(Identifier, Password);
 
             if (!result.Success || result.User is null)
             {
-                ErrorMessage = result.ErrorMessage;
+                await ShowNoticeAsync("Login Failed", result.ErrorMessage ?? "Incorrect email/username or password.");
                 Password = null;
                 return;
             }
@@ -93,6 +119,7 @@ public partial class LoginViewModel : ObservableObject
 
             _session.SignIn(result.User);
 
+            // Only stores anything if the person opted in.
             if (RememberMe)
             {
                 await _rememberMe.RememberAsync(result.User.UserID, UseBiometricLock);
@@ -107,7 +134,7 @@ public partial class LoginViewModel : ObservableObject
         }
         catch (Exception)
         {
-            ErrorMessage = "Something went wrong. Please try again.";
+            await ShowNoticeAsync("Error", "Something went wrong. Please try again.");
         }
         finally
         {

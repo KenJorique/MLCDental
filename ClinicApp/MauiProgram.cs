@@ -18,11 +18,13 @@ using ClinicApp.Views.TransactionRelated;
 using ClinicApp.Views.UsersRelated;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Handlers;
 using The49.Maui.BottomSheet;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 using ClinicApp.Services.BillingService;
 using ClinicApp.Services.Database;
 using ClinicApp.Services.CephaTrain;
+using Syncfusion.Maui.Core.Hosting;
 
 namespace ClinicApp
 {
@@ -30,15 +32,19 @@ namespace ClinicApp
     {
         private const string SupabaseUrl = "https://uxacdqkkocbjaiqszpyk.supabase.co";
         private const string SupabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4YWNkcWtrb2NiamFpcXN6cHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NTExNTUsImV4cCI6MjA5NjAyNzE1NX0.Jt-Dsn6j3m9uL_R0A1Y0AVlUKBA_hmNI-NfHDBQYLUA";
+        private const string SyncfusionLicenseKey = "Ngo9BigBOggjHTQxAR8/V1NNaF5cXmBCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdlWXdcdXRURWlYVERwW0BWYUA=";
 
+        // Builds and configures the MAUI app: DI registrations, fonts, and platform handlers.
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
 
+            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(SyncfusionLicenseKey);
+
             // ── Google refresh token ──────────────────────────────
             Preferences.Set("google_refresh_token",
      "1//04lNOw9Ik3RmfCgYIARAAGAQSNwF-L9IrWCDoRUW-BrnhpvGtUQvPJykV5kJQT-epjT75UhGphOTNb1Xr7wVCRE3XuNKKE8vY458");
-            // Clear cached token so fresh one is fetched
+            // Clears the cached access token so a fresh one is fetched on next use.
             Preferences.Remove("google_access_token");
 
 
@@ -52,24 +58,34 @@ namespace ClinicApp
             builder.Services.AddSingleton<BillingService>();
             builder.Services.AddSingleton<SessionService>();          // one session for the app's lifetime
             builder.Services.AddSingleton<AuthenticationService>();    // stateless-ish, but fine as singleton
-                                                                       // DatabaseService is presumably already registered as a Singleton — leave as is.
-                                                                       // ── App ───────────────────────────────────────────────
-                                                                       // ── App ───────────────────────────────────────────────
+            // DatabaseService is presumably already registered as a Singleton — leave as is.
+            // ── App ───────────────────────────────────────────────
+            // App now takes IServiceProvider instead of a resolved LoginPage, so LoginPage.xaml only
+            // parses after App.xaml.cs's InitializeComponent() has populated Application.Resources.
             builder.Services.AddSingleton<App>(sp => new App(
                 sp.GetRequiredService<SupabaseDataService>(),
                 sp.GetRequiredService<DatabaseService>(),
                 sp.GetRequiredService<SupabaseRealtimeService>(),
                 sp.GetRequiredService<PatientListViewModel>(),
                 sp.GetRequiredService<SessionService>(),
-                sp.GetRequiredService<LoginPage>(),
+                sp,
                 sp.GetRequiredService<RememberMeService>()
             ));
             builder.Services.AddSingleton<RememberMeService>();
 
             // ── Main pages ────────────────────────────────────────
+            builder.Services.AddSingleton<HomeViewModel>(sp =>
+               new HomeViewModel(
+                   sp.GetRequiredService<SupabaseDataService>(),
+                   sp.GetRequiredService<AppointmentScheduleViewModel>()
+               ));
             builder.Services.AddSingleton<HomePage>();
             builder.Services.AddSingleton<MenuViewModel>();
             builder.Services.AddSingleton<MenuPage>();
+
+            // ── Profile ────────────────────────────────────────────
+            builder.Services.AddTransient<ProfileViewModel>();
+            builder.Services.AddTransient<ProfilePage>();
 
             // ── Google Sign-In ────────────────────────────────────
             builder.Services.AddTransient<GoogleSignInPage>();
@@ -95,10 +111,11 @@ namespace ClinicApp
 
             builder.Services.AddTransient<RescheduleViewModel>(sp =>
                             new RescheduleViewModel(
-                                sp.GetRequiredService<SupabaseDataService>()
+                                sp.GetRequiredService<SupabaseDataService>(),
+                                sp.GetRequiredService<DatabaseService>()
                             ));
             builder.Services.AddTransient<ReschedulePage>();
-            builder.Services.AddTransient<InProcedurePage>( sp =>
+            builder.Services.AddTransient<InProcedurePage>(sp =>
                             new InProcedurePage(
                                 sp.GetRequiredService<InProcedureViewModel>(),
                                 sp.GetRequiredService<SupabaseRealtimeService>()
@@ -114,8 +131,8 @@ namespace ClinicApp
         sp.GetRequiredService<SupabaseDataService>()
     ));
             builder.Services.AddTransient<WalkInBookingPage>();
-           
-           
+
+
             builder.Services.AddTransient<PendingFollowUpsViewModel>(sp =>
     new PendingFollowUpsViewModel(
         sp.GetRequiredService<SupabaseDataService>(),
@@ -142,19 +159,17 @@ namespace ClinicApp
             builder.Services.AddTransient<PatientDetailsPage>();
             builder.Services.AddTransient<PatientDetailsViewModel>();
             builder.Services.AddTransient<DentalChartPage>();
-            builder.Services.AddTransient<DentalChartViewModel> (sp =>
+            builder.Services.AddTransient<DentalChartViewModel>(sp =>
                     new DentalChartViewModel(
                         sp.GetRequiredService<DatabaseService>(),
                         sp.GetRequiredService<SupabaseRealtimeService>()));
             builder.Services.AddTransient<Views.PatientsRelated.TreatmentHistoryPage>();
-            builder.Services.AddTransient<TreatmentHistoryViewModel>(sp => 
+            builder.Services.AddTransient<TreatmentHistoryViewModel>(sp =>
             new TreatmentHistoryViewModel(
                 sp.GetRequiredService<DatabaseService>(),
                 sp.GetRequiredService<SupabaseRealtimeService>()));
             builder.Services.AddTransient<CephalometricPage>();
             builder.Services.AddTransient<CephalometricViewModel>();
-            builder.Services.AddTransient<VisitDetailsViewModel>();
-            builder.Services.AddTransient<VisitDetailsPage>();
 
             // ── Services ──────────────────────────────────────────
             builder.Services.AddSingleton<ServiceViewModel>();
@@ -172,7 +187,7 @@ namespace ClinicApp
             builder.Services.AddTransient<AddUserPage>();
             builder.Services.AddTransient<AddUserViewModel>();
 
-            builder.Services.AddTransient<LoginViewModel>(sp => 
+            builder.Services.AddTransient<LoginViewModel>(sp =>
                     new LoginViewModel(
                         sp.GetRequiredService<AuthenticationService>(),
                         sp.GetRequiredService<SessionService>(),
@@ -198,8 +213,6 @@ namespace ClinicApp
                     sp.GetRequiredService<SupabaseDataService>()));
             builder.Services.AddTransient<ReceiptPage>();
 
-            builder.Services.AddTransient<ServiceSummaryViewModel>();
-            builder.Services.AddTransient<ServiceSummaryPage>();
             builder.Services.AddTransient<BillSummaryPage>();
             builder.Services.AddTransient<BillSummaryViewModel>();
             builder.Services.AddTransient<PaymentViewModel>();
@@ -208,6 +221,9 @@ namespace ClinicApp
             builder.Services.AddTransient<BillDetailsPage>();
             builder.Services.AddTransient<BalanceManagementViewModel>();
             builder.Services.AddTransient<BalanceManagementPage>();
+
+            builder.Services.AddTransient<AdditionalPaymentPage>();
+            builder.Services.AddTransient<AdditionalPaymentViewModel>();
 
             // ── Supply ────────────────────────────────────────────
             builder.Services.AddTransient<SupplyListPage>();
@@ -231,15 +247,20 @@ namespace ClinicApp
 
             // ── Reports ─────────────────────────────
             builder.Services.AddTransient<Views.ReportRelated.ReportsPage>();
-            builder.Services.AddTransient<ReportsViewModel>(sp=>
+            builder.Services.AddTransient<ReportsViewModel>(sp =>
             new ReportsViewModel(
                 sp.GetRequiredService<SupabaseDataService>()));
+            builder.Services.AddTransient<Views.ActivityLogPage>();
+            // Log
+            builder.Services.AddTransient<ActivityLogViewModel>(sp =>
+                new ActivityLogViewModel(sp.GetRequiredService<SupabaseDataService>()));
 
             builder
                 .UseMauiApp<App>()
                 .UseBottomSheet()
                 .UseSkiaSharp()
                 .UseMauiCommunityToolkit()
+                .ConfigureSyncfusionCore()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -251,6 +272,16 @@ namespace ClinicApp
             builder.Logging.AddDebug();
 
 #endif
+
+            // Removes the native Android underline only from Pickers marked StyleId="NoUnderlinePicker".
+#if ANDROID
+            PickerHandler.Mapper.AppendToMapping("RemovePickerUnderline", (handler, view) =>
+            {
+                if (view is Picker picker && picker.StyleId == "NoUnderlinePicker")
+                    handler.PlatformView.Background = null;
+            });
+#endif
+
             return builder.Build();
         }
     }

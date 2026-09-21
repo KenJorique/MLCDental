@@ -14,12 +14,14 @@ public partial class BillDetailsViewModel : ObservableObject
 {
     private readonly SupabaseDataService _supabase;
 
+    // Injects the shared data service.
     public BillDetailsViewModel(
         SupabaseDataService supabase)
     {
         _supabase = supabase;
     }
 
+    // Navigation parameters, set via [QueryProperty] above.
     [ObservableProperty]
     string billId = "";
 
@@ -31,32 +33,30 @@ public partial class BillDetailsViewModel : ObservableObject
 
     [ObservableProperty]
     bool isBusy;
+
+    // Formatted display of the bill's due date, or an em dash if none.
     public string DueDateDisplay =>
     Bill?.DueDateDisplay ?? "—";
 
+    // Formatted display of the bill's last payment date, or an em dash if none.
     public string LastPaymentDateDisplay =>
         Bill?.LastPaymentDateDisplay ?? "—";
 
+    // Whether the bill still has money owed on it.
     public bool HasBalance => Bill != null && Bill.Balance > 0;
 
     [ObservableProperty]
     SupabaseBill? bill;
 
+    // Line items belonging to this bill.
     public ObservableCollection<SupabaseBillItem> Items { get; }
         = new();
 
+    // Payments recorded against this bill.
     public ObservableCollection<SupabasePayment> Payments { get; }
         = new();
 
-    // NOTE: BillId is set by Shell's QueryProperty before OnAppearing()
-    // runs, and BillDetailsPage.OnAppearing() already calls LoadAsync()
-    // explicitly. Also triggering LoadAsync() here on every BillId change
-    // meant two concurrent loads raced: both cleared Items/Payments, both
-    // awaited their own fetch, then both appended -- producing duplicate
-    // rows whenever the second load's Clear() ran after the first load's
-    // Add() had already started. Removed so there's a single, predictable
-    // trigger (OnAppearing) per page visit.
-
+    // Loads the bill, its items, and its payments. Called once from OnAppearing — not from a BillId watcher, to avoid a duplicate-load race.
     public async Task LoadAsync()
     {
         IsBusy = true;
@@ -99,19 +99,22 @@ public partial class BillDetailsViewModel : ObservableObject
         }
     }
 
+    // Opens Additional Payment for this existing bill.
     [RelayCommand]
     private async Task AddPayment()
     {
         if (Bill == null || Bill.Balance <= 0)
             return;
 
+        // Existing bill, so this goes to AdditionalPaymentPage, not the new-bill PaymentPage.
         await Shell.Current.GoToAsync(
-            $"{nameof(PaymentPage)}" +
+            $"{nameof(AdditionalPaymentPage)}" +
             $"?billId={Bill.Id}" +
             $"&patientId={Uri.EscapeDataString(PatientId)}" +
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
+    // Opens the receipt for this bill — kept even though the on-page button was removed, in case other flows still navigate here.
     [RelayCommand]
     private async Task ViewReceipt()
     {
@@ -125,16 +128,7 @@ public partial class BillDetailsViewModel : ObservableObject
             $"&patientName={Uri.EscapeDataString(PatientName)}");
     }
 
-    [RelayCommand]
-    private void ToggleItem(SupabaseBillItem item)
-    {
-        if (item == null)
-            return;
-
-        item.IsExpanded = !item.IsExpanded;
-    }
-
-
+    // Simple formatted passthroughs of the current Bill's fields, used directly by the XAML bindings.
     public string BillNumber =>
         Bill?.BillNumber ?? "";
 

@@ -1,5 +1,8 @@
 ﻿using ClinicApp.Models;
+using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Services;
+using ClinicApp.Views.Shared;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -11,7 +14,26 @@ namespace ClinicApp.ViewModels
     [QueryProperty(nameof(CurrentDateTime), "currentDateTime")]
     public partial class RescheduleViewModel : ObservableObject
     {
+        private static readonly TimeZoneInfo PhZone = GetPhilippineZone();
+
+        // Resolves the Philippine time zone, with a manual UTC+8 fallback.
+        // Windows doesn't recognize the IANA id "Asia/Manila", so without this
+        // fallback chain, TimeZoneInfo.FindSystemTimeZoneById would throw on
+        // Windows builds specifically.
+        private static TimeZoneInfo GetPhilippineZone()
+        {
+            foreach (var id in new[] { "Asia/Manila", "Philippine Standard Time", "UTC+8" })
+            {
+                try { return TimeZoneInfo.FindSystemTimeZoneById(id); }
+                catch { }
+            }
+            // Fallback: manually create UTC+8
+            return TimeZoneInfo.CreateCustomTimeZone(
+                "PST", TimeSpan.FromHours(8), "Philippine Standard Time", "PST");
+        }
+
         readonly SupabaseDataService _supabaseData;
+        readonly DatabaseService _db;
 
         [ObservableProperty] private string bookingId = string.Empty;
         [ObservableProperty] private string patientName = string.Empty;
@@ -31,11 +53,64 @@ namespace ClinicApp.ViewModels
 
         private TimeSlotItem? _selectedSlot;
 
-        public RescheduleViewModel(SupabaseDataService supabaseData)
+        // ---------------------------------------------------------------
+        // ConfirmationPopup helpers — replace Shell.Current.DisplayAlert
+        // everywhere in this ViewModel with the app's dimmed-backdrop
+        // rounded-card popup.
+        // ---------------------------------------------------------------
+
+        static Page CurrentPage =>
+            Shell.Current?.CurrentPage
+            ?? Application.Current?.Windows.FirstOrDefault()?.Page
+            ?? throw new InvalidOperationException("No current page available to host the popup.");
+
+        // Yes/No confirmation. Returns true only if the confirm button was tapped.
+        static async Task<bool> ShowConfirmAsync(
+            string title, string message, string confirmText = "Yes", Color? confirmColor = null)
         {
-            _supabaseData = supabaseData;
+            var popup = new ConfirmationPopup(title, message, confirmText, confirmColor);
+            var result = await CurrentPage.ShowPopupAsync(popup);
+            return result is true;
         }
 
+        // Plain OK-only notice (used in place of single-button DisplayAlert calls).
+        static async Task ShowNoticeAsync(string title, string message, string okText = "OK")
+        {
+            var popup = new ConfirmationPopup(title, message, okText, null, showCancelButton: false);
+            await CurrentPage.ShowPopupAsync(popup);
+        }
+
+        // Convenience wrapper for error alerts so call sites read the same as before.
+        static Task ShowErrorAsync(string message) => ShowNoticeAsync("Error", message);
+
+        // Injects the data services and seeds empty time slots.
+        public RescheduleViewModel(SupabaseDataService supabaseData, DatabaseService db)
+        {
+            _supabaseData = supabaseData;
+            _db = db;
+            InitializeEmptySlots();
+        }
+
+        // Fills TimeSlots with the clinic's fixed hours, all initially open.
+        void InitializeEmptySlots()
+        {
+            var hours = new[] { 10, 11, 13, 14, 15, 16 };
+            foreach (var h in hours)
+            {
+                var slotTime = new DateTime(
+                    DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day, h, 0, 0);
+                TimeSlots.Add(new TimeSlotItem
+                {
+                    Hour = h,
+                    SlotDateTime = slotTime,
+                    Display = slotTime.ToString("h:00 tt"),
+                    IsTaken = false,
+                    IsSelected = false
+                });
+            }
+        }
+
+        // Picks the default date (skipping Sunday) and loads its slots.
         public async Task InitializeAsync()
         {
             // Skip Sundays for default date
@@ -47,11 +122,10 @@ namespace ClinicApp.ViewModels
             await LoadSlotsForDateAsync(date);
         }
 
-        static readonly TimeZoneInfo ManilaTz =
-     TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila") ?? TimeZoneInfo.Utc;
-
+        // Loads available time slots for the given date, checking both bookings and appointment entries.
         public async Task LoadSlotsForDateAsync(DateTime date)
         {
+            // Block Sundays
             if (date.DayOfWeek == DayOfWeek.Sunday)
             {
                 HasError = true;
@@ -71,18 +145,44 @@ namespace ClinicApp.ViewModels
 
             try
             {
-                var bookedSlots = await _supabaseData.GetBookedTimeSlotsForDateAsync(date);
+                // Check both bookings table (website) AND appointment_entries (app).
+                var bookedSlots = await _supabaseData
+                    .GetBookedTimeSlotsForDateAsync(date);
+
+                var allEntries = await _supabaseData.GetAppointmentEntriesAsync();
+
+                // Entry timestamps come back from Supabase already shifted by the
+                // Manila offset with Kind mislabeled — normalize before comparing,
+                // same as everywhere else this app reads AppointmentDateTime.
+                var dayStartLocal = date.Date;
+                var dayEndLocal = dayStartLocal.AddDays(1);
+
+                var entrySlots = allEntries
+                    .Where(e => e.Status != "rejected" && e.Status != "cancelled")
+                    .Select(e => TimeZoneInfo.ConvertTimeFromUtc(
+                        SupabaseDataService.NormalizeSupabaseUtc(e.AppointmentDateTime), PhZone))
+                    .Where(local => local >= dayStartLocal && local < dayEndLocal)
+                    .Select(local => TimeZoneInfo.ConvertTimeToUtc(
+                        DateTime.SpecifyKind(local, DateTimeKind.Unspecified), PhZone))
+                    .ToList();
+
+                var allBooked = bookedSlots.Concat(entrySlots).ToList();
 
                 TimeSlots.Clear();
 
                 var hours = new[] { 10, 11, 13, 14, 15, 16 };
                 foreach (var h in hours)
                 {
-                    var slotTime = new DateTime(date.Year, date.Month, date.Day, h, 0, 0);
+                    var slotTime = new DateTime(
+                        date.Year, date.Month, date.Day, h, 0, 0);
 
-                    var slotUtc = TimeZoneInfo.ConvertTimeToUtc(slotTime, ManilaTz);
+                    // Convert through the Philippine zone explicitly, not the device's
+                    // local zone — matches how utcTime is computed in ConfirmReschedule
+                    // below, so a slot that's actually taken never shows as open.
+                    var slotUtc = TimeZoneInfo.ConvertTimeToUtc(
+                        DateTime.SpecifyKind(slotTime, DateTimeKind.Unspecified), PhZone);
 
-                    var isTaken = bookedSlots.Any(b => b == slotUtc);
+                    var isTaken = allBooked.Any(b => b == slotUtc);
 
                     var item = new TimeSlotItem
                     {
@@ -94,6 +194,7 @@ namespace ClinicApp.ViewModels
                     };
 
                     item.RefreshColors();
+
                     TimeSlots.Add(item);
                 }
 
@@ -110,30 +211,19 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Selects a slot, deselecting any other. Taken slots are simply ignored —
+        // their greyed-out styling is the only feedback, no popup.
         [RelayCommand]
-        async Task SelectSlot(TimeSlotItem slot)
+        void SelectSlot(TimeSlotItem slot)
         {
-            if (slot == null) return;
-
-            if (slot.IsTaken)
-            {
-                await Shell.Current.DisplayAlert(
-                    "Slot Unavailable",
-                    $"{slot.Display} is already booked. Please choose a different time.",
-                    "OK");
-                return;
-            }
+            if (slot == null || slot.IsTaken) return;
 
             // Deselect all
             foreach (var s in TimeSlots)
-            {
                 s.IsSelected = false;
-                s.RefreshColors();
-            }
 
             // Select this one
             slot.IsSelected = true;
-            slot.RefreshColors();
             _selectedSlot = slot;
             HasSelection = true;
 
@@ -141,53 +231,94 @@ namespace ClinicApp.ViewModels
                 $"{slot.SlotDateTime:MMMM dd, yyyy} at {slot.Display}";
         }
 
+        // Applies the new time to the booking/entry and logs the activity.
         [RelayCommand]
         async Task ConfirmReschedule()
         {
             if (_selectedSlot == null || string.IsNullOrEmpty(BookingId))
                 return;
 
-            IsLoadingSlots = true;
-            HasError = false;
-            ErrorMessage = string.Empty;
+            bool confirmed = await ShowConfirmAsync(
+                "Confirm Reschedule",
+                $"Reschedule {PatientName}'s appointment to {SelectedSummary}?",
+                "Yes, reschedule");
 
+            if (!confirmed) return;
+
+            IsLoadingSlots = true;
             try
             {
                 // Convert Philippine time to UTC for storage
-                var utcTime = TimeZoneInfo.ConvertTimeToUtc(
-                    _selectedSlot.SlotDateTime,
-                    ManilaTz);
+                var localSlot = DateTime.SpecifyKind(
+                    _selectedSlot.SlotDateTime, DateTimeKind.Unspecified);
+                var utcTime = TimeZoneInfo.ConvertTimeToUtc(localSlot, PhZone);
 
-                // ── Final guard: re-check right before writing, in case another
-                // booking took this slot after the page loaded. Excludes this
-                // booking's own current appointment_entries row so rescheduling
-                // "into" its existing slot never false-blocks. ──
-                var stillFree = await _supabaseData.IsSlotAvailableAsync(utcTime, BookingId);
-                if (!stillFree)
+                // Check which situation this is: an already-approved appointment being moved,
+                // or a still-pending booking (no entry exists yet) being rescheduled.
+                var entries = await _supabaseData.GetAppointmentEntriesAsync();
+                var entry = entries.FirstOrDefault(e => e.SupabaseBookingId == BookingId);
+
+                if (entry != null)
                 {
-                    HasError = true;
-                    ErrorMessage = "This time slot was just booked by someone else. Please pick a different time.";
+                    // Already-approved appointment — just move its date/time.
+                    await _supabaseData.RescheduleBookingAsync(BookingId, utcTime);
 
-                    await Shell.Current.DisplayAlert(
-                        "Slot No Longer Available",
-                        "That time slot has just been taken. Please choose another time.",
-                        "OK");
+                    var refreshed = await _supabaseData.GetAppointmentEntriesAsync();
+                    var refreshedEntry = refreshed.FirstOrDefault(e => e.SupabaseBookingId == BookingId);
 
-                    // Refresh so the grid reflects reality
-                    HasSelection = false;
-                    _selectedSlot = null;
-                    await LoadSlotsForDateAsync(SelectedDate);
-                    return;
+                    // Normalize before comparing — the raw value read back from Supabase
+                    // isn't directly comparable to utcTime without this (see note above).
+                    var entryNormalizedUtc = refreshedEntry != null
+                        ? SupabaseDataService.NormalizeSupabaseUtc(refreshedEntry.AppointmentDateTime)
+                        : (DateTime?)null;
+
+                    if (refreshedEntry != null && entryNormalizedUtc != utcTime)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[ConfirmReschedule] RescheduleBookingAsync did not update the entry " +
+                            $"(likely a walk-in with no matching bookings row) — updating directly.");
+
+                        await _supabaseData.DeleteAppointmentEntryAsync(refreshedEntry.Id);
+
+                        var replacement = new SupabaseAppointmentEntry
+                        {
+                            SupabaseBookingId = refreshedEntry.SupabaseBookingId,
+                            PatientName = refreshedEntry.PatientName,
+                            Phone = refreshedEntry.Phone,
+                            Email = refreshedEntry.Email,
+                            Notes = refreshedEntry.Notes,
+                            AppointmentDateTime = utcTime,
+                            Status = refreshedEntry.Status
+                        };
+                        await _supabaseData.AddAppointmentEntryAsync(replacement);
+                    }
+                }
+                else
+                {
+                    // No entry yet — this booking is still pending. Approve it directly at the newly picked time.
+                    var booking = await _supabaseData.GetBookingByIdAsync(BookingId);
+                    if (booking == null)
+                    {
+                        HasError = true;
+                        ErrorMessage = "Booking not found — it may have already been removed.";
+                        return;
+                    }
+
+                    var (success, approveError) = await _supabaseData.ApproveBookingAsync(_db, booking, localSlot);
+                    if (!success)
+                    {
+                        HasError = true;
+                        ErrorMessage = approveError ?? "Failed to approve and schedule this booking.";
+                        return;
+                    }
                 }
 
-                // Update booking in Supabase with new date
-                await _supabaseData.RescheduleBookingAsync(
-                    BookingId, utcTime);
-
-                await Shell.Current.DisplayAlert(
+                await ShowNoticeAsync(
                     "Rescheduled",
-                    $"{PatientName}'s appointment has been rescheduled to\n{SelectedSummary}",
-                    "OK");
+                    $"{PatientName}'s appointment has been rescheduled to {SelectedSummary}");
+
+                await _supabaseData.LogActivityAsync("AppointmentRescheduled",
+                    $"{PatientName}'s appointment was rescheduled to {SelectedSummary}");
 
                 await Shell.Current.GoToAsync("..");
             }
@@ -202,6 +333,7 @@ namespace ClinicApp.ViewModels
             }
         }
 
+        // Discards and goes back.
         [RelayCommand]
         async Task Cancel()
         {
@@ -214,41 +346,55 @@ namespace ClinicApp.ViewModels
         public int Hour { get; set; }
         public DateTime SlotDateTime { get; set; }
         public string Display { get; set; } = string.Empty;
-        public bool IsTaken { get; set; }
 
-        [ObservableProperty] bool isSelected;
-
-        public void RefreshColors()
+        private bool _isTaken;
+        public bool IsTaken
         {
-            OnPropertyChanged(nameof(BackgroundColor));
-            OnPropertyChanged(nameof(BorderColor));
-            OnPropertyChanged(nameof(TextColor));
-            OnPropertyChanged(nameof(StatusColor));
-            OnPropertyChanged(nameof(StatusText));
+            get => _isTaken;
+            set { _isTaken = value; RefreshColors(); }
         }
 
-        public string StatusText =>
-            IsTaken ? "Unavailable" :
-            IsSelected ? "Selected ✓" : "Available";
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set { _isSelected = value; RefreshColors(); }
+        }
 
-        public Color BackgroundColor =>
-            IsTaken ? Color.FromArgb("#F0F0F0") :
-            IsSelected ? Color.FromArgb("#2E7D32") :
-                         Colors.White;
+        // Observable color properties — set directly so CollectionView updates
+        [ObservableProperty] Color backgroundColor = Colors.White;
+        [ObservableProperty] Color borderColor = Color.FromArgb("#C8A84B");
+        [ObservableProperty] Color textColor = Color.FromArgb("#1A1A2E");
+        [ObservableProperty] Color statusColor = Color.FromArgb("#2E7D32");
+        [ObservableProperty] string statusText = "Available";
 
-        public Color BorderColor =>
-            IsTaken ? Color.FromArgb("#CCCCCC") :
-            IsSelected ? Color.FromArgb("#2E7D32") :
-                         Color.FromArgb("#C8A84B");
-
-        public Color TextColor =>
-            IsTaken ? Color.FromArgb("#AAAAAA") :
-            IsSelected ? Colors.White :
-                         Color.FromArgb("#1A1A2E");
-
-        public Color StatusColor =>
-            IsTaken ? Color.FromArgb("#AAAAAA") :
-            IsSelected ? Color.FromArgb("#A5D6A7") :
-                         Color.FromArgb("#2E7D32");
+        // Recomputes this slot's colors/status text from its taken/selected state.
+        public void RefreshColors()
+        {
+            if (_isTaken)
+            {
+                BackgroundColor = Color.FromArgb("#F0F0F0");
+                BorderColor = Color.FromArgb("#CCCCCC");
+                TextColor = Color.FromArgb("#AAAAAA");
+                StatusText = "Unavailable";
+                StatusColor = Color.FromArgb("#AAAAAA");
+            }
+            else if (_isSelected)
+            {
+                BackgroundColor = Color.FromArgb("#2E7D32");
+                BorderColor = Color.FromArgb("#2E7D32");
+                TextColor = Colors.White;
+                StatusText = "Selected";
+                StatusColor = Color.FromArgb("#A5D6A7");
+            }
+            else
+            {
+                BackgroundColor = Colors.White;
+                BorderColor = Color.FromArgb("#C8A84B");
+                TextColor = Color.FromArgb("#1A1A2E");
+                StatusText = "Available";
+                StatusColor = Color.FromArgb("#2E7D32");
+            }
+        }
     }
 }

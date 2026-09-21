@@ -15,18 +15,38 @@ public partial class StockHistoryViewModel : ObservableObject
     [ObservableProperty] private string supplyName = string.Empty;
     [ObservableProperty] private string stockDisplay = string.Empty;
     [ObservableProperty] private string stockStatus = string.Empty;
-    [ObservableProperty] private string stockStatusColor = "#388E3C";
+
+    // Pale badge background, matching SupplyCardViewModel/BillCardItem's status-pill convention.
+    [ObservableProperty] private string stockStatusColor = "#E8F5E9";
+
+    // Saturated badge text color, paired with StockStatusColor above.
+    [ObservableProperty] private string stockStatusTextColor = "#2E7D32";
 
     public ObservableCollection<StockLogRowViewModel> Logs { get; } = new();
 
+    // Shrinks the header name's font as it gets longer, so it stays on one line next to the badge and qty.
+    public double NameFontSize => SupplyName.Length switch
+    {
+        <= 14 => 20,
+        <= 20 => 16,
+        _ => 15
+    };
+
+    // Refreshes NameFontSize whenever the loaded supply's name changes.
+    partial void OnSupplyNameChanged(string value) => OnPropertyChanged(nameof(NameFontSize));
+
+
+    // Injects the shared data service.
     public StockHistoryViewModel(SupabaseDataService supabase) => _supabase = supabase;
 
+    // Loads the supply's history once SupplyId is set via navigation.
     partial void OnSupplyIdChanged(string value)
     {
         if (!string.IsNullOrWhiteSpace(value))
             MainThread.BeginInvokeOnMainThread(async () => await LoadAsync());
     }
 
+    // Loads the supply item's header info and its full stock log history.
     [RelayCommand]
     public async Task LoadAsync()
     {
@@ -41,9 +61,12 @@ public partial class StockHistoryViewModel : ObservableObject
             StockStatus = item.IsOutOfStock ? "Out of Stock"
                         : item.IsLowStock ? "Low Stock"
                         : "In Stock";
-            StockStatusColor = item.IsOutOfStock ? "#D32F2F"
-                             : item.IsLowStock ? "#F57C00"
-                             : "#388E3C";
+            StockStatusColor = item.IsOutOfStock ? "#FCEAEA"
+                             : item.IsLowStock ? "#FFF3E0"
+                             : "#E8F5E9";
+            StockStatusTextColor = item.IsOutOfStock ? "#C62828"
+                             : item.IsLowStock ? "#E65100"
+                             : "#2E7D32";
 
             var logs = await _supabase.GetLogsForSupplyAsync(SupplyId);
             Logs.Clear();

@@ -2,5 +2,225 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ClinicApp.Views.HomePage"
-             Title="Home">
+             Title="Home"
+             Shell.BackgroundColor="{StaticResource Primary}"
+             Shell.TitleColor="White"
+             Shell.ForegroundColor="White"
+             BackgroundColor="{StaticResource PageBg}">
+
+	<ScrollView>
+		<VerticalStackLayout Padding="16" Spacing="18">
+
+			<!-- ══════════════════════════════════════════
+                 TODAY'S OVERVIEW — 4 stat cards, full width
+                 ══════════════════════════════════════════ -->
+			<VerticalStackLayout Spacing="8">
+				<Label Text="Today's Overview" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray900}"/>
+
+				<Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="4">
+					<Border Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" Padding="8,12">
+						<VerticalStackLayout Spacing="4">
+							<HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+								<Label Text="&#xe878;" FontFamily="MaterialSymbolsRounded" FontSize="20" TextColor="{StaticResource Gray500}" VerticalOptions="Center"/>
+								<Label Text="{Binding TotalAppointments}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource Gray900}" VerticalOptions="Center"/>
+							</HorizontalStackLayout>
+							<Label Text="Total" FontSize="11" TextColor="{StaticResource Gray400}" HorizontalTextAlignment="Center"/>
+						</VerticalStackLayout>
+					</Border>
+					<Border Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" Padding="8,12">
+						<VerticalStackLayout Spacing="4">
+							<HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+								<Label Text="&#xe614;" FontFamily="MaterialSymbolsRounded" FontSize="20" TextColor="{StaticResource Primary}" VerticalOptions="Center"/>
+								<Label Text="{Binding DoneAppointments}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource Primary}" VerticalOptions="Center"/>
+							</HorizontalStackLayout>
+							<Label Text="Completed" FontSize="11" TextColor="{StaticResource Gray400}" HorizontalTextAlignment="Center"/>
+						</VerticalStackLayout>
+					</Border>
+					<Border Grid.Column="2" Style="{StaticResource ElevatedCardStyle}" Padding="8,12">
+						<VerticalStackLayout Spacing="4">
+							<HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+								<Label Text="&#xf540;" FontFamily="MaterialSymbolsRounded" FontSize="20" TextColor="{StaticResource StatusLow}" VerticalOptions="Center"/>
+								<Label Text="{Binding PendingAppointments}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource StatusLow}" VerticalOptions="Center"/>
+							</HorizontalStackLayout>
+							<Label Text="Pending" FontSize="11" TextColor="{StaticResource Gray400}" HorizontalTextAlignment="Center"/>
+						</VerticalStackLayout>
+					</Border>
+					<Border Grid.Column="3" Style="{StaticResource ElevatedCardStyle}" Padding="8,12">
+						<VerticalStackLayout Spacing="4">
+							<HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+								<Label Text="&#xe615;" FontFamily="MaterialSymbolsRounded" FontSize="20" TextColor="{StaticResource StatusOut}" VerticalOptions="Center"/>
+								<Label Text="{Binding CancelledAppointments}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource StatusOut}" VerticalOptions="Center"/>
+							</HorizontalStackLayout>
+							<Label Text="Cancelled" FontSize="11" TextColor="{StaticResource Gray400}" HorizontalTextAlignment="Center"/>
+						</VerticalStackLayout>
+					</Border>
+				</Grid>
+			</VerticalStackLayout>
+
+			<!-- ══════════════════════════════════════════
+                 TODAY'S APPOINTMENTS — each row its own card, chevron shows it's tappable
+                 ══════════════════════════════════════════ -->
+			<VerticalStackLayout Spacing="8">
+				<Label Text="Today's Appointments" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray900}"/>
+
+				<CollectionView ItemsSource="{Binding ScheduleVM.TodayAppointments}">
+					<CollectionView.ItemsLayout>
+						<LinearItemsLayout Orientation="Vertical" ItemSpacing="8"/>
+					</CollectionView.ItemsLayout>
+					<CollectionView.EmptyView>
+						<Label Text="No appointments booked for today." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+					</CollectionView.EmptyView>
+					<CollectionView.ItemTemplate>
+						<DataTemplate>
+							<Border BackgroundColor="{StaticResource AppointmentCardBg}" Stroke="{StaticResource Gold}" StrokeThickness="1" StrokeShape="RoundRectangle 14" Padding="14,12">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ScheduleVM.SelectTodayAppointmentCommand}"
+                                        CommandParameter="{Binding .}"/>
+								</Border.GestureRecognizers>
+								<Grid ColumnDefinitions="70,*,Auto">
+									<Label Grid.Column="0" Text="{Binding AppointmentDateTimeParsed, StringFormat='{0:h:mm tt}'}"
+                                           FontSize="13" TextColor="{StaticResource Gray700}" VerticalOptions="Center"/>
+									<Label Grid.Column="1" Text="{Binding PatientName}"
+                                           FontSize="14" TextColor="{StaticResource Gray900}" FontAttributes="Bold" VerticalOptions="Center" LineBreakMode="WordWrap"/>
+									<Label Grid.Column="2" Text="›" FontSize="20" FontAttributes="Bold"
+                                           TextColor="{StaticResource Gray400}" VerticalOptions="Center"/>
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
+			</VerticalStackLayout>
+
+			<!-- ══════════════════════════════════════════
+                 QUICK ACTIONS — 2×2 grid, icon left, two-line label right
+                 ══════════════════════════════════════════ -->
+			<VerticalStackLayout Spacing="8">
+				<Label Text="Quick Actions" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray900}"/>
+
+				<Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+					<Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
+						<Border.GestureRecognizers>
+							<TapGestureRecognizer Command="{Binding AddAppointmentCommand}"/>
+						</Border.GestureRecognizers>
+						<Grid ColumnDefinitions="28,*" ColumnSpacing="6" WidthRequest="128" HorizontalOptions="Center">
+							<Label Grid.Column="0" Text="&#xef85;" FontFamily="MaterialSymbolsRounded" FontSize="24" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
+							<VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+								<Label Text="Add" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+								<Label Text="Appointment" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+							</VerticalStackLayout>
+						</Grid>
+					</Border>
+					<Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
+						<Border.GestureRecognizers>
+							<TapGestureRecognizer Command="{Binding AddPatientCommand}"/>
+						</Border.GestureRecognizers>
+						<Grid ColumnDefinitions="28,*" ColumnSpacing="6" WidthRequest="128" HorizontalOptions="Center">
+							<Label Grid.Column="0" Text="&#xe7fe;" FontFamily="MaterialSymbolsRounded" FontSize="24" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
+							<VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+								<Label Text="Add" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+								<Label Text="Patient" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+							</VerticalStackLayout>
+						</Grid>
+					</Border>
+					<Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
+						<Border.GestureRecognizers>
+							<TapGestureRecognizer Command="{Binding RecordPaymentCommand}"/>
+						</Border.GestureRecognizers>
+						<Grid ColumnDefinitions="28,*" ColumnSpacing="6" WidthRequest="128" HorizontalOptions="Center">
+							<Label Grid.Column="0" Text="&#xeb86;" FontFamily="MaterialSymbolsRounded" FontSize="24" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
+							<VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+								<Label Text="Record" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+								<Label Text="Payment" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+							</VerticalStackLayout>
+						</Grid>
+					</Border>
+					<Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ElevatedCardStyle}" BackgroundColor="{StaticResource Secondary}" Stroke="{StaticResource Secondary}" Padding="10,10">
+						<Border.GestureRecognizers>
+							<TapGestureRecognizer Command="{Binding ManageSupplyCommand}"/>
+						</Border.GestureRecognizers>
+						<Grid ColumnDefinitions="28,*" ColumnSpacing="6" WidthRequest="128" HorizontalOptions="Center">
+							<Label Grid.Column="0" Text="&#xf5a5;" FontFamily="MaterialSymbolsRounded" FontSize="24" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
+							<VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+								<Label Text="Manage" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+								<Label Text="Supply" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalTextAlignment="Center"/>
+							</VerticalStackLayout>
+						</Grid>
+					</Border>
+				</Grid>
+			</VerticalStackLayout>
+
+			<!-- ══════════════════════════════════════════
+                 NEEDS ATTENTION — each line its own card, like Today's Appointments
+                 ══════════════════════════════════════════ -->
+			<VerticalStackLayout Spacing="8">
+				<Label Text="Needs Attention" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray900}"/>
+
+				<CollectionView ItemsSource="{Binding NeedsAttentionRows}">
+					<CollectionView.ItemsLayout>
+						<LinearItemsLayout Orientation="Vertical" ItemSpacing="8"/>
+					</CollectionView.ItemsLayout>
+					<CollectionView.EmptyView>
+						<Label Text="Nothing needs attention right now." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+					</CollectionView.EmptyView>
+					<CollectionView.ItemTemplate>
+						<DataTemplate>
+							<Border Stroke="{StaticResource gray}" StrokeThickness="1" StrokeShape="RoundRectangle 14" Padding="14,12">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenNeedsAttentionRowCommand}"
+                                        CommandParameter="{Binding .}"/>
+								</Border.GestureRecognizers>
+								<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+									<Label Grid.Column="0" Text="{Binding IconGlyph}" FontFamily="MaterialSymbolsRoundedFilled"
+                                           FontSize="20" TextColor="{Binding IconColor}" WidthRequest="22" VerticalOptions="Center"/>
+									<Label Grid.Column="1" Text="{Binding Text}" FontSize="13" TextColor="{StaticResource Gray900}" VerticalOptions="Center"/>
+									<Label Grid.Column="2" Text="›" FontSize="20" FontAttributes="Bold"
+                                           TextColor="{StaticResource Gray400}" VerticalOptions="Center"/>
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
+			</VerticalStackLayout>
+
+			<!-- ══════════════════════════════════════════
+                 RECENT ACTIVITY — latest 8, "View All" opens the full history
+                 ══════════════════════════════════════════ -->
+			<VerticalStackLayout Spacing="8">
+				<Grid ColumnDefinitions="*,Auto">
+					<Label Grid.Column="0" Text="Recent Activity" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Gray900}"/>
+					<Label Grid.Column="1" Text="View All ›" Style="{StaticResource LinkStyle}" VerticalOptions="Center">
+						<Label.GestureRecognizers>
+							<TapGestureRecognizer Command="{Binding ViewAllActivityCommand}"/>
+						</Label.GestureRecognizers>
+					</Label>
+				</Grid>
+
+				<CollectionView ItemsSource="{Binding RecentActivities}">
+					<CollectionView.EmptyView>
+						<Label Text="No recent activity yet." Style="{StaticResource MutedCaptionStyle}" Margin="0,10"/>
+					</CollectionView.EmptyView>
+					<CollectionView.ItemTemplate>
+						<DataTemplate>
+							<VerticalStackLayout>
+								<Grid ColumnDefinitions="*,Auto" Padding="0,10">
+									<Label Grid.Column="0" Text="{Binding Description}" FontSize="13"
+                                           TextColor="{StaticResource Gray900}" VerticalOptions="Center" LineBreakMode="WordWrap"/>
+									<Label Grid.Column="1" Text="{Binding TimeAgoDisplay}" FontSize="11"
+                                           TextColor="{StaticResource Gray400}" VerticalOptions="Center" Margin="10,0,0,0"/>
+								</Grid>
+								<BoxView HeightRequest=".1" Color="{StaticResource Gray100}"/>
+							</VerticalStackLayout>
+						</DataTemplate>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
+			</VerticalStackLayout>
+			<!-- Small, non-blocking — the page itself renders immediately, this just hints a refresh is running -->
+			<ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource Primary}" HeightRequest="20" WidthRequest="20"
+                               HorizontalOptions="End"/>
+		</VerticalStackLayout>
+	</ScrollView>
+
 </ContentPage>
