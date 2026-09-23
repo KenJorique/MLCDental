@@ -102,7 +102,7 @@
 		<VerticalStackLayout Grid.Row="1" Spacing="1">
 
 			<!-- Active queue banner: in-procedure + billing -->
-			<Border BackgroundColor="#2563EB"
+			<Border BackgroundColor="{StaticResource Gold}"
                     IsVisible="{Binding HasInProcedureQueue}"
                     Padding="12,8">
 				<Border.GestureRecognizers>

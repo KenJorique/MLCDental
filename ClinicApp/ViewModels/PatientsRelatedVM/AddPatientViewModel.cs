@@ -395,194 +395,32 @@ public partial class AddPatientViewModel : ObservableObject
     // Guardian and Conditions are both normalized tables in Supabase (SupabasePatient only holds
     // a GuardianId foreign key and has no Conditions column at all), so both are resolved/synced
     // through their own dedicated methods rather than written as flat fields on the patient row.
+    // Saves locally already happened by the time this runs. This just pushes to Supabase
+    // and, on failure, shows a soft warning instead of blocking navigation — the patient
+    // is safe locally either way, and SyncPendingPatientsAsync will retry automatically.
     private async Task SyncToSupabaseAsync(int localPid)
     {
-        // Read fresh from SQLite — never use ViewModel fields directly
-        var saved = await _db.GetPatientById(localPid);
-        if (saved == null)
+        string? result;
+        try
         {
-            System.Diagnostics.Debug.WriteLine("[Sync] Patient not found in SQLite");
+            result = await _db.SyncPatientToSupabaseAsync(localPid, _supabaseId);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Sync] Unexpected error: {ex.Message}");
+            result = null;
+        }
+
+        if (!string.IsNullOrEmpty(result))
+        {
+            _supabaseId = result;
             return;
         }
 
-        // Use SupabaseId from local record if _supabaseId is empty
-        if (string.IsNullOrEmpty(_supabaseId))
-            _supabaseId = saved.SupabaseId ?? string.Empty;
-
-        System.Diagnostics.Debug.WriteLine(
-            $"[Sync] pid={localPid} supabaseId='{_supabaseId}' name={saved.FirstName} {saved.LastName}");
-
-        // Read related tables
-        var g = await _db.GetGuardianByPatient(localPid);
-        var m = await _db.GetMedicalHistory(localPid);
-        var a = await _db.GetAllergy(localPid);
-        var conds = await _db.GetPatientConditions(localPid);
-        var allConds = await _db.GetAllConditions();
-        var selectedConditionNames = conds
-            .Select(pc => allConds.FirstOrDefault(c => c.ConditionID == pc.ConditionID)?.ConditionName)
-            .Where(n => n != null)
-            .Select(n => n!)
-            .ToList();
-
-        // Guardian is a shared entity in Supabase (siblings can point at the
-        // same row), so resolve-or-create it before building the patient —
-        // match by mobile first, then by exact name, and keep the shared
-        // record's occupation/mobile current if this save has newer info.
-        long? guardianId = null;
-        if (!string.IsNullOrWhiteSpace(g?.GuardianName))
-        {
-            var existingGuardian = await _supabase.FindGuardianAsync(g.GuardianName, g.MobileNo);
-            if (existingGuardian != null)
-            {
-                guardianId = existingGuardian.Id;
-                if (existingGuardian.Occupation != g.Occupation || existingGuardian.Mobile != g.MobileNo)
-                {
-                    existingGuardian.Occupation = g.Occupation;
-                    existingGuardian.Mobile = g.MobileNo;
-                    await _supabase.UpdateGuardianAsync(existingGuardian);
-                }
-            }
-            else
-            {
-                var created = await _supabase.AddGuardianAsync(new SupabaseGuardian
-                {
-                    Name = g.GuardianName,
-                    Occupation = g.Occupation,
-                    Mobile = g.MobileNo
-                });
-                guardianId = created?.Id;
-            }
-        }
-
-        if (!string.IsNullOrEmpty(_supabaseId))
-        {
-            // Fetches the existing row first — Supabase's client only sends changed properties on
-            // Update(), and a freshly-constructed object has no baseline to diff against, so the
-            // update can silently do nothing even though it reports success. Mutating the fetched
-            // instance in place gives it that baseline, and also means fields this form doesn't
-            // know about (e.g. Medical tab fields) are preserved instead of blanked.
-            var sp = await _supabase.GetPatientByIdAsync(_supabaseId)
-                ?? new SupabasePatient { Id = _supabaseId };
-
-            sp.FirstName = saved.FirstName;
-            sp.LastName = saved.LastName;
-            sp.Nickname = saved.Nickname;
-            sp.Gender = saved.Gender;
-            sp.DateOfBirth = DateTime.TryParse(saved.DateOfBirth, out var dobU) ? dobU : null;
-            sp.Nationality = saved.Nationality;
-            sp.Religion = saved.Religion;
-            sp.Occupation = saved.Occupation;
-            sp.Address = saved.Address;
-            sp.Phone = saved.MobileNo;
-            sp.HomeNo = saved.HomeNo;
-            sp.OfficeNo = saved.OfficeNo;
-            sp.FaxNo = saved.FaxNo;
-            sp.Email = saved.Email;
-            sp.DateRegistered = DateTime.TryParse(saved.DateRegistered, out var regU)
-                ? regU.ToUniversalTime()
-                : sp.DateRegistered;
-            sp.ReferredBy = saved.ReferredBy;
-            sp.GoodHealth = m?.IsGoodHealth ?? true;
-            sp.UnderTreatment = m?.UnderMedicalTreatment ?? false;
-            sp.TreatmentDetails = m?.TreatmentDetails;
-            sp.Hospitalized = m?.HasBeenHospitalized ?? false;
-            sp.UsesTobacco = m?.UsesTobacco ?? false;
-            sp.OnMedications = m?.TakingMedications ?? false;
-            sp.GuardianId = guardianId;
-            sp.GuardianRelationship = g?.RelationshipToPatient;
-            sp.BloodType = m?.BloodType;
-            sp.LatexAllergy = a?.HasLatexAllergy ?? false;
-            sp.AspirinAllergy = a?.HasAspirinAllergy ?? false;
-            sp.PenicillinAllergy = a?.HasPenicillinAllergy ?? false;
-            sp.SulfaAllergy = a?.HasSulfaAllergy ?? false;
-            sp.LocalAnestheticAllergy = a?.HasLocalAnestheticAllergy ?? false;
-            sp.OtherAllergy = a?.OtherAllergy;
-
-            System.Diagnostics.Debug.WriteLine($"[Sync] Updating {_supabaseId}");
-            var ok = await _supabase.UpdatePatientAsync(sp);
-            System.Diagnostics.Debug.WriteLine($"[Sync] Update result: {ok}");
-
-            if (!ok)
-                await Shell.Current.DisplayAlert("Sync Warning",
-                    "Patient saved locally but could not update cloud. Check your internet connection.",
-                    "OK");
-        }
-        else
-        {
-            // Build from SQLite data — guaranteed to have the saved values
-            var sp = new SupabasePatient
-            {
-                FirstName = saved.FirstName,
-                LastName = saved.LastName,
-                Nickname = saved.Nickname,
-                Gender = saved.Gender,
-                DateOfBirth = DateTime.TryParse(saved.DateOfBirth, out var dob) ? dob : null,
-                Nationality = saved.Nationality,
-                Religion = saved.Religion,
-                Occupation = saved.Occupation,
-                Address = saved.Address,
-                Phone = saved.MobileNo,
-                HomeNo = saved.HomeNo,
-                OfficeNo = saved.OfficeNo,
-                FaxNo = saved.FaxNo,
-                Email = saved.Email,
-                DateRegistered = DateTime.TryParse(saved.DateRegistered, out var reg)
-                         ? reg.ToUniversalTime()  // ← Supabase needs UTC
-                         : DateTime.UtcNow,
-                ReferredBy = saved.ReferredBy,
-                GoodHealth = m?.IsGoodHealth ?? true,
-                UnderTreatment = m?.UnderMedicalTreatment ?? false,
-                TreatmentDetails = m?.TreatmentDetails,
-                Hospitalized = m?.HasBeenHospitalized ?? false,
-                UsesTobacco = m?.UsesTobacco ?? false,
-                OnMedications = m?.TakingMedications ?? false,
-                GuardianId = guardianId,
-                GuardianRelationship = g?.RelationshipToPatient,
-                BloodType = m?.BloodType,
-                LatexAllergy = a?.HasLatexAllergy ?? false,
-                AspirinAllergy = a?.HasAspirinAllergy ?? false,
-                PenicillinAllergy = a?.HasPenicillinAllergy ?? false,
-                SulfaAllergy = a?.HasSulfaAllergy ?? false,
-                LocalAnestheticAllergy = a?.HasLocalAnestheticAllergy ?? false,
-                OtherAllergy = a?.OtherAllergy
-            };
-
-            // INSERT — throws on failure so user sees the error
-            System.Diagnostics.Debug.WriteLine("[Sync] Inserting new patient to Supabase");
-            var inserted = await _supabase.AddPatientAsync(sp);
-
-            if (inserted != null && !string.IsNullOrEmpty(inserted.Id))
-            {
-                _supabaseId = inserted.Id;
-                saved.SupabaseId = inserted.Id;
-                await _db.UpdatePatient(saved);
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Sync] Success. SupabaseId={inserted.Id} saved locally");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("[Sync] Insert returned null");
-                await Shell.Current.DisplayAlert("Sync Warning",
-                    "Patient saved locally but could not sync to cloud.\n" +
-                    "Check internet connection and Supabase RLS policies.",
-                    "OK");
-            }
-        }
-
-        // Conditions live in the normalized patient_conditions join table —
-        // resolve local condition names to their Supabase medical_conditions ids
-        // and replace the patient's full set. Needs _supabaseId, so this only
-        // runs once the patient row itself exists in Supabase (update, or a
-        // successful insert above).
-        if (!string.IsNullOrEmpty(_supabaseId))
-        {
-            var remoteDefs = await _supabase.GetMedicalConditionsAsync();
-            var remoteIds = remoteDefs
-                .Where(c => selectedConditionNames.Contains(c.Name))
-                .Select(c => c.Id)
-                .ToList();
-            await _supabase.SavePatientConditionsAsync(_supabaseId, remoteIds);
-        }
+        await Shell.Current.DisplayAlert("Sync Warning",
+            "Patient saved locally but could not sync to the cloud yet. " +
+            "It will sync automatically once you're back online.",
+            "OK");
     }
 }
 

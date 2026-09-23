@@ -73,7 +73,11 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
             IsRefreshing = true;
             try
             {
-                await _realtime.SyncMissedPatientsAsync();
+                if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+                {
+                    await _db.SyncPendingPatientsAsync();
+                    await _realtime.SyncMissedPatientsAsync();
+                }
                 await LoadPatientsInternal();
             }
             catch (Exception ex)
@@ -93,40 +97,45 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
         // One-time setup: connects to Supabase, syncs missed data, and subscribes to live changes.
         public async Task StartRealtimeAsync()
         {
+            if (_realtimeStarted) return;
+            if (_realtimeStartTask != null) { await _realtimeStartTask; return; }
+            _realtimeStartTask = StartRealtimeInternalAsync();
+            await _realtimeStartTask;
+        }
 
+        private async Task StartRealtimeInternalAsync()
+        {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    System.Diagnostics.Debug.WriteLine("[StartRealtime] Offline — skipping, will retry next visit");
+                    return;
+                }
+
                 var url = "https://uxacdqkkocbjaiqszpyk.supabase.co";
                 var key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4YWNkcWtrb2NiamFpcXN6cHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NTExNTUsImV4cCI6MjA5NjAyNzE1NX0.Jt-Dsn6j3m9uL_R0A1Y0AVlUKBA_hmNI-NfHDBQYLUA";
 
                 await _realtime.InitializeAsync(url, key);
-                // Sync any patients/bookings/users missed while offline.
+
+                // Push anything created/edited offline before pulling down what's new.
+                await _db.SyncPendingPatientsAsync();
+
                 await _realtime.SyncMissedPatientsAsync();
                 await _realtime.SyncMissedBookingsAsync();
                 await _realtime.SyncMissedTreatmentHistoryAsync();
                 await _realtime.SyncMissedToothRecordsAsync();
                 await _realtime.SyncMissedUsersAsync();
 
-                // Backfill SupabaseId for patients that don't have it yet.
                 var allSupabase = await _supabaseData.GetPatientsAsync();
                 await _db.BackfillSupabaseIds(allSupabase);
 
-                // Subscribe to live changes.
                 await _realtime.SubscribeToBookingsAsync();
                 await _realtime.SubscribeToPatientsAsync();
                 await _realtime.SubscribeToTreatmentHistoryAsync();
                 await _realtime.SubscribeToToothRecordsAsync();
                 await _realtime.SubscribeToUsersAsync();
 
-                // Temporary debug — check what's actually in Supabase bookings.
-                var allBookings = await _supabaseData.GetAllBookingsDebugAsync();
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Debug] Total bookings in Supabase: {allBookings.Count}");
-                foreach (var b in allBookings)
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[Debug] Booking: {b.FullName} | Status={b.Status} | Date={b.AppointmentDate}");
-
-                // When another device adds/edits a patient → sync + reload.
                 _realtime.OnPatientChanged += async () =>
                 {
                     System.Diagnostics.Debug.WriteLine("[Realtime] Patient changed — reloading");
@@ -134,7 +143,6 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                     await LoadPatientsInternal();
                 };
 
-                // When another device makes a booking → update badge.
                 _realtime.OnNewBookingReceived += async () =>
                 {
                     NewBookingCount++;
@@ -142,6 +150,11 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                     await _realtime.SyncMissedPatientsAsync();
                     await LoadPatientsInternal();
                 };
+
+                _realtimeStarted = true;
+
+                // Fresh data is in now — refresh whatever's on screen.
+                await LoadPatientsInternal();
             }
             catch (Exception ex)
             {

@@ -2,6 +2,8 @@
 using ClinicApp.Models.SupabaseModels;
 using Supabase.Realtime;
 using Supabase.Realtime.PostgresChanges;
+using System.IO;
+using Microsoft.Maui.Networking;
 using static Supabase.Realtime.PostgresChanges.PostgresChangesOptions;
 
 namespace ClinicApp.Services.Database
@@ -25,6 +27,18 @@ namespace ClinicApp.Services.Database
         public async Task InitializeAsync(string url, string key)
         {
             if (_initialized) return;
+
+            // Fail fast when offline. Every other method in this class checks
+            // "if (_client == null) return;" first — so as long as _client never
+            // gets set while offline, none of the Subscribe*/SyncMissed* calls that
+            // follow this one will touch the network either. Without this, this one
+            // call alone could hang for the full HTTP timeout before
+            // StartRealtimeInternalAsync's outer try/catch ever caught anything.
+
+
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                throw new IOException("No internet connection.");
+
             var options = new Supabase.SupabaseOptions
             {
                 AutoConnectRealtime = true

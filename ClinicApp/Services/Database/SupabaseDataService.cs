@@ -3,6 +3,7 @@ using ClinicApp.Models.PatientModels;
 using ClinicApp.Models.SupabaseModels;
 using ClinicApp.Helpers;
 using Supabase;
+using Microsoft.Maui.Networking;
 
 namespace ClinicApp.Services
 {
@@ -26,6 +27,14 @@ namespace ClinicApp.Services
 
         public async Task EnsureInitializedAsync()
         {
+            // Fail fast when offline — this is a local, instant check (no network round trip),
+            // so every method that starts with "await EnsureInitializedAsync()" now fails in
+            // milliseconds instead of hanging on an HTTP timeout (15–100s per call). This is
+            // what was making the patient list take forever / show "No patients", and made
+            // editing offline feel frozen.
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                throw new IOException("No internet connection.");
+
             if (_initialized) return;
             await _initLock.WaitAsync();
             try

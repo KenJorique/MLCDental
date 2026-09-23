@@ -292,10 +292,8 @@ public partial class DatabaseService
         await Init();
         try
         {
-            await Init();
-            int result = await _database!.InsertAsync(patient);
-            System.Diagnostics.Debug.WriteLine($"Inserted: {result}");
-            // Check if patient with same phone already exists locally
+            // Check for an existing patient with this phone BEFORE inserting,
+            // so we never create duplicate rows.
             if (!string.IsNullOrEmpty(patient.MobileNo))
             {
                 var existing = await _database!.Table<Patient>()
@@ -306,24 +304,248 @@ public partial class DatabaseService
                 {
                     System.Diagnostics.Debug.WriteLine(
                         $"[DB] Patient with phone {patient.MobileNo} " +
-                        $"already exists (ID={existing.PatientID}) — skipping");
-                    // Copy the existing ID so callers can reference it
+                        $"already exists (ID={existing.PatientID}) — skipping insert");
                     patient.PatientID = existing.PatientID;
                     return;
                 }
             }
 
-            await _database!.InsertAsync(patient);
+            int result = await _database!.InsertAsync(patient);
             System.Diagnostics.Debug.WriteLine(
-                $"[DB] Patient added: {patient.FullName} " +
-                $"ID={patient.PatientID}");
+                $"[DB] Patient added: {patient.FullName} ID={patient.PatientID} (rows={result})");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DB] AddPatient: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[DB] AddPatient: {ex.Message}");
             throw;
         }
+    }
+
+    // Pushes one local patient's full record (patient, guardian, medical, allergy, conditions)
+    // to Supabase — insert if it has no SupabaseId yet, otherwise update. Returns the SupabaseId
+    // on success, null on failure (offline, RLS error, etc). This is the single source of truth
+    // for "sync one patient" — both the Add/Edit Patient save flow and the pending-sync retry
+    // below call into it, so they can't drift apart.
+    public async Task<string?> SyncPatientToSupabaseAsync(int localPatientId, string existingSupabaseId)
+    {
+        await Init();
+
+        var saved = await GetPatientById(localPatientId);
+        if (saved == null) return null;
+
+        var g = await GetGuardianByPatient(localPatientId);
+        var m = await GetMedicalHistory(localPatientId);
+        var a = await GetAllergy(localPatientId);
+        var conds = await GetPatientConditions(localPatientId);
+        var allConds = await GetAllConditions();
+        var selectedConditionNames = conds
+            .Select(pc => allConds.FirstOrDefault(c => c.ConditionID == pc.ConditionID)?.ConditionName)
+            .Where(n => n != null)
+            .Select(n => n!)
+            .ToList();
+
+        long? guardianId = null;
+        if (!string.IsNullOrWhiteSpace(g?.GuardianName))
+        {
+            var existingGuardian = await _supabase.FindGuardianAsync(g.GuardianName, g.MobileNo);
+            if (existingGuardian != null)
+            {
+                guardianId = existingGuardian.Id;
+                if (existingGuardian.Occupation != g.Occupation || existingGuardian.Mobile != g.MobileNo)
+                {
+                    existingGuardian.Occupation = g.Occupation;
+                    existingGuardian.Mobile = g.MobileNo;
+                    await _supabase.UpdateGuardianAsync(existingGuardian);
+                }
+            }
+            else
+            {
+                var created = await _supabase.AddGuardianAsync(new SupabaseGuardian
+                {
+                    Name = g.GuardianName,
+                    Occupation = g.Occupation,
+                    Mobile = g.MobileNo
+                });
+                guardianId = created?.Id;
+            }
+        }
+
+        string? supabaseId = string.IsNullOrEmpty(existingSupabaseId) ? saved.SupabaseId : existingSupabaseId;
+
+        if (!string.IsNullOrEmpty(supabaseId))
+        {
+            SupabasePatient? sp;
+            try
+            {
+                sp = await _supabase.GetPatientByIdAsync(supabaseId) ?? new SupabasePatient { Id = supabaseId };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sync] GetPatientByIdAsync failed: {ex.Message}");
+                return null;
+            }
+
+            sp.FirstName = saved.FirstName;
+            sp.LastName = saved.LastName;
+            sp.Nickname = saved.Nickname;
+            sp.Gender = saved.Gender;
+            sp.DateOfBirth = DateTime.TryParse(saved.DateOfBirth, out var dobU) ? dobU : null;
+            sp.Nationality = saved.Nationality;
+            sp.Religion = saved.Religion;
+            sp.Occupation = saved.Occupation;
+            sp.Address = saved.Address;
+            sp.Phone = saved.MobileNo;
+            sp.HomeNo = saved.HomeNo;
+            sp.OfficeNo = saved.OfficeNo;
+            sp.FaxNo = saved.FaxNo;
+            sp.Email = saved.Email;
+            sp.DateRegistered = DateTime.TryParse(saved.DateRegistered, out var regU)
+                ? regU.ToUniversalTime()
+                : sp.DateRegistered;
+            sp.ReferredBy = saved.ReferredBy;
+            sp.GoodHealth = m?.IsGoodHealth ?? true;
+            sp.UnderTreatment = m?.UnderMedicalTreatment ?? false;
+            sp.TreatmentDetails = m?.TreatmentDetails;
+            sp.Hospitalized = m?.HasBeenHospitalized ?? false;
+            sp.UsesTobacco = m?.UsesTobacco ?? false;
+            sp.OnMedications = m?.TakingMedications ?? false;
+            sp.GuardianId = guardianId;
+            sp.GuardianRelationship = g?.RelationshipToPatient;
+            sp.BloodType = m?.BloodType;
+            sp.LatexAllergy = a?.HasLatexAllergy ?? false;
+            sp.AspirinAllergy = a?.HasAspirinAllergy ?? false;
+            sp.PenicillinAllergy = a?.HasPenicillinAllergy ?? false;
+            sp.SulfaAllergy = a?.HasSulfaAllergy ?? false;
+            sp.LocalAnestheticAllergy = a?.HasLocalAnestheticAllergy ?? false;
+            sp.OtherAllergy = a?.OtherAllergy;
+
+            bool ok;
+            try { ok = await _supabase.UpdatePatientAsync(sp); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sync] UpdatePatientAsync failed: {ex.Message}");
+                return null;
+            }
+            if (!ok) return null;
+        }
+        else
+        {
+            var sp = new SupabasePatient
+            {
+                FirstName = saved.FirstName,
+                LastName = saved.LastName,
+                Nickname = saved.Nickname,
+                Gender = saved.Gender,
+                DateOfBirth = DateTime.TryParse(saved.DateOfBirth, out var dob) ? dob : null,
+                Nationality = saved.Nationality,
+                Religion = saved.Religion,
+                Occupation = saved.Occupation,
+                Address = saved.Address,
+                Phone = saved.MobileNo,
+                HomeNo = saved.HomeNo,
+                OfficeNo = saved.OfficeNo,
+                FaxNo = saved.FaxNo,
+                Email = saved.Email,
+                DateRegistered = DateTime.TryParse(saved.DateRegistered, out var reg)
+                    ? reg.ToUniversalTime()
+                    : DateTime.UtcNow,
+                ReferredBy = saved.ReferredBy,
+                GoodHealth = m?.IsGoodHealth ?? true,
+                UnderTreatment = m?.UnderMedicalTreatment ?? false,
+                TreatmentDetails = m?.TreatmentDetails,
+                Hospitalized = m?.HasBeenHospitalized ?? false,
+                UsesTobacco = m?.UsesTobacco ?? false,
+                OnMedications = m?.TakingMedications ?? false,
+                GuardianId = guardianId,
+                GuardianRelationship = g?.RelationshipToPatient,
+                BloodType = m?.BloodType,
+                LatexAllergy = a?.HasLatexAllergy ?? false,
+                AspirinAllergy = a?.HasAspirinAllergy ?? false,
+                PenicillinAllergy = a?.HasPenicillinAllergy ?? false,
+                SulfaAllergy = a?.HasSulfaAllergy ?? false,
+                LocalAnestheticAllergy = a?.HasLocalAnestheticAllergy ?? false,
+                OtherAllergy = a?.OtherAllergy
+            };
+
+            // IMPORTANT: this used to throw straight out of AddPatient/SavePatient when offline.
+            // Now we catch it here so a failed sync never blocks the local save/navigation —
+            // it just leaves SupabaseId blank so SyncPendingPatientsAsync retries it later.
+            SupabasePatient? inserted;
+            try { inserted = await _supabase.AddPatientAsync(sp); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sync] AddPatientAsync failed: {ex.Message}");
+                return null;
+            }
+
+            if (inserted == null || string.IsNullOrEmpty(inserted.Id))
+                return null;
+
+            supabaseId = inserted.Id;
+            saved.SupabaseId = supabaseId;
+            await UpdatePatient(saved);
+        }
+
+        if (!string.IsNullOrEmpty(supabaseId))
+        {
+            try
+            {
+                var remoteDefs = await _supabase.GetMedicalConditionsAsync();
+                var remoteIds = remoteDefs
+                    .Where(c => selectedConditionNames.Contains(c.Name))
+                    .Select(c => c.Id)
+                    .ToList();
+                await _supabase.SavePatientConditionsAsync(supabaseId, remoteIds);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sync] SavePatientConditionsAsync failed: {ex.Message}");
+                // Patient row itself synced fine — conditions can catch up next retry.
+            }
+        }
+
+        return supabaseId;
+    }
+
+    // Called on page startup and on manual refresh — pushes every patient that was created
+    // or edited while offline (SupabaseId still blank) up to Supabase. A blank SupabaseId only
+    // ever happens because SyncPatientToSupabaseAsync returned null above; this just retries
+    // those one at a time and quietly leaves any that still fail for next time.
+    public async Task<int> SyncPendingPatientsAsync()
+    {
+        await Init();
+        int synced = 0;
+        List<Patient> pending;
+        try
+        {
+            pending = await _database!.Table<Patient>()
+                .Where(p => p.SupabaseId == "" || p.SupabaseId == null)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PendingSync] Query error: {ex.Message}");
+            return 0;
+        }
+
+        foreach (var p in pending)
+        {
+            try
+            {
+                var id = await SyncPatientToSupabaseAsync(p.PatientID, "");
+                if (!string.IsNullOrEmpty(id))
+                {
+                    synced++;
+                    System.Diagnostics.Debug.WriteLine($"[PendingSync] Pushed PatientID={p.PatientID} → {id}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PendingSync] PatientID={p.PatientID} failed: {ex.Message}");
+            }
+        }
+
+        return synced;
     }
 
     public async Task UpdatePatient(Patient patient)

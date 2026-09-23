@@ -118,18 +118,18 @@
                                     <Setter Property="Opacity" Value="0.4"/>
                                 </DataTrigger>
                             </Grid.Triggers>
-                            <CheckBox Grid.Column="0"
+                            <!--<CheckBox Grid.Column="0"
                                       WidthRequest="22"
                                       HeightRequest="22"
                                       IsChecked="{Binding UseBiometricLock}"
                                       IsEnabled="{Binding RememberMe}"
-                                      Color="{StaticResource Primary}"/>
-                            <Label Grid.Column="1"
+                                      Color="{StaticResource Primary}"/>-->
+                            <!--<Label Grid.Column="1"
                                    Text="Unlock with fingerprint / Face ID"
                                    FontSize="12"
                                    TextColor="{StaticResource Gray500}"
                                    LineBreakMode="WordWrap"
-                                   VerticalOptions="Center"/>
+                                   VerticalOptions="Center"/>-->
                         </Grid>
 
                         <!-- Generic error — deliberately never says "no such account" vs "wrong password" -->
