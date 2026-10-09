@@ -333,16 +333,16 @@ namespace ClinicApp.ViewModels.PatientsRelatedVM
                             $"?patientId={card.Patient.SupabaseId}" +
                             $"&patientName={Uri.EscapeDataString(card.Patient.FullName)}"),
                 },
-                new ActionSheetOption
-                {
-                    Icon = "\ue872",
-                    Label = "Delete Patient",
-                    Subtitle = "Remove from records",
-                    LabelColor = Colors.Crimson,
-                    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
-                    IconColor = Colors.Crimson,
-                    OnTapped = async () => await DeletePatient(card),
-                },
+                //new ActionSheetOption
+                //{
+                //    Icon = "\ue872",
+                //    Label = "Delete Patient",
+                //    Subtitle = "Remove from records",
+                //    LabelColor = Colors.Crimson,
+                //    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
+                //    IconColor = Colors.Crimson,
+                //    OnTapped = async () => await DeletePatient(card),
+                //},
                     });
 
                 await sheet.ShowAsync();

@@ -123,16 +123,16 @@ public partial class UserViewModel : ObservableObject
                     OnTapped = async () =>
                         await Shell.Current.GoToAsync($"{nameof(AddUserPage)}?UserId={card.User.UserID}"),
                 },
-                new ActionSheetOption
-                {
-                    Icon = "\ue872",  // delete
-                    Label = "Delete",
-                    Subtitle = "Hide from staff list",
-                    LabelColor = Colors.Crimson,
-                    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
-                    IconColor = Colors.Crimson,
-                    OnTapped = async () => await SoftDeleteUserAsync(card),
-                },
+                //new ActionSheetOption
+                //{
+                //    Icon = "\ue872",  // delete
+                //    Label = "Delete",
+                //    Subtitle = "Hide from staff list",
+                //    LabelColor = Colors.Crimson,
+                //    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
+                //    IconColor = Colors.Crimson,
+                //    OnTapped = async () => await SoftDeleteUserAsync(card),
+                //},
             });
 
         await sheet.ShowAsync();

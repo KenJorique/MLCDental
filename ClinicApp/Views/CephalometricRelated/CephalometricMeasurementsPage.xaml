@@ -117,14 +117,14 @@
         </ScrollView>
 
         <!-- Bottom bar -->
-        <VerticalStackLayout Grid.Row="2" Padding="16" BackgroundColor="White"
+        <!--<VerticalStackLayout Grid.Row="2" Padding="16" BackgroundColor="White"
                              IsVisible="{Binding HasMeasurements}">
             <Button Text="{Binding SaveButtonText}"
                     Command="{Binding SaveCommand}"
                     IsEnabled="{Binding CanSave}"
                     BackgroundColor="#16A34A" TextColor="White"
                     CornerRadius="8" Padding="14"/>
-        </VerticalStackLayout>
+        </VerticalStackLayout>-->
 
     </Grid>
 

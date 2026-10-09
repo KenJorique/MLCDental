@@ -281,15 +281,15 @@ public partial class SupplyListViewModel : ObservableObject
                 OnTapped = async () =>
                     await Shell.Current.GoToAsync($"{nameof(AddSupplyPage)}?supplyId={card.Supply.Id}"),
             },
-            new ActionSheetOption
-            {
-                Icon = "\ue872",
-                Label = "Delete",
-                Subtitle = "Hide from supply list",
-                LabelColor = Colors.Crimson,
-                IconBackgroundColor = Color.FromArgb("#FFEBEE"),
-                OnTapped = async () => await DeleteSupplyAsync(card),
-            },
+            //new ActionSheetOption
+            //{
+            //    Icon = "\ue872",
+            //    Label = "Delete",
+            //    Subtitle = "Hide from supply list",
+            //    LabelColor = Colors.Crimson,
+            //    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
+            //    OnTapped = async () => await DeleteSupplyAsync(card),
+            //},
             });
 
         await sheet.ShowAsync();

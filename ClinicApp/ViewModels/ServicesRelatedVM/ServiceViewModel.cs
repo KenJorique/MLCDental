@@ -159,16 +159,16 @@ public partial class ServiceViewModel : ObservableObject
                         await Shell.Current.GoToAsync(
                             $"{nameof(AddServicePage)}?ServiceId={card.Service.Id}"),
                 },
-                new ActionSheetOption
-                {
-                    Icon = "\ue872",  // delete
-                    Label = "Delete",
-                    Subtitle = "Remove this service",
-                    LabelColor = Colors.Crimson,
-                    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
-                    IconColor = Colors.Crimson,
-                    OnTapped = async () => await DeleteServiceAsync(card),
-                },
+                //new ActionSheetOption
+                //{
+                //    Icon = "\ue872",  // delete
+                //    Label = "Delete",
+                //    Subtitle = "Remove this service",
+                //    LabelColor = Colors.Crimson,
+                //    IconBackgroundColor = Color.FromArgb("#FFEBEE"),
+                //    IconColor = Colors.Crimson,
+                //    OnTapped = async () => await DeleteServiceAsync(card),
+                //},
             });
 
         await sheet.ShowAsync();
